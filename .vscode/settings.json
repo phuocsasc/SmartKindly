@@ -1,0 +1,10 @@
+{
+    "editor.formatOnSave": true,
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+
+    // Tắt auto indent khi Enter
+    "editor.autoIndent": "none",
+    "editor.tabSize": 4
+    // "editor.insertSpaces": true,
+    // "editor.detectIndentation": false
+}

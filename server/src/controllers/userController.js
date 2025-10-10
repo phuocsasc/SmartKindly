@@ -3,9 +3,7 @@ import ms from 'ms';
 import { JwtProvider } from '~/providers/JwtProvider';
 import dotenv from 'dotenv';
 dotenv.config();
-import { MOCK_USER_LEVEL_1 } from '~/models/mockDatabase-level-1';
 import { MOCK_USER_LEVEL_2 } from '~/models/mockDatabase-level-2';
-import { MOCK_USER_LEVEL_3 } from '~/models/mockDatabase-level-3';
 
 // Mock nhanh thông tin user thay vì phải tạo Database rồi query.
 
@@ -20,7 +18,7 @@ const REFRESH_TOKEN_SECRET_SIGNATURE = process.env.REFRESH_TOKEN_SECRET_SIGNATUR
 
 const login = async (req, res) => {
     try {
-        if (req.body.email !== MOCK_USER_LEVEL_3.EMAIL || req.body.password !== MOCK_USER_LEVEL_3.PASSWORD) {
+        if (req.body.email !== MOCK_USER_LEVEL_2.EMAIL || req.body.password !== MOCK_USER_LEVEL_2.PASSWORD) {
             res.status(StatusCodes.UNAUTHORIZED).json({
                 message: 'Email hoặc Password không đúng.',
             });
@@ -30,10 +28,9 @@ const login = async (req, res) => {
         // Trường hợp nhập đúng thông tin tài khoản, tạo token và trả về cho phía Client
         // Tạo thông tin payload để đính kèm trong JWT Token: bao gồm id và email của user
         const userInfo = {
-            id: MOCK_USER_LEVEL_3.ID,
-            email: MOCK_USER_LEVEL_3.EMAIL,
-            // role: MOCK_USER_LEVEL_2.ROLE,
-            role: MOCK_USER_LEVEL_3.ROLES,
+            id: MOCK_USER_LEVEL_2.ID,
+            email: MOCK_USER_LEVEL_2.EMAIL,
+            role: MOCK_USER_LEVEL_2.ROLE,
         };
 
         // Tạo ra 2 loại token, accessToken và refreshToken để trả về cho phía FE

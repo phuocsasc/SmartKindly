@@ -5,16 +5,6 @@ dotenv.config();
 
 // Middleware này sẽ đảm nhiệm việc quan trọng: Lấy và xác thực cái JWT accessToken nhận được từ phía FE có hơp lệ hay không
 const isAuthorized = async (req, res, next) => {
-    // DÙng 1 cách thôi
-    // Cách 1: Lấy accessToken nằm trong request cookies phía client - withCredentials trong file authorizeAxios và credentials trong CORS
-    // const accessTokenFromCookie = req.cookies?.accessToken;
-    // if (!accessTokenFromCookie) {
-    //     res.status(StatusCodes.UNAUTHORIZED).json({ message: 'Unauthorized! (Token not found)' });
-    //     return;
-    // }
-    // console.log('accessTokenFromCookie: ', accessTokenFromCookie);
-    // console.log('-----');
-
     // Cách 2: Lấy accessToken trong trường hợp phía FE lưu localstorage và gửi lên thông qua header authorization
     const accessTokenFromHeader = req.headers.authorization;
     if (!accessTokenFromHeader) {
@@ -26,7 +16,6 @@ const isAuthorized = async (req, res, next) => {
     try {
         // Bước 01: Thực hiện giải mã token xem nó có hợp lệ hay là không
         const accessTokenDecoded = await JwtProvider.verifyToken(
-            // accessTokenFromCookie,                          // Dùng token theo cách 01 ở trên
             accessTokenFromHeader.substring('Bearer '.length), // Dùng token theo cách 02 ở trên
             process.env.ACCESS_TOKEN_SECRET_SIGNATURE,
         );

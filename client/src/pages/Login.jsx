@@ -1,13 +1,4 @@
-import {
-    Box,
-    Button,
-    Card as MuiCard,
-    CardActions,
-    TextField,
-    Zoom,
-    Alert,
-    Typography,
-} from '@mui/material';
+import { Box, Button, Card as MuiCard, CardActions, TextField, Zoom, Alert, Typography } from '@mui/material';
 
 import { useForm } from 'react-hook-form';
 import { useNavigate } from 'react-router-dom';
@@ -86,7 +77,6 @@ function Login() {
                         <Box sx={{ padding: '0 1em 1em 1em' }}>
                             <Box sx={{ marginTop: '1.2em' }}>
                                 <TextField
-                                    // eslint-disable-next-line jsx-a11y/no-autofocus
                                     autoFocus
                                     fullWidth
                                     label="Nhập Email..."
@@ -135,13 +125,7 @@ function Login() {
                             </Box>
                         </Box>
                         <CardActions sx={{ padding: '0.5em 1em 1em 1em' }}>
-                            <Button
-                                type="submit"
-                                variant="contained"
-                                color="primary"
-                                size="large"
-                                fullWidth
-                            >
+                            <Button type="submit" variant="contained" color="primary" size="large" fullWidth>
                                 Đăng nhập
                             </Button>
                         </CardActions>

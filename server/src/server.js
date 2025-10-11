@@ -1,23 +1,23 @@
 import express from 'express';
+import { CONNECT_DB, GET_DB } from '~/config/mongodb';
 import cors from 'cors';
-import cookieParser from 'cookie-parser';
 import { corsOptions } from '~/config/corsOptions';
 import { APIs_V1 } from '~/routes/v1/';
-import dotenv from 'dotenv';
-dotenv.config();
+import { env } from '~/config/environment';
 
 const START_SERVER = () => {
-    // Init Express App
     const app = express();
+
+    app.get('/', async (req, res) => {
+        console.log(await GET_DB().listCollections().toArray());
+        res.send('<h2>SmartKindly - Back-end Server is running successfully</h2>');
+    });
 
     // Fix Cache from disk from ExpressJS
     app.use((req, res, next) => {
         res.set('Cache-Control', 'no-store');
         next();
     });
-
-    // Use Cookie
-    app.use(cookieParser());
 
     // Allow CORS: for more info, check here: https://youtu.be/iYgAWJ2Djkw
     app.use(cors(corsOptions));
@@ -28,22 +28,18 @@ const START_SERVER = () => {
     // Use Route APIs V1
     app.use('/v1', APIs_V1);
 
-    // Should be store to env in the actual product: check here: https://youtu.be/Vgr3MWb7aOw
-    const LOCAL_DEV_APP_PORT = process.env.LOCAL_DEV_APP_PORT || 8017;
-    const LOCAL_DEV_APP_HOST = process.env.LOCAL_DEV_APP_HOST || 'localhost';
-    const AUTHOR = process.env.AUTHOR;
-    app.listen(LOCAL_DEV_APP_PORT, LOCAL_DEV_APP_HOST, () => {
-        console.log(
-            `✅ Local DEV: Hello ${AUTHOR}, Back-end Server is running successfully at Host: ${LOCAL_DEV_APP_HOST} and Port: ${LOCAL_DEV_APP_PORT}`,
-        );
+    app.listen(env.PORT, env.HOSTNAME, () => {
+        console.log(`3. ✅ Local DEV: Back-end Server is running successfully at http://${env.HOSTNAME}:${env.PORT}/`);
     });
 };
 
+// Chỉ khi kết nối Database thành công thì mới Start Server Back-end lên.
 (async () => {
     try {
-        // Start Back-end Server
-        console.log('Starting Server...');
-        START_SERVER();
+        console.log('1. Connecting to MongoDB Cloud Atlas...');
+        await CONNECT_DB(); // 2. Kết nối thành công
+        // Khởi động Server Back-end sau khi Connect Database thành công
+        START_SERVER(); // 3. Start Server thành công
     } catch (error) {
         console.error(error);
         process.exit(0);

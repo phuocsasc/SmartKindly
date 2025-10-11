@@ -51,5 +51,5 @@ export const MOCK_USER_LEVEL_2 = {
     ID: 'Phuoc-dev-22102004',
     EMAIL: 'phuoctran.22102004@gmail.com',
     PASSWORD: 'phuocdev@123',
-    ROLE: 'admin', // Role phải là unique và ăn theo đúng name với bằng role trong DB như trên
+    ROLE: 'client', // Role phải là unique và ăn theo đúng name với bằng role trong DB như trên
 };

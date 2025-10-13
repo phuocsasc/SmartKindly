@@ -6,6 +6,9 @@ import AccessDenied from '~/pages/AccessDenied';
 import RbacRoute from '~/components/core/RbacRoute';
 import { permissions } from '~/config/rbacConfig';
 
+// Users
+import UserManagement from '~/pages/Users/UserManagement';
+
 /**
  * Giải pháp Clean Code trong việc xác định các route nào cần đăng nhập tài khoản xong thì mới cho truy cập
  * Sử dụng <Outlet /> của react-router-dom để hiển thị các Child Route
@@ -46,6 +49,9 @@ function App() {
                     thực tế có thể tách pages vào các component khác nhau tùy dự án */}
 
                 {/* Nếu RbacRoute viết code theo cách Dùng Outlet  */}
+
+                <Route path="/users" element={<UserManagement />} />
+
                 <Route element={<RbacRoute requiredPermission={permissions.VIEW_DASHBOARD} />}>
                     <Route path="/dashboard" element={<Dashboard />} />
                 </Route>

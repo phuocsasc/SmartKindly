@@ -1,23 +1,23 @@
 import express from 'express';
-import { CONNECT_DB, GET_DB } from '~/config/mongodb';
 import cors from 'cors';
+import { CONNECT_DB } from '~/config/mongodb';
+import cookieParser from 'cookie-parser';
+import { env } from '~/config/environment';
 import { corsOptions } from '~/config/corsOptions';
 import { APIs_V1 } from '~/routes/v1/';
-import { env } from '~/config/environment';
+import { errorHandlingMiddleware } from '~/middlewares/errorHandlingMiddleware';
 
 const START_SERVER = () => {
     const app = express();
-
-    app.get('/', async (req, res) => {
-        console.log(await GET_DB().listCollections().toArray());
-        res.send('<h2>SmartKindly - Back-end Server is running successfully</h2>');
-    });
 
     // Fix Cache from disk from ExpressJS
     app.use((req, res, next) => {
         res.set('Cache-Control', 'no-store');
         next();
     });
+
+    // Use Cookie Parser
+    app.use(cookieParser());
 
     // Allow CORS: for more info, check here: https://youtu.be/iYgAWJ2Djkw
     app.use(cors(corsOptions));
@@ -27,6 +27,9 @@ const START_SERVER = () => {
 
     // Use Route APIs V1
     app.use('/v1', APIs_V1);
+
+    // Middleware xử lý lỗi tập trung trong ứng dụng Back-end NodeJS (ExpressJS)
+    app.use(errorHandlingMiddleware);
 
     app.listen(env.PORT, env.HOSTNAME, () => {
         console.log(`3. ✅ Local DEV: Back-end Server is running successfully at http://${env.HOSTNAME}:${env.PORT}/`);
@@ -42,6 +45,6 @@ const START_SERVER = () => {
         START_SERVER(); // 3. Start Server thành công
     } catch (error) {
         console.error(error);
-        process.exit(0);
+        process.exit(1);
     }
 })();

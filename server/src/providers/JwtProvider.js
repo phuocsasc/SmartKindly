@@ -17,13 +17,14 @@ import JWT from 'jsonwebtoken';
 const generateToken = async (userInfo, secretSignature, tokenLife) => {
     try {
         // Hàm sign() của jsonwebtoken để tạo token
-        const token = JWT.sign(userInfo , secretSignature, {
+        const token = JWT.sign(userInfo, secretSignature, {
             algorithm: 'HS256',
             expiresIn: tokenLife,
         });
         return token;
-
-    } catch (error) { throw new Error(error) }
+    } catch (error) {
+        throw new Error(error);
+    }
 };
 
 const verifyToken = async (token, secretSignature) => {
@@ -31,8 +32,9 @@ const verifyToken = async (token, secretSignature) => {
         // Hàm verify() của jsonwebtoken để xác thực token
         const decoded = JWT.verify(token, secretSignature);
         return decoded;
-        
-    } catch (error) { throw new Error(error) }
+    } catch (error) {
+        throw new Error(error);
+    }
 };
 
 export const JwtProvider = {

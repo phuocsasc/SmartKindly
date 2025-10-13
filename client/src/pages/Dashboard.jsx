@@ -98,9 +98,9 @@ function Dashboard() {
             <Alert severity="info" sx={{ '.MuiAlert-message': { overflow: 'hidden' }, width: { md: 'max-content' } }}>
                 Đây là trang Dashboard sau khi user:&nbsp;
                 <Typography variant="span" sx={{ fontWeight: 'bold', '&:hover': { color: '#fdba26' } }}>
-                    {user?.email}
+                    {user?.username}
                 </Typography>
-                &nbsp; đăng nhập thành công thì mới cho truy cập vào.
+                &nbsp;
             </Alert>
             <Alert
                 severity="success"

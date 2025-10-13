@@ -20,7 +20,7 @@ function Login() {
         // console.log(res.data);
         const userInfo = {
             id: res.data.id,
-            email: res.data.email,
+            username: res.data.username,
             role: res.data.role,
         };
 
@@ -79,15 +79,15 @@ function Login() {
                                 <TextField
                                     autoFocus
                                     fullWidth
-                                    label="Nhập Email..."
-                                    type="email"
+                                    label="Nhập username..."
+                                    type="username"
                                     variant="outlined"
-                                    error={!!errors.email}
-                                    {...register('email', {
-                                        required: 'Vui lòng nhập Email',
+                                    error={!!errors.username}
+                                    {...register('username', {
+                                        required: 'Vui lòng nhập username',
                                     })}
                                 />
-                                {errors.email && (
+                                {errors.username && (
                                     <Alert
                                         severity="error"
                                         sx={{
@@ -95,7 +95,7 @@ function Login() {
                                             '.MuiAlert-message': { overflow: 'hidden' },
                                         }}
                                     >
-                                        {errors.email.message}
+                                        {errors.username.message}
                                     </Alert>
                                 )}
                             </Box>

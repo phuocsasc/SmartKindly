@@ -6,10 +6,6 @@ import { handleLogoutApi, refreshTokenApi } from '~/apis';
 let authorizedAxiosInstance = axios.create();
 // Thời gian chờ tối đa của 1 request: để 10 phút
 authorizedAxiosInstance.defaults.timeout = 1000 * 60 * 10;
-// withCredentials: Sẽ cho phép axios tự động đính kèm và gửi cookie trong mỗi request lên BE
-// (phục vụ trường hợp nếu chúng ta sử dụng JWT tokens (refresh & access) theo cơ chế httpOnly Cookie)
-// ✅ Quan trọng: để trình duyệt chấp nhận nhận cookie từ server
-// authorizedAxiosInstance.defaults.withCredentials = true;
 
 // Cấu hình Interceptors (Bộ đánh chặn vào giữa mọi Request & Response)
 // Add a request interceptor: Can thiệp vào giữa những cái request API
@@ -50,7 +46,6 @@ authorizedAxiosInstance.interceptors.response.use(
             // handleLogoutApi().then(() => {
             //     // Nếu trường hợp dùng cookie thì nhớ xóa userInfo trong localstorage
             //     // localStorage.removeItem('userInfo')
-
             //     // Điều hướng tới trang Login sau khi Logout thành công, dùng JS thuần.
             //     location.href = '/login';
             // });

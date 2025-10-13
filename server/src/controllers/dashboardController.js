@@ -5,7 +5,7 @@ const access = async (req, res) => {
         // console.log('req.jwtDecoded: ', req.jwtDecoded);
         const userInfo = {
             id: req.jwtDecoded.id,
-            email: req.jwtDecoded.email,
+            username: req.jwtDecoded.username,
             role: req.jwtDecoded.role,
         };
 

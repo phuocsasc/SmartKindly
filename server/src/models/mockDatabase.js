@@ -1,7 +1,7 @@
 // Level 2: Vẫn là một user chỉ được gắn với một vai trò (role) duy nhất, nhưng mỗi role có thể có nhiều quyền hạn
 // permissions  khác nhau chia nhỏ ra. CRUD (Create, Read, Update, Delete)
 
-export const MOCK_ROLES_LEVEL_2 = [
+export const MOCK_ROLES = [
     // client
     {
         _id: 'role-client-sample-id-123456',
@@ -47,9 +47,9 @@ export const MOCK_ROLES_LEVEL_2 = [
     },
 ];
 
-export const MOCK_USER_LEVEL_2 = {
+export const MOCK_USER = {
     ID: 'Phuoc-dev-22102004',
-    EMAIL: 'phuoctran.22102004@gmail.com',
+    username: 'phuoctran.22102004@gmail.com',
     PASSWORD: 'phuocdev@123',
-    ROLE: 'client', // Role phải là unique và ăn theo đúng name với bằng role trong DB như trên
+    ROLE: 'moderator', // Role phải là unique và ăn theo đúng name với bằng role trong DB như trên
 };

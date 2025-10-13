@@ -64,16 +64,6 @@ function App() {
                 <Route element={<RbacRoute requiredPermission={permissions.VIEW_ADMIN_TOOLS} />}>
                     <Route path="/admin-tools" element={<Dashboard />} />
                 </Route>
-
-                {/* Nếu RbacRoute viết code theo cách Dùng children  */}
-                {/* <Route
-                    path="/dashboard"
-                    element={
-                        <RbacRoute requiredPermission={permissions.VIEW_DASHBOARD}>
-                            <Dashboard />
-                        </RbacRoute>
-                    }
-                /> */}
             </Route>
             <Route path="/access-denied" element={<AccessDenied />} />
             <Route path="*" element={<NotFound />} />

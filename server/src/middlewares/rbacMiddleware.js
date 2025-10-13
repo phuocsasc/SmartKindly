@@ -1,5 +1,5 @@
 import { StatusCodes } from 'http-status-codes';
-import { MOCK_ROLES_LEVEL_2 } from '~/models/mockDatabase-level-2';
+import { MOCK_ROLES } from '~/models/mockDatabase';
 
 // Middleware Level 2 phức tạp hơn Level 1: lúc này chúng ta sẽ nhận tham số đầu vào là
 // một mảng permission được phép truy cập vào API.
@@ -22,7 +22,7 @@ const isValidPermission = (requiredPermissions) => async (req, res, next) => {
         }
 
         // Bước 04: Dựa theo role của user rồi tìm tiếp trong database để lấy đầy đủ thông tin của role đó
-        const fullUserRole = MOCK_ROLES_LEVEL_2.find((item) => item.name === userRole);
+        const fullUserRole = MOCK_ROLES.find((item) => item.name === userRole);
         console.log('fullUserRole', fullUserRole);
         if (!fullUserRole) {
             res.status(StatusCodes.FORBIDDEN).json({ message: 'Forbiden: không tồn tại role của bạn trong hệ thống' });
@@ -42,9 +42,9 @@ const isValidPermission = (requiredPermissions) => async (req, res, next) => {
         // Bước 06: Nếu role hợp lệ thì cho phép request đi tiếp (sang controller)
         next();
     } catch (error) {
-        console.log('Error from rbacMiddleware_Level_2: ', error);
+        console.log('Error from rbacMiddleware: ', error);
         res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ message: 'Oops! Something went wrong.' });
     }
 };
 
-export const rbacMiddleware_Level_2 = { isValidPermission };
+export const rbacMiddleware = { isValidPermission };

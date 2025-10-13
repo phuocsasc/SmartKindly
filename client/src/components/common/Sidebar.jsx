@@ -137,21 +137,6 @@ function Sidebar({ collapsed, onToggle }) {
                     overflowX: 'hidden',
                     backgroundColor: '#f5f5f5',
                     borderRight: '1px solid #e0e0e0',
-
-                    /* ✅ Scrollbar Custom */
-                    '&::-webkit-scrollbar': {
-                        width: '4px',
-                    },
-                    '&::-webkit-scrollbar-track': {
-                        backgroundColor: '#e3f2fd',
-                    },
-                    '&::-webkit-scrollbar-thumb': {
-                        backgroundColor: '#90caf9',
-                        borderRadius: '18px',
-                    },
-                    '&::-webkit-scrollbar-thumb:hover': {
-                        backgroundColor: '#64b5f6',
-                    },
                 },
             }}
         >
@@ -174,7 +159,28 @@ function Sidebar({ collapsed, onToggle }) {
             </Box>
 
             <Divider />
-            <List>
+            <List
+                sx={{
+                    overflowY: 'auto', // ✅ Scroll chỉ trong menu
+                    maxHeight: 'calc(100vh - 64px)', // ✅ trừ chiều cao header (64px)
+                    mt: 0.5,
+
+                    /* ✅ Scrollbar Custom */
+                    '&::-webkit-scrollbar': {
+                        width: '4px',
+                    },
+                    '&::-webkit-scrollbar-track': {
+                        backgroundColor: '#e3f2fd',
+                    },
+                    '&::-webkit-scrollbar-thumb': {
+                        backgroundColor: '#90caf9',
+                        borderRadius: '18px',
+                    },
+                    '&::-webkit-scrollbar-thumb:hover': {
+                        backgroundColor: '#64b5f6',
+                    },
+                }}
+            >
                 {menuItems.map((item) => {
                     const hasChildren = !!item.children;
 

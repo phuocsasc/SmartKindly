@@ -1,33 +1,21 @@
-import { Alert, Box, Typography, CircularProgress, Divider, Tab } from '@mui/material';
+import { Alert, Box, Typography, Divider, Tab } from '@mui/material';
 import { TabContext, TabList, TabPanel } from '@mui/lab';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 
-import authorizedAxiosInstance from '~/utils/authorizedAxios';
-import { API_ROOT, TAB_URLS } from '~/utils/constants';
+import { TAB_URLS } from '~/utils/constants';
 import thumnailOnePice from '~/assets/one-pice-banner.jpg';
 import coverOnepice from '~/assets/one-piece-manga-covers.jpg';
 import { usePermission } from '~/hooks/usePermission';
 import { permissions } from '~/config/rbacConfig';
 import MainLayout from '~/layouts/MainLayout';
+import { useUser } from '~/contexts/UserContext';
 
 function Dashboard() {
-    const [user, setUser] = useState(null);
     const location = useLocation();
+    const { user } = useUser();
     const { hasPermission } = usePermission(user?.role);
-
-    if (user) {
-        console.log(hasPermission(permissions.VIEW_DASHBOARD));
-    }
-
-    useEffect(() => {
-        const fetchData = async () => {
-            const res = await authorizedAxiosInstance.get(`${API_ROOT}/v1/dashboards/access`);
-            setUser(res.data);
-        };
-        fetchData();
-    }, []);
 
     const getDefaultActiveTab = () => {
         let activeTab = TAB_URLS.DASHBOARD;
@@ -41,24 +29,6 @@ function Dashboard() {
     const handleChange = (event, newTab) => {
         setTab(newTab);
     };
-
-    if (!user) {
-        return (
-            <Box
-                sx={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: 2,
-                    width: '100vw',
-                    height: '100vh',
-                }}
-            >
-                <CircularProgress />
-                <Typography>Loading dashboard user...</Typography>
-            </Box>
-        );
-    }
 
     return (
         <MainLayout user={user}>

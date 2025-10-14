@@ -3,17 +3,17 @@ import AccountCircleOutlinedIcon from '@mui/icons-material/AccountCircleOutlined
 import LabelImportantOutlinedIcon from '@mui/icons-material/LabelImportantOutlined';
 import { useNavigate } from 'react-router-dom';
 import LogoutIcon from '@mui/icons-material/Logout';
+import { useUser } from '~/contexts/UserContext';
 
-function Header({ user = null, schoolName = 'Trường Mầm Non Kim Phụng', sidebarCollapsed = false }) {
+function Header({ schoolName = 'Trường Mầm Non Kim Phụng', sidebarCollapsed = false }) {
     const navigate = useNavigate();
+    const { user, clearUser } = useUser();
 
     const displayUsername = user?.username || 'Guest';
     const displayRole = user?.role || 'no role';
 
     const handleLogout = () => {
-        localStorage.removeItem('accessToken');
-        localStorage.removeItem('refreshToken');
-        localStorage.removeItem('userInfo');
+        clearUser();
         navigate('/login');
     };
 
@@ -30,7 +30,6 @@ function Header({ user = null, schoolName = 'Trường Mầm Non Kim Phụng', s
             }}
         >
             <Toolbar sx={{ justifyContent: 'space-between', minHeight: '64px !important' }}>
-                {/* Bên trái - Tên trường học */}
                 <Typography
                     variant="h6"
                     component="div"
@@ -43,7 +42,6 @@ function Header({ user = null, schoolName = 'Trường Mầm Non Kim Phụng', s
                     {schoolName}
                 </Typography>
 
-                {/* Bên phải - Username và nút logout */}
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                     <Typography
                         variant="body2"

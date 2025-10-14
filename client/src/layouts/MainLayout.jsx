@@ -2,9 +2,11 @@ import { useState } from 'react';
 import { Box, CssBaseline } from '@mui/material';
 import Header from '~/components/common/Header';
 import Sidebar from '~/components/common/Sidebar';
+import { useUser } from '~/contexts/UserContext';
 
-function MainLayout({ children, user = null }) {
+function MainLayout({ children }) {
     const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+    const { user } = useUser();
 
     const handleSidebarToggle = () => {
         setSidebarCollapsed(!sidebarCollapsed);

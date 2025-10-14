@@ -22,8 +22,7 @@ import MedicalServicesOutlinedIcon from '@mui/icons-material/MedicalServicesOutl
 import StorageOutlinedIcon from '@mui/icons-material/StorageOutlined';
 import SwitchAccountOutlinedIcon from '@mui/icons-material/SwitchAccountOutlined';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { useState, useEffect } from 'react';
 
 const menuItems = [
     { text: 'Trang chủ', icon: <DashboardIcon />, path: '/dashboard' },
@@ -61,7 +60,6 @@ const menuItems = [
             { text: 'Đánh giá hoàn thành chương trình', path: '/children/program-complete' },
         ],
     },
-    // ✅ MENU THÊM MỚI PHÍA DƯỚI
     {
         text: 'Kế hoạch giáo dục',
         icon: <HistoryEduOutlinedIcon />,
@@ -112,6 +110,27 @@ function Sidebar({ collapsed, onToggle }) {
 
     const drawerWidth = collapsed ? 80 : 240;
 
+    // ✅ Logic mới: Quản lý menu mở/đóng thông minh hơn
+    useEffect(() => {
+        const currentPath = location.pathname;
+
+        // Tìm parent menu chứa route đang active
+        const activeParent = menuItems.find((item) => item.children?.some((child) => child.path === currentPath));
+
+        // Nếu có parent đang active
+        if (activeParent) {
+            setOpenMenus((prev) => {
+                // ⛔ Nếu parent đã mở rồi -> KHÔNG cập nhật -> tránh nhấp nháy
+                if (prev[activeParent.text]) {
+                    return prev;
+                }
+
+                // ✅ Nếu chưa mở -> mở đúng 1 parent thôi
+                return { [activeParent.text]: true };
+            });
+        }
+    }, [location.pathname]);
+
     const handleToggleMenu = (text) => {
         setOpenMenus((prev) => ({ ...prev, [text]: !prev[text] }));
     };
@@ -124,6 +143,28 @@ function Sidebar({ collapsed, onToggle }) {
         }
     };
 
+    // ✅ Sửa lại chỉ đóng các parent khác, không gây nhấp nháy
+    const handleSubMenuClick = (path, parentText) => {
+        setOpenMenus((prev) => {
+            // Nếu click lại submenu cùng parent -> KHÔNG đổi state -> KHÔNG nhấp nháy
+            if (prev[parentText]) return prev;
+
+            // Nếu chuyển sang parent khác -> đóng parent cũ, mở parent mới
+            return { [parentText]: true };
+        });
+
+        navigate(path);
+    };
+
+    // ✅ Kiểm tra xem menu item có active không (bao gồm cả children)
+    const isMenuActive = (item) => {
+        if (item.path && location.pathname === item.path) return true;
+        if (item.children) {
+            return item.children.some((child) => location.pathname === child.path);
+        }
+        return false;
+    };
+
     return (
         <Drawer
             variant="permanent"
@@ -134,7 +175,8 @@ function Sidebar({ collapsed, onToggle }) {
                     width: drawerWidth,
                     boxSizing: 'border-box',
                     transition: 'width 0.3s ease',
-                    overflowX: 'hidden',
+                    overflowX: 'hidden', // ✅ Ẩn scroll ngang
+                    overflowY: 'auto', // ✅ Chỉ cho phép scroll dọc
                     backgroundColor: '#f5f5f5',
                     borderRight: '1px solid #e0e0e0',
                 },
@@ -161,11 +203,11 @@ function Sidebar({ collapsed, onToggle }) {
             <Divider />
             <List
                 sx={{
-                    overflowY: 'auto', // ✅ Scroll chỉ trong menu
-                    maxHeight: 'calc(100vh - 64px)', // ✅ trừ chiều cao header (64px)
+                    overflowY: 'auto',
+                    overflowX: 'hidden', // ✅ Ẩn scroll ngang trong List
+                    maxHeight: 'calc(100vh - 64px)',
                     mt: 0.5,
-
-                    /* ✅ Scrollbar Custom */
+                    width: '100%', // ✅ Đảm bảo List không vượt quá width container
                     '&::-webkit-scrollbar': {
                         width: '4px',
                     },
@@ -183,107 +225,108 @@ function Sidebar({ collapsed, onToggle }) {
             >
                 {menuItems.map((item) => {
                     const hasChildren = !!item.children;
+                    const isActive = isMenuActive(item);
 
                     return (
                         <Box key={item.text}>
                             <ListItem disablePadding>
                                 <ListItemButton
                                     onClick={() => handleMenuClick(item.path, hasChildren, item.text)}
-                                    selected={location.pathname === item.path}
+                                    selected={isActive}
                                     sx={{
                                         minHeight: 44,
                                         px: collapsed ? 1.5 : 2,
-                                        backgroundColor: location.pathname === item.path ? '#e3f2fd' : 'transparent',
-                                        borderLeft:
-                                            location.pathname === item.path
-                                                ? '4px solid #1976d2'
-                                                : '4px solid transparent',
+                                        backgroundColor: isActive ? '#e3f2fd' : 'transparent',
+                                        borderLeft: isActive ? '4px solid #1976d2' : '4px solid transparent',
                                         '&:hover': {
                                             backgroundColor: '#e3f2fd',
                                         },
                                         transition: 'all 0.2s',
+                                        width: '100%', // ✅ Đảm bảo button không vượt quá container
+                                        overflow: 'hidden', // ✅ Ẩn overflow cho button
                                         '& .MuiListItemIcon-root': {
                                             minWidth: 32,
                                             justifyContent: 'center',
-                                            color: location.pathname === item.path ? '#1976d2' : '#555',
+                                            color: isActive ? '#1976d2' : '#555',
                                         },
                                         '& .MuiListItemText-root': {
                                             opacity: collapsed ? 0 : 1,
                                             whiteSpace: 'nowrap',
                                             transition: 'opacity 0.3s',
                                             ml: collapsed ? 0 : 0.8,
+                                            overflow: 'hidden', // ✅ Ẩn overflow cho text
                                         },
                                     }}
                                 >
                                     <ListItemIcon
                                         sx={{
-                                            minWidth: 24, // ✅ Giảm khoảng cách icon
-                                            mr: collapsed ? 0 : 0.2, // ✅ Canh đều với text
+                                            minWidth: 24,
+                                            mr: collapsed ? 0 : 0.2,
                                             ml: collapsed ? 0 : -1,
                                             justifyContent: 'center',
-                                            color: '#555',
+                                            color: isActive ? '#1976d2' : '#555',
                                         }}
                                     >
                                         {item.icon}
                                     </ListItemIcon>
-                                    <ListItemText primary={item.text} sx={{ opacity: collapsed ? 0 : 1 }} />
+                                    <ListItemText
+                                        primary={item.text}
+                                        sx={{
+                                            opacity: collapsed ? 0 : 1,
+                                            display: collapsed ? 'none' : 'block', // ✅ Ẩn hoàn toàn khi collapsed
+                                            '& .MuiListItemText-primary': {
+                                                fontWeight: isActive ? 600 : 400,
+                                                color: isActive ? '#1976d2' : 'inherit',
+                                                overflow: 'hidden', // ✅ Ẩn overflow cho text
+                                                textOverflow: 'ellipsis', // ✅ Thêm ellipsis nếu text quá dài
+                                            },
+                                        }}
+                                    />
                                     {hasChildren &&
                                         !collapsed &&
                                         (openMenus[item.text] ? <ExpandLess /> : <ExpandMore />)}
                                 </ListItemButton>
                             </ListItem>
 
-                            {/* Sub menu */}
-
-                            <AnimatePresence>
-                                {openMenus[item.text] && !collapsed && (
-                                    <motion.div
-                                        initial={{ height: 0, opacity: 0 }}
-                                        animate={{ height: 'auto', opacity: 1 }}
-                                        exit={{ height: 0, opacity: 0 }}
-                                        transition={{ duration: 0.25, ease: 'easeInOut' }}
-                                    >
-                                        {/* submenu list here */}
-                                        {hasChildren && (
-                                            <Collapse
-                                                in={openMenus[item.text] && !collapsed}
-                                                timeout={300}
+                            {/* ✅ Sử dụng Collapse thay vì framer-motion để tránh re-mount */}
+                            {hasChildren && (
+                                <Collapse
+                                    in={openMenus[item.text] && !collapsed}
+                                    timeout={300}
+                                    unmountOnExit={false} // ✅ Quan trọng: không unmount component
+                                >
+                                    <List component="div" disablePadding>
+                                        {item.children.map((child) => (
+                                            <ListItemButton
+                                                key={child.text}
+                                                selected={location.pathname === child.path}
+                                                onClick={() => handleSubMenuClick(child.path, item.text)} // ✅ Sử dụng handleSubMenuClick
                                                 sx={{
-                                                    transition: 'all 0.3s ease',
+                                                    pl: collapsed ? 2 : 6,
+                                                    py: 0.8,
+                                                    backgroundColor:
+                                                        location.pathname === child.path ? '#e8f0fe' : 'transparent',
+                                                    '&:hover': { backgroundColor: '#f1f5ff' },
+                                                    borderLeft:
+                                                        location.pathname === child.path
+                                                            ? '3px solid #1976d2'
+                                                            : '3px solid transparent',
+                                                    transition: 'all 0.2s ease',
                                                 }}
                                             >
-                                                <List component="div" disablePadding>
-                                                    {item.children.map((child) => (
-                                                        <ListItemButton
-                                                            key={child.text}
-                                                            selected={location.pathname === child.path}
-                                                            onClick={() => navigate(child.path)}
-                                                            sx={{
-                                                                pl: collapsed ? 2 : 6,
-                                                                py: 0.8,
-                                                                backgroundColor:
-                                                                    location.pathname === child.path
-                                                                        ? '#e8f0fe'
-                                                                        : 'transparent',
-                                                                '&:hover': { backgroundColor: '#f1f5ff' },
-                                                                borderLeft:
-                                                                    location.pathname === child.path
-                                                                        ? '3px solid #1976d2'
-                                                                        : '3px solid transparent',
-                                                            }}
-                                                        >
-                                                            <ListItemText
-                                                                primary={child.text}
-                                                                primaryTypographyProps={{ fontSize: 14 }}
-                                                            />
-                                                        </ListItemButton>
-                                                    ))}
-                                                </List>
-                                            </Collapse>
-                                        )}
-                                    </motion.div>
-                                )}
-                            </AnimatePresence>
+                                                <ListItemText
+                                                    primary={child.text}
+                                                    primaryTypographyProps={{
+                                                        fontSize: 14,
+                                                        fontWeight: location.pathname === child.path ? 600 : 400,
+                                                        color: location.pathname === child.path ? '#1976d2' : 'inherit',
+                                                    }}
+                                                />
+                                            </ListItemButton>
+                                        ))}
+                                    </List>
+                                </Collapse>
+                            )}
                         </Box>
                     );
                 })}

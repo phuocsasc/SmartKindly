@@ -6,6 +6,7 @@ import { useNavigate } from 'react-router-dom';
 import PhuocDevIcon from '../assets/logo_TNP.png';
 import authorizedAxiosInstance from '~/utils/authorizedAxios';
 import { API_ROOT } from '~/utils/constants';
+import { useUser } from '~/contexts/UserContext'; // ✅ Import useUser
 
 function Login() {
     const {
@@ -14,20 +15,24 @@ function Login() {
         formState: { errors },
     } = useForm();
     const navigate = useNavigate();
+    const { updateUser } = useUser(); // ✅ Lấy updateUser từ context
 
     const submitLogIn = async (data) => {
         const res = await authorizedAxiosInstance.post(`${API_ROOT}/v1/users/login`, data);
-        // console.log(res.data);
+
         const userInfo = {
             id: res.data.id,
             username: res.data.username,
             role: res.data.role,
         };
 
-        // Lưu token và thông tin của User vào LocalStorage, dùng JS thuần.
+        // Lưu token và thông tin của User vào LocalStorage
         localStorage.setItem('accessToken', res.data.accessToken);
         localStorage.setItem('refreshToken', res.data.refreshToken);
         localStorage.setItem('userInfo', JSON.stringify(userInfo));
+
+        // ✅ CẬP NHẬT: Cập nhật user vào context ngay sau khi login
+        updateUser(userInfo);
 
         // Điều hướng tới trang Dashboard khi login thành công
         navigate('/dashboard');

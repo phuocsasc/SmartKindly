@@ -1,4 +1,20 @@
-import { Box, Typography, Paper, Breadcrumbs, Link, Chip, IconButton, Tooltip, TextField } from '@mui/material';
+// client/src/pages/Users/UserManagement.jsx
+import {
+    Box,
+    Typography,
+    Paper,
+    Breadcrumbs,
+    Link,
+    Chip,
+    IconButton,
+    Tooltip,
+    TextField,
+    FormControl,
+    InputLabel,
+    Select,
+    MenuItem,
+    CircularProgress,
+} from '@mui/material';
 import { DataGrid } from '@mui/x-data-grid';
 import { Home as HomeIcon } from '@mui/icons-material';
 import AddCircleOutlineOutlinedIcon from '@mui/icons-material/AddCircleOutlineOutlined';
@@ -9,80 +25,177 @@ import GroupsIcon from '@mui/icons-material/Groups';
 import PersonIcon from '@mui/icons-material/Person';
 import AccountBalanceIcon from '@mui/icons-material/AccountBalance';
 import FamilyRestroomIcon from '@mui/icons-material/FamilyRestroom';
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState } from 'react';
 import MainLayout from '~/layouts/MainLayout';
-import { MOCK_USERS } from '~/utils/MockDataUsers';
 import { useUser } from '~/contexts/UserContext';
+import { userApi } from '~/apis/userApi';
+import { ROLES, ROLE_DISPLAY, PERMISSIONS } from '~/config/rbacConfig';
+import { usePermission } from '~/hooks/usePermission';
+import { toast } from 'react-toastify';
+import UserDialog from './UserDialog';
 
-// ✅ Cấu hình màu sắc cho từng vai trò
+// Cấu hình màu sắc và icon cho từng vai trò
 const ROLE_CONFIG = {
-    'Ban giám hiệu': { color: '#d32f2f', bgColor: '#ffebee', icon: SchoolIcon },
-    'Tổ trưởng': { color: '#f57c00', bgColor: '#fff3e0', icon: GroupsIcon },
-    'Giáo viên': { color: '#1976d2', bgColor: '#e3f2fd', icon: PersonIcon },
-    'Kế toán': { color: '#388e3c', bgColor: '#e8f5e9', icon: AccountBalanceIcon },
-    'Phụ huynh': { color: '#7b1fa2', bgColor: '#f3e5f5', icon: FamilyRestroomIcon },
+    [ROLES.BAN_GIAM_HIEU]: { color: '#d32f2f', bgColor: '#ffebee', icon: SchoolIcon },
+    [ROLES.TO_TRUONG]: { color: '#f57c00', bgColor: '#fff3e0', icon: GroupsIcon },
+    [ROLES.GIAO_VIEN]: { color: '#1976d2', bgColor: '#e3f2fd', icon: PersonIcon },
+    [ROLES.KE_TOAN]: { color: '#388e3c', bgColor: '#e8f5e9', icon: AccountBalanceIcon },
+    [ROLES.PHU_HUYNH]: { color: '#7b1fa2', bgColor: '#f3e5f5', icon: FamilyRestroomIcon },
 };
 
 function UserManagement() {
     const { user } = useUser();
-    const [paginationModel, setPaginationModel] = useState({
-        page: 0,
-        pageSize: 5,
-    });
-    // DATA
-    const [rows, setRows] = useState(MOCK_USERS); // ✅ Fake demo data (16 dòng)
+    const { hasPermission } = usePermission(user?.role);
+
+    // State
+    const [rows, setRows] = useState([]);
+    const [loading, setLoading] = useState(false);
     const [searchText, setSearchText] = useState('');
     const [debounceSearch, setDebounceSearch] = useState('');
-    const [selectedRows, setSelectedRows] = useState([]); // ✅ Lưu các dòng được select
+    const [filterRole, setFilterRole] = useState('');
+    const [filterStatus, setFilterStatus] = useState('');
+    const [selectedRows, setSelectedRows] = useState([]);
+    const [paginationModel, setPaginationModel] = useState({ page: 0, pageSize: 5 });
+    const [totalRows, setTotalRows] = useState(0);
+    const [roleStats, setRoleStats] = useState({});
+    const [openDialog, setOpenDialog] = useState(false);
+    const [dialogMode, setDialogMode] = useState('create'); // 'create' | 'edit'
+    const [currentUser, setCurrentUser] = useState(null);
 
-    // ✅ Thống kê số lượng người dùng theo vai trò
-    const roleStats = useMemo(() => {
-        const stats = {};
-        Object.keys(ROLE_CONFIG).forEach((role) => {
-            stats[role] = MOCK_USERS.filter((u) => u.role === role).length;
-        });
-        return stats;
-    }, []);
-
-    // Debounce search (1s)
+    // Debounce search
     useEffect(() => {
-        const handler = setTimeout(() => {
-            setDebounceSearch(searchText);
-        }, 1000);
+        const handler = setTimeout(() => setDebounceSearch(searchText), 1000);
         return () => clearTimeout(handler);
     }, [searchText]);
 
-    // Filter data
-    useEffect(() => {
-        const filteredData = MOCK_USERS.filter((item) =>
-            Object.values(item).some((value) => String(value).toLowerCase().includes(debounceSearch.toLowerCase())),
-        );
-        setRows(filteredData);
-    }, [debounceSearch]);
+    // Fetch users
+    const fetchUsers = async () => {
+        try {
+            setLoading(true);
 
-    // ✅ Cấu hình cột
+            const res = await userApi.getAllUsers({
+                page: paginationModel.page + 1,
+                limit: paginationModel.pageSize,
+                search: debounceSearch,
+                role: filterRole,
+                status: filterStatus,
+            });
+
+            const usersWithStt = res.data.data.users.map((user, index) => ({
+                ...user,
+                id: user._id,
+                stt: paginationModel.page * paginationModel.pageSize + index + 1,
+            }));
+
+            setRows(usersWithStt);
+            setTotalRows(res.data.data.pagination.totalItems);
+        } catch (error) {
+            console.error('Error fetching users:', error);
+            toast.error('Lỗi khi tải danh sách người dùng!');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        fetchUsers();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [paginationModel, debounceSearch, filterRole, filterStatus]);
+
+    // Fetch thống kê tổng số người dùng theo vai trò (không phân trang)
+    const fetchRoleStats = async () => {
+        try {
+            const stats = {};
+
+            // Gọi API để lấy tổng số cho từng role
+            for (const role of Object.keys(ROLE_CONFIG)) {
+                const res = await userApi.getAllUsers({
+                    page: 1,
+                    limit: 1, // Chỉ cần lấy pagination info, không cần data
+                    role: role,
+                    search: '',
+                    status: '',
+                });
+                stats[role] = res.data.data.pagination.totalItems;
+            }
+
+            setRoleStats(stats);
+        } catch (error) {
+            console.error('Error fetching role stats:', error);
+        }
+    };
+
+    // Fetch stats khi component mount hoặc khi có thay đổi data
+    useEffect(() => {
+        fetchRoleStats();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
+    // Handlers
+    const handleCreate = () => {
+        setDialogMode('create');
+        setCurrentUser(null);
+        setOpenDialog(true);
+    };
+
+    const handleEdit = (userData) => {
+        setDialogMode('edit');
+        setCurrentUser(userData);
+        setOpenDialog(true);
+    };
+
+    const handleDelete = async (id) => {
+        if (!window.confirm('Bạn có chắc chắn muốn xóa người dùng này?')) return;
+
+        try {
+            await userApi.deleteUser(id);
+            toast.success('Xóa người dùng thành công!');
+            fetchUsers();
+            fetchRoleStats(); // Cập nhật lại thống kê
+        } catch (error) {
+            toast.error('Lỗi khi xóa người dùng!');
+        }
+    };
+
+    const handleDeleteMany = async () => {
+        if (!window.confirm(`Bạn có chắc chắn muốn xóa ${selectedRows.length} người dùng đã chọn?`)) return;
+
+        try {
+            await userApi.deleteManyUsers(selectedRows);
+            toast.success(`Xóa ${selectedRows.length} người dùng thành công!`);
+            setSelectedRows([]);
+            fetchUsers();
+            fetchRoleStats(); // Cập nhật lại thống kê
+        } catch (error) {
+            toast.error('Lỗi khi xóa người dùng!');
+        }
+    };
+
+    // Columns
     const columns = [
-        { field: 'stt', headerName: 'STT', width: 80 },
-        { field: 'username', headerName: 'Tên tài khoản', flex: 1 },
-        { field: 'fullName', headerName: 'Họ tên', flex: 1.3 },
-        { field: 'gender', headerName: 'Giới tính', width: 100 },
-        { field: 'email', headerName: 'Email', flex: 1.3 },
-        { field: 'phone', headerName: 'Số điện thoại', width: 120 },
+        { field: 'stt', headerName: 'STT', width: 40, sortable: false },
+        { field: 'username', headerName: 'Tên tài khoản', flex: 1, minWidth: 120, sortable: false },
+        { field: 'fullName', headerName: 'Họ tên', flex: 1.2, minWidth: 140, sortable: false },
+        { field: 'gender', headerName: 'Giới tính', flex: 0.6, minWidth: 90, sortable: false },
+        { field: 'email', headerName: 'Email', flex: 0.6, minWidth: 180, sortable: false },
+        { field: 'phone', headerName: 'Số điện thoại', flex: 0.6, minWidth: 120, sortable: false },
         {
             field: 'role',
             headerName: 'Vai trò',
-            width: 140,
+            flex: 1.0,
+            minwidth: 150,
+            sortable: false,
             renderCell: (params) => {
                 const roleConfig = ROLE_CONFIG[params.value] || {};
                 return (
                     <Chip
-                        label={params.value}
+                        label={ROLE_DISPLAY[params.value]}
                         size="small"
                         sx={{
-                            bgcolor: roleConfig.bgColor || '#e0e0e0',
-                            color: roleConfig.color || '#000',
+                            bgcolor: roleConfig.bgColor,
+                            color: roleConfig.color,
                             fontWeight: 600,
-                            border: `1px solid ${roleConfig.color || '#999'}`,
+                            border: `1px solid ${roleConfig.color}`,
                         }}
                     />
                 );
@@ -91,37 +204,59 @@ function UserManagement() {
         {
             field: 'status',
             headerName: 'Trạng thái',
-            width: 120,
+            flex: 0.9,
+            minwidth: 130,
+            sortable: false,
             renderCell: (params) => (
-                <Chip label={params.value} color={params.value === 'Kích hoạt' ? 'success' : 'error'} size="small" />
+                <Chip
+                    label={params.value ? 'Kích hoạt' : 'Vô hiệu hóa'}
+                    color={params.value ? 'success' : 'error'}
+                    size="small"
+                />
             ),
         },
         {
             field: 'actions',
-            headerName: 'Hành động',
-            width: 100,
+            headerName: 'Thao tác',
+            flex: 0.6,
+            minwidth: 100,
             sortable: false,
             filterable: false,
             disableColumnMenu: true,
-            renderCell: () => {
-                // ✅ Disable các nút sửa/xóa khi select >= 2 dòng
+            renderCell: (params) => {
                 const isDisabled = selectedRows.length >= 2;
+                const canUpdate = hasPermission(PERMISSIONS.UPDATE_USER);
+                const canDelete = hasPermission(PERMISSIONS.DELETE_USER);
+
                 return (
                     <Box sx={{ display: 'flex', justifyContent: 'center', width: '100%' }}>
-                        <Tooltip title={isDisabled ? 'Vui lòng bỏ chọn để sửa' : 'Sửa thông tin'}>
-                            <span>
-                                <IconButton color="primary" size="small" disabled={isDisabled}>
-                                    <EditOutlinedIcon />
-                                </IconButton>
-                            </span>
-                        </Tooltip>
-                        <Tooltip title={isDisabled ? 'Vui lòng bỏ chọn để xóa' : 'Xóa người dùng'}>
-                            <span>
-                                <IconButton color="error" disabled={isDisabled}>
-                                    <DeleteOutlineOutlinedIcon />
-                                </IconButton>
-                            </span>
-                        </Tooltip>
+                        {canUpdate && (
+                            <Tooltip title={isDisabled ? 'Vui lòng bỏ chọn để sửa' : 'Sửa thông tin'}>
+                                <span>
+                                    <IconButton
+                                        color="primary"
+                                        size="small"
+                                        disabled={isDisabled}
+                                        onClick={() => handleEdit(params.row)}
+                                    >
+                                        <EditOutlinedIcon />
+                                    </IconButton>
+                                </span>
+                            </Tooltip>
+                        )}
+                        {canDelete && (
+                            <Tooltip title={isDisabled ? 'Vui lòng bỏ chọn để xóa' : 'Xóa người dùng'}>
+                                <span>
+                                    <IconButton
+                                        color="error"
+                                        disabled={isDisabled}
+                                        onClick={() => handleDelete(params.row.id)}
+                                    >
+                                        <DeleteOutlineOutlinedIcon />
+                                    </IconButton>
+                                </span>
+                            </Tooltip>
+                        )}
                     </Box>
                 );
             },
@@ -130,17 +265,24 @@ function UserManagement() {
 
     return (
         <MainLayout user={user}>
-            <Box sx={{ p: 2 }}>
-                {/* Breadcrumb */}
+            <Box
+                sx={{
+                    width: '100%',
+                    maxWidth: 1400,
+                    mx: 'auto',
+                    px: { xs: 1.5, sm: 2.5, md: 3 },
+                    py: { xs: 1.5, md: 1 },
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 2,
+                }}
+            >
+                {/* ======= BREADCRUMB ======= */}
                 <Breadcrumbs sx={{ mb: 2 }}>
                     <Link
                         color="inherit"
                         href="/dashboard"
-                        sx={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            textDecoration: 'none',
-                        }}
+                        sx={{ display: 'flex', alignItems: 'center', textDecoration: 'none' }}
                     >
                         <HomeIcon sx={{ mr: 0.5 }} fontSize="inherit" />
                         Trang chủ
@@ -148,8 +290,8 @@ function UserManagement() {
                     <Typography color="text.primary">Quản lý người dùng</Typography>
                 </Breadcrumbs>
 
-                {/* ✅ Thống kê số lượng người dùng theo vai trò */}
-                <Box sx={{ mb: 3, display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+                {/* ======= THỐNG KÊ ======= */}
+                <Box sx={{ mb: 2, display: 'flex', gap: 1, flexWrap: 'wrap' }}>
                     {Object.entries(ROLE_CONFIG).map(([role, config]) => {
                         const Icon = config.icon;
                         return (
@@ -158,24 +300,21 @@ function UserManagement() {
                                 elevation={2}
                                 sx={{
                                     flex: 1,
-                                    minWidth: '180px',
+                                    minWidth: { xs: 'calc(50% - 8px)', sm: '180px' },
                                     p: 2,
-                                    borderRadius: 2,
-                                    borderLeft: `4px solid ${config.color}`,
+                                    borderRadius: 4,
+                                    borderLeft: `10px solid ${config.color}`,
                                     transition: 'all 0.3s ease',
-                                    '&:hover': {
-                                        transform: 'translateY(-4px)',
-                                        boxShadow: 4,
-                                    },
+                                    '&:hover': { transform: 'translateY(-4px)', boxShadow: 4 },
                                 }}
                             >
                                 <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                                     <Box>
                                         <Typography variant="body2" color="text.secondary" gutterBottom>
-                                            {role}
+                                            {ROLE_DISPLAY[role]}
                                         </Typography>
                                         <Typography variant="h4" fontWeight={700} sx={{ color: config.color }}>
-                                            {roleStats[role]}
+                                            {roleStats[role] || 0}
                                         </Typography>
                                     </Box>
                                     <Box
@@ -197,44 +336,67 @@ function UserManagement() {
                     })}
                 </Box>
 
-                {/* Bảng người dùng */}
-                <Paper sx={{ p: 2, borderRadius: 2, boxShadow: 1 }}>
-                    {/* Thanh chức năng */}
-                    <Box
-                        sx={{
-                            display: 'flex',
-                            justifyContent: 'space-between',
-                            alignItems: 'center',
-                            mb: 2,
-                        }}
-                    >
+                {/* ======= Danh sách người dùng ======= */}
+                <Paper sx={{ p: 2, borderRadius: 2, boxShadow: 2 }}>
+                    {/* ======= Thanh công cụ trên bảng Danh sách người dùng ======= */}
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
                         <Typography variant="h5" fontWeight={600}>
                             Danh sách người dùng
                         </Typography>
 
-                        <Box sx={{ display: 'flex', gap: 1 }}>
+                        <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', flexWrap: 'wrap' }}>
                             <TextField
                                 size="small"
                                 placeholder="Tìm kiếm..."
                                 value={searchText}
                                 onChange={(e) => setSearchText(e.target.value)}
+                                sx={{ minWidth: { xs: '100%', sm: 250, md: 350 } }}
                             />
 
-                            {/* ✅ Disable nút Thêm khi select >= 2 dòng */}
-                            <Tooltip
-                                title={selectedRows.length >= 2 ? 'Vui lòng bỏ chọn để thêm mới' : 'Thêm người dùng'}
-                            >
-                                <span>
-                                    <IconButton sx={{ color: '#1976d2' }} disabled={selectedRows.length >= 2}>
+                            <FormControl size="small" sx={{ minWidth: { xs: '48%', sm: 150 } }}>
+                                <InputLabel>Vai trò</InputLabel>
+                                <Select
+                                    value={filterRole}
+                                    onChange={(e) => setFilterRole(e.target.value)}
+                                    label="Vai trò"
+                                >
+                                    <MenuItem value="">Tất cả</MenuItem>
+                                    {Object.entries(ROLE_DISPLAY).map(([code, label]) => (
+                                        <MenuItem key={code} value={code}>
+                                            {label}
+                                        </MenuItem>
+                                    ))}
+                                </Select>
+                            </FormControl>
+
+                            <FormControl size="small" sx={{ minWidth: { xs: '48%', sm: 140 } }}>
+                                <InputLabel>Trạng thái</InputLabel>
+                                <Select
+                                    value={filterStatus}
+                                    onChange={(e) => setFilterStatus(e.target.value)}
+                                    label="Trạng thái"
+                                >
+                                    <MenuItem value="">Tất cả</MenuItem>
+                                    <MenuItem value="true">Kích hoạt</MenuItem>
+                                    <MenuItem value="false">Vô hiệu hóa</MenuItem>
+                                </Select>
+                            </FormControl>
+
+                            {hasPermission(PERMISSIONS.CREATE_USER) && (
+                                <Tooltip title="Thêm người dùng">
+                                    <IconButton
+                                        sx={{ color: '#1976d2' }}
+                                        onClick={handleCreate}
+                                        disabled={selectedRows.length >= 2}
+                                    >
                                         <AddCircleOutlineOutlinedIcon />
                                     </IconButton>
-                                </span>
-                            </Tooltip>
+                                </Tooltip>
+                            )}
 
-                            {/* ✅ Hiển thị nút Xóa hàng loạt khi có select */}
-                            {selectedRows.length > 0 && (
+                            {hasPermission(PERMISSIONS.DELETE_USER) && selectedRows.length > 0 && (
                                 <Tooltip title={`Xóa ${selectedRows.length} người dùng đã chọn`}>
-                                    <IconButton color="error">
+                                    <IconButton color="error" onClick={handleDeleteMany}>
                                         <DeleteOutlineOutlinedIcon />
                                     </IconButton>
                                 </Tooltip>
@@ -242,40 +404,50 @@ function UserManagement() {
                         </Box>
                     </Box>
 
-                    {/* DataGrid */}
+                    {/* ======= Bảng Danh sách người dùng ======= */}
                     <DataGrid
                         rows={rows}
                         columns={columns}
-                        checkboxSelection
+                        loading={loading}
+                        checkboxSelection={hasPermission(PERMISSIONS.DELETE_USER)}
                         disableColumnMenu
+                        disableColumnSort
+                        paginationMode="server"
+                        rowCount={totalRows}
                         paginationModel={paginationModel}
                         onPaginationModelChange={setPaginationModel}
-                        onRowSelectionModelChange={(newSelection) => setSelectedRows(newSelection)} // ✅ Cập nhật selection
-                        pageSizeOptions={[5, 10, 20, rows.length]}
+                        onRowSelectionModelChange={setSelectedRows}
+                        pageSizeOptions={[5, 10, 20, 50]}
                         autoHeight
                         sx={{
-                            '& .MuiDataGrid-row:hover': {
-                                cursor: 'pointer',
-                                backgroundColor: '#f5f5f5',
+                            '& .MuiDataGrid-columnHeader .MuiDataGrid-sortIcon': {
+                                display: 'none',
                             },
-                            '& .MuiDataGrid-cell:focus': {
+                            '& .MuiDataGrid-columnHeader:focus, & .MuiDataGrid-columnHeader:focus-within': {
+                                outline: 'none',
+                            },
+                            '& .MuiDataGrid-row:hover': { cursor: 'pointer', backgroundColor: '#f5f5f5' },
+                            '& .MuiDataGrid-cell:focus, & .MuiDataGrid-cell:focus-within': {
                                 outline: 'none !important',
                             },
-                            '& .MuiDataGrid-cell:focus-within': {
-                                outline: 'none !important',
-                            },
-                            '& .MuiDataGrid-columnHeaders': {
-                                backgroundColor: '#e3f2fd',
-                                fontWeight: 'bold',
-                            },
-                            '& .MuiDataGrid-footerContainer': {
-                                backgroundColor: '#f8f9fa',
-                            },
+                            '& .MuiDataGrid-columnHeaders': { backgroundColor: '#e3f2fd', fontWeight: 'bold' },
                         }}
                         slots={{
                             noRowsOverlay: () => (
-                                <Box sx={{ p: 3, textAlign: 'center', color: 'gray' }}>
-                                    <Typography>Không tìm thấy dữ liệu phù hợp!</Typography>
+                                <Box sx={{ p: 3, textAlign: 'center' }}>
+                                    <Typography>Không tìm thấy dữ liệu!</Typography>
+                                </Box>
+                            ),
+                            loadingOverlay: () => (
+                                <Box
+                                    sx={{
+                                        display: 'flex',
+                                        justifyContent: 'center',
+                                        alignItems: 'center',
+                                        height: '100%',
+                                    }}
+                                >
+                                    <CircularProgress />
                                 </Box>
                             ),
                         }}
@@ -289,6 +461,19 @@ function UserManagement() {
                     />
                 </Paper>
             </Box>
+
+            {/* Dialog Create/Edit User */}
+            <UserDialog
+                open={openDialog}
+                mode={dialogMode}
+                user={currentUser}
+                onClose={() => setOpenDialog(false)}
+                onSuccess={() => {
+                    setOpenDialog(false);
+                    fetchUsers();
+                    fetchRoleStats(); // Cập nhật lại thống kê
+                }}
+            />
         </MainLayout>
     );
 }

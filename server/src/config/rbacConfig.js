@@ -12,7 +12,6 @@ export const PERMISSIONS = {
     CREATE_USER: 'create_user',
     UPDATE_USER: 'update_user',
     DELETE_USER: 'delete_user',
-    DISABLE_USER: 'disable_user',
 
     // Quản lý thông tin nhà trường
     VIEW_SCHOOL_INFO: 'view_school_info',
@@ -45,6 +44,7 @@ export const ROLE_PERMISSIONS = {
         ...Object.values(PERMISSIONS),
     ],
     [ROLES.TO_TRUONG]: [
+        PERMISSIONS.VIEW_USERS,
         // Xem thông tin nhà trường
         PERMISSIONS.VIEW_SCHOOL_INFO,
         // Quản lý năm học (chỉ xem)
@@ -74,6 +74,8 @@ export const ROLE_PERMISSIONS = {
         PERMISSIONS.VIEW_CLASSROOM,
     ],
     [ROLES.PHU_HUYNH]: [
+        // Xem thông tin nhà trường
+        PERMISSIONS.VIEW_SCHOOL_INFO,
         // Chỉ xem thông tin cá nhân của con
         // Sẽ được handle riêng trong business logic
     ],

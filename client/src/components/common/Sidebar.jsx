@@ -10,6 +10,7 @@ import {
     Box,
     Typography,
     Divider,
+    useMediaQuery,
 } from '@mui/material';
 import { Dashboard as DashboardIcon, People as PeopleIcon, ExpandLess, ExpandMore } from '@mui/icons-material';
 import ChildCareOutlinedIcon from '@mui/icons-material/ChildCareOutlined';
@@ -23,6 +24,7 @@ import StorageOutlinedIcon from '@mui/icons-material/StorageOutlined';
 import SwitchAccountOutlinedIcon from '@mui/icons-material/SwitchAccountOutlined';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useState, useEffect } from 'react';
+import { useTheme } from '@mui/material/styles';
 
 const menuItems = [
     { text: 'Trang chủ', icon: <DashboardIcon />, path: '/dashboard' },
@@ -103,130 +105,91 @@ const menuItems = [
     },
 ];
 
-function Sidebar({ collapsed, onToggle }) {
+function Sidebar({ collapsed, onToggle, mobileOpen, onCloseMobile }) {
     const navigate = useNavigate();
     const location = useLocation();
     const [openMenus, setOpenMenus] = useState({});
-
     const drawerWidth = collapsed ? 80 : 240;
 
-    // ✅ Logic mới: Quản lý menu mở/đóng thông minh hơn
+    const theme = useTheme();
+    const isSmUp = useMediaQuery(theme.breakpoints.up('sm'));
+
     useEffect(() => {
         const currentPath = location.pathname;
-
-        // Tìm parent menu chứa route đang active
         const activeParent = menuItems.find((item) => item.children?.some((child) => child.path === currentPath));
-
-        // Nếu có parent đang active
         if (activeParent) {
-            setOpenMenus((prev) => {
-                // ⛔ Nếu parent đã mở rồi -> KHÔNG cập nhật -> tránh nhấp nháy
-                if (prev[activeParent.text]) {
-                    return prev;
-                }
-
-                // ✅ Nếu chưa mở -> mở đúng 1 parent thôi
-                return { [activeParent.text]: true };
-            });
+            setOpenMenus((prev) => (prev[activeParent.text] ? prev : { [activeParent.text]: true }));
         }
     }, [location.pathname]);
 
-    const handleToggleMenu = (text) => {
-        setOpenMenus((prev) => ({ ...prev, [text]: !prev[text] }));
-    };
+    const handleToggleMenu = (text) => setOpenMenus((prev) => ({ ...prev, [text]: !prev[text] }));
 
     const handleMenuClick = (path, hasChildren, text) => {
-        if (hasChildren) {
-            handleToggleMenu(text);
-        } else {
+        if (hasChildren) handleToggleMenu(text);
+        else {
             navigate(path);
+            if (!isSmUp) onCloseMobile?.();
         }
     };
 
-    // ✅ Sửa lại chỉ đóng các parent khác, không gây nhấp nháy
     const handleSubMenuClick = (path, parentText) => {
-        setOpenMenus((prev) => {
-            // Nếu click lại submenu cùng parent -> KHÔNG đổi state -> KHÔNG nhấp nháy
-            if (prev[parentText]) return prev;
-
-            // Nếu chuyển sang parent khác -> đóng parent cũ, mở parent mới
-            return { [parentText]: true };
-        });
-
+        setOpenMenus((prev) => (prev[parentText] ? prev : { [parentText]: true }));
         navigate(path);
+        if (!isSmUp) onCloseMobile?.();
     };
 
-    // ✅ Kiểm tra xem menu item có active không (bao gồm cả children)
     const isMenuActive = (item) => {
         if (item.path && location.pathname === item.path) return true;
-        if (item.children) {
-            return item.children.some((child) => location.pathname === child.path);
-        }
+        if (item.children) return item.children.some((child) => location.pathname === child.path);
         return false;
     };
 
-    return (
-        <Drawer
-            variant="permanent"
-            sx={{
-                width: drawerWidth,
-                flexShrink: 0,
-                '& .MuiDrawer-paper': {
-                    width: drawerWidth,
-                    boxSizing: 'border-box',
-                    transition: 'width 0.3s ease',
-                    overflowX: 'hidden', // ✅ Ẩn scroll ngang
-                    overflowY: 'auto', // ✅ Chỉ cho phép scroll dọc
-                    backgroundColor: '#f5f5f5',
-                    borderRight: '1px solid #e0e0e0',
-                },
-            }}
-        >
+    // ✅ Tạo 2 phiên bản drawer content: một cho desktop (có thể collapse), một cho mobile (luôn full)
+    const createDrawerContent = (isCollapsed) => (
+        <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
             {/* Header */}
             <Box
                 sx={{
                     display: 'flex',
                     alignItems: 'center',
-                    justifyContent: collapsed ? 'center' : 'space-between',
-                    p: 1.4,
+                    justifyContent: isCollapsed ? 'center' : 'space-between',
+                    p: 1.0,
                     backgroundColor: '#1976d2',
-                    boxShadow: '0 5px 10px rgba(132, 204, 253, 0.87)',
                     color: 'white',
                 }}
             >
-                {!collapsed && <Typography variant="h6">SmartKindly</Typography>}
-                <IconButton color="inherit" onClick={onToggle}>
-                    {collapsed ? <KeyboardDoubleArrowRightOutlinedIcon /> : <KeyboardDoubleArrowLeftOutlinedIcon />}
+                {!isCollapsed && <Typography variant="h6">SmartKindly</Typography>}
+                <IconButton color="inherit" onClick={isSmUp ? onToggle : onCloseMobile}>
+                    {isSmUp ? (
+                        isCollapsed ? (
+                            <KeyboardDoubleArrowRightOutlinedIcon />
+                        ) : (
+                            <KeyboardDoubleArrowLeftOutlinedIcon />
+                        )
+                    ) : (
+                        <KeyboardDoubleArrowLeftOutlinedIcon />
+                    )}
                 </IconButton>
             </Box>
 
             <Divider />
+
             <List
                 sx={{
                     overflowY: 'auto',
-                    overflowX: 'hidden', // ✅ Ẩn scroll ngang trong List
+                    overflowX: 'hidden',
                     maxHeight: 'calc(100vh - 64px)',
                     mt: 0.5,
-                    width: '100%', // ✅ Đảm bảo List không vượt quá width container
-                    '&::-webkit-scrollbar': {
-                        width: '4px',
-                    },
-                    '&::-webkit-scrollbar-track': {
-                        backgroundColor: '#e3f2fd',
-                    },
-                    '&::-webkit-scrollbar-thumb': {
-                        backgroundColor: '#90caf9',
-                        borderRadius: '18px',
-                    },
-                    '&::-webkit-scrollbar-thumb:hover': {
-                        backgroundColor: '#64b5f6',
-                    },
+                    width: '100%',
+                    '&::-webkit-scrollbar': { width: '4px' },
+                    '&::-webkit-scrollbar-track': { backgroundColor: '#e3f2fd' },
+                    '&::-webkit-scrollbar-thumb': { backgroundColor: '#90caf9', borderRadius: '18px' },
+                    '&::-webkit-scrollbar-thumb:hover': { backgroundColor: '#64b5f6' },
                 }}
             >
                 {menuItems.map((item) => {
                     const hasChildren = !!item.children;
                     const isActive = isMenuActive(item);
-
                     return (
                         <Box key={item.text}>
                             <ListItem disablePadding>
@@ -235,34 +198,32 @@ function Sidebar({ collapsed, onToggle }) {
                                     selected={isActive}
                                     sx={{
                                         minHeight: 44,
-                                        px: collapsed ? 1.5 : 2,
+                                        px: isCollapsed ? 1.5 : 2,
                                         backgroundColor: isActive ? '#e3f2fd' : 'transparent',
                                         borderLeft: isActive ? '4px solid #1976d2' : '4px solid transparent',
-                                        '&:hover': {
-                                            backgroundColor: '#e3f2fd',
-                                        },
+                                        '&:hover': { backgroundColor: '#e3f2fd' },
                                         transition: 'all 0.2s',
-                                        width: '100%', // ✅ Đảm bảo button không vượt quá container
-                                        overflow: 'hidden', // ✅ Ẩn overflow cho button
+                                        width: '100%',
+                                        overflow: 'hidden',
                                         '& .MuiListItemIcon-root': {
                                             minWidth: 32,
                                             justifyContent: 'center',
                                             color: isActive ? '#1976d2' : '#555',
                                         },
                                         '& .MuiListItemText-root': {
-                                            opacity: collapsed ? 0 : 1,
+                                            opacity: isCollapsed ? 0 : 1,
                                             whiteSpace: 'nowrap',
                                             transition: 'opacity 0.3s',
-                                            ml: collapsed ? 0 : 0.8,
-                                            overflow: 'hidden', // ✅ Ẩn overflow cho text
+                                            ml: isCollapsed ? 0 : 0.8,
+                                            overflow: 'hidden',
                                         },
                                     }}
                                 >
                                     <ListItemIcon
                                         sx={{
                                             minWidth: 24,
-                                            mr: collapsed ? 0 : 0.2,
-                                            ml: collapsed ? 0 : -1,
+                                            mr: isCollapsed ? 0 : 0.2,
+                                            ml: isCollapsed ? 0 : -1,
                                             justifyContent: 'center',
                                             color: isActive ? '#1976d2' : '#555',
                                         }}
@@ -272,37 +233,32 @@ function Sidebar({ collapsed, onToggle }) {
                                     <ListItemText
                                         primary={item.text}
                                         sx={{
-                                            opacity: collapsed ? 0 : 1,
-                                            display: collapsed ? 'none' : 'block', // ✅ Ẩn hoàn toàn khi collapsed
+                                            opacity: isCollapsed ? 0 : 1,
+                                            display: isCollapsed ? 'none' : 'block',
                                             '& .MuiListItemText-primary': {
                                                 fontWeight: isActive ? 600 : 400,
                                                 color: isActive ? '#1976d2' : 'inherit',
-                                                overflow: 'hidden', // ✅ Ẩn overflow cho text
-                                                textOverflow: 'ellipsis', // ✅ Thêm ellipsis nếu text quá dài
+                                                overflow: 'hidden',
+                                                textOverflow: 'ellipsis',
                                             },
                                         }}
                                     />
                                     {hasChildren &&
-                                        !collapsed &&
+                                        !isCollapsed &&
                                         (openMenus[item.text] ? <ExpandLess /> : <ExpandMore />)}
                                 </ListItemButton>
                             </ListItem>
 
-                            {/* ✅ Sử dụng Collapse thay vì framer-motion để tránh re-mount */}
                             {hasChildren && (
-                                <Collapse
-                                    in={openMenus[item.text] && !collapsed}
-                                    timeout={300}
-                                    unmountOnExit={false} // ✅ Quan trọng: không unmount component
-                                >
+                                <Collapse in={openMenus[item.text] && !isCollapsed} timeout={300} unmountOnExit={false}>
                                     <List component="div" disablePadding>
                                         {item.children.map((child) => (
                                             <ListItemButton
                                                 key={child.text}
                                                 selected={location.pathname === child.path}
-                                                onClick={() => handleSubMenuClick(child.path, item.text)} // ✅ Sử dụng handleSubMenuClick
+                                                onClick={() => handleSubMenuClick(child.path, item.text)}
                                                 sx={{
-                                                    pl: collapsed ? 2 : 6,
+                                                    pl: isCollapsed ? 2 : 6,
                                                     py: 0.8,
                                                     backgroundColor:
                                                         location.pathname === child.path ? '#e8f0fe' : 'transparent',
@@ -331,7 +287,52 @@ function Sidebar({ collapsed, onToggle }) {
                     );
                 })}
             </List>
-        </Drawer>
+        </Box>
+    );
+
+    return (
+        <>
+            {/* Mobile: temporary drawer - ✅ LUÔN FULL (không collapse) */}
+            <Drawer
+                variant="temporary"
+                open={!isSmUp && !!mobileOpen}
+                onClose={onCloseMobile}
+                ModalProps={{ keepMounted: true }}
+                sx={{
+                    display: { xs: 'block', sm: 'none' },
+                    '& .MuiDrawer-paper': {
+                        width: 240,
+                        boxSizing: 'border-box',
+                        backgroundColor: '#f5f5f5',
+                        borderRight: '1px solid #e0e0e0',
+                    },
+                }}
+            >
+                {createDrawerContent(false)} {/* ✅ Mobile luôn truyền false (không collapse) */}
+            </Drawer>
+
+            {/* Desktop/Tablet: permanent drawer - có thể collapse */}
+            <Drawer
+                variant="permanent"
+                open
+                sx={{
+                    display: { xs: 'none', sm: 'block' },
+                    width: drawerWidth,
+                    flexShrink: 0,
+                    '& .MuiDrawer-paper': {
+                        width: drawerWidth,
+                        boxSizing: 'border-box',
+                        transition: 'width 0.3s ease',
+                        overflowX: 'hidden',
+                        overflowY: 'auto',
+                        backgroundColor: '#f5f5f5',
+                        borderRight: '1px solid #e0e0e0',
+                    },
+                }}
+            >
+                {createDrawerContent(collapsed)} {/* ✅ Desktop dùng state collapsed */}
+            </Drawer>
+        </>
     );
 }
 

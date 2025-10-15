@@ -1,37 +1,67 @@
 import { useState } from 'react';
 import { Box, CssBaseline } from '@mui/material';
-import Header from '~/components/common/Header';
 import Sidebar from '~/components/common/Sidebar';
-import { useUser } from '~/contexts/UserContext';
+import Header from '~/components/common/Header';
 
-function MainLayout({ children }) {
+function MainLayout({ children, user = null }) {
     const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-    const { user } = useUser();
+    const [mobileOpen, setMobileOpen] = useState(false);
 
-    const handleSidebarToggle = () => {
-        setSidebarCollapsed(!sidebarCollapsed);
-    };
+    const handleSidebarToggle = () => setSidebarCollapsed((v) => !v);
+
+    // ✅ Đổi thành toggle (bật/tắt) thay vì chỉ mở
+    const handleToggleMobileSidebar = () => setMobileOpen((v) => !v);
+
+    const handleCloseMobileSidebar = () => setMobileOpen(false);
 
     return (
-        <Box sx={{ display: 'flex' }}>
+        <Box
+            sx={{
+                display: 'flex',
+                width: '100%',
+                height: '100vh',
+                overflowX: 'hidden',
+            }}
+        >
             <CssBaseline />
 
-            {/* Sidebar */}
-            <Sidebar collapsed={sidebarCollapsed} onToggle={handleSidebarToggle} />
+            <Sidebar
+                collapsed={sidebarCollapsed}
+                onToggle={handleSidebarToggle}
+                mobileOpen={mobileOpen}
+                onCloseMobile={handleCloseMobileSidebar}
+            />
 
-            {/* Header */}
-            <Header user={user} sidebarCollapsed={sidebarCollapsed} />
+            {/* ✅ Truyền handleToggleMobileSidebar thay vì handleOpenMobileSidebar */}
+            <Header user={user} sidebarCollapsed={sidebarCollapsed} onToggleMobileSidebar={handleToggleMobileSidebar} />
 
-            {/* Main Content */}
             <Box
                 component="main"
                 sx={{
                     flexGrow: 1,
-                    p: 2,
-                    mt: '64px', // Header height offset
-                    transition: 'margin-left 0.3s ease',
+                    p: { xs: 1, sm: 2 },
+                    mt: '64px',
                     minHeight: 'calc(100vh - 64px)',
+                    maxHeight: 'calc(100vh - 64px)',
                     backgroundColor: '#fafafa',
+                    overflowX: 'hidden',
+                    overflowY: 'auto',
+                    width: '100%',
+                    transition: 'margin-left 0.3s ease',
+
+                    '&::-webkit-scrollbar': {
+                        width: '8px',
+                    },
+                    '&::-webkit-scrollbar-track': {
+                        backgroundColor: '#e3f2fd',
+                    },
+                    '&::-webkit-scrollbar-thumb': {
+                        backgroundColor: '#90caf9',
+                        borderRadius: '18px',
+                    },
+                    '&::-webkit-scrollbar-thumb:hover': {
+                        backgroundColor: '#64b5f6',
+                    },
                 }}
             >
                 {children}

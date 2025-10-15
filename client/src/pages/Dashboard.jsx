@@ -1,143 +1,242 @@
-import { Alert, Box, Typography, Divider, Tab } from '@mui/material';
-import { TabContext, TabList, TabPanel } from '@mui/lab';
-
-import { useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
-
-import { TAB_URLS } from '~/utils/constants';
-import thumnailOnePice from '~/assets/one-pice-banner.jpg';
-import coverOnepice from '~/assets/one-piece-manga-covers.jpg';
-import { usePermission } from '~/hooks/usePermission';
-import { permissions } from '~/config/rbacConfig';
+import {
+    Box,
+    Grid,
+    Card,
+    CardContent,
+    CardHeader,
+    Typography,
+    Divider,
+    LinearProgress,
+    List,
+    ListItem,
+    ListItemText,
+    Avatar,
+    Chip,
+} from '@mui/material';
+import TrendingUpIcon from '@mui/icons-material/TrendingUp';
+import PeopleIcon from '@mui/icons-material/People';
+import ReceiptLongIcon from '@mui/icons-material/ReceiptLong';
+import SchoolIcon from '@mui/icons-material/School';
+import NotificationsNoneIcon from '@mui/icons-material/NotificationsNone';
 import MainLayout from '~/layouts/MainLayout';
 import { useUser } from '~/contexts/UserContext';
 
-function Dashboard() {
-    const location = useLocation();
+function StatCard({ title, value, deltaText, icon, color = 'primary' }) {
+    return (
+        <Card elevation={0} sx={{ borderRadius: 2, border: '1px solid #eee' }}>
+            <CardContent sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                <Avatar sx={{ bgcolor: `${color}.main`, color: 'white', width: 44, height: 44 }}>{icon}</Avatar>
+                <Box sx={{ minWidth: 0 }}>
+                    <Typography variant="body2" color="text.secondary" noWrap>
+                        {title}
+                    </Typography>
+                    <Typography variant="h5" sx={{ fontWeight: 700, lineHeight: 1.2 }}>
+                        {value}
+                    </Typography>
+                    <Typography variant="caption" color="success.main" noWrap>
+                        {deltaText}
+                    </Typography>
+                </Box>
+            </CardContent>
+        </Card>
+    );
+}
+
+export default function Dashboard() {
     const { user } = useUser();
-    const { hasPermission } = usePermission(user?.role);
-
-    const getDefaultActiveTab = () => {
-        let activeTab = TAB_URLS.DASHBOARD;
-        Object.values(TAB_URLS).forEach((tab) => {
-            if (location.pathname.includes(tab)) activeTab = tab;
-        });
-        return activeTab;
-    };
-
-    const [tab, setTab] = useState(getDefaultActiveTab());
-    const handleChange = (event, newTab) => {
-        setTab(newTab);
-    };
 
     return (
         <MainLayout user={user}>
-            <Box sx={{ maxWidth: '100%', display: 'flex', flexDirection: 'column', gap: 2 }}>
-                <Box as={Link} to="" target="blank">
-                    <Box
-                        component="img"
-                        sx={{ width: '100%', height: '280px', borderRadius: '6px', objectFit: 'cover' }}
-                        src={thumnailOnePice}
-                        alt="cover-thumnal-phuocdev"
-                    ></Box>
+            {/* Container co giãn mềm, căn giữa – giống Material UI Container */}
+            <Box
+                sx={{
+                    width: '100%',
+                    maxWidth: 1400,
+                    mx: 'auto',
+                    px: { xs: 1.5, sm: 2.5, md: 3 },
+                    py: { xs: 1.5, sm: 1 },
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 2,
+                }}
+            >
+                {/* Header khu vực trang */}
+                <Box
+                    sx={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 1,
+                        justifyContent: 'space-between',
+                        flexWrap: 'wrap',
+                    }}
+                >
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <Typography variant="h5" sx={{ fontWeight: 700 }}>
+                            Tổng quan
+                        </Typography>
+                        <Chip
+                            label={`Xin chào, ${user?.fullName || user?.username || 'Guest'}`}
+                            size="small"
+                            color="primary"
+                            variant="soft"
+                        />
+                    </Box>
                 </Box>
 
-                <Alert
-                    severity="info"
-                    sx={{ '.MuiAlert-message': { overflow: 'hidden' }, width: { md: 'max-content' } }}
-                >
-                    Đây là trang Dashboard sau khi user:&nbsp;
-                    <Typography variant="span" sx={{ fontWeight: 'bold', '&:hover': { color: '#fdba26' } }}>
-                        {user?.username}
-                    </Typography>
-                    &nbsp;
-                </Alert>
-                <Alert
-                    severity="success"
-                    variant="outlined"
-                    sx={{ '.MuiAlert-message': { overflow: 'hidden' }, width: { md: 'max-content' } }}
-                >
-                    Role hiện tại của User đang đăng nhập là:&nbsp;
-                    <Typography variant="span" sx={{ fontWeight: 'bold', '&:hover': { color: '#fdba26' } }}>
-                        {user?.role}
-                    </Typography>
-                </Alert>
+                {/* Hàng KPI */}
+                <Grid container spacing={2}>
+                    <Grid item xs={12} sm={6} md={3}>
+                        <StatCard
+                            title="Tổng số cán bộ"
+                            value="128"
+                            deltaText="+5 tuần này"
+                            icon={<PeopleIcon />}
+                            color="primary"
+                        />
+                    </Grid>
+                    <Grid item xs={12} sm={6} md={3}>
+                        <StatCard
+                            title="Tổng số học sinh"
+                            value="1,024"
+                            deltaText="+18 tháng này"
+                            icon={<SchoolIcon />}
+                            color="success"
+                        />
+                    </Grid>
+                    <Grid item xs={12} sm={6} md={3}>
+                        <StatCard
+                            title="Thu học phí"
+                            value="₫ 312,5M"
+                            deltaText="+3.2% so với tháng trước"
+                            icon={<ReceiptLongIcon />}
+                            color="warning"
+                        />
+                    </Grid>
+                    <Grid item xs={12} sm={6} md={3}>
+                        <StatCard
+                            title="Mức độ hoàn thành kê hoạch của năm nay"
+                            value="76%"
+                            deltaText="Tiến độ kế hoạch"
+                            icon={<TrendingUpIcon />}
+                            color="info"
+                        />
+                    </Grid>
+                </Grid>
 
-                {/* Khu vực phân quyền truy cập. sử dụng Mui Tabs cho đơn giản để test các trang khác nhau.  */}
+                {/* Khu biểu đồ + thông báo */}
+                <Grid container spacing={2}>
+                    {/* Biểu đồ/Overview (placeholder, có thể nhét Recharts sau) */}
+                    <Grid item xs={12} md={8}>
+                        <Card elevation={0} sx={{ borderRadius: 2, border: '1px solid #eee' }}>
+                            <CardHeader
+                                title="Tổng quan tháng"
+                                subheader="Số liệu tổng hợp theo tuần"
+                                action={<Chip label="Tháng 10" size="small" />}
+                            />
+                            <Divider />
+                            <CardContent>
+                                <Box
+                                    sx={{
+                                        height: 260,
+                                        borderRadius: 2,
+                                        border: '1px dashed #d7d7d7',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        bgcolor: '#fff',
+                                    }}
+                                >
+                                    <Typography variant="body2" color="text.secondary">
+                                        (Chỗ này đặt biểu đồ sau – Recharts/Chart.js)
+                                    </Typography>
+                                </Box>
 
-                <TabContext value={tab}>
-                    <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
-                        <TabList onChange={handleChange} aria-label="RBAC Permission Tabs">
-                            {hasPermission(permissions.VIEW_DASHBOARD) && (
-                                <Tab label="Dashboard" value={TAB_URLS.DASHBOARD} component={Link} to={'/dashboard'} />
-                            )}
-                            {hasPermission(permissions.VIEW_SUPPORT) && (
-                                <Tab label="Support" value={TAB_URLS.SUPPORT} component={Link} to={'/support'} />
-                            )}
-                            {hasPermission(permissions.VIEW_MESSAGES) && (
-                                <Tab label="Messages" value={TAB_URLS.MESSAGES} component={Link} to={'/messages'} />
-                            )}
-                            {hasPermission(permissions.VIEW_REVENUE) && (
-                                <Tab label="Revenue" value={TAB_URLS.REVENUE} component={Link} to={'/revenue'} />
-                            )}
-                            {hasPermission(permissions.VIEW_ADMIN_TOOLS) && (
-                                <Tab
-                                    label="Admin-tools"
-                                    value={TAB_URLS.ADMIN_TOOLS}
-                                    component={Link}
-                                    to={'/admin-tools'}
-                                />
-                            )}
-                        </TabList>
-                    </Box>
-                    {hasPermission(permissions.VIEW_DASHBOARD) && (
-                        <TabPanel value={TAB_URLS.DASHBOARD} sx={{ padding: '24px 0' }}>
-                            <Alert severity="success" sx={{ width: 'max-content' }}>
-                                Nội dung trang Dashboard chung cho tất cả các Roles!
-                            </Alert>
-                        </TabPanel>
-                    )}
-                    {hasPermission(permissions.VIEW_SUPPORT) && (
-                        <TabPanel value={TAB_URLS.SUPPORT} sx={{ padding: '24px 0' }}>
-                            <Alert severity="success" sx={{ width: 'max-content' }}>
-                                Nội dung trang Support chung cho tất cả các Roles!
-                            </Alert>
-                        </TabPanel>
-                    )}
-                    {hasPermission(permissions.VIEW_MESSAGES) && (
-                        <TabPanel value={TAB_URLS.MESSAGES} sx={{ padding: '24px 0' }}>
-                            <Alert severity="info" sx={{ width: 'max-content' }}>
-                                Nội dung trang Messages!
-                            </Alert>
-                        </TabPanel>
-                    )}
-                    {hasPermission(permissions.VIEW_REVENUE) && (
-                        <TabPanel value={TAB_URLS.REVENUE} sx={{ padding: '24px 0' }}>
-                            <Alert severity="warning" sx={{ width: 'max-content' }}>
-                                Nội dung trang Revenue!
-                            </Alert>
-                        </TabPanel>
-                    )}
-                    {hasPermission(permissions.VIEW_ADMIN_TOOLS) && (
-                        <TabPanel value={TAB_URLS.ADMIN_TOOLS} sx={{ padding: '24px 0' }}>
-                            <Alert severity="error" sx={{ width: 'max-content' }}>
-                                Nội dung trang Admin tools!
-                            </Alert>
-                        </TabPanel>
-                    )}
-                </TabContext>
+                                <Box sx={{ mt: 2 }}>
+                                    <Typography variant="caption" color="text.secondary">
+                                        Hoàn thành mục tiêu tháng
+                                    </Typography>
+                                    <LinearProgress
+                                        variant="determinate"
+                                        value={76}
+                                        sx={{ height: 8, borderRadius: 10, mt: 0.5 }}
+                                    />
+                                </Box>
+                            </CardContent>
+                        </Card>
+                    </Grid>
 
-                <Divider />
+                    {/* Thông báo gần đây */}
+                    <Grid item xs={12} md={4}>
+                        <Card elevation={0} sx={{ borderRadius: 2, border: '1px solid #eee' }}>
+                            <CardHeader
+                                avatar={<NotificationsNoneIcon color="action" />}
+                                title="Thông báo gần đây"
+                                subheader="Từ hệ thống & giáo viên"
+                            />
+                            <Divider />
+                            <CardContent sx={{ pt: 1 }}>
+                                <List dense>
+                                    <ListItem disableGutters>
+                                        <ListItemText
+                                            primary="Cập nhật thực đơn tuần 3"
+                                            secondary="2 giờ trước • Khối Lá"
+                                            primaryTypographyProps={{ noWrap: true }}
+                                        />
+                                    </ListItem>
+                                    <ListItem disableGutters>
+                                        <ListItemText
+                                            primary="Điểm danh hoàn tất 98%"
+                                            secondary="Hôm nay • Toàn trường"
+                                            primaryTypographyProps={{ noWrap: true }}
+                                        />
+                                    </ListItem>
+                                    <ListItem disableGutters>
+                                        <ListItemText
+                                            primary="Đợt thu học phí tháng 10"
+                                            secondary="Hạn 25/10 • Phòng Kế toán"
+                                            primaryTypographyProps={{ noWrap: true }}
+                                        />
+                                    </ListItem>
+                                </List>
+                            </CardContent>
+                        </Card>
+                    </Grid>
+                </Grid>
 
-                <Box
-                    component="img"
-                    sx={{ width: '80%', mb: '30px' }}
-                    src={coverOnepice}
-                    alt="coverOnepice-phuoc-dev"
-                ></Box>
+                {/* Bảng/nội dung dưới (placeholder) */}
+                <Card elevation={0} sx={{ borderRadius: 2, border: '1px solid #eee' }}>
+                    <CardHeader title="Hoạt động gần đây" subheader="Sự kiện từ các phòng ban" />
+                    <Divider />
+                    <CardContent sx={{ py: 2 }}>
+                        <Grid container spacing={2}>
+                            <Grid item xs={12} sm={6} md={3}>
+                                <Chip label="Phòng Giáo vụ • 10:20" size="small" />
+                                <Typography variant="body2" sx={{ mt: 0.5 }}>
+                                    Phê duyệt thời khoá biểu tuần tới.
+                                </Typography>
+                            </Grid>
+                            <Grid item xs={12} sm={6} md={3}>
+                                <Chip label="Phòng Y tế • 09:00" size="small" color="success" />
+                                <Typography variant="body2" sx={{ mt: 0.5 }}>
+                                    Hoàn tất kiểm tra tiêm chủng định kỳ.
+                                </Typography>
+                            </Grid>
+                            <Grid item xs={12} sm={6} md={3}>
+                                <Chip label="Kế toán • 08:45" size="small" color="warning" />
+                                <Typography variant="body2" sx={{ mt: 0.5 }}>
+                                    Đối soát công nợ tháng 09.
+                                </Typography>
+                            </Grid>
+                            <Grid item xs={12} sm={6} md={3}>
+                                <Chip label="Nhà trường • 07:30" size="small" color="info" />
+                                <Typography variant="body2" sx={{ mt: 0.5 }}>
+                                    Thông báo sân chơi cuối tuần.
+                                </Typography>
+                            </Grid>
+                        </Grid>
+                    </CardContent>
+                </Card>
             </Box>
         </MainLayout>
     );
 }
-
-export default Dashboard;

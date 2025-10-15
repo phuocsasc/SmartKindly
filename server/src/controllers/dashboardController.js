@@ -6,6 +6,7 @@ const access = async (req, res) => {
         const userInfo = {
             id: req.jwtDecoded.id,
             username: req.jwtDecoded.username,
+            fullName: req.jwtDecoded.fullName,
             role: req.jwtDecoded.role,
         };
 

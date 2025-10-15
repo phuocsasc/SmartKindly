@@ -6,7 +6,7 @@ import AccessDenied from '~/pages/AccessDenied';
 import RbacRoute from '~/components/core/RbacRoute';
 import { permissions } from '~/config/rbacConfig';
 import { UserProvider, useUser } from '~/contexts/UserContext';
-
+import { PERMISSIONS } from '~/config/rbacConfig';
 // Users
 import UserManagement from '~/pages/Users/UserManagement';
 
@@ -47,8 +47,12 @@ function AppContent() {
             </Route>
 
             <Route element={<ProtectedRoutes />}>
-                {/* Users */}
-                <Route path="/users" element={<UserManagement />} />
+                {/* Users - Chỉ cho phép xem nếu có quyền VIEW_USERS */}
+                <Route element={<RbacRoute requiredPermission={PERMISSIONS.VIEW_USERS} />}>
+                    <Route path="/users" element={<UserManagement />} />
+                </Route>
+
+                {/* Các route khác... */}
 
                 {/* Data */}
                 <Route path="/data/school-info" element={<SchoolInfo />} />

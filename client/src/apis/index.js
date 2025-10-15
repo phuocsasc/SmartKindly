@@ -7,8 +7,8 @@ export const handleLogoutApi = async () => {
     localStorage.removeItem('refreshToken');
     localStorage.removeItem('userInfo');
 
-    // Với trường hợp 02: Dùng Http Only Cookies > gọi API để xử lý delete cookies
-    // return await authorizedAxiosInstance.delete(`${API_ROOT}/v1/users/logout`);
+    // Gọi API logout nếu cần
+    // await authorizedAxiosInstance.delete(`${API_ROOT}/v1/users/logout`);
 };
 
 export const refreshTokenApi = async (refreshToken) => {
@@ -16,3 +16,5 @@ export const refreshTokenApi = async (refreshToken) => {
         refreshToken,
     });
 };
+// Export userApi
+export * from './userApi';

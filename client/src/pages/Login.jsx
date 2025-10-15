@@ -1,12 +1,11 @@
+// client/src/pages/Login.jsx
 import { Box, Button, Card as MuiCard, CardActions, TextField, Zoom, Alert, Typography } from '@mui/material';
-
 import { useForm } from 'react-hook-form';
 import { useNavigate } from 'react-router-dom';
-
+import { useState } from 'react';
 import PhuocDevIcon from '../assets/logo_TNP.png';
-import authorizedAxiosInstance from '~/utils/authorizedAxios';
-import { API_ROOT } from '~/utils/constants';
-import { useUser } from '~/contexts/UserContext'; // ✅ Import useUser
+import { userApi } from '~/apis/userApi';
+import { useUser } from '~/contexts/UserContext';
 
 function Login() {
     const {
@@ -15,27 +14,40 @@ function Login() {
         formState: { errors },
     } = useForm();
     const navigate = useNavigate();
-    const { updateUser } = useUser(); // ✅ Lấy updateUser từ context
+    const { updateUser } = useUser();
+    const [loading, setLoading] = useState(false);
+    const [errorMessage, setErrorMessage] = useState('');
 
     const submitLogIn = async (data) => {
-        const res = await authorizedAxiosInstance.post(`${API_ROOT}/v1/users/login`, data);
+        try {
+            setLoading(true);
+            setErrorMessage('');
 
-        const userInfo = {
-            id: res.data.id,
-            username: res.data.username,
-            role: res.data.role,
-        };
+            const res = await userApi.login(data);
 
-        // Lưu token và thông tin của User vào LocalStorage
-        localStorage.setItem('accessToken', res.data.accessToken);
-        localStorage.setItem('refreshToken', res.data.refreshToken);
-        localStorage.setItem('userInfo', JSON.stringify(userInfo));
+            const userInfo = {
+                id: res.data.id,
+                username: res.data.username,
+                fullName: res.data.fullName,
+                role: res.data.role,
+            };
 
-        // ✅ CẬP NHẬT: Cập nhật user vào context ngay sau khi login
-        updateUser(userInfo);
+            // Lưu token và thông tin User vào LocalStorage
+            localStorage.setItem('accessToken', res.data.accessToken);
+            localStorage.setItem('refreshToken', res.data.refreshToken);
+            localStorage.setItem('userInfo', JSON.stringify(userInfo));
 
-        // Điều hướng tới trang Dashboard khi login thành công
-        navigate('/dashboard');
+            // Cập nhật user vào context
+            updateUser(userInfo);
+
+            // Điều hướng tới trang Dashboard
+            navigate('/dashboard');
+        } catch (error) {
+            console.error('Login error:', error);
+            setErrorMessage(error.response?.data?.message || 'Đăng nhập thất bại. Vui lòng thử lại!');
+        } finally {
+            setLoading(false);
+        }
     };
 
     return (
@@ -67,6 +79,7 @@ function Login() {
                         <Box sx={{ width: '70px', bgcolor: 'white', margin: '0 auto' }}>
                             <img src={PhuocDevIcon} alt="phuocdevicon" width="100%" />
                         </Box>
+
                         <Box
                             sx={{
                                 display: 'flex',
@@ -75,21 +88,28 @@ function Login() {
                             }}
                         >
                             <Box>
-                                <Typography>Hint: phuoctran.22102004@gmail.com</Typography>
-                                <Typography>Pass: phuocdev@123</Typography>
+                                <Typography>Username: admin</Typography>
+                                <Typography>Password: 123456</Typography>
                             </Box>
                         </Box>
+
+                        {errorMessage && (
+                            <Alert severity="error" sx={{ mx: 2, mt: 2 }}>
+                                {errorMessage}
+                            </Alert>
+                        )}
+
                         <Box sx={{ padding: '0 1em 1em 1em' }}>
                             <Box sx={{ marginTop: '1.2em' }}>
                                 <TextField
                                     autoFocus
                                     fullWidth
-                                    label="Nhập username..."
-                                    type="username"
+                                    label="Nhập tên tài khoản..."
+                                    type="text"
                                     variant="outlined"
                                     error={!!errors.username}
                                     {...register('username', {
-                                        required: 'Vui lòng nhập username',
+                                        required: 'Vui lòng nhập tên tài khoản',
                                     })}
                                 />
                                 {errors.username && (
@@ -108,12 +128,12 @@ function Login() {
                             <Box sx={{ marginTop: '1em' }}>
                                 <TextField
                                     fullWidth
-                                    label="Nhập Password..."
+                                    label="Nhập mật khẩu..."
                                     type="password"
                                     variant="outlined"
                                     error={!!errors.password}
                                     {...register('password', {
-                                        required: 'Vui lòng nhập Password',
+                                        required: 'Vui lòng nhập mật khẩu',
                                     })}
                                 />
                                 {errors.password && (
@@ -129,9 +149,17 @@ function Login() {
                                 )}
                             </Box>
                         </Box>
+
                         <CardActions sx={{ padding: '0.5em 1em 1em 1em' }}>
-                            <Button type="submit" variant="contained" color="primary" size="large" fullWidth>
-                                Đăng nhập
+                            <Button
+                                type="submit"
+                                variant="contained"
+                                color="primary"
+                                size="large"
+                                fullWidth
+                                disabled={loading}
+                            >
+                                {loading ? 'Đang đăng nhập...' : 'Đăng nhập'}
                             </Button>
                         </CardActions>
                     </MuiCard>

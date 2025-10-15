@@ -1,12 +1,44 @@
-//? Định nghĩa Roles của user trong hệ thống
-export const roles = {
-    CLIENT: 'client',
-    MODERATOR: 'moderator',
-    ADMIN: 'admin',
+// client/src/config/rbacConfig.js
+export const ROLES = {
+    BAN_GIAM_HIEU: 'ban_giam_hieu',
+    TO_TRUONG: 'to_truong',
+    GIAO_VIEN: 'giao_vien',
+    KE_TOAN: 'ke_toan',
+    PHU_HUYNH: 'phu_huynh',
 };
 
-//? Định nghĩa các quyền - Permissions trong hệ thống
-export const permissions = {
+export const PERMISSIONS = {
+    // Quản lý tài khoản người dùng
+    VIEW_USERS: 'view_users',
+    CREATE_USER: 'create_user',
+    UPDATE_USER: 'update_user',
+    DELETE_USER: 'delete_user',
+
+    // Quản lý thông tin nhà trường
+    VIEW_SCHOOL_INFO: 'view_school_info',
+    CREATE_SCHOOL_INFO: 'create_school_info',
+    UPDATE_SCHOOL_INFO: 'update_school_info',
+    DELETE_SCHOOL_INFO: 'delete_school_info',
+
+    // Quản lý khai báo năm học
+    VIEW_ACADEMIC_YEAR: 'view_academic_year',
+    CREATE_ACADEMIC_YEAR: 'create_academic_year',
+    UPDATE_ACADEMIC_YEAR: 'update_academic_year',
+    DELETE_ACADEMIC_YEAR: 'delete_academic_year',
+
+    // Quản lý khai báo tổ bộ môn
+    VIEW_DEPARTMENT: 'view_department',
+    CREATE_DEPARTMENT: 'create_department',
+    UPDATE_DEPARTMENT: 'update_department',
+    DELETE_DEPARTMENT: 'delete_department',
+
+    // Quản lý khai báo lớp học
+    VIEW_CLASSROOM: 'view_classroom',
+    CREATE_CLASSROOM: 'create_classroom',
+    UPDATE_CLASSROOM: 'update_classroom',
+    DELETE_CLASSROOM: 'delete_classroom',
+
+    // Dashboard & cũ (giữ lại để tương thích)
     VIEW_DASHBOARD: 'view_dashboard',
     VIEW_SUPPORT: 'view_support',
     VIEW_MESSAGES: 'view_messages',
@@ -14,9 +46,58 @@ export const permissions = {
     VIEW_ADMIN_TOOLS: 'view_admin_tools',
 };
 
-//? Kết hợp Roles và Permissions để xác định quyền hạn của user
-export const rolePermissions = {
-    [roles.CLIENT]: [permissions.VIEW_DASHBOARD, permissions.VIEW_SUPPORT],
-    [roles.MODERATOR]: [permissions.VIEW_DASHBOARD, permissions.VIEW_SUPPORT, permissions.VIEW_MESSAGES],
-    [roles.ADMIN]: Object.values(permissions),
+export const ROLE_PERMISSIONS = {
+    [ROLES.BAN_GIAM_HIEU]: [
+        // Toàn quyền - tất cả permissions
+        ...Object.values(PERMISSIONS),
+    ],
+    [ROLES.TO_TRUONG]: [
+        PERMISSIONS.VIEW_USERS,
+        PERMISSIONS.VIEW_SCHOOL_INFO,
+        PERMISSIONS.VIEW_ACADEMIC_YEAR,
+        PERMISSIONS.VIEW_DEPARTMENT,
+        PERMISSIONS.VIEW_CLASSROOM,
+        PERMISSIONS.CREATE_CLASSROOM,
+        PERMISSIONS.UPDATE_CLASSROOM,
+        PERMISSIONS.DELETE_CLASSROOM,
+        PERMISSIONS.VIEW_DASHBOARD,
+        PERMISSIONS.VIEW_SUPPORT,
+    ],
+    [ROLES.GIAO_VIEN]: [
+        PERMISSIONS.VIEW_SCHOOL_INFO,
+        PERMISSIONS.VIEW_ACADEMIC_YEAR,
+        PERMISSIONS.VIEW_DEPARTMENT,
+        PERMISSIONS.VIEW_CLASSROOM,
+        PERMISSIONS.VIEW_DASHBOARD,
+        PERMISSIONS.VIEW_SUPPORT,
+    ],
+    [ROLES.KE_TOAN]: [
+        PERMISSIONS.VIEW_SCHOOL_INFO,
+        PERMISSIONS.VIEW_CLASSROOM,
+        PERMISSIONS.VIEW_DASHBOARD,
+        PERMISSIONS.VIEW_SUPPORT,
+    ],
+    [ROLES.PHU_HUYNH]: [PERMISSIONS.VIEW_SCHOOL_INFO, PERMISSIONS.VIEW_DASHBOARD],
 };
+
+// Helper function để map giữa role tiếng Việt và code
+export const ROLE_DISPLAY = {
+    [ROLES.BAN_GIAM_HIEU]: 'Ban giám hiệu',
+    [ROLES.TO_TRUONG]: 'Tổ trưởng',
+    [ROLES.GIAO_VIEN]: 'Giáo viên',
+    [ROLES.KE_TOAN]: 'Kế toán',
+    [ROLES.PHU_HUYNH]: 'Phụ huynh',
+};
+
+export const ROLE_CODE = {
+    'Ban giám hiệu': ROLES.BAN_GIAM_HIEU,
+    'Tổ trưởng': ROLES.TO_TRUONG,
+    'Giáo viên': ROLES.GIAO_VIEN,
+    'Kế toán': ROLES.KE_TOAN,
+    'Phụ huynh': ROLES.PHU_HUYNH,
+};
+
+// Legacy mapping (giữ lại để tương thích code cũ)
+export const roles = ROLES;
+export const permissions = PERMISSIONS;
+export const rolePermissions = ROLE_PERMISSIONS;

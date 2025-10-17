@@ -1,0 +1,85 @@
+import mongoose from 'mongoose';
+
+const SemesterSchema = new mongoose.Schema(
+    {
+        name: {
+            type: String,
+            required: [true, 'Tên học kỳ là bắt buộc'],
+            trim: true,
+            enum: ['Học kì I', 'Học kì II'],
+        },
+        startDate: {
+            type: Date,
+            required: [true, 'Ngày bắt đầu là bắt buộc'],
+        },
+        endDate: {
+            type: Date,
+            required: [true, 'Ngày kết thúc là bắt buộc'],
+        },
+    },
+    { _id: true },
+);
+
+const AcademicYearSchema = new mongoose.Schema(
+    {
+        fromYear: {
+            type: Number,
+            required: [true, 'Năm bắt đầu là bắt buộc'],
+            min: [2000, 'Năm bắt đầu phải lớn hơn 2000'],
+            max: [2100, 'Năm bắt đầu phải nhỏ hơn 2100'],
+        },
+        toYear: {
+            type: Number,
+            required: [true, 'Năm kết thúc là bắt buộc'],
+            min: [2000, 'Năm kết thúc phải lớn hơn 2000'],
+            max: [2100, 'Năm kết thúc phải nhỏ hơn 2100'],
+        },
+        semesters: {
+            type: [SemesterSchema],
+            validate: {
+                validator: function (v) {
+                    return v.length === 2;
+                },
+                message: 'Năm học phải có đúng 2 học kỳ',
+            },
+        },
+        status: {
+            type: String,
+            enum: ['active', 'inactive'],
+            default: 'inactive',
+        },
+        createdBy: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'User',
+            required: true,
+        },
+        _destroy: {
+            type: Boolean,
+            default: false,
+        },
+    },
+    {
+        timestamps: true,
+        toJSON: {
+            transform: function (doc, ret) {
+                delete ret.__v;
+                return ret;
+            },
+        },
+    },
+);
+
+// Validate toYear phải lớn hơn fromYear đúng 1 năm
+AcademicYearSchema.pre('save', function (next) {
+    if (this.toYear !== this.fromYear + 1) {
+        next(new Error('Năm kết thúc phải lớn hơn năm bắt đầu đúng 1 năm'));
+    }
+    next();
+});
+
+// Index để tìm kiếm nhanh hơn
+AcademicYearSchema.index({ fromYear: 1, toYear: 1 });
+AcademicYearSchema.index({ status: 1 });
+AcademicYearSchema.index({ createdBy: 1 });
+
+export const AcademicYearModel = mongoose.model('AcademicYear', AcademicYearSchema);

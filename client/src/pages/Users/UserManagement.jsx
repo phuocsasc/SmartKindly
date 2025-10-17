@@ -3,8 +3,6 @@ import {
     Box,
     Typography,
     Paper,
-    Breadcrumbs,
-    Link,
     Chip,
     IconButton,
     Tooltip,
@@ -16,36 +14,27 @@ import {
     CircularProgress,
 } from '@mui/material';
 import { DataGrid } from '@mui/x-data-grid';
-import { Home as HomeIcon } from '@mui/icons-material';
 import AddCircleOutlineOutlinedIcon from '@mui/icons-material/AddCircleOutlineOutlined';
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
 import DeleteOutlineOutlinedIcon from '@mui/icons-material/DeleteOutlineOutlined';
-import SchoolIcon from '@mui/icons-material/School';
-import GroupsIcon from '@mui/icons-material/Groups';
-import PersonIcon from '@mui/icons-material/Person';
-import AccountBalanceIcon from '@mui/icons-material/AccountBalance';
-import FamilyRestroomIcon from '@mui/icons-material/FamilyRestroom';
 import { useEffect, useState } from 'react';
 import MainLayout from '~/layouts/MainLayout';
+import PageContainer from '~/components/layout/PageContainer';
+import PageBreadcrumb from '~/components/common/PageBreadcrumb';
 import { useUser } from '~/contexts/UserContext';
 import { userApi } from '~/apis/userApi';
-import { ROLES, ROLE_DISPLAY, PERMISSIONS } from '~/config/rbacConfig';
+import { ROLE_CONFIG, ROLE_DISPLAY, PERMISSIONS } from '~/config/roleConfig';
+
 import { usePermission } from '~/hooks/usePermission';
 import { toast } from 'react-toastify';
 import UserDialog from './UserDialog';
-
-// Cấu hình màu sắc và icon cho từng vai trò
-const ROLE_CONFIG = {
-    [ROLES.BAN_GIAM_HIEU]: { color: '#d32f2f', bgColor: '#ffebee', icon: SchoolIcon },
-    [ROLES.TO_TRUONG]: { color: '#f57c00', bgColor: '#fff3e0', icon: GroupsIcon },
-    [ROLES.GIAO_VIEN]: { color: '#1976d2', bgColor: '#e3f2fd', icon: PersonIcon },
-    [ROLES.KE_TOAN]: { color: '#388e3c', bgColor: '#e8f5e9', icon: AccountBalanceIcon },
-    [ROLES.PHU_HUYNH]: { color: '#7b1fa2', bgColor: '#f3e5f5', icon: FamilyRestroomIcon },
-};
+import ConfirmDialog from '~/components/common/ConfirmDialog';
+import { useConfirmDialog } from '~/hooks/useConfirmDialog';
 
 function UserManagement() {
     const { user } = useUser();
     const { hasPermission } = usePermission(user?.role);
+    const { dialogState, showConfirm, handleCancel } = useConfirmDialog();
 
     // State
     const [rows, setRows] = useState([]);
@@ -144,28 +133,42 @@ function UserManagement() {
         setOpenDialog(true);
     };
 
+    // Xóa 1 user
     const handleDelete = async (id) => {
-        if (!window.confirm('Bạn có chắc chắn muốn xóa người dùng này?')) return;
-
         try {
-            await userApi.deleteUser(id);
-            toast.success('Xóa người dùng thành công!');
-            fetchUsers();
-            fetchRoleStats(); // Cập nhật lại thống kê
+            await showConfirm({
+                title: 'Xác nhận xóa người dùng',
+                message: `Bạn có chắc chắn muốn xóa người dùng này?`,
+                severity: 'error',
+                confirmText: 'Xóa',
+                onConfirm: async () => {
+                    await userApi.deleteUser(id);
+                    toast.success('Xóa người dùng thành công!');
+                    fetchUsers();
+                    fetchRoleStats();
+                },
+            });
         } catch (error) {
             toast.error('Lỗi khi xóa người dùng!');
         }
     };
 
+    // Xóa nhiều users
     const handleDeleteMany = async () => {
-        if (!window.confirm(`Bạn có chắc chắn muốn xóa ${selectedRows.length} người dùng đã chọn?`)) return;
-
         try {
-            await userApi.deleteManyUsers(selectedRows);
-            toast.success(`Xóa ${selectedRows.length} người dùng thành công!`);
-            setSelectedRows([]);
-            fetchUsers();
-            fetchRoleStats(); // Cập nhật lại thống kê
+            await showConfirm({
+                title: 'Xác nhận xóa nhiều người dùng',
+                message: `Bạn có chắc chắn muốn xóa ${selectedRows.length} người dùng đã chọn?`,
+                severity: 'error',
+                confirmText: 'Xóa tất cả',
+                onConfirm: async () => {
+                    await userApi.deleteManyUsers(selectedRows);
+                    toast.success(`Xóa ${selectedRows.length} người dùng thành công!`);
+                    setSelectedRows([]);
+                    fetchUsers();
+                    fetchRoleStats();
+                },
+            });
         } catch (error) {
             toast.error('Lỗi khi xóa người dùng!');
         }
@@ -265,30 +268,9 @@ function UserManagement() {
 
     return (
         <MainLayout user={user}>
-            <Box
-                sx={{
-                    width: '100%',
-                    maxWidth: 1400,
-                    mx: 'auto',
-                    px: { xs: 1.5, sm: 2.5, md: 3 },
-                    py: { xs: 1.5, md: 1 },
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: 2,
-                }}
-            >
+            <PageContainer>
                 {/* ======= BREADCRUMB ======= */}
-                <Breadcrumbs sx={{ mb: 2 }}>
-                    <Link
-                        color="inherit"
-                        href="/dashboard"
-                        sx={{ display: 'flex', alignItems: 'center', textDecoration: 'none' }}
-                    >
-                        <HomeIcon sx={{ mr: 0.5 }} fontSize="inherit" />
-                        Trang chủ
-                    </Link>
-                    <Typography color="text.primary">Quản lý người dùng</Typography>
-                </Breadcrumbs>
+                <PageBreadcrumb items={[{ text: 'Quản lý người dùng' }]} />
 
                 {/* ======= THỐNG KÊ ======= */}
                 <Box sx={{ mb: 2, display: 'flex', gap: 1, flexWrap: 'wrap' }}>
@@ -460,7 +442,7 @@ function UserManagement() {
                         }}
                     />
                 </Paper>
-            </Box>
+            </PageContainer>
 
             {/* Dialog Create/Edit User */}
             <UserDialog
@@ -474,6 +456,8 @@ function UserManagement() {
                     fetchRoleStats(); // Cập nhật lại thống kê
                 }}
             />
+            {/* Confirm Dialog */}
+            <ConfirmDialog {...dialogState} onCancel={handleCancel} />
         </MainLayout>
     );
 }

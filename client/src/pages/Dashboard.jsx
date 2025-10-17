@@ -74,12 +74,12 @@ export default function Dashboard() {
                         <Typography variant="h5" sx={{ fontWeight: 700 }}>
                             Tổng quan
                         </Typography>
-                        <Chip
+                        {/* <Chip
                             label={`Xin chào, ${user?.fullName || user?.username || 'Guest'}`}
                             size="small"
                             color="primary"
                             variant="soft"
-                        />
+                        /> */}
                     </Box>
                 </Box>
 

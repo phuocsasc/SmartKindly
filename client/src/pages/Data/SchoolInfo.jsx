@@ -1,6 +1,8 @@
-import { Box, Typography, Paper, Breadcrumbs, Link } from '@mui/material';
-import StorageOutlinedIcon from '@mui/icons-material/StorageOutlined';
+import { Typography, Paper } from '@mui/material';
 import MainLayout from '~/layouts/MainLayout';
+import PageContainer from '~/components/layout/PageContainer';
+import PageBreadcrumb from '~/components/common/PageBreadcrumb';
+import StorageOutlinedIcon from '@mui/icons-material/StorageOutlined';
 import { useUser } from '~/contexts/UserContext';
 
 function SchoolInfo() {
@@ -8,19 +10,14 @@ function SchoolInfo() {
 
     return (
         <MainLayout user={user}>
-            <Box sx={{ p: 2 }}>
+            <PageContainer>
                 {/* Breadcrumb */}
-                <Breadcrumbs sx={{ mb: 2 }}>
-                    <Link
-                        color="inherit"
-                        href="/dashboard"
-                        sx={{ display: 'flex', alignItems: 'center', textDecoration: 'none' }}
-                    >
-                        <StorageOutlinedIcon sx={{ mr: 0.5 }} fontSize="inherit" />
-                        Khai báo dữ liệu
-                    </Link>
-                    <Typography color="text.primary">Thông tin nhà trường</Typography>
-                </Breadcrumbs>
+                <PageBreadcrumb
+                    items={[
+                        { text: 'Khai báo dữ liệu', icon: StorageOutlinedIcon, href: '/#' },
+                        { text: 'Thông tin nhà trường' },
+                    ]}
+                />
 
                 {/* Page Content */}
                 <Paper sx={{ p: 3, borderRadius: 2, boxShadow: 1 }}>
@@ -28,10 +25,18 @@ function SchoolInfo() {
                         Thông tin nhà trường
                     </Typography>
                     <Typography variant="body1" color="text.secondary">
-                        Nội dung trang thông tin nhà trường sẽ được phát triển tại đây.
+                        Nội dung trang thông tin nhà trường sẽ được phát triển tại đây. Nội dung trang thông tin nhà
+                        trường sẽ được phát triển tại đây.Nội dung trang thông tin nhà trường sẽ được phát triển tại
+                        đây.Nội dung trang thông tin nhà trường sẽ được phát triển tại đây.Nội dung trang thông tin nhà
+                        trường sẽ được phát triển tại đây.Nội dung trang thông tin nhà trường sẽ được phát triển tại
+                        đây.Nội dung trang thông tin nhà trường sẽ được phát triển tại đây.Nội dung trang thông tin nhà
+                        trường sẽ được phát triển tại đây.Nội dung trang thông tin nhà trường sẽ được phát triển tại
+                        đây.Nội dung trang thông tin nhà trường sẽ được phát triển tại đây.Nội dung trang thông tin nhà
+                        trường sẽ được phát triển tại đây.Nội dung trang thông tin nhà trường sẽ được phát triển tại
+                        đây.Nội dung trang thông tin nhà trường sẽ được phát triển tại đây.
                     </Typography>
                 </Paper>
-            </Box>
+            </PageContainer>
         </MainLayout>
     );
 }

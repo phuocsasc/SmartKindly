@@ -11,12 +11,17 @@ import 'react-toastify/dist/ReactToastify.css';
 // Config react-router-dom with BrowserRouter
 import { BrowserRouter } from 'react-router-dom';
 
+// Import DatePickerProvider
+import DatePickerProvider from './components/common/DatePickerProvider';
+
 ReactDOM.createRoot(document.getElementById('root')).render(
     <BrowserRouter basename="/">
         <CssVarsProvider theme={theme}>
             <CssBaseline />
-            <App />
-            <ToastContainer position="top-right" theme="colored" />
+            <DatePickerProvider>
+                <App />
+                <ToastContainer position="top-right" theme="colored" />
+            </DatePickerProvider>
         </CssVarsProvider>
     </BrowserRouter>,
 );

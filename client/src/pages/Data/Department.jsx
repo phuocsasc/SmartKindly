@@ -1,6 +1,8 @@
-import { Box, Typography, Paper, Breadcrumbs, Link } from '@mui/material';
+import { Typography, Paper } from '@mui/material';
 import StorageOutlinedIcon from '@mui/icons-material/StorageOutlined';
 import MainLayout from '~/layouts/MainLayout';
+import PageContainer from '~/components/layout/PageContainer';
+import PageBreadcrumb from '~/components/common/PageBreadcrumb';
 import { useUser } from '~/contexts/UserContext';
 
 function Department() {
@@ -8,19 +10,11 @@ function Department() {
 
     return (
         <MainLayout user={user}>
-            <Box sx={{ p: 2 }}>
+            <PageContainer>
                 {/* Breadcrumb */}
-                <Breadcrumbs sx={{ mb: 2 }}>
-                    <Link
-                        color="inherit"
-                        href="/dashboard"
-                        sx={{ display: 'flex', alignItems: 'center', textDecoration: 'none' }}
-                    >
-                        <StorageOutlinedIcon sx={{ mr: 0.5 }} fontSize="inherit" />
-                        Khai báo dữ liệu
-                    </Link>
-                    <Typography color="text.primary">Tổ bộ môn</Typography>
-                </Breadcrumbs>
+                <PageBreadcrumb
+                    items={[{ text: 'Khai báo dữ liệu', icon: StorageOutlinedIcon, href: '/#' }, { text: 'Tổ bộ môn' }]}
+                />
 
                 {/* Page Content */}
                 <Paper sx={{ p: 3, borderRadius: 2, boxShadow: 1 }}>
@@ -31,7 +25,7 @@ function Department() {
                         Nội dung trang tổ bộ môn sẽ được phát triển tại đây.
                     </Typography>
                 </Paper>
-            </Box>
+            </PageContainer>
         </MainLayout>
     );
 }

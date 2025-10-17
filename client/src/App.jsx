@@ -12,7 +12,7 @@ import UserManagement from '~/pages/Users/UserManagement';
 
 // Data
 import SchoolInfo from '~/pages/Data/SchoolInfo';
-import SchoolYear from '~/pages/Data/SchoolYear';
+import AcademicYear from '~/pages/Data/AcademicYear';
 import Department from '~/pages/Data/Department';
 import Classes from '~/pages/Data/Classes';
 
@@ -55,10 +55,15 @@ function AppContent() {
                 {/* Các route khác... */}
 
                 {/* Data */}
-                <Route path="/data/school-info" element={<SchoolInfo />} />
-                <Route path="/data/school-year" element={<SchoolYear />} />
+                <Route element={<RbacRoute requiredPermission={permissions.VIEW_SCHOOL_INFO} />}>
+                    <Route path="/data/school-info" element={<SchoolInfo />} />
+                </Route>
+                <Route element={<RbacRoute requiredPermission={permissions.VIEW_ACADEMIC_YEAR} />}>
+                    <Route path="/data/school-year" element={<AcademicYear />} />
+                </Route>
                 <Route path="/data/department" element={<Department />} />
                 <Route path="/data/classes" element={<Classes />} />
+                {/* Data */}
 
                 <Route element={<RbacRoute requiredPermission={permissions.VIEW_DASHBOARD} />}>
                     <Route path="/dashboard" element={<Dashboard />} />

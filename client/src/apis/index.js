@@ -18,3 +18,6 @@ export const refreshTokenApi = async (refreshToken) => {
 };
 // Export userApi
 export * from './userApi';
+
+// Export academicYearApi
+export * from './academicYearApi';

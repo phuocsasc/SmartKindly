@@ -1,5 +1,4 @@
 import axios from 'axios';
-import { toast } from 'react-toastify';
 import { handleLogoutApi, refreshTokenApi } from '~/apis';
 
 // Khởi tạo một đối tượng Axios (authorizedAxiosInstance) mục đích để custom và cấu hình chung cho dự án
@@ -109,9 +108,9 @@ authorizedAxiosInstance.interceptors.response.use(
         // Mọi mã http status code nằm ngoài khoảng 200 - 299 sẽ là error và rơi vào đây
         // Xử lý tập trung phần hiển thị thông báo lỗi trả về từ mọi API ở đây (Mục đích: viết code 1 lần "clean code")
         // dùng toastify để hiển thị bất kể mọi mã lỗi lên màn hình - Ngoại trừ mã 410 - GONE phục vụ việc tự động refresh lại token
-        if (error.response?.status !== 410) {
-            toast.error(error.response?.data?.message || error?.message);
-        }
+        // if (error.response?.status !== 410) {
+        //     toast.error(error.response?.data?.message || error?.message);
+        // }
         return Promise.reject(error);
     },
 );

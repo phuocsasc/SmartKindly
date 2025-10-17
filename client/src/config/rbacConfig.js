@@ -1,4 +1,3 @@
-// client/src/config/rbacConfig.js
 export const ROLES = {
     BAN_GIAM_HIEU: 'ban_giam_hieu',
     TO_TRUONG: 'to_truong',

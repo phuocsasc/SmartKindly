@@ -9,17 +9,11 @@ import { PERMISSIONS } from '~/config/rbacConfig';
 const Router = express.Router();
 
 // ===== Authentication APIs =====
-// API đăng nhập
 Router.route('/login').post(userController.login);
-
-// API đăng xuất
 Router.route('/logout').delete(userController.logout);
-
-// API Refresh Token - Cấp lại Access Token mới
 Router.route('/refresh_token').put(userController.refreshToken);
 
-// ===== User Management APIs (Cần xác thực và phân quyền) =====
-// API lấy danh sách người dùng
+// ===== User Management APIs =====
 Router.route('/management')
     .get(
         authMiddleware.isAuthorized,
@@ -33,23 +27,23 @@ Router.route('/management')
         userManagementController.createNew,
     );
 
-// API xóa nhiều người dùng
 Router.route('/management/delete-many').post(
     authMiddleware.isAuthorized,
     rbacMiddleware.isValidPermission([PERMISSIONS.DELETE_USER]),
     userManagementController.deleteManyUsers,
 );
 
-// API chi tiết, cập nhật, xóa người dùng
 Router.route('/management/:id')
     .get(
         authMiddleware.isAuthorized,
-        rbacMiddleware.isValidPermission([PERMISSIONS.VIEW_USERS]),
+        // Cho phép user xem thông tin của chính mình HOẶC có quyền VIEW_USERS
+        rbacMiddleware.isValidPermissionOrOwner([PERMISSIONS.VIEW_USERS]),
         userManagementController.getDetails,
     )
     .put(
         authMiddleware.isAuthorized,
-        rbacMiddleware.isValidPermission([PERMISSIONS.UPDATE_USER]),
+        // Cho phép user tự update thông tin của chính mình HOẶC có quyền UPDATE_USER
+        rbacMiddleware.isValidPermissionOrOwner([PERMISSIONS.UPDATE_USER]),
         userValidation.update,
         userManagementController.update,
     )
@@ -59,15 +53,14 @@ Router.route('/management/:id')
         userManagementController.deleteUser,
     );
 
-// API đổi mật khẩu
+// API đổi mật khẩu - Tất cả user đều có thể đổi mật khẩu của chính mình
 Router.route('/management/:id/change-password').put(
     authMiddleware.isAuthorized,
-    rbacMiddleware.isValidPermission([PERMISSIONS.UPDATE_USER]),
     userValidation.changePassword,
     userManagementController.changePassword,
 );
 
-// API reset mật khẩu (chỉ admin)
+// API reset mật khẩu - Chỉ admin
 Router.route('/management/:id/reset-password').put(
     authMiddleware.isAuthorized,
     rbacMiddleware.isValidPermission([PERMISSIONS.UPDATE_USER]),

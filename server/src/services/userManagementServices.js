@@ -215,7 +215,14 @@ const changePassword = async (id, currentPassword, newPassword) => {
         // Kiểm tra mật khẩu hiện tại
         const isMatch = await user.comparePassword(currentPassword);
         if (!isMatch) {
-            throw new ApiError(StatusCodes.UNAUTHORIZED, 'Mật khẩu hiện tại không chính xác');
+            // ✅ Đổi từ UNAUTHORIZED (401) sang BAD_REQUEST (400)
+            throw new ApiError(StatusCodes.BAD_REQUEST, 'Mật khẩu hiện tại không chính xác');
+        }
+
+        // Kiểm tra mật khẩu mới không được trùng với mật khẩu cũ
+        const isSameAsOld = await user.comparePassword(newPassword);
+        if (isSameAsOld) {
+            throw new ApiError(StatusCodes.BAD_REQUEST, 'Mật khẩu mới không được trùng với mật khẩu hiện tại');
         }
 
         // Cập nhật mật khẩu mới

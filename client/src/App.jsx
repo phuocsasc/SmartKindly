@@ -9,6 +9,7 @@ import { UserProvider, useUser } from '~/contexts/UserContext';
 import { PERMISSIONS } from '~/config/rbacConfig';
 // Users
 import UserManagement from '~/pages/Users/UserManagement';
+import UserInfo from '~/pages/Users/UserInfo';
 
 // Data
 import SchoolInfo from '~/pages/Data/SchoolInfo';
@@ -51,7 +52,7 @@ function AppContent() {
                 <Route element={<RbacRoute requiredPermission={PERMISSIONS.VIEW_USERS} />}>
                     <Route path="/users" element={<UserManagement />} />
                 </Route>
-
+                <Route path="/user-info" element={<UserInfo />} />
                 {/* Các route khác... */}
 
                 {/* Data */}

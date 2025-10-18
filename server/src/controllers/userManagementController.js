@@ -1,5 +1,6 @@
 import { StatusCodes } from 'http-status-codes';
 import { userManagementServices } from '~/services/userManagementServices';
+import ApiError from '~/utils/ApiError';
 
 const createNew = async (req, res, next) => {
     try {
@@ -71,8 +72,16 @@ const deleteManyUsers = async (req, res, next) => {
 
 const changePassword = async (req, res, next) => {
     try {
+        const userId = req.jwtDecoded.id; // User đang đăng nhập
+        const targetUserId = req.params.id; // User muốn đổi mật khẩu
+
+        // Chỉ cho phép user đổi mật khẩu của chính mình
+        if (userId !== targetUserId) {
+            throw new ApiError(StatusCodes.FORBIDDEN, 'Bạn chỉ có thể đổi mật khẩu của chính mình');
+        }
+
         const { currentPassword, newPassword } = req.body;
-        const result = await userManagementServices.changePassword(req.params.id, currentPassword, newPassword);
+        const result = await userManagementServices.changePassword(targetUserId, currentPassword, newPassword);
         res.status(StatusCodes.OK).json(result);
     } catch (error) {
         next(error);

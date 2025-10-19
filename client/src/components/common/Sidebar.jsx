@@ -8,8 +8,6 @@ import {
     Collapse,
     IconButton,
     Box,
-    Typography,
-    Divider,
     useMediaQuery,
 } from '@mui/material';
 import { Dashboard as DashboardIcon, People as PeopleIcon, ExpandLess, ExpandMore } from '@mui/icons-material';
@@ -25,6 +23,7 @@ import SwitchAccountOutlinedIcon from '@mui/icons-material/SwitchAccountOutlined
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { useTheme } from '@mui/material/styles';
+import nameLogo from '~/assets/name_logo-2.png';
 
 const menuItems = [
     { text: 'Trang chủ', icon: <DashboardIcon />, path: '/dashboard' },
@@ -153,13 +152,29 @@ function Sidebar({ collapsed, onToggle, mobileOpen, onCloseMobile }) {
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: isCollapsed ? 'center' : 'space-between',
-                    p: 1.0,
-                    backgroundColor: '#1976d2',
+                    p: 1.4,
+                    backgroundColor: '#ffffff', // ✅ Background riêng cho header
                     color: 'white',
+                    borderBottom: '1px solid #e0e0e0', // ✅ Thêm border phân cách
                 }}
             >
-                {!isCollapsed && <Typography variant="h6">SmartKindly</Typography>}
-                <IconButton color="inherit" onClick={isSmUp ? onToggle : onCloseMobile}>
+                {!isCollapsed && (
+                    <Box
+                        component="img"
+                        src={nameLogo}
+                        alt="SmartKindly Logo"
+                        sx={{
+                            height: 30,
+                            width: 'auto',
+                            objectFit: 'contain',
+                        }}
+                    />
+                )}
+                <IconButton
+                    color="inherit"
+                    sx={{ py: 1, color: '#44AFC1ff' }}
+                    onClick={isSmUp ? onToggle : onCloseMobile}
+                >
                     {isSmUp ? (
                         isCollapsed ? (
                             <KeyboardDoubleArrowRightOutlinedIcon />
@@ -172,16 +187,17 @@ function Sidebar({ collapsed, onToggle, mobileOpen, onCloseMobile }) {
                 </IconButton>
             </Box>
 
-            <Divider />
+            {/* <Divider /> */}
 
             <List
                 sx={{
                     overflowY: 'auto',
                     overflowX: 'hidden',
                     maxHeight: 'calc(100vh - 64px)',
-                    mt: 0.5,
+                    color: '#fff',
+                    // mt: 0.5,
                     width: '100%',
-                    '&::-webkit-scrollbar': { width: '4px' },
+                    '&::-webkit-scrollbar': { width: '6px' },
                     '&::-webkit-scrollbar-track': { backgroundColor: '#e3f2fd' },
                     '&::-webkit-scrollbar-thumb': { backgroundColor: '#90caf9', borderRadius: '18px' },
                     '&::-webkit-scrollbar-thumb:hover': { backgroundColor: '#64b5f6' },
@@ -199,16 +215,20 @@ function Sidebar({ collapsed, onToggle, mobileOpen, onCloseMobile }) {
                                     sx={{
                                         minHeight: 44,
                                         px: isCollapsed ? 1.5 : 2,
-                                        backgroundColor: isActive ? '#e3f2fd' : 'transparent',
-                                        borderLeft: isActive ? '4px solid #1976d2' : '4px solid transparent',
-                                        '&:hover': { backgroundColor: '#e3f2fd' },
+                                        backgroundColor: isActive ? '#44AFC1' : 'transparent',
+                                        '&.Mui-selected': {
+                                            backgroundColor: '#44AFC1 !important',
+                                        },
+
+                                        borderLeft: isActive ? '4px solid #fff' : '4px solid transparent',
+                                        '&:hover': { backgroundColor: '#9dc7ca' },
                                         transition: 'all 0.2s',
                                         width: '100%',
                                         overflow: 'hidden',
                                         '& .MuiListItemIcon-root': {
                                             minWidth: 32,
                                             justifyContent: 'center',
-                                            color: isActive ? '#1976d2' : '#555',
+                                            color: isActive ? '#fff' : '#fff',
                                         },
                                         '& .MuiListItemText-root': {
                                             opacity: isCollapsed ? 0 : 1,
@@ -225,7 +245,7 @@ function Sidebar({ collapsed, onToggle, mobileOpen, onCloseMobile }) {
                                             mr: isCollapsed ? 0 : 0.2,
                                             ml: isCollapsed ? 0 : -1,
                                             justifyContent: 'center',
-                                            color: isActive ? '#1976d2' : '#555',
+                                            color: isActive ? '#fff' : '#fff',
                                         }}
                                     >
                                         {item.icon}
@@ -237,7 +257,7 @@ function Sidebar({ collapsed, onToggle, mobileOpen, onCloseMobile }) {
                                             display: isCollapsed ? 'none' : 'block',
                                             '& .MuiListItemText-primary': {
                                                 fontWeight: isActive ? 600 : 400,
-                                                color: isActive ? '#1976d2' : 'inherit',
+                                                color: isActive ? '#fff' : 'inherit',
                                                 overflow: 'hidden',
                                                 textOverflow: 'ellipsis',
                                             },
@@ -261,11 +281,14 @@ function Sidebar({ collapsed, onToggle, mobileOpen, onCloseMobile }) {
                                                     pl: isCollapsed ? 2 : 6,
                                                     py: 0.8,
                                                     backgroundColor:
-                                                        location.pathname === child.path ? '#e8f0fe' : 'transparent',
-                                                    '&:hover': { backgroundColor: '#f1f5ff' },
+                                                        location.pathname === child.path ? '#44AFC1' : 'transparent',
+                                                    '&.Mui-selected': {
+                                                        backgroundColor: '#44AFC1 !important',
+                                                    },
+                                                    '&:hover': { backgroundColor: '#9dc7ca' },
                                                     borderLeft:
                                                         location.pathname === child.path
-                                                            ? '3px solid #1976d2'
+                                                            ? '3px solid #fff'
                                                             : '3px solid transparent',
                                                     transition: 'all 0.2s ease',
                                                 }}
@@ -275,7 +298,7 @@ function Sidebar({ collapsed, onToggle, mobileOpen, onCloseMobile }) {
                                                     primaryTypographyProps={{
                                                         fontSize: 14,
                                                         fontWeight: location.pathname === child.path ? 600 : 400,
-                                                        color: location.pathname === child.path ? '#1976d2' : 'inherit',
+                                                        color: location.pathname === child.path ? '#fff' : 'inherit',
                                                     }}
                                                 />
                                             </ListItemButton>
@@ -303,8 +326,11 @@ function Sidebar({ collapsed, onToggle, mobileOpen, onCloseMobile }) {
                     '& .MuiDrawer-paper': {
                         width: 240,
                         boxSizing: 'border-box',
-                        backgroundColor: '#f5f5f5',
-                        borderRight: '1px solid #e0e0e0',
+                        backgroundImage: 'url("/src/assets/bg-menu.png")',
+                        backgroundSize: 'cover',
+                        backgroundPosition: 'center',
+                        backgroundRepeat: 'no-repeat',
+                        // borderRight: '1px solid #e0e0e0',
                     },
                 }}
             >
@@ -325,7 +351,11 @@ function Sidebar({ collapsed, onToggle, mobileOpen, onCloseMobile }) {
                         transition: 'width 0.3s ease',
                         overflowX: 'hidden',
                         overflowY: 'auto',
-                        backgroundColor: '#f5f5f5',
+                        backgroundImage: 'url("/src/assets/bg-menu.png")',
+                        backgroundSize: 'cover',
+                        backgroundPosition: 'center',
+                        backgroundRepeat: 'no-repeat',
+                        // opacity: 0.8,
                         borderRight: '1px solid #e0e0e0',
                     },
                 }}

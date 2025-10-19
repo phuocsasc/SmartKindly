@@ -157,7 +157,7 @@ function AcademicYearDialog({ open, mode, academicYear, onClose, onSuccess }) {
     };
 
     return (
-        <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
+        <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
             <DialogTitle>{mode === 'create' ? 'Thêm năm học mới' : 'Chỉnh sửa năm học'}</DialogTitle>
             <DialogContent>
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
@@ -169,8 +169,15 @@ function AcademicYearDialog({ open, mode, academicYear, onClose, onSuccess }) {
                             value={formData.fromYear}
                             onChange={(e) => handleFromYearChange(e.target.value)}
                             required
-                            fullWidth
                             disabled={mode === 'edit'}
+                            fullWidth
+                            size="small"
+                            variant="outlined"
+                            sx={{
+                                '& .MuiOutlinedInput-root': {
+                                    borderRadius: 1.5,
+                                },
+                            }}
                         />
                         <TextField
                             label="Năm kết thúc"
@@ -178,8 +185,15 @@ function AcademicYearDialog({ open, mode, academicYear, onClose, onSuccess }) {
                             value={formData.toYear}
                             InputProps={{ readOnly: true }}
                             required
-                            fullWidth
                             disabled
+                            fullWidth
+                            size="small"
+                            variant="outlined"
+                            sx={{
+                                '& .MuiOutlinedInput-root': {
+                                    borderRadius: 1.5,
+                                },
+                            }}
                         />
                     </Box>
 
@@ -198,8 +212,15 @@ function AcademicYearDialog({ open, mode, academicYear, onClose, onSuccess }) {
                             format="DD/MM/YYYY"
                             slotProps={{
                                 textField: {
-                                    fullWidth: true,
                                     required: true,
+                                    fullWidth: true,
+                                    size: 'small',
+                                    variant: 'outlined',
+                                    sx: {
+                                        '& .MuiOutlinedInput-root': {
+                                            borderRadius: 1.5,
+                                        },
+                                    },
                                 },
                                 actionBar: {
                                     actions: ['clear', 'today'],
@@ -214,8 +235,15 @@ function AcademicYearDialog({ open, mode, academicYear, onClose, onSuccess }) {
                             minDate={formData.semester1StartDate}
                             slotProps={{
                                 textField: {
-                                    fullWidth: true,
                                     required: true,
+                                    fullWidth: true,
+                                    size: 'small',
+                                    variant: 'outlined',
+                                    sx: {
+                                        '& .MuiOutlinedInput-root': {
+                                            borderRadius: 1.5,
+                                        },
+                                    },
                                 },
                                 actionBar: {
                                     actions: ['clear', 'today'],
@@ -240,8 +268,15 @@ function AcademicYearDialog({ open, mode, academicYear, onClose, onSuccess }) {
                             minDate={formData.semester1EndDate}
                             slotProps={{
                                 textField: {
-                                    fullWidth: true,
                                     required: true,
+                                    fullWidth: true,
+                                    size: 'small',
+                                    variant: 'outlined',
+                                    sx: {
+                                        '& .MuiOutlinedInput-root': {
+                                            borderRadius: 1.5,
+                                        },
+                                    },
                                 },
                                 actionBar: {
                                     actions: ['clear', 'today'],
@@ -256,8 +291,15 @@ function AcademicYearDialog({ open, mode, academicYear, onClose, onSuccess }) {
                             minDate={formData.semester2StartDate}
                             slotProps={{
                                 textField: {
-                                    fullWidth: true,
                                     required: true,
+                                    fullWidth: true,
+                                    size: 'small',
+                                    variant: 'outlined',
+                                    sx: {
+                                        '& .MuiOutlinedInput-root': {
+                                            borderRadius: 1.5,
+                                        },
+                                    },
                                 },
                                 actionBar: {
                                     actions: ['clear', 'today'],
@@ -275,6 +317,13 @@ function AcademicYearDialog({ open, mode, academicYear, onClose, onSuccess }) {
                             value={formData.status}
                             onChange={(e) => setFormData({ ...formData, status: e.target.value })}
                             label="Trạng thái"
+                            size="small"
+                            variant="outlined"
+                            sx={{
+                                '& .MuiOutlinedInput-root': {
+                                    borderRadius: 1.5,
+                                },
+                            }}
                         >
                             <MenuItem value="inactive">Không hoạt động</MenuItem>
                             <MenuItem value="active">Đang hoạt động</MenuItem>
@@ -284,8 +333,38 @@ function AcademicYearDialog({ open, mode, academicYear, onClose, onSuccess }) {
             </DialogContent>
 
             <DialogActions>
-                <Button onClick={onClose}>Hủy</Button>
-                <Button variant="contained" onClick={handleSubmit} disabled={loading}>
+                <Button
+                    onClick={onClose}
+                    variant="outlined"
+                    color="inherit"
+                    size="small"
+                    sx={{
+                        borderRadius: 1.5,
+                        px: 2.5,
+                        textTransform: 'none',
+                        fontWeight: 600,
+                    }}
+                >
+                    Hủy
+                </Button>
+                <Button
+                    variant="contained"
+                    onClick={handleSubmit}
+                    disabled={loading}
+                    size="small"
+                    sx={{
+                        borderRadius: 1.5,
+                        px: 3,
+                        textTransform: 'none',
+                        fontWeight: 600,
+                        boxShadow: 2,
+                        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                        '&:hover': {
+                            boxShadow: 3,
+                            background: 'linear-gradient(135deg, #5568d3 0%, #6a4296 100%)',
+                        },
+                    }}
+                >
                     {loading ? 'Đang xử lý...' : mode === 'create' ? 'Tạo mới' : 'Cập nhật'}
                 </Button>
             </DialogActions>

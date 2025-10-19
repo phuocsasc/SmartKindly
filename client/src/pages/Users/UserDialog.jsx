@@ -94,7 +94,7 @@ function UserDialog({ open, mode, user, onClose, onSuccess }) {
         <Dialog
             open={open}
             onClose={onClose}
-            maxWidth="md"
+            maxWidth="sm"
             fullWidth
             PaperProps={{
                 sx: {

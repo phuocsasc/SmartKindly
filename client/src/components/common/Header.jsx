@@ -60,6 +60,7 @@ function Header({ schoolName = 'Trường Mầm Non Kim Phụng', sidebarCollaps
             sx={{
                 backgroundColor: '#ffffff',
                 color: '#333',
+                borderBottom: '1px solid #e0e0e0',
                 boxShadow: '0 2px 8px rgba(0, 0, 0, 0.05)',
                 zIndex: (theme) => theme.zIndex.drawer + 1,
                 transition: 'all 0.3s',

@@ -56,33 +56,13 @@ function AccessDenied() {
                         userSelect: 'none',
                     }}
                 >
-                    LOST IN&nbsp;
-                    <Typography
-                        component="span"
-                        tabIndex={-1}
-                        sx={{
-                            position: 'relative',
-                            outline: 'none',
-                            userSelect: 'none',
-                            '&:after': {
-                                position: 'absolute',
-                                content: '""',
-                                borderBottom: '3px solid #fdba26',
-                                left: 0,
-                                top: '43%',
-                                width: '100%',
-                            },
-                        }}
-                    >
-                        &nbsp;SPACE&nbsp;
-                    </Typography>
-                    &nbsp;
+                    LẠC TRONG&nbsp;
                     <Typography
                         component="span"
                         tabIndex={-1}
                         sx={{ color: '#fdba26', fontWeight: 500, outline: 'none', userSelect: 'none' }}
                     >
-                        PhuocTranDev
+                        KHÔNG GIAN
                     </Typography>
                 </Typography>
 

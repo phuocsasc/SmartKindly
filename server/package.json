@@ -4,7 +4,7 @@
     "version": "1.0.0",
     "author": "phuocdev",
     "engines": {
-        "node": ">=20.x"
+        "node": ">=22.x"
     },
     "scripts": {
         "lint": "eslint src --ext js --report-unused-disable-directives --max-warnings 0",
@@ -25,8 +25,10 @@
         "http-status-codes": "^2.3.0",
         "joi": "^17.13.3",
         "jsonwebtoken": "^9.0.2",
+        "mailersend": "^2.6.0",
         "mongodb": "^6.0.0",
-        "mongoose": "^7.6.3"
+        "mongoose": "^7.6.3",
+        "resend": "^6.2.0"
     },
     "devDependencies": {
         "@babel/cli": "^7.22.10",

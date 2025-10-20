@@ -1,8 +1,8 @@
 import { Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import Login from '~/pages/Login';
 import Dashboard from '~/pages/Dashboard';
-import NotFound from '~/pages/NotFound';
-import AccessDenied from '~/pages/AccessDenied';
+import NotFound from '~/pages/ErrorPages/NotFound';
+import AccessDenied from '~/pages/ErrorPages/AccessDenied';
 import RbacRoute from '~/components/core/RbacRoute';
 import { permissions } from '~/config/rbacConfig';
 import { UserProvider, useUser } from '~/contexts/UserContext';

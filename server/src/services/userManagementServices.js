@@ -236,23 +236,23 @@ const changePassword = async (id, currentPassword, newPassword) => {
     }
 };
 
-const resetPassword = async (id) => {
-    try {
-        const user = await UserModel.findOne({ _id: id, _destroy: false });
-        if (!user) {
-            throw new ApiError(StatusCodes.NOT_FOUND, 'Không tìm thấy người dùng');
-        }
+// const resetPassword = async (id) => {
+//     try {
+//         const user = await UserModel.findOne({ _id: id, _destroy: false });
+//         if (!user) {
+//             throw new ApiError(StatusCodes.NOT_FOUND, 'Không tìm thấy người dùng');
+//         }
 
-        // Reset về mật khẩu mặc định 123456
-        user.password = '123456';
-        await user.save();
+//         // Reset về mật khẩu mặc định 123456
+//         user.password = '123456';
+//         await user.save();
 
-        return { message: 'Reset mật khẩu thành công. Mật khẩu mới: 123456' };
-    } catch (error) {
-        if (error instanceof ApiError) throw error;
-        throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, 'Lỗi khi reset mật khẩu');
-    }
-};
+//         return { message: 'Reset mật khẩu thành công. Mật khẩu mới: 123456' };
+//     } catch (error) {
+//         if (error instanceof ApiError) throw error;
+//         throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, 'Lỗi khi reset mật khẩu');
+//     }
+// };
 
 export const userManagementServices = {
     createNew,
@@ -262,5 +262,5 @@ export const userManagementServices = {
     deleteUser,
     deleteManyUsers,
     changePassword,
-    resetPassword,
+    // resetPassword,
 };

@@ -19,7 +19,7 @@ const START_SERVER = () => {
     // Use Cookie Parser
     app.use(cookieParser());
 
-    // Allow CORS: for more info, check here: https://youtu.be/iYgAWJ2Djkw
+    // Allow CORS:
     app.use(cors(corsOptions));
 
     // Enable req.body json data

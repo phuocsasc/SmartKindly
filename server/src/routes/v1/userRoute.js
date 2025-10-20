@@ -13,6 +13,16 @@ Router.route('/login').post(userController.login);
 Router.route('/logout').delete(userController.logout);
 Router.route('/refresh_token').put(userController.refreshToken);
 
+// ===== Forgot Password APIs (Không cần authentication) =====
+Router.route('/forgot-password/send-otp').post(userValidation.forgotPassword, userController.sendOtpToEmail);
+
+Router.route('/forgot-password/verify-otp').post(userValidation.verifyOtp, userController.verifyOtp);
+
+Router.route('/forgot-password/reset-password').post(
+    userValidation.resetPasswordWithOtp,
+    userController.resetPasswordWithOtp,
+);
+
 // ===== User Management APIs =====
 Router.route('/management')
     .get(
@@ -61,10 +71,10 @@ Router.route('/management/:id/change-password').put(
 );
 
 // API reset mật khẩu - Chỉ admin
-Router.route('/management/:id/reset-password').put(
-    authMiddleware.isAuthorized,
-    rbacMiddleware.isValidPermission([PERMISSIONS.UPDATE_USER]),
-    userManagementController.resetPassword,
-);
+// Router.route('/management/:id/reset-password').put(
+//     authMiddleware.isAuthorized,
+//     rbacMiddleware.isValidPermission([PERMISSIONS.UPDATE_USER]),
+//     userManagementController.resetPassword,
+// );
 
 export const userRoute = Router;

@@ -88,14 +88,14 @@ const changePassword = async (req, res, next) => {
     }
 };
 
-const resetPassword = async (req, res, next) => {
-    try {
-        const result = await userManagementServices.resetPassword(req.params.id);
-        res.status(StatusCodes.OK).json(result);
-    } catch (error) {
-        next(error);
-    }
-};
+// const resetPassword = async (req, res, next) => {
+//     try {
+//         const result = await userManagementServices.resetPassword(req.params.id);
+//         res.status(StatusCodes.OK).json(result);
+//     } catch (error) {
+//         next(error);
+//     }
+// };
 
 export const userManagementController = {
     createNew,
@@ -105,5 +105,5 @@ export const userManagementController = {
     deleteUser,
     deleteManyUsers,
     changePassword,
-    resetPassword,
+    // resetPassword,
 };

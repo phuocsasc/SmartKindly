@@ -1,6 +1,6 @@
 import { Typography, Paper } from '@mui/material';
-import MainLayout from '~/layouts/MainLayout';
-import PageContainer from '~/components/layout/PageContainer';
+import MainLayout from '~/layouts/SchoolLayout';
+import PageContainer from '~/components/common/PageContainer';
 import PageBreadcrumb from '~/components/common/PageBreadcrumb';
 import StorageOutlinedIcon from '@mui/icons-material/StorageOutlined';
 import { useUser } from '~/contexts/UserContext';

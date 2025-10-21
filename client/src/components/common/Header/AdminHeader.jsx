@@ -20,7 +20,11 @@ import { useUser } from '~/contexts/UserContext';
 import { ROLE_CONFIG, ROLE_DISPLAY } from '~/config/roleConfig';
 import { useState } from 'react';
 
-function Header({ schoolName = 'Trường Mầm Non Kim Phụng', sidebarCollapsed, onToggleMobileSidebar }) {
+function SchoolHeader({
+    schoolName = 'Admin Hệ thống quản lý trường mầm non công lập',
+    sidebarCollapsed,
+    onToggleMobileSidebar,
+}) {
     const navigate = useNavigate();
     const { user, clearUser } = useUser();
     const [anchorEl, setAnchorEl] = useState(null);
@@ -179,4 +183,4 @@ function Header({ schoolName = 'Trường Mầm Non Kim Phụng', sidebarCollaps
     );
 }
 
-export default Header;
+export default SchoolHeader;

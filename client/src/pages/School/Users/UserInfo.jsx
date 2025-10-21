@@ -18,8 +18,8 @@ import {
 } from '@mui/material';
 import PersonIcon from '@mui/icons-material/Person';
 import LockIcon from '@mui/icons-material/Lock';
-import MainLayout from '~/layouts/MainLayout';
-import PageContainer from '~/components/layout/PageContainer';
+import MainLayout from '~/layouts/SchoolLayout';
+import PageContainer from '~/components/common/PageContainer';
 import PageBreadcrumb from '~/components/common/PageBreadcrumb';
 import { useUser } from '~/contexts/UserContext';
 import { userApi } from '~/apis/userApi';

@@ -18,7 +18,7 @@ import PeopleIcon from '@mui/icons-material/People';
 import ReceiptLongIcon from '@mui/icons-material/ReceiptLong';
 import SchoolIcon from '@mui/icons-material/School';
 import NotificationsNoneIcon from '@mui/icons-material/NotificationsNone';
-import MainLayout from '~/layouts/MainLayout';
+import MainLayout from '~/layouts/SchoolLayout';
 import { useUser } from '~/contexts/UserContext';
 
 function StatCard({ title, value, deltaText, icon, color = 'primary' }) {

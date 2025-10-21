@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import { Box, CssBaseline } from '@mui/material';
-import Sidebar from '~/components/common/Sidebar';
-import Header from '~/components/common/Header';
+import SchoolSidebar from '~/components/common/Sidebar/SchoolSidebar';
+import SchoolHeader from '~/components/common/Header/SchoolHeader';
 
-function MainLayout({ children, user = null }) {
+function SchoolLayout({ children, user = null }) {
     const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
     const [mobileOpen, setMobileOpen] = useState(false);
 
@@ -25,7 +25,7 @@ function MainLayout({ children, user = null }) {
         >
             <CssBaseline />
 
-            <Sidebar
+            <SchoolSidebar
                 collapsed={sidebarCollapsed}
                 onToggle={handleSidebarToggle}
                 mobileOpen={mobileOpen}
@@ -33,7 +33,11 @@ function MainLayout({ children, user = null }) {
             />
 
             {/* ✅ Truyền handleToggleMobileSidebar thay vì handleOpenMobileSidebar */}
-            <Header user={user} sidebarCollapsed={sidebarCollapsed} onToggleMobileSidebar={handleToggleMobileSidebar} />
+            <SchoolHeader
+                user={user}
+                sidebarCollapsed={sidebarCollapsed}
+                onToggleMobileSidebar={handleToggleMobileSidebar}
+            />
 
             <Box
                 component="main"
@@ -70,4 +74,4 @@ function MainLayout({ children, user = null }) {
     );
 }
 
-export default MainLayout;
+export default SchoolLayout;

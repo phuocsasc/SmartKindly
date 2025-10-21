@@ -34,10 +34,10 @@ const menuItems = [
         text: 'Khai báo dữ liệu',
         icon: <StorageOutlinedIcon />,
         children: [
-            { text: 'Thông tin nhà trường', path: '/data/school-info' },
-            { text: 'Năm học', path: '/data/school-year' },
-            { text: 'Tổ bộ môn', path: '/data/department' },
-            { text: 'Lớp học', path: '/data/classes' },
+            { text: 'Thông tin nhà trường', path: '/data-declaration/school-info' },
+            { text: 'Năm học', path: '/data-declaration/school-year' },
+            { text: 'Tổ bộ môn', path: '/data-declaration/department' },
+            { text: 'Lớp học', path: '/data-declaration/classes' },
         ],
     },
     {
@@ -65,11 +65,11 @@ const menuItems = [
         text: 'Kế hoạch giáo dục',
         icon: <HistoryEduOutlinedIcon />,
         children: [
-            { text: 'Quản lý mục tiêu năm học nhà trường theo từng độ tuổi', path: '/edu-plan/year-target' },
-            { text: 'Quản lý kế hoạch giáo dục theo chủ đề/tuần/tháng', path: '/edu-plan/theme-plan' },
-            { text: 'Quản lý nội dung - hoạt động giáo dục', path: '/edu-plan/activities' },
-            { text: 'Quản lý các chủ đề/sự kiện', path: '/edu-plan/events' },
-            { text: 'Quản lý thời khóa biểu', path: '/edu-plan/schedule' },
+            { text: 'Mục tiêu năm học nhà trường theo từng độ tuổi', path: '/edu-plan/year-target' },
+            { text: 'Kế hoạch giáo dục theo chủ đề/tuần/tháng', path: '/edu-plan/theme-plan' },
+            { text: 'Thời khóa biểu', path: '/edu-plan/schedule' },
+            { text: 'Các chủ đề/sự kiện', path: '/edu-plan/events' },
+            { text: 'Nội dung - hoạt động giáo dục', path: '/edu-plan/activities' },
         ],
     },
     {
@@ -104,7 +104,7 @@ const menuItems = [
     },
 ];
 
-function Sidebar({ collapsed, onToggle, mobileOpen, onCloseMobile }) {
+function SchoolSidebar({ collapsed, onToggle, mobileOpen, onCloseMobile }) {
     const navigate = useNavigate();
     const location = useLocation();
     const [openMenus, setOpenMenus] = useState({});
@@ -370,4 +370,4 @@ function Sidebar({ collapsed, onToggle, mobileOpen, onCloseMobile }) {
     );
 }
 
-export default Sidebar;
+export default SchoolSidebar;

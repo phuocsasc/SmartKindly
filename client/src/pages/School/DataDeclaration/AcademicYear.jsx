@@ -17,8 +17,8 @@ import AddCircleOutlineOutlinedIcon from '@mui/icons-material/AddCircleOutlineOu
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
 import DeleteOutlineOutlinedIcon from '@mui/icons-material/DeleteOutlineOutlined';
 import { useEffect, useState } from 'react';
-import MainLayout from '~/layouts/MainLayout';
-import PageContainer from '~/components/layout/PageContainer';
+import MainLayout from '~/layouts/SchoolLayout';
+import PageContainer from '~/components/common/PageContainer';
 import PageBreadcrumb from '~/components/common/PageBreadcrumb';
 import { useUser } from '~/contexts/UserContext';
 import { academicYearApi } from '~/apis/academicYearApi';

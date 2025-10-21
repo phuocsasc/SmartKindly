@@ -1,22 +1,23 @@
 import { Routes, Route, Navigate, Outlet } from 'react-router-dom';
-import Login from '~/pages/Login';
-import Dashboard from '~/pages/Dashboard';
-import NotFound from '~/pages/ErrorPages/NotFound';
-import AccessDenied from '~/pages/ErrorPages/AccessDenied';
+import Login from '~/pages/Auth/Login';
+import Dashboard from '~/pages/School/Dashboard';
+import AdminDashboard from './pages/Admin/Dashboard';
+import NotFound from '~/pages/ErrorPage/NotFound';
+import AccessDenied from '~/pages/ErrorPage/AccessDenied';
 import RbacRoute from '~/components/core/RbacRoute';
 import { permissions } from '~/config/rbacConfig';
 import { UserProvider, useUser } from '~/contexts/UserContext';
 import { PERMISSIONS } from '~/config/rbacConfig';
 // Users
-import UserManagement from '~/pages/Users/UserManagement';
-import UserInfo from '~/pages/Users/UserInfo';
-import ForgotPassword from '~/pages/ForgotPassword';
+import UserManagement from '~/pages/School/Users/UserManagement';
+import UserInfo from '~/pages/School/Users/UserInfo';
+import ForgotPassword from '~/pages/Auth/ForgotPassword';
 
-// Data
-import SchoolInfo from '~/pages/Data/SchoolInfo';
-import AcademicYear from '~/pages/Data/AcademicYear';
-import Department from '~/pages/Data/Department';
-import Classes from '~/pages/Data/Classes';
+// Data-Declaration
+import SchoolInfo from '~/pages/School/DataDeclaration/SchoolInfo';
+import AcademicYear from '~/pages/School/DataDeclaration/AcademicYear';
+import Department from '~/pages/School/DataDeclaration/Department';
+import Classes from '~/pages/School/DataDeclaration/Classes';
 
 /**
  * Protected Routes với UserContext
@@ -57,31 +58,23 @@ function AppContent() {
                 <Route path="/user-info" element={<UserInfo />} />
                 {/* Các route khác... */}
 
-                {/* Data */}
+                {/* Data-Declaration */}
                 <Route element={<RbacRoute requiredPermission={permissions.VIEW_SCHOOL_INFO} />}>
-                    <Route path="/data/school-info" element={<SchoolInfo />} />
+                    <Route path="/data-declaration/school-info" element={<SchoolInfo />} />
                 </Route>
                 <Route element={<RbacRoute requiredPermission={permissions.VIEW_ACADEMIC_YEAR} />}>
-                    <Route path="/data/school-year" element={<AcademicYear />} />
+                    <Route path="/data-declaration/school-year" element={<AcademicYear />} />
                 </Route>
-                <Route path="/data/department" element={<Department />} />
-                <Route path="/data/classes" element={<Classes />} />
-                {/* Data */}
+                <Route path="/data-declaration/department" element={<Department />} />
+                <Route path="/data-declaration/classes" element={<Classes />} />
+                {/* End - Data-Declaration */}
 
                 <Route element={<RbacRoute requiredPermission={permissions.VIEW_DASHBOARD} />}>
                     <Route path="/dashboard" element={<Dashboard />} />
                 </Route>
-                <Route element={<RbacRoute requiredPermission={permissions.VIEW_SUPPORT} />}>
-                    <Route path="/support" element={<Dashboard />} />
-                </Route>
-                <Route element={<RbacRoute requiredPermission={permissions.VIEW_MESSAGES} />}>
-                    <Route path="/messages" element={<Dashboard />} />
-                </Route>
-                <Route element={<RbacRoute requiredPermission={permissions.VIEW_REVENUE} />}>
-                    <Route path="/revenue" element={<Dashboard />} />
-                </Route>
-                <Route element={<RbacRoute requiredPermission={permissions.VIEW_ADMIN_TOOLS} />}>
-                    <Route path="/admin-tools" element={<Dashboard />} />
+
+                <Route element={<RbacRoute requiredPermission={permissions.VIEW_DASHBOARD} />}>
+                    <Route path="/admin/dashboard" element={<AdminDashboard />} />
                 </Route>
             </Route>
 

@@ -23,7 +23,7 @@ import SwitchAccountOutlinedIcon from '@mui/icons-material/SwitchAccountOutlined
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { useTheme } from '@mui/material/styles';
-import logo_sidebar from '~/assets/logo_sidebar-no-background.png';
+import logo_sidebar from '~/assets/logo_thanh_menu_tach_nen.png';
 
 const menuItems = [
     { text: 'Trang chủ', icon: <DashboardIcon />, path: '/dashboard' },
@@ -152,7 +152,7 @@ function Sidebar({ collapsed, onToggle, mobileOpen, onCloseMobile }) {
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: isCollapsed ? 'center' : 'space-between',
-                    p: '0 5px',
+                    p: '0 10px',
                     backgroundColor: '#ffffff', // ✅ Background riêng cho header
                     color: 'white',
                     borderBottom: '2px solid #0071BC', // ✅ Thêm border phân cách
@@ -165,24 +165,24 @@ function Sidebar({ collapsed, onToggle, mobileOpen, onCloseMobile }) {
                         alt="SmartKindly Logo"
                         sx={{
                             height: '56px',
-                            width: '120px',
+                            width: '160px',
                             objectFit: 'contain',
                         }}
                     />
                 )}
                 <IconButton
                     color="inherit"
-                    sx={{ py: 2.5, color: '#44AFC1ff' }}
+                    sx={{ py: 2.2, color: '#44AFC1ff' }}
                     onClick={isSmUp ? onToggle : onCloseMobile}
                 >
                     {isSmUp ? (
                         isCollapsed ? (
-                            <KeyboardDoubleArrowRightOutlinedIcon />
+                            <KeyboardDoubleArrowRightOutlinedIcon sx={{ fontSize: 28 }} />
                         ) : (
-                            <KeyboardDoubleArrowLeftOutlinedIcon />
+                            <KeyboardDoubleArrowLeftOutlinedIcon sx={{ fontSize: 28 }} />
                         )
                     ) : (
-                        <KeyboardDoubleArrowLeftOutlinedIcon />
+                        <KeyboardDoubleArrowLeftOutlinedIcon sx={{ fontSize: 28 }} />
                     )}
                 </IconButton>
             </Box>
@@ -195,7 +195,8 @@ function Sidebar({ collapsed, onToggle, mobileOpen, onCloseMobile }) {
                     overflowX: 'hidden',
                     py: 0,
                     maxHeight: 'calc(100vh - 64px)',
-                    color: '#fff',
+                    color: '#0068AD',
+                    fontWeight: 500,
                     // mt: 0.5,
                     width: '100%',
                     '&::-webkit-scrollbar': { width: '6px' },
@@ -230,7 +231,7 @@ function Sidebar({ collapsed, onToggle, mobileOpen, onCloseMobile }) {
                                         '& .MuiListItemIcon-root': {
                                             minWidth: 32,
                                             justifyContent: 'center',
-                                            color: isActive ? '#fff' : '#fff',
+                                            color: isActive ? '#fff' : '#0068AD',
                                         },
                                         '& .MuiListItemText-root': {
                                             opacity: isCollapsed ? 0 : 1,
@@ -247,7 +248,7 @@ function Sidebar({ collapsed, onToggle, mobileOpen, onCloseMobile }) {
                                             mr: isCollapsed ? 0 : 0.2,
                                             ml: isCollapsed ? 0 : -1,
                                             justifyContent: 'center',
-                                            color: isActive ? '#fff' : '#fff',
+                                            color: isActive ? '#fff' : '#0068AD',
                                         }}
                                     >
                                         {item.icon}
@@ -258,10 +259,11 @@ function Sidebar({ collapsed, onToggle, mobileOpen, onCloseMobile }) {
                                             opacity: isCollapsed ? 0 : 1,
                                             display: isCollapsed ? 'none' : 'block',
                                             '& .MuiListItemText-primary': {
-                                                fontWeight: isActive ? 600 : 400,
-                                                color: isActive ? '#fff' : 'inherit',
+                                                fontWeight: isActive ? 700 : 500,
+                                                color: isActive ? '#fff' : '#004F7C',
                                                 overflow: 'hidden',
                                                 textOverflow: 'ellipsis',
+                                                letterSpacing: '0.2px',
                                             },
                                         }}
                                     />
@@ -298,9 +300,9 @@ function Sidebar({ collapsed, onToggle, mobileOpen, onCloseMobile }) {
                                                 <ListItemText
                                                     primary={child.text}
                                                     primaryTypographyProps={{
-                                                        fontSize: 14,
-                                                        fontWeight: location.pathname === child.path ? 600 : 400,
-                                                        color: location.pathname === child.path ? '#fff' : 'inherit',
+                                                        fontSize: 15,
+                                                        fontWeight: location.pathname === child.path ? 600 : 500,
+                                                        color: location.pathname === child.path ? '#fff' : '#004F7C',
                                                     }}
                                                 />
                                             </ListItemButton>
@@ -328,7 +330,7 @@ function Sidebar({ collapsed, onToggle, mobileOpen, onCloseMobile }) {
                     '& .MuiDrawer-paper': {
                         width: 240,
                         boxSizing: 'border-box',
-                        backgroundImage: 'url("/src/assets/sidebar_menu.png")',
+                        backgroundImage: 'url("/src/assets/anh_thanh_menu.png")',
                         backgroundSize: 'cover',
                         backgroundPosition: 'center',
                         backgroundRepeat: 'no-repeat',
@@ -353,7 +355,7 @@ function Sidebar({ collapsed, onToggle, mobileOpen, onCloseMobile }) {
                         transition: 'width 0.3s ease',
                         overflowX: 'hidden',
                         overflowY: 'auto',
-                        backgroundImage: 'url("/src/assets/sidebar_menu.png")',
+                        backgroundImage: 'url("/src/assets/anh_thanh_menu.png")',
                         backgroundSize: 'cover',
                         backgroundPosition: 'center',
                         backgroundRepeat: 'no-repeat',

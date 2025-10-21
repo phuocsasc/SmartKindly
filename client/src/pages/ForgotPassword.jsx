@@ -151,7 +151,7 @@ function ForgotPassword() {
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                backgroundImage: 'url("/src/assets/background_login.jpg")',
+                backgroundImage: 'url("/src/assets/anh_nen_dang_nhap.png")',
                 backgroundSize: 'cover',
                 backgroundPosition: 'center',
                 backgroundRepeat: 'no-repeat',
@@ -162,7 +162,7 @@ function ForgotPassword() {
                 sx={{
                     display: 'flex',
                     width: '100%',
-                    maxWidth: 1050,
+                    maxWidth: 960,
                     minHeight: 500,
                     borderRadius: 2,
                     overflow: 'hidden',
@@ -174,7 +174,7 @@ function ForgotPassword() {
                 <Box
                     sx={{
                         flex: 1,
-                        minWidth: 500,
+                        minWidth: 400,
                         backgroundImage: 'url("/src/assets/anh_dang_nhap.png")',
                         backgroundSize: 'cover',
                         backgroundPosition: 'center',
@@ -577,6 +577,21 @@ function ForgotPassword() {
                             </Box>
                         )}
                     </Box>
+
+                    {/* ✅ Footer bản quyền */}
+                    <Typography
+                        variant="body2"
+                        sx={{
+                            mt: 2.5,
+                            textAlign: 'center',
+                            color: '#0071BC',
+                            fontSize: '0.875rem',
+                            fontWeight: 500,
+                            opacity: 0.9,
+                        }}
+                    >
+                        © 2025 <strong>SmartKindly</strong> - Thuộc nhóm sinh viên trường Đại học Văn Lang
+                    </Typography>
                 </Box>
             </Box>
         </Box>

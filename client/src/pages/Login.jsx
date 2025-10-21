@@ -68,7 +68,7 @@ function Login() {
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                backgroundImage: 'url("/src/assets/background_login.jpg")',
+                backgroundImage: 'url("/src/assets/anh_nen_dang_nhap.png")',
                 backgroundSize: 'cover',
                 backgroundPosition: 'center',
                 backgroundRepeat: 'no-repeat',
@@ -80,7 +80,7 @@ function Login() {
                 sx={{
                     display: 'flex',
                     width: '100%',
-                    maxWidth: 1050,
+                    maxWidth: 960,
                     minHeight: 400,
                     borderRadius: 2,
                     overflow: 'hidden',
@@ -92,7 +92,7 @@ function Login() {
                 <Box
                     sx={{
                         flex: 1,
-                        minWidth: 500,
+                        minWidth: 400,
                         backgroundImage: 'url("/src/assets/anh_dang_nhap.png")',
                         backgroundSize: 'cover',
                         backgroundPosition: 'center',
@@ -142,8 +142,8 @@ function Login() {
                                 fontSize: { xs: '1.25rem', sm: '1.5rem' },
                             }}
                         >
-                            HỆ THỐNG QUẢN LÝ TRƯỜNG
-                            <br /> MẦM NON CÔNG LẬP
+                            HỆ THỐNG QUẢN LÝ <br />
+                            TRƯỜNG MẦM NON CÔNG LẬP
                         </Typography>
 
                         <Typography
@@ -268,6 +268,21 @@ function Login() {
                             </Button>
                         </form>
                     </Box>
+
+                    {/* ✅ Footer bản quyền */}
+                    <Typography
+                        variant="body2"
+                        sx={{
+                            mt: 2.5,
+                            textAlign: 'center',
+                            color: '#0071BC',
+                            fontSize: '0.875rem',
+                            fontWeight: 500,
+                            opacity: 0.9,
+                        }}
+                    >
+                        © 2025 <strong>SmartKindly</strong> - Thuộc nhóm sinh viên trường Đại học Văn Lang
+                    </Typography>
                 </Box>
             </Box>
         </Box>

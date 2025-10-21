@@ -16,6 +16,19 @@ export const userApi = {
         return await authorizedAxiosInstance.put(`${API_ROOT}/v1/users/refresh_token`, { refreshToken });
     },
 
+    // Forgot Password APIs
+    sendOtpToEmail: async (data) => {
+        return await authorizedAxiosInstance.post(`${API_ROOT}/v1/users/forgot-password/send-otp`, data);
+    },
+
+    verifyOtp: async (data) => {
+        return await authorizedAxiosInstance.post(`${API_ROOT}/v1/users/forgot-password/verify-otp`, data);
+    },
+
+    resetPasswordWithOtp: async (data) => {
+        return await authorizedAxiosInstance.post(`${API_ROOT}/v1/users/forgot-password/reset-password`, data);
+    },
+
     // User Management
     getAllUsers: async (params) => {
         const { page = 1, limit = 10, search = '', role = '', status = '' } = params;

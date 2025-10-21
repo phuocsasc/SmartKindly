@@ -23,7 +23,7 @@ import SwitchAccountOutlinedIcon from '@mui/icons-material/SwitchAccountOutlined
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { useTheme } from '@mui/material/styles';
-import nameLogo from '~/assets/name_logo-2.png';
+import logo_sidebar from '~/assets/logo_sidebar-no-background.png';
 
 const menuItems = [
     { text: 'Trang chủ', icon: <DashboardIcon />, path: '/dashboard' },
@@ -152,27 +152,27 @@ function Sidebar({ collapsed, onToggle, mobileOpen, onCloseMobile }) {
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: isCollapsed ? 'center' : 'space-between',
-                    p: 1.4,
+                    p: '0 5px',
                     backgroundColor: '#ffffff', // ✅ Background riêng cho header
                     color: 'white',
-                    borderBottom: '1px solid #e0e0e0', // ✅ Thêm border phân cách
+                    borderBottom: '2px solid #0071BC', // ✅ Thêm border phân cách
                 }}
             >
                 {!isCollapsed && (
                     <Box
                         component="img"
-                        src={nameLogo}
+                        src={logo_sidebar}
                         alt="SmartKindly Logo"
                         sx={{
-                            height: 30,
-                            width: 'auto',
+                            height: '56px',
+                            width: '120px',
                             objectFit: 'contain',
                         }}
                     />
                 )}
                 <IconButton
                     color="inherit"
-                    sx={{ py: 1, color: '#44AFC1ff' }}
+                    sx={{ py: 2.5, color: '#44AFC1ff' }}
                     onClick={isSmUp ? onToggle : onCloseMobile}
                 >
                     {isSmUp ? (
@@ -193,14 +193,15 @@ function Sidebar({ collapsed, onToggle, mobileOpen, onCloseMobile }) {
                 sx={{
                     overflowY: 'auto',
                     overflowX: 'hidden',
+                    py: 0,
                     maxHeight: 'calc(100vh - 64px)',
                     color: '#fff',
                     // mt: 0.5,
                     width: '100%',
                     '&::-webkit-scrollbar': { width: '6px' },
                     '&::-webkit-scrollbar-track': { backgroundColor: '#e3f2fd' },
-                    '&::-webkit-scrollbar-thumb': { backgroundColor: '#90caf9', borderRadius: '18px' },
-                    '&::-webkit-scrollbar-thumb:hover': { backgroundColor: '#64b5f6' },
+                    '&::-webkit-scrollbar-thumb': { backgroundColor: '#0964a1a4', borderRadius: '0px' },
+                    '&::-webkit-scrollbar-thumb:hover': { backgroundColor: '#0071BC' },
                 }}
             >
                 {menuItems.map((item) => {
@@ -214,14 +215,15 @@ function Sidebar({ collapsed, onToggle, mobileOpen, onCloseMobile }) {
                                     selected={isActive}
                                     sx={{
                                         minHeight: 44,
+
                                         px: isCollapsed ? 1.5 : 2,
-                                        backgroundColor: isActive ? '#44AFC1' : 'transparent',
+                                        backgroundColor: isActive ? '#0071BC' : 'transparent',
                                         '&.Mui-selected': {
-                                            backgroundColor: '#44AFC1 !important',
+                                            backgroundColor: '#0071BC !important',
                                         },
 
                                         borderLeft: isActive ? '4px solid #fff' : '4px solid transparent',
-                                        '&:hover': { backgroundColor: '#9dc7ca' },
+                                        '&:hover': { backgroundColor: '#0071BC60' },
                                         transition: 'all 0.2s',
                                         width: '100%',
                                         overflow: 'hidden',
@@ -281,11 +283,11 @@ function Sidebar({ collapsed, onToggle, mobileOpen, onCloseMobile }) {
                                                     pl: isCollapsed ? 2 : 6,
                                                     py: 0.8,
                                                     backgroundColor:
-                                                        location.pathname === child.path ? '#44AFC1' : 'transparent',
+                                                        location.pathname === child.path ? '#0071BC' : 'transparent',
                                                     '&.Mui-selected': {
-                                                        backgroundColor: '#44AFC1 !important',
+                                                        backgroundColor: '#0071BC !important',
                                                     },
-                                                    '&:hover': { backgroundColor: '#9dc7ca' },
+                                                    '&:hover': { backgroundColor: '#0071BC60' },
                                                     borderLeft:
                                                         location.pathname === child.path
                                                             ? '3px solid #fff'
@@ -326,7 +328,7 @@ function Sidebar({ collapsed, onToggle, mobileOpen, onCloseMobile }) {
                     '& .MuiDrawer-paper': {
                         width: 240,
                         boxSizing: 'border-box',
-                        backgroundImage: 'url("/src/assets/bg-menu.png")',
+                        backgroundImage: 'url("/src/assets/sidebar_menu.png")',
                         backgroundSize: 'cover',
                         backgroundPosition: 'center',
                         backgroundRepeat: 'no-repeat',
@@ -351,7 +353,7 @@ function Sidebar({ collapsed, onToggle, mobileOpen, onCloseMobile }) {
                         transition: 'width 0.3s ease',
                         overflowX: 'hidden',
                         overflowY: 'auto',
-                        backgroundImage: 'url("/src/assets/bg-menu.png")',
+                        backgroundImage: 'url("/src/assets/sidebar_menu.png")',
                         backgroundSize: 'cover',
                         backgroundPosition: 'center',
                         backgroundRepeat: 'no-repeat',

@@ -137,7 +137,7 @@ const sendOtpToEmail = async (email) => {
         console.log('✅ Step 3: Generating new OTP');
 
         const otp = generateOTP();
-        const expiresAt = new Date(Date.now() + 60 * 1000);
+        const expiresAt = new Date(Date.now() + 1.5 * 60 * 1000);
 
         console.log('📝 OTP generated:', otp, 'expires at:', expiresAt);
 

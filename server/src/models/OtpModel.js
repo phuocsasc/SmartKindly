@@ -15,19 +15,19 @@ const OtpSchema = new mongoose.Schema(
         expiresAt: {
             type: Date,
             required: true,
-            index: { expires: 0 }, // Tự động xóa document khi hết hạn
         },
         isUsed: {
             type: Boolean,
             default: false,
         },
     },
-    {
-        timestamps: true,
-    },
+    { timestamps: true },
 );
 
-// Index để tìm kiếm nhanh
-OtpSchema.index({ email: 1, isUsed: 1 });
+// ✅ TTL index đúng chuẩn (hết hạn đúng thời gian)
+OtpSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
+
+// ✅ Index tối ưu kiểm tra OTP
+OtpSchema.index({ email: 1, otp: 1, isUsed: 1 });
 
 export const OtpModel = mongoose.model('Otp', OtpSchema);

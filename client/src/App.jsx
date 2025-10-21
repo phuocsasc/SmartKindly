@@ -10,6 +10,7 @@ import { PERMISSIONS } from '~/config/rbacConfig';
 // Users
 import UserManagement from '~/pages/Users/UserManagement';
 import UserInfo from '~/pages/Users/UserInfo';
+import ForgotPassword from '~/pages/ForgotPassword';
 
 // Data
 import SchoolInfo from '~/pages/Data/SchoolInfo';
@@ -45,6 +46,7 @@ function AppContent() {
 
             <Route element={<UnauthorizedRoutes />}>
                 <Route path="/login" element={<Login />} />
+                <Route path="/forgot-password" element={<ForgotPassword />} />
             </Route>
 
             <Route element={<ProtectedRoutes />}>

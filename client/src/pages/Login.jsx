@@ -8,7 +8,7 @@ import PersonIcon from '@mui/icons-material/Person';
 import LockIcon from '@mui/icons-material/Lock';
 import Visibility from '@mui/icons-material/Visibility';
 import VisibilityOff from '@mui/icons-material/VisibilityOff';
-import logoSmartKindly from '/Logo_Smartkindly.png';
+import logoSmartKindly from '~/assets/Logo_chinh_tach_nen.png';
 import { toast } from 'react-toastify';
 
 function Login() {
@@ -82,7 +82,7 @@ function Login() {
                     width: '100%',
                     maxWidth: 1050,
                     minHeight: 400,
-                    borderRadius: 4,
+                    borderRadius: 2,
                     overflow: 'hidden',
                     boxShadow: '0 20px 60px rgba(0, 0, 0, 0.3)',
                     background: 'white',
@@ -93,11 +93,14 @@ function Login() {
                     sx={{
                         flex: 1,
                         minWidth: 500,
-                        backgroundImage: 'url("/src/assets/bg-login.jpg")',
+                        backgroundImage: 'url("/src/assets/anh_dang_nhap.png")',
                         backgroundSize: 'cover',
                         backgroundPosition: 'center',
                         backgroundRepeat: 'no-repeat',
                         display: { xs: 'none', md: 'block' },
+                        borderTopRightRadius: '50px',
+                        borderBottomRightRadius: '50px',
+                        overflow: 'hidden',
                     }}
                 />
 
@@ -219,15 +222,18 @@ function Login() {
                             {/* Forgot Password Link */}
                             <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 3 }}>
                                 <Link
-                                    href="#"
+                                    onClick={() => navigate('/forgot-password')}
                                     underline="hover"
                                     sx={{
                                         color: '#1976d2',
                                         fontSize: '0.875rem',
                                         fontWeight: 500,
+                                        background: 'none',
+                                        border: 'none',
+                                        cursor: 'pointer',
                                     }}
                                 >
-                                    Quên mật khẩu
+                                    Quên mật khẩu?
                                 </Link>
                             </Box>
 
@@ -243,14 +249,18 @@ function Login() {
                                     fontSize: '1rem',
                                     fontWeight: 600,
                                     textTransform: 'none',
-                                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                                    boxShadow: '0 4px 12px rgba(102, 126, 234, 0.4)',
+                                    background: 'linear-gradient(135deg, #0071BC 0%, #45B0E5 50%, #0071BC 100%)',
+                                    boxShadow: '0 4px 12px rgba(0, 113, 188, 0.4)',
+                                    transition: 'all 0.3s ease',
                                     '&:hover': {
-                                        background: 'linear-gradient(135deg, #5568d3 0%, #6a4296 100%)',
-                                        boxShadow: '0 6px 16px rgba(102, 126, 234, 0.5)',
+                                        background: 'linear-gradient(135deg, #0063A5 0%, #3CA3DA 50%, #0063A5 100%)',
+                                        boxShadow: '0 6px 16px rgba(0, 113, 188, 0.5)',
+                                        transform: 'translateY(-1px)',
                                     },
                                     '&:disabled': {
                                         background: '#ccc',
+                                        boxShadow: 'none',
+                                        cursor: 'not-allowed',
                                     },
                                 }}
                             >

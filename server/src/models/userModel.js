@@ -8,6 +8,11 @@ const UserSchema = new mongoose.Schema(
             required: true,
             unique: true,
         },
+        schoolId: {
+            type: String,
+            required: [true, 'Mã trường là bắt buộc'],
+            ref: 'School',
+        },
         username: {
             type: String,
             required: [true, 'Tên tài khoản là bắt buộc'],
@@ -23,6 +28,7 @@ const UserSchema = new mongoose.Schema(
         },
         fullName: {
             type: String,
+            required: [true, 'Họ tên là bắt buộc'],
             trim: true,
             maxlength: [100, 'Họ tên không được vượt quá 100 ký tự'],
         },
@@ -48,6 +54,10 @@ const UserSchema = new mongoose.Schema(
             enum: ['admin', 'ban_giam_hieu', 'to_truong', 'giao_vien', 'ke_toan', 'phu_huynh'],
             default: 'giao_vien',
         },
+        isRoot: {
+            type: Boolean,
+            default: false,
+        },
         status: {
             type: Boolean,
             default: true,
@@ -62,20 +72,21 @@ const UserSchema = new mongoose.Schema(
         toJSON: {
             transform: function (doc, ret) {
                 delete ret.__v;
-                delete ret.password; // Không trả về password khi convert sang JSON
+                delete ret.password;
                 return ret;
             },
         },
     },
 );
 
-// Index để tìm kiếm nhanh hơn
+// Index
 UserSchema.index({ username: 1 });
 UserSchema.index({ userId: 1 });
 UserSchema.index({ email: 1 });
 UserSchema.index({ fullName: 'text' });
+UserSchema.index({ schoolId: 1 });
 
-// Middleware: Hash password trước khi lưu
+// Middleware: Hash password
 UserSchema.pre('save', async function (next) {
     if (!this.isModified('password')) return next();
 
@@ -88,15 +99,25 @@ UserSchema.pre('save', async function (next) {
     }
 });
 
-// Method: So sánh password
+// Method: Compare password
 UserSchema.methods.comparePassword = async function (candidatePassword) {
     return await bcrypt.compare(candidatePassword, this.password);
 };
 
-// Static method: Tạo userId tự động
+// Static method: Tạo userId tự động (8 chữ số random)
 UserSchema.statics.generateUserId = async function () {
-    const lastUser = await this.findOne({}, { userId: 1 }).sort({ userId: -1 });
-    return lastUser ? lastUser.userId + 1 : 22102001;
+    let userId;
+    let isUnique = false;
+
+    while (!isUnique) {
+        userId = Math.floor(10000000 + Math.random() * 90000000);
+        const existing = await this.findOne({ userId, _destroy: false });
+        if (!existing) {
+            isUnique = true;
+        }
+    }
+
+    return userId;
 };
 
 export const UserModel = mongoose.model('User', UserSchema);

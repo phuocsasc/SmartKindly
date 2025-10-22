@@ -4,6 +4,7 @@ import { userRoute } from '~/routes/v1/userRoute';
 import { dashboardRoute } from '~/routes/v1/dashboardRoute';
 import { schoolRoute } from '~/routes/v1/schoolRoute';
 import { academicYearRoute } from '~/routes/v1/academicYearRoute';
+import { adminUserManagementRoute } from '~/routes/v1/adminUserManagementRoute';
 
 const Router = express.Router();
 
@@ -23,5 +24,8 @@ Router.use('/schools', schoolRoute);
 
 /** Academic Year APIs */
 Router.use('/academic-years', academicYearRoute);
+
+/** Admin User Management APIs */
+Router.use('/admin/users', adminUserManagementRoute);
 
 export const APIs_V1 = Router;

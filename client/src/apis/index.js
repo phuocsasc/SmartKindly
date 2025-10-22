@@ -21,3 +21,6 @@ export * from './userApi';
 
 // Export academicYearApi
 export * from './academicYearApi';
+
+// Export schoolApi
+export * from './schoolApi';

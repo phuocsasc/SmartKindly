@@ -4,7 +4,8 @@ import ApiError from '~/utils/ApiError';
 
 const createNew = async (req, res, next) => {
     try {
-        const result = await userManagementServices.createNew(req.body);
+        const schoolScope = req.schoolScope;
+        const result = await userManagementServices.createNew(req.body, schoolScope);
         res.status(StatusCodes.CREATED).json({
             message: 'Tạo mới người dùng thành công!',
             data: result,
@@ -16,7 +17,8 @@ const createNew = async (req, res, next) => {
 
 const getAll = async (req, res, next) => {
     try {
-        const result = await userManagementServices.getAll(req.query);
+        const schoolScope = req.schoolScope;
+        const result = await userManagementServices.getAll(req.query, schoolScope);
         res.status(StatusCodes.OK).json({
             message: 'Lấy danh sách người dùng thành công!',
             data: result,
@@ -40,7 +42,8 @@ const getDetails = async (req, res, next) => {
 
 const update = async (req, res, next) => {
     try {
-        const result = await userManagementServices.update(req.params.id, req.body);
+        const schoolScope = req.schoolScope;
+        const result = await userManagementServices.update(req.params.id, req.body, schoolScope);
         res.status(StatusCodes.OK).json({
             message: 'Cập nhật người dùng thành công!',
             data: result,
@@ -52,7 +55,8 @@ const update = async (req, res, next) => {
 
 const deleteUser = async (req, res, next) => {
     try {
-        await userManagementServices.deleteUser(req.params.id);
+        const schoolScope = req.schoolScope;
+        await userManagementServices.deleteUser(req.params.id, schoolScope);
         res.status(StatusCodes.OK).json({
             message: 'Xóa người dùng thành công!',
         });
@@ -63,7 +67,8 @@ const deleteUser = async (req, res, next) => {
 
 const deleteManyUsers = async (req, res, next) => {
     try {
-        const result = await userManagementServices.deleteManyUsers(req.body.ids);
+        const schoolScope = req.schoolScope;
+        const result = await userManagementServices.deleteManyUsers(req.body.ids, schoolScope);
         res.status(StatusCodes.OK).json(result);
     } catch (error) {
         next(error);
@@ -88,15 +93,6 @@ const changePassword = async (req, res, next) => {
     }
 };
 
-// const resetPassword = async (req, res, next) => {
-//     try {
-//         const result = await userManagementServices.resetPassword(req.params.id);
-//         res.status(StatusCodes.OK).json(result);
-//     } catch (error) {
-//         next(error);
-//     }
-// };
-
 export const userManagementController = {
     createNew,
     getAll,
@@ -105,5 +101,4 @@ export const userManagementController = {
     deleteUser,
     deleteManyUsers,
     changePassword,
-    // resetPassword,
 };

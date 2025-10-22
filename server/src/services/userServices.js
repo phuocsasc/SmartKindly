@@ -40,9 +40,15 @@ const login = async (data) => {
         // ✅ Bước 5: Tạo JWT token
         const userInfo = {
             id: user._id,
+            userId: user.userId,
             username: user.username,
             fullName: user.fullName,
+            email: user.email,
+            phone: user.phone,
             role: user.role,
+            isRoot: user.isRoot || false, // ✅ Thêm isRoot vào đây
+            schoolId: user.schoolId,
+            status: user.status,
         };
 
         const accessToken = await JwtProvider.generateToken(

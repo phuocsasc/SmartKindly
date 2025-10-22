@@ -17,6 +17,7 @@ import { DataGrid } from '@mui/x-data-grid';
 import AddCircleOutlineOutlinedIcon from '@mui/icons-material/AddCircleOutlineOutlined';
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
 import DeleteOutlineOutlinedIcon from '@mui/icons-material/DeleteOutlineOutlined';
+import StarIcon from '@mui/icons-material/Star';
 import { useEffect, useState } from 'react';
 import MainLayout from '~/layouts/SchoolLayout';
 import PageContainer from '~/components/common/PageContainer';
@@ -49,7 +50,7 @@ function UserManagement() {
     const [totalRows, setTotalRows] = useState(0);
     const [roleStats, setRoleStats] = useState({});
     const [openDialog, setOpenDialog] = useState(false);
-    const [dialogMode, setDialogMode] = useState('create'); // 'create' | 'edit'
+    const [dialogMode, setDialogMode] = useState('create');
     const [currentUser, setCurrentUser] = useState(null);
 
     // Debounce search
@@ -134,7 +135,7 @@ function UserManagement() {
         setOpenDialog(true);
     };
 
-    // Xóa 1 user
+    // ✅ Xóa 1 user - CẬP NHẬT
     const handleDelete = async (id) => {
         try {
             await showConfirm({
@@ -143,18 +144,26 @@ function UserManagement() {
                 severity: 'error',
                 confirmText: 'Xóa',
                 onConfirm: async () => {
-                    await userApi.deleteUser(id);
-                    toast.success('Xóa người dùng thành công!');
-                    fetchUsers();
-                    fetchRoleStats();
+                    try {
+                        await userApi.deleteUser(id);
+                        toast.success('Xóa người dùng thành công!');
+                        fetchUsers();
+                        fetchRoleStats();
+                    } catch (deleteError) {
+                        // ✅ Hiển thị lỗi chi tiết từ backend
+                        const errorMessage = deleteError?.response?.data?.message || 'Lỗi khi xóa người dùng!';
+                        toast.error(errorMessage);
+                        console.error('Delete user error:', deleteError);
+                    }
                 },
             });
         } catch (error) {
-            toast.error('Lỗi khi xóa người dùng!');
+            // ✅ Lỗi khi mở confirm dialog
+            console.error('Error showing confirm dialog:', error);
         }
     };
 
-    // Xóa nhiều users
+    // ✅ Xóa nhiều users - CẬP NHẬT
     const handleDeleteMany = async () => {
         try {
             await showConfirm({
@@ -163,15 +172,23 @@ function UserManagement() {
                 severity: 'error',
                 confirmText: 'Xóa tất cả',
                 onConfirm: async () => {
-                    await userApi.deleteManyUsers(selectedRows);
-                    toast.success(`Xóa ${selectedRows.length} người dùng thành công!`);
-                    setSelectedRows([]);
-                    fetchUsers();
-                    fetchRoleStats();
+                    try {
+                        await userApi.deleteManyUsers(selectedRows);
+                        toast.success(`Xóa ${selectedRows.length} người dùng thành công!`);
+                        setSelectedRows([]);
+                        fetchUsers();
+                        fetchRoleStats();
+                    } catch (deleteError) {
+                        // ✅ Hiển thị lỗi chi tiết từ backend
+                        const errorMessage = deleteError?.response?.data?.message || 'Lỗi khi xóa người dùng!';
+                        toast.error(errorMessage);
+                        console.error('Delete many users error:', deleteError);
+                    }
                 },
             });
         } catch (error) {
-            toast.error('Lỗi khi xóa người dùng!');
+            // ✅ Lỗi khi mở confirm dialog
+            console.error('Error showing confirm dialog:', error);
         }
     };
 
@@ -191,17 +208,42 @@ function UserManagement() {
             sortable: false,
             renderCell: (params) => {
                 const roleConfig = ROLE_CONFIG[params.value] || {};
+                const isRoot = params.row.isRoot && params.value === 'ban_giam_hieu';
+
                 return (
-                    <Chip
-                        label={ROLE_DISPLAY[params.value]}
-                        size="small"
-                        sx={{
-                            bgcolor: roleConfig.bgColor,
-                            color: roleConfig.color,
-                            fontWeight: 600,
-                            border: `1px solid ${roleConfig.color}`,
-                        }}
-                    />
+                    <Tooltip title={isRoot ? 'Ban giám hiệu Root - Quyền cao nhất trong trường' : ''} arrow>
+                        <Box sx={{ position: 'relative', display: 'inline-block' }}>
+                            <Chip
+                                label={ROLE_DISPLAY[params.value]}
+                                size="small"
+                                sx={{
+                                    bgcolor: roleConfig.bgColor,
+                                    color: roleConfig.color,
+                                    fontWeight: 700,
+                                    border: isRoot ? '2px solid #FFD700' : `1px solid ${roleConfig.color}`,
+                                    boxShadow: isRoot ? '0 0 8px rgba(255, 215, 0, 0.4)' : 'none',
+                                    transition: 'all 0.3s ease',
+                                    '&:hover': {
+                                        boxShadow: isRoot ? '0 0 12px rgba(255, 215, 0, 0.6)' : 'none',
+                                    },
+                                }}
+                            />
+
+                            {isRoot && (
+                                <StarIcon
+                                    sx={{
+                                        position: 'absolute',
+                                        top: -6,
+                                        right: -6,
+                                        fontSize: 16,
+                                        color: '#FFD700',
+                                        filter: 'drop-shadow(0 0 3px rgba(255, 215, 0, 0.8))',
+                                        transform: 'rotate(-15deg)',
+                                    }}
+                                />
+                            )}
+                        </Box>
+                    </Tooltip>
                 );
             },
         },

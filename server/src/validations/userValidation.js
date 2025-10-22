@@ -4,18 +4,12 @@ import ApiError from '~/utils/ApiError';
 
 const createNew = async (req, res, next) => {
     const schema = Joi.object({
-        username: Joi.string().required().min(3).max(50).trim().messages({
-            'string.empty': 'Tên tài khoản không được để trống',
-            'string.min': 'Tên tài khoản phải có ít nhất 3 ký tự',
-            'string.max': 'Tên tài khoản không được vượt quá 50 ký tự',
-            'any.required': 'Tên tài khoản là bắt buộc',
-        }),
-        password: Joi.string().min(6).max(100).messages({
-            'string.min': 'Mật khẩu phải có ít nhất 6 ký tự',
-            'string.max': 'Mật khẩu không được vượt quá 100 ký tự',
-        }),
-        fullName: Joi.string().max(100).trim().allow('', null).messages({
+        // ✅ Không cần username nữa (tự động tạo)
+        fullName: Joi.string().required().min(3).max(100).trim().messages({
+            'string.empty': 'Họ tên không được để trống',
+            'string.min': 'Họ tên phải có ít nhất 3 ký tự',
             'string.max': 'Họ tên không được vượt quá 100 ký tự',
+            'any.required': 'Họ tên là bắt buộc',
         }),
         gender: Joi.string().valid('Nam', 'Nữ', '').allow('', null),
         email: Joi.string().email().allow('', null).messages({
@@ -34,7 +28,7 @@ const createNew = async (req, res, next) => {
                 'any.required': 'Vai trò là bắt buộc',
                 'any.only': 'Vai trò không hợp lệ',
             }),
-        status: Joi.boolean(),
+        status: Joi.boolean().default(true),
     });
 
     try {
@@ -48,15 +42,9 @@ const createNew = async (req, res, next) => {
 
 const update = async (req, res, next) => {
     const schema = Joi.object({
-        username: Joi.string().min(3).max(50).trim().messages({
-            'string.min': 'Tên tài khoản phải có ít nhất 3 ký tự',
-            'string.max': 'Tên tài khoản không được vượt quá 50 ký tự',
-        }),
-        password: Joi.string().min(6).max(100).messages({
-            'string.min': 'Mật khẩu phải có ít nhất 6 ký tự',
-            'string.max': 'Mật khẩu không được vượt quá 100 ký tự',
-        }),
-        fullName: Joi.string().max(100).trim().allow('', null).messages({
+        // ✅ Không cho phép update username
+        fullName: Joi.string().min(3).max(100).trim().messages({
+            'string.min': 'Họ tên phải có ít nhất 3 ký tự',
             'string.max': 'Họ tên không được vượt quá 100 ký tự',
         }),
         gender: Joi.string().valid('Nam', 'Nữ', '').allow('', null),
@@ -194,4 +182,11 @@ const resetPasswordWithOtp = async (req, res, next) => {
     }
 };
 
-export const userValidation = { createNew, update, changePassword, forgotPassword, verifyOtp, resetPasswordWithOtp };
+export const userValidation = {
+    createNew,
+    update,
+    changePassword,
+    forgotPassword,
+    verifyOtp,
+    resetPasswordWithOtp,
+};

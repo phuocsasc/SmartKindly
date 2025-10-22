@@ -4,6 +4,7 @@ import { userManagementController } from '~/controllers/userManagementController
 import { userValidation } from '~/validations/userValidation';
 import { authMiddleware } from '~/middlewares/authMiddleware';
 import { rbacMiddleware } from '~/middlewares/rbacMiddleware';
+import { schoolScopeMiddleware } from '~/middlewares/schoolScopeMiddleware'; // ✅ Import middleware mới
 import { PERMISSIONS } from '~/config/rbacConfig';
 
 const Router = express.Router();
@@ -28,11 +29,13 @@ Router.route('/management')
     .get(
         authMiddleware.isAuthorized,
         rbacMiddleware.isValidPermission([PERMISSIONS.VIEW_USERS]),
+        schoolScopeMiddleware.checkSchoolScopeForList, // ✅ Kiểm tra school scope
         userManagementController.getAll,
     )
     .post(
         authMiddleware.isAuthorized,
         rbacMiddleware.isValidPermission([PERMISSIONS.CREATE_USER]),
+        schoolScopeMiddleware.checkSchoolScopeForList, // ✅ Kiểm tra school scope
         userValidation.createNew,
         userManagementController.createNew,
     );
@@ -40,26 +43,28 @@ Router.route('/management')
 Router.route('/management/delete-many').post(
     authMiddleware.isAuthorized,
     rbacMiddleware.isValidPermission([PERMISSIONS.DELETE_USER]),
+    schoolScopeMiddleware.checkSchoolScopeForList, // ✅ Kiểm tra school scope
     userManagementController.deleteManyUsers,
 );
 
 Router.route('/management/:id')
     .get(
         authMiddleware.isAuthorized,
-        // Cho phép user xem thông tin của chính mình HOẶC có quyền VIEW_USERS
         rbacMiddleware.isValidPermissionOrOwner([PERMISSIONS.VIEW_USERS]),
+        schoolScopeMiddleware.checkSameSchool, // ✅ Kiểm tra cùng trường
         userManagementController.getDetails,
     )
     .put(
         authMiddleware.isAuthorized,
-        // Cho phép user tự update thông tin của chính mình HOẶC có quyền UPDATE_USER
         rbacMiddleware.isValidPermissionOrOwner([PERMISSIONS.UPDATE_USER]),
+        schoolScopeMiddleware.checkSameSchool, // ✅ Kiểm tra cùng trường
         userValidation.update,
         userManagementController.update,
     )
     .delete(
         authMiddleware.isAuthorized,
         rbacMiddleware.isValidPermission([PERMISSIONS.DELETE_USER]),
+        schoolScopeMiddleware.checkSameSchool, // ✅ Kiểm tra cùng trường
         userManagementController.deleteUser,
     );
 
@@ -69,12 +74,5 @@ Router.route('/management/:id/change-password').put(
     userValidation.changePassword,
     userManagementController.changePassword,
 );
-
-// API reset mật khẩu - Chỉ admin
-// Router.route('/management/:id/reset-password').put(
-//     authMiddleware.isAuthorized,
-//     rbacMiddleware.isValidPermission([PERMISSIONS.UPDATE_USER]),
-//     userManagementController.resetPassword,
-// );
 
 export const userRoute = Router;

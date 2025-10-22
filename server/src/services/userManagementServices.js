@@ -1,47 +1,106 @@
 import { UserModel } from '~/models/userModel';
+import { SchoolModel } from '~/models/schoolModel';
 import ApiError from '~/utils/ApiError';
 import { StatusCodes } from 'http-status-codes';
-import { ROLES } from '~/config/rbacConfig';
+import { removeVietnameseTones } from '~/utils/formatters';
 
-const createNew = async (data) => {
+// ✅ Hàm tạo username tự động
+const generateUsername = (abbreviation, fullName) => {
+    const namePart = removeVietnameseTones(fullName).toLowerCase().replace(/\s+/g, ''); // Xóa khoảng trắng
+
+    return `${abbreviation}.${namePart}`;
+};
+
+// ✅ Hàm đảm bảo username unique
+const ensureUniqueUsername = async (baseUsername) => {
+    let username = baseUsername;
+    let counter = 0;
+
+    while (await UserModel.findOne({ username, _destroy: false })) {
+        const randomNum = Math.floor(10 + Math.random() * 90); // Random 2 chữ số
+        username = `${baseUsername}${randomNum}`;
+        counter++;
+
+        if (counter > 100) {
+            throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, 'Không thể tạo username duy nhất');
+        }
+    }
+
+    return username;
+};
+
+const createNew = async (data, schoolScope) => {
     try {
-        // Kiểm tra username đã tồn tại chưa
-        const existingUser = await UserModel.findOne({
-            username: data.username,
+        // ✅ Kiểm tra schoolScope
+        if (!schoolScope || !schoolScope.schoolId) {
+            throw new ApiError(StatusCodes.FORBIDDEN, 'Không xác định được trường học');
+        }
+
+        // ✅ Tự động gán schoolId từ scope
+        data.schoolId = schoolScope.schoolId;
+
+        // ✅ KHÔNG cho phép tạo Ban giám hiệu nếu không phải root
+        if (data.role === 'ban_giam_hieu') {
+            const requestUser = await UserModel.findById(schoolScope.userId);
+
+            // Chỉ BGH root mới được tạo BGH
+            if (!requestUser.isRoot || requestUser.role !== 'ban_giam_hieu') {
+                throw new ApiError(
+                    StatusCodes.FORBIDDEN,
+                    'Chỉ Ban giám hiệu Root mới có thể tạo tài khoản Ban giám hiệu',
+                );
+            }
+        }
+
+        // ✅ Validate họ tên (bắt buộc)
+        if (!data.fullName || !data.fullName.trim()) {
+            throw new ApiError(StatusCodes.BAD_REQUEST, 'Họ tên là bắt buộc');
+        }
+
+        // ✅ Lấy thông tin trường để tạo username
+        const school = await SchoolModel.findOne({
+            schoolId: schoolScope.schoolId,
             _destroy: false,
         });
 
-        if (existingUser) {
-            throw new ApiError(StatusCodes.CONFLICT, 'Tên tài khoản đã tồn tại');
+        if (!school) {
+            throw new ApiError(StatusCodes.NOT_FOUND, 'Không tìm thấy thông tin trường học');
         }
+
+        // ✅ Tạo username tự động: abbreviation.hovaten
+        const baseUsername = generateUsername(school.abbreviation, data.fullName);
+        const username = await ensureUniqueUsername(baseUsername);
 
         // Kiểm tra email đã tồn tại (nếu có)
         if (data.email) {
             const existingEmail = await UserModel.findOne({
                 email: data.email,
+                schoolId: schoolScope.schoolId,
                 _destroy: false,
             });
 
             if (existingEmail) {
-                throw new ApiError(StatusCodes.CONFLICT, 'Email đã được sử dụng');
+                throw new ApiError(StatusCodes.CONFLICT, 'Email đã được sử dụng trong trường này');
             }
         }
 
         // Tạo userId tự động
         const userId = await UserModel.generateUserId();
 
-        // Mật khẩu mặc định là 123456 nếu không được cung cấp
-        const password = data.password || '123456';
+        // Mật khẩu mặc định
+        const password = '123456';
 
         const newUser = new UserModel({
             ...data,
             userId,
+            username,
             password,
+            schoolId: schoolScope.schoolId,
         });
 
         const savedUser = await newUser.save();
 
-        // Trả về user mà không có password
+        // Trả về user không có password
         const userObject = savedUser.toObject();
         delete userObject.password;
 
@@ -54,31 +113,33 @@ const createNew = async (data) => {
     }
 };
 
-const getAll = async (query) => {
+const getAll = async (query, schoolScope) => {
     try {
         const { page = 1, limit = 10, search = '', role = '', status = '' } = query;
         const skip = (page - 1) * limit;
 
-        // ✅ Luôn loại trừ admin khỏi danh sách
+        // ✅ Filter cơ bản
         const filter = {
             _destroy: false,
-            role: { $ne: ROLES.ADMIN }, // ✅ Không lấy user có role admin
+            role: { $ne: 'admin' }, // Không hiển thị admin
         };
 
-        // Tìm kiếm theo tất cả các trường: username, fullName, email, phone, gender
+        // ✅ Chỉ lấy user cùng trường
+        if (schoolScope && schoolScope.role !== 'admin') {
+            filter.schoolId = schoolScope.schoolId;
+        }
+
+        // Tìm kiếm
         if (search) {
-            const searchConditions = [
+            filter.$or = [
                 { username: { $regex: search, $options: 'i' } },
                 { fullName: { $regex: search, $options: 'i' } },
                 { email: { $regex: search, $options: 'i' } },
                 { phone: { $regex: search, $options: 'i' } },
-                { gender: { $regex: search, $options: 'i' } },
             ];
-
-            filter.$or = searchConditions;
         }
 
-        // Lọc theo role (nếu role được chỉ định)
+        // Lọc theo role
         if (role) {
             filter.role = role;
         }
@@ -123,23 +184,59 @@ const getDetails = async (id) => {
     }
 };
 
-const update = async (id, data) => {
+const update = async (id, data, schoolScope) => {
     try {
         const user = await UserModel.findOne({ _id: id, _destroy: false });
         if (!user) {
             throw new ApiError(StatusCodes.NOT_FOUND, 'Không tìm thấy người dùng');
         }
 
-        // Kiểm tra username nếu thay đổi
-        if (data.username && data.username !== user.username) {
-            const existingUser = await UserModel.findOne({
-                username: data.username,
-                _id: { $ne: id },
-                _destroy: false,
-            });
+        // ✅ Không cho phép update admin hệ thống
+        // if (user.role === 'admin') {
+        //     throw new ApiError(StatusCodes.FORBIDDEN, 'Không thể cập nhật admin hệ thống');
+        // }
 
-            if (existingUser) {
-                throw new ApiError(StatusCodes.CONFLICT, 'Tên tài khoản đã tồn tại');
+        // ✅ FIX: Kiểm tra BGH - CHO PHÉP TỰ CẬP NHẬT THÔNG TIN CÁ NHÂN
+        if (user.role === 'ban_giam_hieu') {
+            const requestUser = await UserModel.findById(schoolScope.userId);
+            const isSelf = requestUser._id.toString() === id; // ✅ Kiểm tra có phải tự update mình không
+
+            // ✅ Nếu KHÔNG phải tự update mình
+            if (!isSelf) {
+                // Chỉ admin hoặc BGH root mới được update BGH khác
+                if (schoolScope.role !== 'admin' && (!requestUser.isRoot || requestUser.role !== 'ban_giam_hieu')) {
+                    throw new ApiError(
+                        StatusCodes.FORBIDDEN,
+                        'Chỉ Ban giám hiệu Root mới có thể cập nhật tài khoản Ban giám hiệu khác',
+                    );
+                }
+            }
+
+            // ✅ BGH root không thể tự bỏ quyền root của mình
+            if (isSelf && requestUser.isRoot && data.isRoot === false) {
+                throw new ApiError(StatusCodes.FORBIDDEN, 'Không thể tự bỏ quyền Root của chính mình');
+            }
+
+            // ✅ BGH thường không thể tự nâng cấp lên root
+            if (isSelf && !requestUser.isRoot && data.isRoot === true) {
+                throw new ApiError(StatusCodes.FORBIDDEN, 'Bạn không có quyền tự nâng cấp lên Root');
+            }
+
+            // ✅ BGH thường không thể tự đổi role của mình
+            if (isSelf && !requestUser.isRoot && data.role && data.role !== user.role) {
+                throw new ApiError(StatusCodes.FORBIDDEN, 'Bạn không có quyền thay đổi vai trò của chính mình');
+            }
+        }
+
+        // ✅ Không cho phép đổi role thành ban_giam_hieu nếu không phải root
+        if (data.role === 'ban_giam_hieu' && user.role !== 'ban_giam_hieu') {
+            const requestUser = await UserModel.findById(schoolScope.userId);
+
+            if (!requestUser.isRoot || requestUser.role !== 'ban_giam_hieu') {
+                throw new ApiError(
+                    StatusCodes.FORBIDDEN,
+                    'Chỉ Ban giám hiệu Root mới có thể thay đổi vai trò thành Ban giám hiệu',
+                );
             }
         }
 
@@ -147,6 +244,7 @@ const update = async (id, data) => {
         if (data.email && data.email !== user.email) {
             const existingEmail = await UserModel.findOne({
                 email: data.email,
+                schoolId: user.schoolId,
                 _id: { $ne: id },
                 _destroy: false,
             });
@@ -156,8 +254,10 @@ const update = async (id, data) => {
             }
         }
 
-        // Không cho phép thay đổi userId và password qua API update này
+        // ✅ Không cho phép thay đổi userId, username, schoolId, password
         delete data.userId;
+        delete data.username; // ✅ Username không bao giờ đổi
+        delete data.schoolId;
         if (data.password) {
             delete data.password;
         }
@@ -174,14 +274,32 @@ const update = async (id, data) => {
     }
 };
 
-const deleteUser = async (id) => {
+const deleteUser = async (id, schoolScope) => {
     try {
         const user = await UserModel.findOne({ _id: id, _destroy: false });
         if (!user) {
             throw new ApiError(StatusCodes.NOT_FOUND, 'Không tìm thấy người dùng');
         }
 
-        // Soft delete - chỉ đánh dấu _destroy: true
+        // ✅ Không cho phép BGH thường xóa BGH
+        if (user.role === 'ban_giam_hieu') {
+            const requestUser = await UserModel.findById(schoolScope.userId);
+
+            // Chỉ BGH root mới được xóa BGH
+            if (!requestUser.isRoot || requestUser.role !== 'ban_giam_hieu') {
+                throw new ApiError(
+                    StatusCodes.FORBIDDEN,
+                    'Chỉ Ban giám hiệu Root mới có thể xóa tài khoản Ban giám hiệu',
+                );
+            }
+
+            // Không cho phép BGH root tự xóa mình
+            if (requestUser.isRoot && requestUser._id.toString() === id) {
+                throw new ApiError(StatusCodes.FORBIDDEN, 'Không thể tự xóa tài khoản Root của chính mình');
+            }
+        }
+
+        // Soft delete
         await UserModel.findByIdAndUpdate(id, { _destroy: true });
 
         return { message: 'Xóa người dùng thành công' };
@@ -191,17 +309,47 @@ const deleteUser = async (id) => {
     }
 };
 
-const deleteManyUsers = async (ids) => {
+const deleteManyUsers = async (ids, schoolScope) => {
     try {
         if (!ids || !Array.isArray(ids) || ids.length === 0) {
             throw new ApiError(StatusCodes.BAD_REQUEST, 'Danh sách ID không hợp lệ');
         }
 
-        const result = await UserModel.updateMany({ _id: { $in: ids }, _destroy: false }, { _destroy: true });
+        // ✅ Filter: chỉ xóa user cùng trường
+        const filter = {
+            _id: { $in: ids },
+            _destroy: false,
+            schoolId: schoolScope.schoolId,
+        };
 
-        if (result.modifiedCount === 0) {
+        const users = await UserModel.find(filter);
+
+        if (users.length === 0) {
             throw new ApiError(StatusCodes.NOT_FOUND, 'Không tìm thấy người dùng nào để xóa');
         }
+
+        const requestUser = await UserModel.findById(schoolScope.userId);
+
+        // Kiểm tra từng user
+        for (const user of users) {
+            // ✅ Không cho phép BGH thường xóa BGH
+            if (user.role === 'ban_giam_hieu') {
+                if (!requestUser.isRoot || requestUser.role !== 'ban_giam_hieu') {
+                    throw new ApiError(
+                        StatusCodes.FORBIDDEN,
+                        `Chỉ Ban giám hiệu Root mới có thể xóa: ${user.fullName} (${user.username})`,
+                    );
+                }
+
+                // Không cho phép tự xóa mình
+                if (requestUser._id.toString() === user._id.toString()) {
+                    throw new ApiError(StatusCodes.FORBIDDEN, 'Không thể tự xóa tài khoản của chính mình');
+                }
+            }
+        }
+
+        // Soft delete
+        const result = await UserModel.updateMany(filter, { _destroy: true });
 
         return { message: `Đã xóa thành công ${result.modifiedCount} người dùng` };
     } catch (error) {
@@ -241,24 +389,6 @@ const changePassword = async (id, currentPassword, newPassword) => {
     }
 };
 
-// const resetPassword = async (id) => {
-//     try {
-//         const user = await UserModel.findOne({ _id: id, _destroy: false });
-//         if (!user) {
-//             throw new ApiError(StatusCodes.NOT_FOUND, 'Không tìm thấy người dùng');
-//         }
-
-//         // Reset về mật khẩu mặc định 123456
-//         user.password = '123456';
-//         await user.save();
-
-//         return { message: 'Reset mật khẩu thành công. Mật khẩu mới: 123456' };
-//     } catch (error) {
-//         if (error instanceof ApiError) throw error;
-//         throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, 'Lỗi khi reset mật khẩu');
-//     }
-// };
-
 export const userManagementServices = {
     createNew,
     getAll,
@@ -267,5 +397,4 @@ export const userManagementServices = {
     deleteUser,
     deleteManyUsers,
     changePassword,
-    // resetPassword,
 };

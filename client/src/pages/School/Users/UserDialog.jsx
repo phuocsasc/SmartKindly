@@ -16,6 +16,7 @@ import {
     Divider,
     Avatar,
     Chip,
+    Alert,
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import PersonAddIcon from '@mui/icons-material/PersonAdd';
@@ -24,10 +25,11 @@ import PersonIcon from '@mui/icons-material/Person';
 import { userApi } from '~/apis/userApi';
 import { toast } from 'react-toastify';
 import { ROLES, ROLE_DISPLAY, ROLE_CONFIG } from '~/config/roleConfig';
+import { useUser } from '~/contexts/UserContext';
 
 function UserDialog({ open, mode, user, onClose, onSuccess }) {
+    const { user: currentUser } = useUser();
     const [formData, setFormData] = useState({
-        username: '',
         fullName: '',
         gender: '',
         email: '',
@@ -38,10 +40,12 @@ function UserDialog({ open, mode, user, onClose, onSuccess }) {
 
     const [loading, setLoading] = useState(false);
 
+    // ✅ Kiểm tra xem user hiện tại có phải BGH root không
+    const isCurrentUserRoot = currentUser?.role === ROLES.BAN_GIAM_HIEU && currentUser?.isRoot === true;
+
     useEffect(() => {
         if (mode === 'edit' && user) {
             setFormData({
-                username: user.username || '',
                 fullName: user.fullName || '',
                 gender: user.gender || '',
                 email: user.email || '',
@@ -51,7 +55,6 @@ function UserDialog({ open, mode, user, onClose, onSuccess }) {
             });
         } else {
             setFormData({
-                username: '',
                 fullName: '',
                 gender: '',
                 email: '',
@@ -64,8 +67,13 @@ function UserDialog({ open, mode, user, onClose, onSuccess }) {
 
     const handleSubmit = async () => {
         // Validation
-        if (!formData.username.trim()) {
-            toast.error('Vui lòng nhập tên tài khoản!');
+        if (!formData.fullName.trim()) {
+            toast.error('Vui lòng nhập họ tên!');
+            return;
+        }
+
+        if (!formData.role) {
+            toast.error('Vui lòng chọn vai trò!');
             return;
         }
 
@@ -90,8 +98,12 @@ function UserDialog({ open, mode, user, onClose, onSuccess }) {
     const roleConfig = ROLE_CONFIG[formData.role] || {};
     const RoleIcon = roleConfig.icon || PersonIcon;
 
-    // ✅ Lọc bỏ role ADMIN khỏi danh sách vai trò
-    const availableRoles = Object.entries(ROLE_DISPLAY).filter(([code]) => code !== ROLES.ADMIN);
+    // ✅ Lọc role: Nếu không phải BGH root thì không hiển thị vai trò BGH
+    const availableRoles = Object.entries(ROLE_DISPLAY).filter(([code]) => {
+        if (code === ROLES.ADMIN) return false; // Luôn ẩn admin
+        if (code === ROLES.BAN_GIAM_HIEU && !isCurrentUserRoot) return false; // Chỉ BGH root mới thấy
+        return true;
+    });
 
     return (
         <Dialog
@@ -151,71 +163,17 @@ function UserDialog({ open, mode, user, onClose, onSuccess }) {
 
             <DialogContent sx={{ px: 3, py: 2.5 }}>
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
-                    {/* Section: Thông tin tài khoản */}
-                    <Box>
-                        <Typography
-                            variant="subtitle2"
-                            sx={{
-                                mb: 1.5,
-                                color: 'secondary.main',
-                                fontWeight: 600,
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: 1,
-                            }}
-                        >
-                            <Box
-                                sx={{
-                                    width: 3,
-                                    height: 14,
-                                    bgcolor: 'secondary.main',
-                                    borderRadius: 1,
-                                }}
-                            />
-                            Thông tin tài khoản
-                        </Typography>
-
-                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                            <TextField
-                                label="Tên tài khoản"
-                                placeholder="Nhập tên tài khoản..."
-                                value={formData.username}
-                                onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-                                required
-                                disabled={!isCreateMode}
-                                fullWidth
-                                size="small"
-                                variant="outlined"
-                                sx={{
-                                    '& .MuiOutlinedInput-root': {
-                                        borderRadius: 1.5,
-                                    },
-                                }}
-                                helperText={
-                                    isCreateMode
-                                        ? 'Tên tài khoản không thể thay đổi sau khi tạo'
-                                        : 'Tên tài khoản không thể chỉnh sửa'
-                                }
-                            />
-
-                            <TextField
-                                label="Họ và tên"
-                                placeholder="Nhập họ và tên đầy đủ..."
-                                value={formData.fullName}
-                                onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
-                                fullWidth
-                                size="small"
-                                variant="outlined"
-                                sx={{
-                                    '& .MuiOutlinedInput-root': {
-                                        borderRadius: 1.5,
-                                    },
-                                }}
-                            />
-                        </Box>
-                    </Box>
-
-                    <Divider />
+                    {/* Thông báo tên tài khoản tự động */}
+                    {isCreateMode && (
+                        <Alert severity="info" sx={{ borderRadius: 2 }}>
+                            <Typography variant="body2">
+                                <strong>Tên tài khoản</strong> sẽ được tự động tạo theo định dạng:{' '}
+                                <strong>viettat.hoten</strong>
+                                <br />
+                                <strong>Mật khẩu mặc định:</strong> 123456
+                            </Typography>
+                        </Alert>
+                    )}
 
                     {/* Section: Thông tin cá nhân */}
                     <Box>
@@ -242,6 +200,24 @@ function UserDialog({ open, mode, user, onClose, onSuccess }) {
                         </Typography>
 
                         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                            {/* ✅ Họ tên - BẮT BUỘC */}
+                            <TextField
+                                label="Họ và tên"
+                                placeholder="VD: Nguyễn Văn A"
+                                value={formData.fullName}
+                                onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
+                                required
+                                fullWidth
+                                size="small"
+                                variant="outlined"
+                                sx={{
+                                    '& .MuiOutlinedInput-root': {
+                                        borderRadius: 1.5,
+                                    },
+                                }}
+                                helperText="Tên tài khoản sẽ được tự động tạo từ họ tên"
+                            />
+
                             <Box sx={{ display: 'flex', gap: 2 }}>
                                 <FormControl
                                     fullWidth

@@ -31,11 +31,8 @@ const createNew = async (req, res, next) => {
                 'any.required': 'Vai trò là bắt buộc',
                 'any.only': 'Vai trò không hợp lệ',
             }),
-        isRoot: Joi.boolean().when('role', {
-            is: 'ban_giam_hieu',
-            then: Joi.boolean(),
-            otherwise: Joi.forbidden(),
-        }),
+        // ✅ FIX: Cho phép isRoot với mọi role, logic xử lý trong service
+        isRoot: Joi.boolean().optional().default(false),
         status: Joi.boolean().default(true),
     });
 
@@ -67,16 +64,15 @@ const update = async (req, res, next) => {
         role: Joi.string().valid('ban_giam_hieu', 'to_truong', 'giao_vien', 'ke_toan', 'phu_huynh').messages({
             'any.only': 'Vai trò không hợp lệ',
         }),
-        isRoot: Joi.boolean().when('role', {
-            is: 'ban_giam_hieu',
-            then: Joi.boolean(),
-            otherwise: Joi.forbidden(),
-        }),
+        // ✅ FIX: Cho phép isRoot khi update
+        isRoot: Joi.boolean().optional(),
         status: Joi.boolean(),
+        // ✅ FIX: Không cấm schoolId ở validation, sẽ xử lý trong service
     });
 
     try {
-        await schema.validateAsync(req.body, { abortEarly: false, allowUnknown: false });
+        // ✅ allowUnknown: true để không báo lỗi khi có field không khai báo
+        await schema.validateAsync(req.body, { abortEarly: false, allowUnknown: true });
         next();
     } catch (err) {
         const errorMessage = err.details.map((detail) => detail.message).join(', ');

@@ -62,10 +62,22 @@ const deleteUser = async (req, res, next) => {
     }
 };
 
+// ✅ Xóa nhiều users
+const deleteManyUsers = async (req, res, next) => {
+    try {
+        const requestUser = req.jwtDecoded;
+        const result = await adminUserManagementServices.deleteManyUsers(req.body.ids, requestUser);
+        res.status(StatusCodes.OK).json(result);
+    } catch (error) {
+        next(error);
+    }
+};
+
 export const adminUserManagementController = {
     createNew,
     getAll,
     getDetails,
     update,
     deleteUser,
+    deleteManyUsers, // ✅ Export thêm
 };

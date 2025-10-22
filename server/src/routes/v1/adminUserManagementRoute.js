@@ -21,6 +21,13 @@ Router.route('/')
         adminUserManagementController.createNew,
     );
 
+// ✅ API xóa nhiều users
+Router.route('/delete-many').post(
+    authMiddleware.isAuthorized,
+    rbacMiddleware.isValidPermission([PERMISSIONS.ADMIN_MANAGE_USERS]),
+    adminUserManagementController.deleteManyUsers,
+);
+
 // API chi tiết, cập nhật, xóa user - Chỉ admin
 Router.route('/:id')
     .get(

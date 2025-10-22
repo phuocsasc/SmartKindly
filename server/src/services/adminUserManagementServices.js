@@ -16,8 +16,7 @@ const createNew = async (data) => {
             throw new ApiError(StatusCodes.NOT_FOUND, 'Không tìm thấy trường học');
         }
 
-        // Kiểm tra nếu role là ban_giam_hieu và isRoot = true
-        // thì không được có isRoot khác trong cùng trường
+        // ✅ FIX: Chỉ kiểm tra isRoot khi role là ban_giam_hieu
         if (data.role === 'ban_giam_hieu' && data.isRoot === true) {
             const existingRoot = await UserModel.findOne({
                 schoolId: data.schoolId,
@@ -33,6 +32,9 @@ const createNew = async (data) => {
                 );
             }
         }
+
+        // ✅ FIX: Tự động set isRoot = false nếu role không phải ban_giam_hieu
+        const isRoot = data.role === 'ban_giam_hieu' ? data.isRoot || false : false;
 
         // Tạo userId tự động (8 chữ số random)
         const userId = await UserModel.generateUserId();
@@ -62,23 +64,24 @@ const createNew = async (data) => {
             username,
             password,
             schoolId: school.schoolId,
+            isRoot, // ✅ Sử dụng giá trị đã xử lý
         });
 
         const savedUser = await newUser.save();
 
         // Populate school info
-        const userWithSchool = await UserModel.findById(savedUser._id)
-            .select('-password')
-            .populate({
-                path: 'schoolId',
-                match: { _destroy: false },
-                select: 'name abbreviation address',
-                model: SchoolModel,
-                foreignField: 'schoolId',
-                localField: 'schoolId',
-            });
+        const userWithSchool = await UserModel.findById(savedUser._id).select('-password').lean();
 
-        return userWithSchool;
+        // Lấy school info
+        const schoolInfo = await SchoolModel.findOne({
+            schoolId: userWithSchool.schoolId,
+            _destroy: false,
+        }).select('name abbreviation address');
+
+        return {
+            ...userWithSchool,
+            school: schoolInfo || null,
+        };
     } catch (error) {
         if (error instanceof ApiError) {
             throw error;
@@ -92,7 +95,11 @@ const getAll = async (query) => {
         const { page = 1, limit = 10, search = '', role = '', status = '', schoolId = '' } = query;
         const skip = (page - 1) * limit;
 
-        const filter = { _destroy: false };
+        // ✅ Luôn loại trừ admin khỏi danh sách
+        const filter = {
+            _destroy: false,
+            role: { $ne: 'admin' }, // ✅ Không lấy user có role admin
+        };
 
         // Tìm kiếm
         if (search) {
@@ -189,9 +196,8 @@ const update = async (id, data, requestUser) => {
         }
 
         // Nếu user là ban_giam_hieu có isRoot = true
-        // Chỉ root mới được update
+        // Chỉ root hoặc admin mới được update
         if (user.role === 'ban_giam_hieu' && user.isRoot === true) {
-            // Kiểm tra người request có phải là root không
             const requestUserDoc = await UserModel.findById(requestUser.id);
             if (!requestUserDoc || requestUserDoc.role !== 'admin') {
                 if (!requestUserDoc.isRoot || requestUserDoc.schoolId !== user.schoolId) {
@@ -203,7 +209,7 @@ const update = async (id, data, requestUser) => {
             }
         }
 
-        // Nếu thay đổi isRoot = true
+        // ✅ FIX: Kiểm tra isRoot chỉ khi role mới là ban_giam_hieu
         if (data.role === 'ban_giam_hieu' && data.isRoot === true && !user.isRoot) {
             const existingRoot = await UserModel.findOne({
                 schoolId: user.schoolId,
@@ -221,10 +227,15 @@ const update = async (id, data, requestUser) => {
             }
         }
 
-        // Không cho phép thay đổi username, userId, schoolId, password qua API này
+        // ✅ FIX: Tự động set isRoot = false nếu role không phải ban_giam_hieu
+        if (data.role && data.role !== 'ban_giam_hieu') {
+            data.isRoot = false;
+        }
+
+        // ✅ FIX: Không cho phép thay đổi username, userId, schoolId, password
         delete data.username;
         delete data.userId;
-        delete data.schoolId;
+        delete data.schoolId; // ✅ Xóa schoolId từ data update
         delete data.password;
 
         // Kiểm tra email nếu thay đổi
@@ -276,7 +287,7 @@ const deleteUser = async (id, requestUser) => {
         }
 
         // Nếu user là ban_giam_hieu có isRoot = true
-        // Chỉ root hoặc admin mới được xóa
+        // Chỉ admin mới được xóa
         if (user.role === 'ban_giam_hieu' && user.isRoot === true) {
             const requestUserDoc = await UserModel.findById(requestUser.id);
             if (!requestUserDoc || requestUserDoc.role !== 'admin') {
@@ -333,6 +344,63 @@ const ensureUniqueUsername = async (baseUsername) => {
 
     return username;
 };
+// ✅ Xóa nhiều người dùng
+const deleteManyUsers = async (ids, requestUser) => {
+    try {
+        if (!ids || !Array.isArray(ids) || ids.length === 0) {
+            throw new ApiError(StatusCodes.BAD_REQUEST, 'Danh sách ID không hợp lệ');
+        }
+
+        // Lấy danh sách users cần xóa
+        const users = await UserModel.find({ _id: { $in: ids }, _destroy: false });
+
+        if (users.length === 0) {
+            throw new ApiError(StatusCodes.NOT_FOUND, 'Không tìm thấy người dùng nào để xóa');
+        }
+
+        const requestUserDoc = await UserModel.findById(requestUser.id);
+        const isAdmin = requestUserDoc?.role === 'admin';
+
+        // Kiểm tra quyền xóa từng user
+        for (const user of users) {
+            // Không cho phép xóa admin
+            if (user.role === 'admin') {
+                throw new ApiError(StatusCodes.FORBIDDEN, `Không thể xóa tài khoản admin hệ thống: ${user.username}`);
+            }
+
+            // Nếu user là ban_giam_hieu có isRoot = true
+            // Chỉ admin mới được xóa
+            if (user.role === 'ban_giam_hieu' && user.isRoot === true) {
+                if (!isAdmin) {
+                    throw new ApiError(
+                        StatusCodes.FORBIDDEN,
+                        `Không thể xóa Ban giám hiệu root: ${user.fullName} (${user.username}). Chỉ admin mới có quyền.`,
+                    );
+                }
+            }
+
+            // Nếu user là ban_giam_hieu thường, kiểm tra quyền
+            if (user.role === 'ban_giam_hieu' && !user.isRoot) {
+                if (!isAdmin) {
+                    if (!requestUserDoc.isRoot || requestUserDoc.schoolId !== user.schoolId) {
+                        throw new ApiError(
+                            StatusCodes.FORBIDDEN,
+                            `Chỉ Ban giám hiệu root hoặc admin mới có thể xóa: ${user.fullName} (${user.username})`,
+                        );
+                    }
+                }
+            }
+        }
+
+        // Soft delete tất cả users đã validate
+        const result = await UserModel.updateMany({ _id: { $in: ids }, _destroy: false }, { _destroy: true });
+
+        return { message: `Đã xóa thành công ${result.modifiedCount} người dùng` };
+    } catch (error) {
+        if (error instanceof ApiError) throw error;
+        throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, 'Lỗi khi xóa nhiều người dùng');
+    }
+};
 
 export const adminUserManagementServices = {
     createNew,
@@ -340,4 +408,5 @@ export const adminUserManagementServices = {
     getDetails,
     update,
     deleteUser,
+    deleteManyUsers, // ✅ Export thêm
 };

@@ -81,7 +81,7 @@ const changePassword = async (req, res, next) => {
         const targetUserId = req.params.id; // User muốn đổi mật khẩu
 
         // Chỉ cho phép user đổi mật khẩu của chính mình
-        if (userId !== targetUserId) {
+        if (userId.toString() !== targetUserId.toString()) {
             throw new ApiError(StatusCodes.FORBIDDEN, 'Bạn chỉ có thể đổi mật khẩu của chính mình');
         }
 

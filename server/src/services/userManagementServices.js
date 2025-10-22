@@ -384,6 +384,8 @@ const changePassword = async (id, currentPassword, newPassword) => {
 
         return { message: 'Đổi mật khẩu thành công' };
     } catch (error) {
+        // ✅ Log chi tiết lỗi để debug
+        console.error('❌ Error in changePassword service:', error);
         if (error instanceof ApiError) throw error;
         throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, 'Lỗi khi đổi mật khẩu');
     }

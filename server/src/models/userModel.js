@@ -10,7 +10,9 @@ const UserSchema = new mongoose.Schema(
         },
         schoolId: {
             type: String,
-            required: [true, 'Mã trường là bắt buộc'],
+            required: function () {
+                return this.role !== 'admin'; // Chỉ bắt buộc khi không phải admin
+            },
             ref: 'School',
         },
         username: {

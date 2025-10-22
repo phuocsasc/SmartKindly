@@ -273,17 +273,30 @@ function UserManagement() {
                 const isDisabled = selectedRows.length >= 2;
                 const canUpdate = hasPermission(PERMISSIONS.UPDATE_USER);
                 const canDelete = hasPermission(PERMISSIONS.DELETE_USER);
+                // ✅ Kiểm tra xem có phải tài khoản của chính mình không
+                const isCurrentUser = params.row._id === user?.id;
 
                 return (
                     <Box sx={{ display: 'flex', justifyContent: 'center', width: '100%' }}>
                         {canUpdate && (
-                            <Tooltip title={isDisabled ? 'Vui lòng bỏ chọn để sửa' : 'Sửa thông tin'}>
+                            <Tooltip
+                                title={
+                                    isCurrentUser
+                                        ? 'Không thể sửa tài khoản của chính mình'
+                                        : isDisabled
+                                          ? 'Vui lòng bỏ chọn để sửa'
+                                          : 'Sửa thông tin'
+                                }
+                            >
                                 <span>
                                     <IconButton
                                         color="primary"
                                         size="small"
-                                        disabled={isDisabled}
+                                        disabled={isDisabled || isCurrentUser}
                                         onClick={() => handleEdit(params.row)}
+                                        sx={{
+                                            opacity: isCurrentUser ? 0.3 : 1,
+                                        }}
                                     >
                                         <EditOutlinedIcon />
                                     </IconButton>
@@ -291,12 +304,23 @@ function UserManagement() {
                             </Tooltip>
                         )}
                         {canDelete && (
-                            <Tooltip title={isDisabled ? 'Vui lòng bỏ chọn để xóa' : 'Xóa người dùng'}>
+                            <Tooltip
+                                title={
+                                    isCurrentUser
+                                        ? 'Không thể xóa tài khoản của chính mình'
+                                        : isDisabled
+                                          ? 'Vui lòng bỏ chọn để xóa'
+                                          : 'Xóa người dùng'
+                                }
+                            >
                                 <span>
                                     <IconButton
                                         color="error"
-                                        disabled={isDisabled}
+                                        disabled={isDisabled || isCurrentUser}
                                         onClick={() => handleDelete(params.row.id)}
+                                        sx={{
+                                            opacity: isCurrentUser ? 0.3 : 1,
+                                        }}
                                     >
                                         <DeleteOutlineOutlinedIcon />
                                     </IconButton>
@@ -439,6 +463,8 @@ function UserManagement() {
                         columns={columns}
                         loading={loading}
                         checkboxSelection={hasPermission(PERMISSIONS.DELETE_USER)}
+                        // ✅ Disable checkbox cho tài khoản của chính mình
+                        isRowSelectable={(params) => params.row._id !== user?.id}
                         disableColumnMenu
                         disableColumnSort
                         paginationMode="server"
@@ -460,7 +486,15 @@ function UserManagement() {
                                 outline: 'none !important',
                             },
                             '& .MuiDataGrid-columnHeaders': { backgroundColor: '#e3f2fd', fontWeight: 'bold' },
+                            // ✅ Thêm style cho dòng của chính mình
+                            '& .MuiDataGrid-row': {
+                                '&[data-id]': {
+                                    position: 'relative',
+                                },
+                            },
                         }}
+                        // ✅ Thêm class để style dòng của chính mình
+                        getRowClassName={(params) => (params.row._id === user?.id ? 'current-user-row' : '')}
                         slots={{
                             noRowsOverlay: () => (
                                 <Box sx={{ p: 3, textAlign: 'center' }}>

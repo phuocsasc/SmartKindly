@@ -15,6 +15,19 @@ const createNew = async (data) => {
             throw new ApiError(StatusCodes.CONFLICT, 'Tên trường học đã tồn tại');
         }
 
+        // Kiểm tra tên viết tắt đã tồn tại chưa
+        const existingAbbreviation = await SchoolModel.findOne({
+            abbreviation: data.abbreviation.toUpperCase(),
+            _destroy: false,
+        });
+
+        if (existingAbbreviation) {
+            throw new ApiError(StatusCodes.CONFLICT, 'Tên viết tắt đã được sử dụng');
+        }
+
+        // Tạo schoolId tự động
+        const schoolId = await SchoolModel.generateSchoolId();
+
         // Tạo slug và kiểm tra unique
         let baseSlug = slugify(data.name);
         let slug = baseSlug;
@@ -27,7 +40,9 @@ const createNew = async (data) => {
 
         const newSchool = new SchoolModel({
             ...data,
+            schoolId,
             slug,
+            abbreviation: data.abbreviation.toUpperCase(),
         });
 
         return await newSchool.save();
@@ -41,12 +56,25 @@ const createNew = async (data) => {
 
 const getAll = async (query) => {
     try {
-        const { page = 1, limit = 10, search = '' } = query;
+        const { page = 1, limit = 10, search = '', status = '' } = query;
         const skip = (page - 1) * limit;
 
         const filter = { _destroy: false };
+
+        // Tìm kiếm theo tên trường, địa chỉ, mã trường, tên viết tắt
         if (search) {
-            filter.$or = [{ name: { $regex: search, $options: 'i' } }, { address: { $regex: search, $options: 'i' } }];
+            filter.$or = [
+                { name: { $regex: search, $options: 'i' } },
+                { address: { $regex: search, $options: 'i' } },
+                { schoolId: { $regex: search, $options: 'i' } },
+                { abbreviation: { $regex: search, $options: 'i' } },
+                { manager: { $regex: search, $options: 'i' } },
+            ];
+        }
+
+        // Lọc theo trạng thái
+        if (status) {
+            filter.status = status;
         }
 
         const schools = await SchoolModel.find(filter).skip(skip).limit(parseInt(limit)).sort({ createdAt: -1 });
@@ -103,6 +131,24 @@ const update = async (id, data) => {
             data.slug = slugify(data.name);
         }
 
+        // Kiểm tra tên viết tắt đã tồn tại (trừ chính nó)
+        if (data.abbreviation) {
+            const existingAbbreviation = await SchoolModel.findOne({
+                abbreviation: data.abbreviation.toUpperCase(),
+                _id: { $ne: id },
+                _destroy: false,
+            });
+
+            if (existingAbbreviation) {
+                throw new ApiError(StatusCodes.CONFLICT, 'Tên viết tắt đã được sử dụng');
+            }
+
+            data.abbreviation = data.abbreviation.toUpperCase();
+        }
+
+        // Không cho phép thay đổi schoolId
+        delete data.schoolId;
+
         const updatedSchool = await SchoolModel.findByIdAndUpdate(id, data, { new: true, runValidators: true });
 
         return updatedSchool;
@@ -117,6 +163,14 @@ const deleteSchool = async (id) => {
         const school = await SchoolModel.findOne({ _id: id, _destroy: false });
         if (!school) {
             throw new ApiError(StatusCodes.NOT_FOUND, 'Không tìm thấy trường học');
+        }
+
+        // ✅ Kiểm tra trường có đang hoạt động không (status === true)
+        if (school.status === true) {
+            throw new ApiError(
+                StatusCodes.FORBIDDEN,
+                'Không thể xóa trường đang hoạt động. Vui lòng chuyển sang trạng thái "Không hoạt động" trước.',
+            );
         }
 
         // Soft delete - chỉ đánh dấu _destroy: true

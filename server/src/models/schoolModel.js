@@ -2,11 +2,26 @@ import mongoose from 'mongoose';
 
 const SchoolSchema = new mongoose.Schema(
     {
+        schoolId: {
+            type: String,
+            required: [true, 'Mã trường là bắt buộc'],
+            unique: true,
+            trim: true,
+            match: [/^[0-9]{8}$/, 'Mã trường phải có đúng 8 chữ số'],
+        },
         name: {
             type: String,
             required: [true, 'Tên trường học là bắt buộc'],
             trim: true,
             maxlength: [256, 'Tên trường học không được vượt quá 256 ký tự'],
+        },
+        abbreviation: {
+            type: String,
+            required: [true, 'Tên viết tắt là bắt buộc'],
+            trim: true,
+            uppercase: true,
+            minlength: [2, 'Tên viết tắt phải có ít nhất 2 ký tự'],
+            maxlength: [10, 'Tên viết tắt không được vượt quá 10 ký tự'],
         },
         slug: {
             type: String,
@@ -21,6 +36,12 @@ const SchoolSchema = new mongoose.Schema(
             trim: true,
             maxlength: [500, 'Địa chỉ không được vượt quá 500 ký tự'],
         },
+        taxCode: {
+            type: String,
+            trim: true,
+            default: null, // ✅ Mặc định null
+            match: [/^[0-9]{10,13}$/, 'Mã số thuế phải có 10-13 chữ số'],
+        },
         manager: {
             type: String,
             required: [true, 'Tên hiệu trưởng là bắt buộc'],
@@ -29,14 +50,31 @@ const SchoolSchema = new mongoose.Schema(
         },
         phone: {
             type: String,
+            required: [true, 'Số điện thoại là bắt buộc'],
             trim: true,
-            match: [/^[0-9]{10,11}$/, 'Số điện thoại không hợp lệ'],
+            match: [/^[0-9]{10,11}$/, 'Số điện thoại phải có 10-11 chữ số'],
         },
-        username: {
+        email: {
             type: String,
             trim: true,
             lowercase: true,
-            match: [/^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/, 'username không hợp lệ'],
+            default: null, // ✅ Mặc định null
+            match: [/^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/, 'Email không hợp lệ'],
+        },
+        website: {
+            type: String,
+            trim: true,
+            default: null, // ✅ Mặc định null
+            match: [/^(https?:\/\/)?([\da-z.-]+)\.([a-z.]{2,6})([/\w .-]*)*\/?$/, 'Website không hợp lệ'],
+        },
+        establishmentDate: {
+            type: Date,
+            required: [true, 'Ngày thành lập là bắt buộc'],
+        },
+        status: {
+            type: Boolean,
+            default: true,
+            required: true,
         },
         _destroy: {
             type: Boolean,
@@ -45,7 +83,6 @@ const SchoolSchema = new mongoose.Schema(
     },
     {
         timestamps: true,
-        // Tự động loại bỏ __v khi trả về JSON
         toJSON: {
             transform: function (doc, ret) {
                 delete ret.__v;
@@ -55,8 +92,26 @@ const SchoolSchema = new mongoose.Schema(
     },
 );
 
+// Static method: Tạo schoolId tự động (8 chữ số)
+SchoolSchema.statics.generateSchoolId = async function () {
+    let schoolId;
+    let isUnique = false;
+
+    while (!isUnique) {
+        schoolId = Math.floor(10000000 + Math.random() * 90000000).toString();
+        const existing = await this.findOne({ schoolId, _destroy: false });
+        if (!existing) {
+            isUnique = true;
+        }
+    }
+
+    return schoolId;
+};
+
 // Index để tìm kiếm nhanh hơn
 SchoolSchema.index({ name: 'text', address: 'text' });
 SchoolSchema.index({ slug: 1 });
+SchoolSchema.index({ schoolId: 1 });
+SchoolSchema.index({ abbreviation: 1 });
 
 export const SchoolModel = mongoose.model('School', SchoolSchema);

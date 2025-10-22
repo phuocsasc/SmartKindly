@@ -1,4 +1,5 @@
 export const ROLES = {
+    ADMIN: 'admin',
     BAN_GIAM_HIEU: 'ban_giam_hieu',
     TO_TRUONG: 'to_truong',
     GIAO_VIEN: 'giao_vien',
@@ -7,6 +8,13 @@ export const ROLES = {
 };
 
 export const PERMISSIONS = {
+    // Quyền admin hệ thống
+    ADMIN_DASHBOARD: 'admin_dashboard',
+    ADMIN_MANAGE_SCHOOLS: 'admin_manage_schools',
+    ADMIN_MANAGE_USERS: 'admin_manage_users',
+    ADMIN_MANAGE_CHATBOT: 'admin_manage_chatbot',
+    ADMIN_DATA_BANK: 'admin_data_bank',
+
     // Quản lý tài khoản người dùng
     VIEW_USERS: 'view_users',
     CREATE_USER: 'create_user',
@@ -42,10 +50,15 @@ export const PERMISSIONS = {
 };
 
 export const ROLE_PERMISSIONS = {
-    [ROLES.BAN_GIAM_HIEU]: [
-        // Toàn quyền - tất cả permissions
-        ...Object.values(PERMISSIONS),
+    [ROLES.ADMIN]: [
+        PERMISSIONS.ADMIN_DASHBOARD,
+        PERMISSIONS.ADMIN_MANAGE_SCHOOLS,
+        PERMISSIONS.ADMIN_MANAGE_USERS,
+        PERMISSIONS.ADMIN_MANAGE_CHATBOT,
+        PERMISSIONS.ADMIN_DATA_BANK,
     ],
+    // tất cả quyền ngoại trừ quyền admin hệ thống
+    [ROLES.BAN_GIAM_HIEU]: [...Object.values(PERMISSIONS).filter((permission) => !permission.startsWith('admin_'))],
     [ROLES.TO_TRUONG]: [
         PERMISSIONS.VIEW_USERS,
         PERMISSIONS.VIEW_SCHOOL_INFO,
@@ -70,6 +83,7 @@ export const ROLE_PERMISSIONS = {
 
 // Helper function để map giữa role tiếng Việt và code
 export const ROLE_DISPLAY = {
+    [ROLES.ADMIN]: 'Quản trị viên hệ thống',
     [ROLES.BAN_GIAM_HIEU]: 'Ban giám hiệu',
     [ROLES.TO_TRUONG]: 'Tổ trưởng',
     [ROLES.GIAO_VIEN]: 'Giáo viên',
@@ -78,14 +92,10 @@ export const ROLE_DISPLAY = {
 };
 
 export const ROLE_CODE = {
+    'Quản trị viên hệ thống': ROLES.ADMIN,
     'Ban giám hiệu': ROLES.BAN_GIAM_HIEU,
     'Tổ trưởng': ROLES.TO_TRUONG,
     'Giáo viên': ROLES.GIAO_VIEN,
     'Kế toán': ROLES.KE_TOAN,
     'Phụ huynh': ROLES.PHU_HUYNH,
 };
-
-// Legacy mapping (giữ lại để tương thích code cũ)
-export const roles = ROLES;
-export const permissions = PERMISSIONS;
-export const rolePermissions = ROLE_PERMISSIONS;

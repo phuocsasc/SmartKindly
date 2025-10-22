@@ -3,9 +3,15 @@ import GroupsIcon from '@mui/icons-material/Groups';
 import PersonIcon from '@mui/icons-material/Person';
 import AccountBalanceIcon from '@mui/icons-material/AccountBalance';
 import FamilyRestroomIcon from '@mui/icons-material/FamilyRestroom';
+import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
 import { ROLES, ROLE_DISPLAY, PERMISSIONS } from './rbacConfig';
 
 export const ROLE_CONFIG = {
+    [ROLES.ADMIN]: {
+        color: '#000000',
+        bgColor: '#e0e0e0',
+        icon: AdminPanelSettingsIcon,
+    },
     [ROLES.BAN_GIAM_HIEU]: {
         color: '#d32f2f',
         bgColor: '#ffebee',

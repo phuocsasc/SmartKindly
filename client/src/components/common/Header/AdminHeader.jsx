@@ -45,12 +45,12 @@ function SchoolHeader({
 
     const handleViewProfile = () => {
         handleCloseMenu();
-        navigate('/user-info');
+        navigate('/admin/user-info');
     };
 
     const handleChangePassword = () => {
         handleCloseMenu();
-        navigate('/user-info?tab=password');
+        navigate('/admin/user-info?tab=password');
     };
 
     const handleLogout = () => {

@@ -5,13 +5,27 @@ const seedUsers = async () => {
     try {
         await CONNECT_DB();
 
-        // Xóa user cũ nếu có
+        // ✅ Tạo admin hệ thống
         await UserModel.deleteOne({ username: 'admin' });
-
-        // Tạo user mới (password sẽ tự động hash)
         const admin = new UserModel({
-            userId: 22102001,
+            userId: 10000001,
             username: 'admin',
+            password: 'admin123',
+            fullName: 'Admin SmartKindly',
+            gender: 'Nam',
+            email: 'admin@smartkindly.vn',
+            phone: '0900000000',
+            role: 'admin',
+            status: true,
+        });
+        await admin.save();
+        console.log('✅ Created admin user');
+
+        // Tạo ban giám hiệu
+        await UserModel.deleteOne({ username: 'bgh01' });
+        const bgh = new UserModel({
+            userId: 22102001,
+            username: 'bgh01',
             password: '123456',
             fullName: 'Trần Thị Lan',
             gender: 'Nữ',
@@ -20,14 +34,15 @@ const seedUsers = async () => {
             role: 'ban_giam_hieu',
             status: true,
         });
+        await bgh.save();
+        console.log('✅ Created ban_giam_hieu user');
 
-        await admin.save();
-        console.log('✅ Seed user admin thành công!');
-
+        console.log('✅ Seed users thành công!');
         await CLOSE_DB();
         process.exit(0);
     } catch (error) {
         console.error('❌ Lỗi seed data:', error);
+        await CLOSE_DB();
         process.exit(1);
     }
 };

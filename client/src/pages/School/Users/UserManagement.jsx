@@ -24,6 +24,7 @@ import PageBreadcrumb from '~/components/common/PageBreadcrumb';
 import { useUser } from '~/contexts/UserContext';
 import { userApi } from '~/apis/userApi';
 import { ROLE_CONFIG, ROLE_DISPLAY, PERMISSIONS } from '~/config/roleConfig';
+import { ROLES } from '~/config/rbacConfig';
 
 import { usePermission } from '~/hooks/usePermission';
 import { toast } from 'react-toastify';
@@ -265,6 +266,8 @@ function UserManagement() {
             },
         },
     ];
+    // ✅ Lọc bỏ role ADMIN khỏi thống kê và filter
+    const availableRoles = Object.entries(ROLE_CONFIG).filter(([role]) => role !== ROLES.ADMIN);
 
     return (
         <MainLayout user={user}>
@@ -274,7 +277,8 @@ function UserManagement() {
 
                 {/* ======= THỐNG KÊ ======= */}
                 <Box sx={{ mb: 2, display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-                    {Object.entries(ROLE_CONFIG).map(([role, config]) => {
+                    {/* ✅ Chỉ hiển thị thống kê cho role ngoại trừ ADMIN */}
+                    {availableRoles.map(([role, config]) => {
                         const Icon = config.icon;
                         return (
                             <Paper
@@ -343,9 +347,10 @@ function UserManagement() {
                                     label="Vai trò"
                                 >
                                     <MenuItem value="">Tất cả</MenuItem>
-                                    {Object.entries(ROLE_DISPLAY).map(([code, label]) => (
+                                    {/* ✅ Chỉ hiển thị filter cho role ngoại trừ ADMIN */}
+                                    {availableRoles.map(([code]) => (
                                         <MenuItem key={code} value={code}>
-                                            {label}
+                                            {ROLE_DISPLAY[code]}
                                         </MenuItem>
                                     ))}
                                 </Select>

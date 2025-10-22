@@ -1,13 +1,18 @@
 import { Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import Login from '~/pages/Auth/Login';
 import Dashboard from '~/pages/School/Dashboard';
-import AdminDashboard from './pages/Admin/Dashboard';
+import AdminDashboard from './pages/Admin/AdminDashboard';
 import NotFound from '~/pages/ErrorPage/NotFound';
 import AccessDenied from '~/pages/ErrorPage/AccessDenied';
 import RbacRoute from '~/components/core/RbacRoute';
-import { permissions } from '~/config/rbacConfig';
-import { UserProvider, useUser } from '~/contexts/UserContext';
 import { PERMISSIONS } from '~/config/rbacConfig';
+import { UserProvider, useUser } from '~/contexts/UserContext';
+
+// Admin
+import AdminInfo from '~/pages/Admin/AdminInfo';
+import AdminSchoolManagement from '~/pages/Admin/SchoolsManagement/AdminSchoolManagement';
+import AdminUserManagement from '~/pages/Admin/UsersManagement/AdminUserManagement';
+
 // Users
 import UserManagement from '~/pages/School/Users/UserManagement';
 import UserInfo from '~/pages/School/Users/UserInfo';
@@ -51,7 +56,24 @@ function AppContent() {
             </Route>
 
             <Route element={<ProtectedRoutes />}>
-                {/* Users - Chỉ cho phép xem nếu có quyền VIEW_USERS */}
+                {/* Admin Routes - Chỉ cho phép role ADMIN */}
+                <Route element={<RbacRoute requiredPermission={PERMISSIONS.ADMIN_DASHBOARD} />}>
+                    <Route path="/admin/dashboard" element={<AdminDashboard />} />
+                </Route>
+                <Route element={<RbacRoute requiredPermission={PERMISSIONS.ADMIN_MANAGE_SCHOOLS} />}>
+                    <Route path="/admin/school-management" element={<AdminSchoolManagement />} />
+                </Route>
+                <Route element={<RbacRoute requiredPermission={PERMISSIONS.ADMIN_MANAGE_USERS} />}>
+                    <Route path="/admin/users-management" element={<AdminUserManagement />} />
+                </Route>
+                <Route path="/admin/user-info" element={<AdminInfo />} />
+
+                {/* School Routes - Các role trong trường */}
+                <Route element={<RbacRoute requiredPermission={PERMISSIONS.VIEW_DASHBOARD} />}>
+                    <Route path="/dashboard" element={<Dashboard />} />
+                </Route>
+
+                {/* Chỉ cho phép xem nếu có quyền VIEW_USERS */}
                 <Route element={<RbacRoute requiredPermission={PERMISSIONS.VIEW_USERS} />}>
                     <Route path="/users" element={<UserManagement />} />
                 </Route>
@@ -59,23 +81,15 @@ function AppContent() {
                 {/* Các route khác... */}
 
                 {/* Data-Declaration */}
-                <Route element={<RbacRoute requiredPermission={permissions.VIEW_SCHOOL_INFO} />}>
+                <Route element={<RbacRoute requiredPermission={PERMISSIONS.VIEW_SCHOOL_INFO} />}>
                     <Route path="/data-declaration/school-info" element={<SchoolInfo />} />
                 </Route>
-                <Route element={<RbacRoute requiredPermission={permissions.VIEW_ACADEMIC_YEAR} />}>
+                <Route element={<RbacRoute requiredPermission={PERMISSIONS.VIEW_ACADEMIC_YEAR} />}>
                     <Route path="/data-declaration/school-year" element={<AcademicYear />} />
                 </Route>
                 <Route path="/data-declaration/department" element={<Department />} />
                 <Route path="/data-declaration/classes" element={<Classes />} />
                 {/* End - Data-Declaration */}
-
-                <Route element={<RbacRoute requiredPermission={permissions.VIEW_DASHBOARD} />}>
-                    <Route path="/dashboard" element={<Dashboard />} />
-                </Route>
-
-                <Route element={<RbacRoute requiredPermission={permissions.VIEW_DASHBOARD} />}>
-                    <Route path="/admin/dashboard" element={<AdminDashboard />} />
-                </Route>
             </Route>
 
             <Route path="/access-denied" element={<AccessDenied />} />

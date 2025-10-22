@@ -4,11 +4,7 @@ import HomeIcon from '@mui/icons-material/Home';
 function PageBreadcrumb({ items }) {
     return (
         <Breadcrumbs sx={{ mb: 2 }}>
-            <Link
-                color="inherit"
-                href="/dashboard"
-                sx={{ display: 'flex', alignItems: 'center', textDecoration: 'none' }}
-            >
+            <Link color="inherit" href="#" sx={{ display: 'flex', alignItems: 'center', textDecoration: 'none' }}>
                 <HomeIcon sx={{ mr: 0.5 }} fontSize="inherit" />
                 Trang chủ
             </Link>

@@ -1,6 +1,7 @@
 import { UserModel } from '~/models/userModel';
 import ApiError from '~/utils/ApiError';
 import { StatusCodes } from 'http-status-codes';
+import { ROLES } from '~/config/rbacConfig';
 
 const createNew = async (data) => {
     try {
@@ -58,7 +59,11 @@ const getAll = async (query) => {
         const { page = 1, limit = 10, search = '', role = '', status = '' } = query;
         const skip = (page - 1) * limit;
 
-        const filter = { _destroy: false };
+        // ✅ Luôn loại trừ admin khỏi danh sách
+        const filter = {
+            _destroy: false,
+            role: { $ne: ROLES.ADMIN }, // ✅ Không lấy user có role admin
+        };
 
         // Tìm kiếm theo tất cả các trường: username, fullName, email, phone, gender
         if (search) {
@@ -73,7 +78,7 @@ const getAll = async (query) => {
             filter.$or = searchConditions;
         }
 
-        // Lọc theo role
+        // Lọc theo role (nếu role được chỉ định)
         if (role) {
             filter.role = role;
         }

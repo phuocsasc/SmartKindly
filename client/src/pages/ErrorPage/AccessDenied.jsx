@@ -5,9 +5,23 @@ import HomeIcon from '@mui/icons-material/Home';
 import PlanetSvg from '~/assets/planet.svg';
 import AstronautSvg from '~/assets/astronaut.svg';
 import ParticlesBackground from '~/assets/pngtree-starry-sky-white-blue-stars.jpg';
-import { Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
+import { useUser } from '~/contexts/UserContext';
 
 function AccessDenied() {
+    const navigate = useNavigate();
+    const { user } = useUser(); // ✅ Lấy thông tin user
+
+    const handleGoHome = () => {
+        // ✅ Điều hướng dựa trên role
+        if (user?.role === 'admin') {
+            navigate('/admin/dashboard');
+        } else if (user) {
+            navigate('/dashboard');
+        } else {
+            navigate('/login');
+        }
+    };
     return (
         <Box
             sx={{
@@ -101,24 +115,23 @@ function AccessDenied() {
                     />
                 </Box>
 
-                <Link to="/" style={{ textDecoration: 'none' }} tabIndex={-1}>
-                    <Button
-                        variant="outlined"
-                        startIcon={<HomeIcon />}
-                        disableRipple
-                        sx={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            color: 'white',
-                            borderColor: 'white',
-                            outline: 'none',
-                            '&:focus': { outline: 'none' },
-                            '&:hover': { color: '#fdba26', borderColor: '#fdba26' },
-                        }}
-                    >
-                        Go Home
-                    </Button>
-                </Link>
+                <Button
+                    variant="outlined"
+                    startIcon={<HomeIcon />}
+                    onClick={handleGoHome}
+                    disableRipple
+                    sx={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        color: 'white',
+                        borderColor: 'white',
+                        outline: 'none',
+                        '&:focus': { outline: 'none' },
+                        '&:hover': { color: '#fdba26', borderColor: '#fdba26' },
+                    }}
+                >
+                    Về trang chủ
+                </Button>
             </Box>
         </Box>
     );

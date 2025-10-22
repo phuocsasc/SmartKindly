@@ -45,7 +45,7 @@ const UserSchema = new mongoose.Schema(
         role: {
             type: String,
             required: [true, 'Vai trò là bắt buộc'],
-            enum: ['ban_giam_hieu', 'to_truong', 'giao_vien', 'ke_toan', 'phu_huynh'],
+            enum: ['admin', 'ban_giam_hieu', 'to_truong', 'giao_vien', 'ke_toan', 'phu_huynh'],
             default: 'giao_vien',
         },
         status: {

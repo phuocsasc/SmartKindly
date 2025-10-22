@@ -46,8 +46,12 @@ function Login() {
             // Thông báo thành công
             toast.success('Đăng nhập thành công!');
 
-            // Điều hướng tới trang Dashboard
-            navigate('/dashboard');
+            // ✅ Điều hướng dựa trên role
+            if (res.data.role === 'admin') {
+                navigate('/admin/dashboard');
+            } else {
+                navigate('/dashboard');
+            }
         } catch (error) {
             console.error('Login error:', error);
             toast.error(error.response?.data?.message || 'Đăng nhập thất bại. Vui lòng thử lại!');

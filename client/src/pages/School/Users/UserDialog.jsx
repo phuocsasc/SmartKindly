@@ -90,6 +90,9 @@ function UserDialog({ open, mode, user, onClose, onSuccess }) {
     const roleConfig = ROLE_CONFIG[formData.role] || {};
     const RoleIcon = roleConfig.icon || PersonIcon;
 
+    // ✅ Lọc bỏ role ADMIN khỏi danh sách vai trò
+    const availableRoles = Object.entries(ROLE_DISPLAY).filter(([code]) => code !== ROLES.ADMIN);
+
     return (
         <Dialog
             open={open}
@@ -344,7 +347,8 @@ function UserDialog({ open, mode, user, onClose, onSuccess }) {
                                         </Box>
                                     )}
                                 >
-                                    {Object.entries(ROLE_DISPLAY).map(([code, label]) => {
+                                    {/* ✅ Chỉ hiển thị các role ngoại trừ ADMIN */}
+                                    {availableRoles.map(([code, label]) => {
                                         const config = ROLE_CONFIG[code] || {};
                                         const Icon = config.icon || PersonIcon;
                                         return (

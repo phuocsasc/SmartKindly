@@ -2,6 +2,7 @@ import { SchoolModel } from '~/models/schoolModel';
 import { slugify } from '~/utils/formatters';
 import ApiError from '~/utils/ApiError';
 import { StatusCodes } from 'http-status-codes';
+import { UserModel } from '~/models/userModel';
 
 const createNew = async (data) => {
     try {
@@ -183,10 +184,109 @@ const deleteSchool = async (id) => {
     }
 };
 
+// ✅ Thêm logging trong getBySchoolId
+const getBySchoolId = async (schoolId) => {
+    try {
+        console.log('🔍 Service getBySchoolId - schoolId:', schoolId);
+
+        const school = await SchoolModel.findOne({ schoolId, _destroy: false });
+
+        if (!school) {
+            console.log('❌ School not found with schoolId:', schoolId);
+            throw new ApiError(StatusCodes.NOT_FOUND, 'Không tìm thấy thông tin trường học');
+        }
+
+        console.log('✅ School found:', school.name);
+        return school;
+    } catch (error) {
+        console.error('❌ Error in getBySchoolId:', error);
+        if (error instanceof ApiError) throw error;
+        throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, 'Lỗi khi lấy thông tin trường học');
+    }
+};
+
+// ✅ Thêm logging trong updateSchoolInfo
+const updateSchoolInfo = async (schoolId, data, requestUser) => {
+    try {
+        console.log('🔍 Service updateSchoolInfo - schoolId:', schoolId);
+        console.log('🔍 Request user:', requestUser);
+
+        const school = await SchoolModel.findOne({ schoolId, _destroy: false });
+        if (!school) {
+            console.log('❌ School not found');
+            throw new ApiError(StatusCodes.NOT_FOUND, 'Không tìm thấy thông tin trường học');
+        }
+
+        // ✅ Kiểm tra quyền: Chỉ BGH root mới được update
+        const user = await UserModel.findById(requestUser.id);
+        console.log('🔍 User check:', {
+            exists: !!user,
+            role: user?.role,
+            isRoot: user?.isRoot,
+            userSchoolId: user?.schoolId,
+            targetSchoolId: schoolId,
+        });
+
+        if (!user || user.role !== 'ban_giam_hieu' || !user.isRoot || user.schoolId !== schoolId) {
+            console.log('❌ Permission denied');
+            throw new ApiError(
+                StatusCodes.FORBIDDEN,
+                'Chỉ Ban giám hiệu Root mới có quyền cập nhật thông tin trường học',
+            );
+        }
+
+        // ✅ Không cho phép thay đổi status, abbreviation, schoolId
+        delete data.status;
+        delete data.abbreviation;
+        delete data.schoolId;
+
+        console.log('🔍 Data to update:', data);
+
+        // Kiểm tra tên trường nếu thay đổi
+        if (data.name && data.name !== school.name) {
+            const existingName = await SchoolModel.findOne({
+                name: data.name,
+                _id: { $ne: school._id },
+                _destroy: false,
+            });
+
+            if (existingName) {
+                throw new ApiError(StatusCodes.CONFLICT, 'Tên trường học đã tồn tại');
+            }
+
+            // Tạo slug mới
+            let baseSlug = slugify(data.name);
+            let slug = baseSlug;
+            let counter = 1;
+
+            while (await SchoolModel.findOne({ slug, _id: { $ne: school._id }, _destroy: false })) {
+                slug = `${baseSlug}-${counter}`;
+                counter++;
+            }
+
+            data.slug = slug;
+        }
+
+        const updatedSchool = await SchoolModel.findByIdAndUpdate(school._id, data, {
+            new: true,
+            runValidators: true,
+        });
+
+        console.log('✅ School updated successfully');
+        return updatedSchool;
+    } catch (error) {
+        console.error('❌ Error in updateSchoolInfo:', error);
+        if (error instanceof ApiError) throw error;
+        throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, 'Lỗi khi cập nhật thông tin trường học');
+    }
+};
+
 export const schoolServices = {
     createNew,
     getAll,
     getDetails,
     update,
     deleteSchool,
+    getBySchoolId, // ✅ Export thêm
+    updateSchoolInfo, // ✅ Export thêm
 };

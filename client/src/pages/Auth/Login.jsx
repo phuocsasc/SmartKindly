@@ -34,6 +34,7 @@ function Login() {
                 fullName: res.data.fullName,
                 role: res.data.role,
                 isRoot: res.data.isRoot || false,
+                schoolId: res.data.schoolId,
             };
 
             // Lưu token và thông tin User vào LocalStorage

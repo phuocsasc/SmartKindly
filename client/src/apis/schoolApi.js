@@ -15,6 +15,16 @@ export const schoolApi = {
         return await authorizedAxiosInstance.get(`${API_ROOT}/v1/schools/${id}`);
     },
 
+    // ✅ Lấy thông tin trường của user hiện tại
+    getSchoolInfo: async () => {
+        return await authorizedAxiosInstance.get(`${API_ROOT}/v1/schools/my-school`);
+    },
+
+    // ✅ Cập nhật thông tin trường của user hiện tại
+    updateSchoolInfo: async (data) => {
+        return await authorizedAxiosInstance.put(`${API_ROOT}/v1/schools/my-school`, data);
+    },
+
     // Tạo trường học mới
     create: async (data) => {
         return await authorizedAxiosInstance.post(`${API_ROOT}/v1/schools`, data);

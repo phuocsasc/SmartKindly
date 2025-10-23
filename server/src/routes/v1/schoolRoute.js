@@ -7,6 +7,20 @@ import { PERMISSIONS } from '~/config/rbacConfig';
 
 const Router = express.Router();
 
+// ✅ Route cho user trong trường xem/cập nhật thông tin trường của mình
+Router.route('/my-school')
+    .get(
+        authMiddleware.isAuthorized,
+        rbacMiddleware.isValidPermission([PERMISSIONS.VIEW_SCHOOL_INFO]),
+        schoolController.getSchoolInfo,
+    )
+    .put(
+        authMiddleware.isAuthorized,
+        rbacMiddleware.isValidPermission([PERMISSIONS.UPDATE_SCHOOL_INFO]),
+        schoolValidation.update,
+        schoolController.updateSchoolInfo,
+    );
+
 // API lấy danh sách và tạo mới trường học - Chỉ admin
 Router.route('/')
     .get(

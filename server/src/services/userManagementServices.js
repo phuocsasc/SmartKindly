@@ -191,11 +191,6 @@ const update = async (id, data, schoolScope) => {
             throw new ApiError(StatusCodes.NOT_FOUND, 'Không tìm thấy người dùng');
         }
 
-        // ✅ Không cho phép update admin hệ thống
-        // if (user.role === 'admin') {
-        //     throw new ApiError(StatusCodes.FORBIDDEN, 'Không thể cập nhật admin hệ thống');
-        // }
-
         // ✅ FIX: Kiểm tra BGH - CHO PHÉP TỰ CẬP NHẬT THÔNG TIN CÁ NHÂN
         if (user.role === 'ban_giam_hieu') {
             const requestUser = await UserModel.findById(schoolScope.userId);

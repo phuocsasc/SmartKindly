@@ -33,7 +33,7 @@ const login = async (data) => {
         if (!user.status) {
             throw new ApiError(
                 StatusCodes.FORBIDDEN,
-                'Tài khoản đã bị vô hiệu hóa. Vui lòng liên hệ ban giám hiệu để được hỗ trợ.',
+                'Tài khoản đã bị vô hiệu hóa. Vui lòng liên hệ Bộ phận kỹ thuật để được hỗ trợ.',
             );
         }
 

@@ -40,12 +40,30 @@ const getDetails = async (req, res, next) => {
 
 const update = async (req, res, next) => {
     try {
+        // console.log('🔍 [Controller] Update school called');
+        // console.log('🔍 [Controller] School ID:', req.params.id);
+        // console.log('🔍 [Controller] Update data:', req.body);
+
         const result = await schoolServices.update(req.params.id, req.body);
+
+        // ✅ Tạo message dựa vào thay đổi status
+        let message = 'Cập nhật trường học thành công!';
+
+        if ('status' in req.body) {
+            if (req.body.status === false) {
+                message = 'Cập nhật trường học thành công! Tất cả tài khoản trong trường đã được vô hiệu hóa.';
+            } else if (req.body.status === true) {
+                message = 'Cập nhật trường học thành công! Tất cả tài khoản trong trường đã được kích hoạt lại.';
+            }
+        }
+
+        // console.log('✅ [Controller] Update successful:', message);
         res.status(StatusCodes.OK).json({
-            message: 'Cập nhật trường học thành công!',
+            message,
             data: result,
         });
     } catch (error) {
+        console.error('❌ [Controller] Error:', error.message);
         next(error);
     }
 };
@@ -64,20 +82,20 @@ const deleteSchool = async (req, res, next) => {
 // ✅ Thêm controller getSchoolInfo
 const getSchoolInfo = async (req, res, next) => {
     try {
-        console.log('🔍 getSchoolInfo called');
-        console.log('🔍 User info:', {
-            id: req.jwtDecoded.id,
-            role: req.jwtDecoded.role,
-            schoolId: req.jwtDecoded.schoolId,
-        });
+        // console.log('🔍 getSchoolInfo called');
+        // console.log('🔍 User info:', {
+        //     id: req.jwtDecoded.id,
+        //     role: req.jwtDecoded.role,
+        //     schoolId: req.jwtDecoded.schoolId,
+        // });
         const schoolId = req.jwtDecoded.schoolId;
         if (!schoolId) {
-            console.log('❌ User không có schoolId');
+            // console.log('❌ User không có schoolId');
             throw new ApiError(StatusCodes.FORBIDDEN, 'Bạn không thuộc trường học nào');
         }
-        console.log('🔍 Fetching school with schoolId:', schoolId);
+        // console.log('🔍 Fetching school with schoolId:', schoolId);
         const result = await schoolServices.getBySchoolId(schoolId);
-        console.log('✅ School data fetched successfully');
+        // console.log('✅ School data fetched successfully');
         res.status(StatusCodes.OK).json({
             message: 'Lấy thông tin trường học thành công!',
             data: result,
@@ -91,13 +109,13 @@ const getSchoolInfo = async (req, res, next) => {
 // ✅ Thêm controller updateSchoolInfo
 const updateSchoolInfo = async (req, res, next) => {
     try {
-        console.log('🔍 updateSchoolInfo called');
-        console.log('🔍 User info:', {
-            id: req.jwtDecoded.id,
-            role: req.jwtDecoded.role,
-            schoolId: req.jwtDecoded.schoolId,
-        });
-        console.log('🔍 Update data:', req.body);
+        // console.log('🔍 updateSchoolInfo called');
+        // console.log('🔍 User info:', {
+        //     id: req.jwtDecoded.id,
+        //     role: req.jwtDecoded.role,
+        //     schoolId: req.jwtDecoded.schoolId,
+        // });
+        // console.log('🔍 Update data:', req.body);
 
         const schoolId = req.jwtDecoded.schoolId;
         if (!schoolId) {
@@ -106,7 +124,7 @@ const updateSchoolInfo = async (req, res, next) => {
         }
         const result = await schoolServices.updateSchoolInfo(schoolId, req.body, req.jwtDecoded);
 
-        console.log('✅ School updated successfully');
+        // console.log('✅ School updated successfully');
         res.status(StatusCodes.OK).json({
             message: 'Cập nhật thông tin trường học thành công!',
             data: result,

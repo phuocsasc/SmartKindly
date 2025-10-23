@@ -126,24 +126,31 @@ const getAll = async (query) => {
             filter.schoolId = schoolId;
         }
 
+        // ✅ Populate school và select cả status
         const users = await UserModel.find(filter)
             .select('-password')
-            .sort({ createdAt: -1 })
             .skip(skip)
-            .limit(parseInt(limit))
+            .limit(Number(limit))
+            .sort({ createdAt: -1 })
             .lean();
 
-        // Populate school info cho từng user
+        // ✅ Populate school information với status
         const usersWithSchool = await Promise.all(
             users.map(async (user) => {
-                const school = await SchoolModel.findOne({
-                    schoolId: user.schoolId,
-                    _destroy: false,
-                }).select('name abbreviation address');
+                if (user.schoolId) {
+                    const school = await SchoolModel.findOne({
+                        schoolId: user.schoolId,
+                        _destroy: false,
+                    }).select('name abbreviation address status'); // ✅ Thêm status
 
+                    return {
+                        ...user,
+                        school: school || null,
+                    };
+                }
                 return {
                     ...user,
-                    school: school || null,
+                    school: null,
                 };
             }),
         );

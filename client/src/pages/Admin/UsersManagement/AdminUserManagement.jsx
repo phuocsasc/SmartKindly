@@ -19,7 +19,7 @@ import DeleteOutlineOutlinedIcon from '@mui/icons-material/DeleteOutlineOutlined
 import SchoolIcon from '@mui/icons-material/School';
 import PeopleIcon from '@mui/icons-material/People';
 import FamilyRestroomIcon from '@mui/icons-material/FamilyRestroom';
-import StarIcon from '@mui/icons-material/Star'; // ✅ Thêm icon ngôi sao
+import StarIcon from '@mui/icons-material/Star';
 import { useEffect, useState } from 'react';
 import AdminLayout from '~/layouts/AdminLayout';
 import PageContainer from '~/components/common/PageContainer';
@@ -53,9 +53,9 @@ function AdminUserManagement() {
     const [paginationModel, setPaginationModel] = useState({ page: 0, pageSize: 10 });
     const [totalRows, setTotalRows] = useState(0);
     const [stats, setStats] = useState({
-        totalSchools: 0,
-        totalStaff: 0,
-        totalParents: 0,
+        totalActiveSchools: 0, // ✅ Đổi tên để rõ nghĩa
+        totalActiveStaff: 0,
+        totalActiveParents: 0,
     });
     const [openDialog, setOpenDialog] = useState(false);
     const [dialogMode, setDialogMode] = useState('create');
@@ -67,10 +67,11 @@ function AdminUserManagement() {
         return () => clearTimeout(handler);
     }, [searchText]);
 
-    // Fetch schools
+    // ✅ Fetch schools - Lấy tất cả trường (bao gồm cả "Không hoạt động")
     const fetchSchools = async () => {
         try {
-            const res = await schoolApi.getAll({ page: 1, limit: 1000, status: 'true' });
+            // ✅ Không truyền status filter, backend sẽ trả về tất cả trường chưa bị xóa
+            const res = await schoolApi.getAll({ page: 1, limit: 1000 });
             setSchools(res.data.data.schools);
         } catch (error) {
             console.error('Error fetching schools:', error);
@@ -91,12 +92,27 @@ function AdminUserManagement() {
                 status: filterStatus,
             });
 
-            const usersWithStt = res.data.data.users.map((user, index) => ({
-                ...user,
-                id: user._id,
-                stt: paginationModel.page * paginationModel.pageSize + index + 1,
-                schoolName: user.school?.name || 'N/A',
-            }));
+            // console.log('📦 Raw API Response:', res.data.data.users[0]); // Debug
+
+            const usersWithStt = res.data.data.users.map((user, index) => {
+                const schoolStatus = user.school?.status ?? true;
+
+                // console.log(`👤 User ${user.username}:`, {
+                //     schoolName: user.school?.name,
+                //     schoolStatus: schoolStatus,
+                //     rawSchoolData: user.school,
+                // }); // Debug mỗi user
+
+                return {
+                    ...user,
+                    id: user._id,
+                    stt: paginationModel.page * paginationModel.pageSize + index + 1,
+                    schoolName: user.school?.name || 'N/A',
+                    schoolStatus: schoolStatus, // ✅ Lưu schoolStatus
+                };
+            });
+
+            // console.log('✅ Processed users:', usersWithStt[0]); // Debug
 
             setRows(usersWithStt);
             setTotalRows(res.data.data.pagination.totalItems);
@@ -108,23 +124,26 @@ function AdminUserManagement() {
         }
     };
 
-    // Fetch statistics
+    // ✅ Fetch statistics - Cập nhật logic đếm
     const fetchStats = async () => {
         try {
+            // ✅ 1. Tổng số trường "Hoạt động" (status = true)
             const schoolRes = await schoolApi.getAll({ page: 1, limit: 1, status: 'true' });
-            const totalSchools = schoolRes.data.data.pagination.totalItems;
+            const totalActiveSchools = schoolRes.data.data.pagination.totalItems;
 
+            // ✅ 2. Tổng số cán bộ có status = true
             const staffRoles = ['ban_giam_hieu', 'to_truong', 'giao_vien', 'ke_toan'];
-            let totalStaff = 0;
+            let totalActiveStaff = 0;
             for (const role of staffRoles) {
-                const res = await adminUserApi.getAll({ page: 1, limit: 1, role });
-                totalStaff += res.data.data.pagination.totalItems;
+                const res = await adminUserApi.getAll({ page: 1, limit: 1, role, status: 'true' });
+                totalActiveStaff += res.data.data.pagination.totalItems;
             }
 
-            const parentRes = await adminUserApi.getAll({ page: 1, limit: 1, role: 'phu_huynh' });
-            const totalParents = parentRes.data.data.pagination.totalItems;
+            // ✅ 3. Tổng số phụ huynh có status = true
+            const parentRes = await adminUserApi.getAll({ page: 1, limit: 1, role: 'phu_huynh', status: 'true' });
+            const totalActiveParents = parentRes.data.data.pagination.totalItems;
 
-            setStats({ totalSchools, totalStaff, totalParents });
+            setStats({ totalActiveSchools, totalActiveStaff, totalActiveParents });
         } catch (error) {
             console.error('Error fetching stats:', error);
         }
@@ -172,7 +191,7 @@ function AdminUserManagement() {
             toast.error(error.response?.data?.message || 'Lỗi khi xóa người dùng!');
         }
     };
-    // ✅ Xóa nhiều users
+
     const handleDeleteMany = async () => {
         try {
             await showConfirm({
@@ -208,7 +227,7 @@ function AdminUserManagement() {
             sortable: false,
             renderCell: (params) => {
                 const roleConfig = ROLE_CONFIG[params.value] || {};
-                const isRoot = params.row.isRoot && params.value === 'ban_giam_hieu'; // ✅ Kiểm tra root
+                const isRoot = params.row.isRoot && params.value === 'ban_giam_hieu';
 
                 return (
                     <Tooltip title={isRoot ? 'Ban giám hiệu Root - Quyền cao nhất' : ''} arrow>
@@ -275,16 +294,48 @@ function AdminUserManagement() {
                 const canDelete = hasPermission(PERMISSIONS.ADMIN_MANAGE_USERS);
                 const isDisabled = selectedRows.length >= 2;
 
+                // ✅ Kiểm tra trường có đang hoạt động không
+                const isSchoolInactive = params.row.schoolStatus === false;
+
+                // ✅ Debug log
+                // console.log(`🔍 Action buttons for ${params.row.username}:`, {
+                //     schoolName: params.row.schoolName,
+                //     schoolStatus: params.row.schoolStatus,
+                //     isSchoolInactive: isSchoolInactive,
+                //     willDisable: isDisabled || isSchoolInactive,
+                // });
+
                 return (
                     <Box sx={{ display: 'flex', justifyContent: 'center', gap: 0.5 }}>
                         {canUpdate && (
-                            <Tooltip title={isDisabled ? 'Vui lòng bỏ chọn để sửa' : 'Sửa thông tin'}>
+                            <Tooltip
+                                title={
+                                    isSchoolInactive
+                                        ? 'Không thể sửa - Trường đang không hoạt động'
+                                        : isDisabled
+                                          ? 'Vui lòng bỏ chọn để sửa'
+                                          : 'Sửa thông tin'
+                                }
+                            >
                                 <span>
                                     <IconButton
                                         color="primary"
                                         size="small"
-                                        disabled={isDisabled}
-                                        onClick={() => handleEdit(params.row)}
+                                        disabled={isDisabled || isSchoolInactive}
+                                        onClick={() => {
+                                            // console.log('🖱️ Edit clicked:', {
+                                            //     user: params.row.username,
+                                            //     schoolStatus: params.row.schoolStatus,
+                                            //     isSchoolInactive: isSchoolInactive,
+                                            // });
+                                            if (!isSchoolInactive && !isDisabled) {
+                                                handleEdit(params.row);
+                                            }
+                                        }}
+                                        sx={{
+                                            opacity: isSchoolInactive ? 0.3 : 1,
+                                            cursor: isSchoolInactive ? 'not-allowed' : 'pointer',
+                                        }}
                                     >
                                         <EditOutlinedIcon />
                                     </IconButton>
@@ -317,9 +368,9 @@ function AdminUserManagement() {
                 {/* BREADCRUMB */}
                 <PageBreadcrumb items={[{ text: 'Quản lý người dùng hệ thống' }]} />
 
-                {/* THỐNG KÊ */}
+                {/* ✅ THỐNG KÊ - Cập nhật label */}
                 <Box sx={{ mb: 2, display: 'flex', gap: 2, flexWrap: 'wrap' }}>
-                    {/* Tổng số trường */}
+                    {/* Tổng số trường hoạt động */}
                     <Paper
                         elevation={2}
                         sx={{
@@ -335,10 +386,10 @@ function AdminUserManagement() {
                         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                             <Box>
                                 <Typography variant="body2" color="text.secondary" gutterBottom>
-                                    Tổng số trường
+                                    Tổng số trường hoạt động
                                 </Typography>
                                 <Typography variant="h4" fontWeight={700} sx={{ color: '#1976d2' }}>
-                                    {stats.totalSchools}
+                                    {stats.totalActiveSchools}
                                 </Typography>
                             </Box>
                             <Box
@@ -357,7 +408,7 @@ function AdminUserManagement() {
                         </Box>
                     </Paper>
 
-                    {/* Tổng số cán bộ */}
+                    {/* Tổng số cán bộ kích hoạt */}
                     <Paper
                         elevation={2}
                         sx={{
@@ -373,10 +424,10 @@ function AdminUserManagement() {
                         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                             <Box>
                                 <Typography variant="body2" color="text.secondary" gutterBottom>
-                                    Tổng số cán bộ
+                                    Tổng số cán bộ kích hoạt
                                 </Typography>
                                 <Typography variant="h4" fontWeight={700} sx={{ color: '#2e7d32' }}>
-                                    {stats.totalStaff}
+                                    {stats.totalActiveStaff}
                                 </Typography>
                             </Box>
                             <Box
@@ -395,7 +446,7 @@ function AdminUserManagement() {
                         </Box>
                     </Paper>
 
-                    {/* Tổng số phụ huynh */}
+                    {/* Tổng số phụ huynh kích hoạt */}
                     <Paper
                         elevation={2}
                         sx={{
@@ -411,10 +462,10 @@ function AdminUserManagement() {
                         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                             <Box>
                                 <Typography variant="body2" color="text.secondary" gutterBottom>
-                                    Tổng số phụ huynh
+                                    Tổng số phụ huynh kích hoạt
                                 </Typography>
                                 <Typography variant="h4" fontWeight={700} sx={{ color: '#ed6c02' }}>
-                                    {stats.totalParents}
+                                    {stats.totalActiveParents}
                                 </Typography>
                             </Box>
                             <Box
@@ -439,7 +490,7 @@ function AdminUserManagement() {
                     {/* Thanh công cụ */}
                     <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
                         <Typography variant="h5" fontWeight={600}>
-                            Danh sách người dùng hệ thống
+                            Danh sách người dùng
                         </Typography>
 
                         <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', flexWrap: 'wrap' }}>
@@ -451,6 +502,7 @@ function AdminUserManagement() {
                                 sx={{ minWidth: { xs: '100%', sm: 200 } }}
                             />
 
+                            {/* ✅ Filter Tên trường - Hiển thị tất cả (bao gồm "Không hoạt động") */}
                             <FormControl size="small" sx={{ minWidth: { xs: '32%', sm: 150 } }}>
                                 <InputLabel>Tên trường</InputLabel>
                                 <Select
@@ -461,7 +513,22 @@ function AdminUserManagement() {
                                     <MenuItem value="">Tất cả</MenuItem>
                                     {schools.map((school) => (
                                         <MenuItem key={school._id} value={school.schoolId}>
-                                            {school.name}
+                                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                                <Typography variant="body2">{school.name}</Typography>
+                                                {/* ✅ Hiển thị badge "Không hoạt động" nếu status = false */}
+                                                {!school.status && (
+                                                    <Chip
+                                                        label="Không hoạt động"
+                                                        size="small"
+                                                        color="default"
+                                                        sx={{
+                                                            height: 18,
+                                                            fontSize: '0.7rem',
+                                                            '& .MuiChip-label': { px: 1 },
+                                                        }}
+                                                    />
+                                                )}
+                                            </Box>
                                         </MenuItem>
                                     ))}
                                 </Select>

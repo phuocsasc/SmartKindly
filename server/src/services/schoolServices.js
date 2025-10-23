@@ -116,6 +116,11 @@ const update = async (id, data) => {
             throw new ApiError(StatusCodes.NOT_FOUND, 'Không tìm thấy trường học');
         }
 
+        // ✅ Kiểm tra nếu status thay đổi
+        const isStatusChanged = 'status' in data && school.status !== data.status;
+        const oldStatus = school.status;
+        const newStatus = data.status;
+
         // Kiểm tra tên trường đã tồn tại (trừ chính nó)
         if (data.name) {
             const existingSchool = await SchoolModel.findOne({
@@ -128,8 +133,17 @@ const update = async (id, data) => {
                 throw new ApiError(StatusCodes.CONFLICT, 'Tên trường học đã tồn tại');
             }
 
-            // Cập nhật slug nếu tên thay đổi
-            data.slug = slugify(data.name);
+            // Tạo slug mới
+            let baseSlug = slugify(data.name);
+            let slug = baseSlug;
+            let counter = 1;
+
+            while (await SchoolModel.findOne({ slug, _id: { $ne: id }, _destroy: false })) {
+                slug = `${baseSlug}-${counter}`;
+                counter++;
+            }
+
+            data.slug = slug;
         }
 
         // Kiểm tra tên viết tắt đã tồn tại (trừ chính nó)
@@ -151,6 +165,49 @@ const update = async (id, data) => {
         delete data.schoolId;
 
         const updatedSchool = await SchoolModel.findByIdAndUpdate(id, data, { new: true, runValidators: true });
+
+        // ✅ Xử lý thay đổi status của users
+        if (isStatusChanged) {
+            console.log('🔄 [update] Trường thay đổi trạng thái:', {
+                schoolId: school.schoolId,
+                oldStatus,
+                newStatus,
+            });
+
+            if (newStatus === false) {
+                // ✅ Trường chuyển sang "Không hoạt động" → Vô hiệu hóa tất cả user
+                console.log('⛔ [update] Vô hiệu hóa tất cả user của trường...');
+
+                const updateResult = await UserModel.updateMany(
+                    {
+                        schoolId: school.schoolId,
+                        _destroy: false,
+                        role: { $ne: 'admin' }, // Không ảnh hưởng đến admin hệ thống
+                    },
+                    {
+                        status: false,
+                    },
+                );
+
+                console.log(`✅ [update] Đã vô hiệu hóa ${updateResult.modifiedCount} tài khoản`);
+            } else if (newStatus === true) {
+                // ✅ Trường chuyển sang "Hoạt động" → Kích hoạt lại tất cả user
+                console.log('✅ [update] Kích hoạt lại tất cả user của trường...');
+
+                const updateResult = await UserModel.updateMany(
+                    {
+                        schoolId: school.schoolId,
+                        _destroy: false,
+                        role: { $ne: 'admin' }, // Không ảnh hưởng đến admin hệ thống
+                    },
+                    {
+                        status: true,
+                    },
+                );
+
+                console.log(`✅ [update] Đã kích hoạt lại ${updateResult.modifiedCount} tài khoản`);
+            }
+        }
 
         return updatedSchool;
     } catch (error) {

@@ -14,14 +14,17 @@ import {
     Typography,
     IconButton,
     Divider,
-    Avatar,
+    CircularProgress,
+    Alert,
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import SchoolIcon from '@mui/icons-material/School';
 import EditIcon from '@mui/icons-material/Edit';
-import { DatePicker } from '@mui/x-date-pickers/DatePicker';
+import WarningAmberIcon from '@mui/icons-material/WarningAmber';
+import InfoIcon from '@mui/icons-material/Info';
 import { schoolApi } from '~/apis/schoolApi';
 import { toast } from 'react-toastify';
+import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import dayjs from '~/config/dayjsConfig';
 
 function AdminSchoolDialog({ open, mode, school, onClose, onSuccess }) {
@@ -39,6 +42,12 @@ function AdminSchoolDialog({ open, mode, school, onClose, onSuccess }) {
     });
 
     const [loading, setLoading] = useState(false);
+    const isEditMode = mode === 'edit';
+
+    // ✅ Kiểm tra thay đổi status
+    const isStatusChanging = isEditMode && school?.status !== formData.status;
+    const isStatusChangingToInactive = isEditMode && school?.status === true && formData.status === false;
+    const isStatusChangingToActive = isEditMode && school?.status === false && formData.status === true;
 
     useEffect(() => {
         if (mode === 'edit' && school) {
@@ -109,18 +118,23 @@ function AdminSchoolDialog({ open, mode, school, onClose, onSuccess }) {
                 await schoolApi.create(dataToSubmit);
                 toast.success('Tạo trường học thành công!');
             } else {
-                await schoolApi.update(school._id, dataToSubmit);
-                toast.success('Cập nhật trường học thành công!');
+                const response = await schoolApi.update(school._id, dataToSubmit);
+
+                // ✅ Hiển thị thông báo từ backend
+                const message = response.data.message || 'Cập nhật trường học thành công!';
+                toast.success(message, {
+                    autoClose: isStatusChanging ? 7000 : 3000,
+                });
             }
+
             onSuccess();
+            onClose();
         } catch (error) {
             toast.error(error?.response?.data?.message || 'Có lỗi xảy ra!');
         } finally {
             setLoading(false);
         }
     };
-
-    const isCreateMode = mode === 'create';
 
     return (
         <Dialog
@@ -129,55 +143,59 @@ function AdminSchoolDialog({ open, mode, school, onClose, onSuccess }) {
             maxWidth="md"
             fullWidth
             PaperProps={{
-                sx: {
-                    borderRadius: 3,
-                    boxShadow: '0 8px 32px rgba(0, 0, 0, 0.12)',
-                },
+                sx: { borderRadius: 2 },
             }}
         >
-            {/* Header */}
             <DialogTitle
                 sx={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
                     background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                    color: 'white',
-                    py: 1,
-                    position: 'relative',
-                    mb: 2,
+                    color: '#fff',
+                    py: 2,
                 }}
             >
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                    <Avatar
-                        sx={{
-                            bgcolor: 'rgba(255, 255, 255, 0.2)',
-                            width: 30,
-                            height: 30,
-                        }}
-                    >
-                        {isCreateMode ? <SchoolIcon fontSize="small" /> : <EditIcon fontSize="small" />}
-                    </Avatar>
-                    <Typography variant="h7" fontWeight={400}>
-                        {isCreateMode ? 'Thêm trường học mới' : 'Chỉnh sửa thông tin trường'}
+                    {mode === 'create' ? <SchoolIcon /> : <EditIcon />}
+                    <Typography variant="h6" fontWeight={600}>
+                        {mode === 'create' ? 'Thêm trường học mới' : 'Chỉnh sửa thông tin trường học'}
                     </Typography>
                 </Box>
-
-                <IconButton
-                    onClick={onClose}
-                    size="small"
-                    sx={{
-                        position: 'absolute',
-                        right: 8,
-                        top: 8,
-                        color: 'white',
-                        '&:hover': {
-                            bgcolor: 'rgba(255, 255, 255, 0.1)',
-                        },
-                    }}
-                >
-                    <CloseIcon fontSize="small" />
+                <IconButton onClick={onClose} sx={{ color: '#fff' }}>
+                    <CloseIcon />
                 </IconButton>
             </DialogTitle>
 
             <DialogContent sx={{ px: 3, py: 2.5 }}>
+                {/* ✅ Hiển thị cảnh báo khi status chuyển sang "Không hoạt động" */}
+                {isStatusChangingToInactive && (
+                    <Alert severity="warning" icon={<WarningAmberIcon fontSize="inherit" />} sx={{ mb: 2 }}>
+                        <Typography variant="body2" fontWeight={600}>
+                            ⚠️ Cảnh báo: Vô hiệu hóa trường học
+                        </Typography>
+                        <Typography variant="body2">
+                            Khi chuyển trường sang trạng thái <strong>"Không hoạt động"</strong>, tất cả{' '}
+                            <strong>tài khoản</strong> của cán bộ, giáo viên, phụ huynh trong trường này sẽ tự động bị{' '}
+                            <strong>vô hiệu hóa</strong>.
+                        </Typography>
+                    </Alert>
+                )}
+
+                {/* ✅ Hiển thị thông báo khi status chuyển sang "Hoạt động" */}
+                {isStatusChangingToActive && (
+                    <Alert severity="info" icon={<InfoIcon fontSize="inherit" />} sx={{ mb: 2 }}>
+                        <Typography variant="body2" fontWeight={600}>
+                            ℹ️ Thông báo: Kích hoạt lại trường học
+                        </Typography>
+                        <Typography variant="body2">
+                            Khi chuyển trường sang trạng thái <strong>"Hoạt động"</strong>, tất cả{' '}
+                            <strong>tài khoản</strong> của cán bộ, giáo viên, phụ huynh trong trường này sẽ tự động được{' '}
+                            <strong>kích hoạt lại</strong>.
+                        </Typography>
+                    </Alert>
+                )}
+
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
                     {/* Section: Thông tin cơ bản */}
                     <Box>
@@ -192,32 +210,21 @@ function AdminSchoolDialog({ open, mode, school, onClose, onSuccess }) {
                                 gap: 1,
                             }}
                         >
-                            <Box
-                                sx={{
-                                    width: 3,
-                                    height: 14,
-                                    bgcolor: 'secondary.main',
-                                    borderRadius: 1,
-                                }}
-                            />
+                            <Box sx={{ width: 3, height: 14, bgcolor: 'secondary.main', borderRadius: 1 }} />
                             Thông tin cơ bản
                         </Typography>
 
                         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                             <TextField
                                 label="Tên trường học"
-                                placeholder="VD: Mầm Non Hoa Hồng"
+                                placeholder="VD: Trường Mầm Non Hoa Hồng"
                                 value={formData.name}
                                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                                 required
                                 fullWidth
                                 size="small"
                                 variant="outlined"
-                                sx={{
-                                    '& .MuiOutlinedInput-root': {
-                                        borderRadius: 1.5,
-                                    },
-                                }}
+                                sx={{ '& .MuiOutlinedInput-root': { borderRadius: 1.5 } }}
                             />
 
                             <Box sx={{ display: 'flex', gap: 2 }}>
@@ -233,13 +240,8 @@ function AdminSchoolDialog({ open, mode, school, onClose, onSuccess }) {
                                     size="small"
                                     variant="outlined"
                                     helperText="Sử dụng làm tiền tố cho tài khoản"
-                                    sx={{
-                                        '& .MuiOutlinedInput-root': {
-                                            borderRadius: 1.5,
-                                        },
-                                    }}
+                                    sx={{ '& .MuiOutlinedInput-root': { borderRadius: 1.5 } }}
                                 />
-
                                 <TextField
                                     label="Mã số thuế"
                                     placeholder="VD: 0123456789"
@@ -248,17 +250,13 @@ function AdminSchoolDialog({ open, mode, school, onClose, onSuccess }) {
                                     fullWidth
                                     size="small"
                                     variant="outlined"
-                                    sx={{
-                                        '& .MuiOutlinedInput-root': {
-                                            borderRadius: 1.5,
-                                        },
-                                    }}
+                                    sx={{ '& .MuiOutlinedInput-root': { borderRadius: 1.5 } }}
                                 />
                             </Box>
 
                             <TextField
                                 label="Địa chỉ"
-                                placeholder="VD: 123 Đường ABC, Quận 1, TP.HCM"
+                                placeholder="VD: 123 Đường ABC, Phường XYZ, Quận 1, TP.HCM"
                                 value={formData.address}
                                 onChange={(e) => setFormData({ ...formData, address: e.target.value })}
                                 required
@@ -267,11 +265,7 @@ function AdminSchoolDialog({ open, mode, school, onClose, onSuccess }) {
                                 variant="outlined"
                                 multiline
                                 rows={2}
-                                sx={{
-                                    '& .MuiOutlinedInput-root': {
-                                        borderRadius: 1.5,
-                                    },
-                                }}
+                                sx={{ '& .MuiOutlinedInput-root': { borderRadius: 1.5 } }}
                             />
                         </Box>
                     </Box>
@@ -291,14 +285,7 @@ function AdminSchoolDialog({ open, mode, school, onClose, onSuccess }) {
                                 gap: 1,
                             }}
                         >
-                            <Box
-                                sx={{
-                                    width: 3,
-                                    height: 14,
-                                    bgcolor: 'primary.main',
-                                    borderRadius: 1,
-                                }}
-                            />
+                            <Box sx={{ width: 3, height: 14, bgcolor: 'primary.main', borderRadius: 1 }} />
                             Thông tin liên hệ
                         </Typography>
 
@@ -312,60 +299,42 @@ function AdminSchoolDialog({ open, mode, school, onClose, onSuccess }) {
                                 fullWidth
                                 size="small"
                                 variant="outlined"
-                                sx={{
-                                    '& .MuiOutlinedInput-root': {
-                                        borderRadius: 1.5,
-                                    },
-                                }}
+                                sx={{ '& .MuiOutlinedInput-root': { borderRadius: 1.5 } }}
                             />
 
                             <Box sx={{ display: 'flex', gap: 2 }}>
                                 <TextField
                                     label="Số điện thoại"
-                                    placeholder="VD: 0901234567"
+                                    placeholder="VD: 0912345678"
                                     value={formData.phone}
                                     onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                                     required
                                     fullWidth
                                     size="small"
                                     variant="outlined"
-                                    sx={{
-                                        '& .MuiOutlinedInput-root': {
-                                            borderRadius: 1.5,
-                                        },
-                                    }}
+                                    sx={{ '& .MuiOutlinedInput-root': { borderRadius: 1.5 } }}
                                 />
-
                                 <TextField
                                     label="Email"
-                                    type="email"
-                                    placeholder="example@email.com"
+                                    placeholder="VD: contact@school.edu.vn"
                                     value={formData.email}
                                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                                     fullWidth
                                     size="small"
                                     variant="outlined"
-                                    sx={{
-                                        '& .MuiOutlinedInput-root': {
-                                            borderRadius: 1.5,
-                                        },
-                                    }}
+                                    sx={{ '& .MuiOutlinedInput-root': { borderRadius: 1.5 } }}
                                 />
                             </Box>
 
                             <TextField
                                 label="Website"
-                                placeholder="https://example.com"
+                                placeholder="VD: https://school.edu.vn"
                                 value={formData.website}
                                 onChange={(e) => setFormData({ ...formData, website: e.target.value })}
                                 fullWidth
                                 size="small"
                                 variant="outlined"
-                                sx={{
-                                    '& .MuiOutlinedInput-root': {
-                                        borderRadius: 1.5,
-                                    },
-                                }}
+                                sx={{ '& .MuiOutlinedInput-root': { borderRadius: 1.5 } }}
                             />
                         </Box>
                     </Box>
@@ -385,14 +354,7 @@ function AdminSchoolDialog({ open, mode, school, onClose, onSuccess }) {
                                 gap: 1,
                             }}
                         >
-                            <Box
-                                sx={{
-                                    width: 3,
-                                    height: 14,
-                                    bgcolor: 'success.main',
-                                    borderRadius: 1,
-                                }}
-                            />
+                            <Box sx={{ width: 3, height: 14, bgcolor: 'success.main', borderRadius: 1 }} />
                             Thông tin khác
                         </Typography>
 
@@ -408,11 +370,7 @@ function AdminSchoolDialog({ open, mode, school, onClose, onSuccess }) {
                                         fullWidth: true,
                                         size: 'small',
                                         variant: 'outlined',
-                                        sx: {
-                                            '& .MuiOutlinedInput-root': {
-                                                borderRadius: 1.5,
-                                            },
-                                        },
+                                        sx: { '& .MuiOutlinedInput-root': { borderRadius: 1.5 } },
                                     },
                                     actionBar: {
                                         actions: ['clear', 'today'],
@@ -423,11 +381,7 @@ function AdminSchoolDialog({ open, mode, school, onClose, onSuccess }) {
                             <FormControl
                                 fullWidth
                                 size="small"
-                                sx={{
-                                    '& .MuiOutlinedInput-root': {
-                                        borderRadius: 1.5,
-                                    },
-                                }}
+                                sx={{ '& .MuiOutlinedInput-root': { borderRadius: 1.5 } }}
                             >
                                 <InputLabel>Trạng thái</InputLabel>
                                 <Select
@@ -459,11 +413,11 @@ function AdminSchoolDialog({ open, mode, school, onClose, onSuccess }) {
                         fontWeight: 600,
                     }}
                 >
-                    Hủy bỏ
+                    Hủy
                 </Button>
                 <Button
-                    variant="contained"
                     onClick={handleSubmit}
+                    variant="contained"
                     disabled={loading}
                     size="small"
                     sx={{
@@ -471,15 +425,21 @@ function AdminSchoolDialog({ open, mode, school, onClose, onSuccess }) {
                         px: 3,
                         textTransform: 'none',
                         fontWeight: 600,
-                        boxShadow: 2,
-                        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                        '&:hover': {
-                            boxShadow: 3,
-                            background: 'linear-gradient(135deg, #5568d3 0%, #6a4296 100%)',
-                        },
+                        background: isStatusChangingToInactive
+                            ? 'linear-gradient(135deg, #f44336 0%, #e91e63 100%)'
+                            : isStatusChangingToActive
+                              ? 'linear-gradient(135deg, #4caf50 0%, #8bc34a 100%)'
+                              : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                        minWidth: 120,
                     }}
                 >
-                    {loading ? 'Đang xử lý...' : isCreateMode ? 'Tạo trường học' : 'Cập nhật'}
+                    {loading ? (
+                        <CircularProgress size={20} sx={{ color: '#fff' }} />
+                    ) : mode === 'create' ? (
+                        'Tạo mới'
+                    ) : (
+                        'Cập nhật'
+                    )}
                 </Button>
             </DialogActions>
         </Dialog>

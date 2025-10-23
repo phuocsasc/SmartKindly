@@ -1,6 +1,7 @@
 /* eslint-disable no-unreachable */
 // server/src/services/userServices.js
 import { UserModel } from '~/models/userModel';
+import { SchoolModel } from '~/models/schoolModel';
 import ApiError from '~/utils/ApiError';
 import { StatusCodes } from 'http-status-codes';
 import { JwtProvider } from '~/providers/JwtProvider';
@@ -36,7 +37,16 @@ const login = async (data) => {
                 'Tài khoản đã bị vô hiệu hóa. Vui lòng liên hệ Bộ phận kỹ thuật để được hỗ trợ.',
             );
         }
+        // ✅ Lấy thông tin trường học nếu user có schoolId
+        let schoolName = null;
+        if (user.schoolId) {
+            const school = await SchoolModel.findOne({
+                schoolId: user.schoolId,
+                _destroy: false,
+            }).select('name');
 
+            schoolName = school?.name || null;
+        }
         // ✅ Bước 5: Tạo JWT token
         const userInfo = {
             id: user._id,
@@ -48,6 +58,7 @@ const login = async (data) => {
             role: user.role,
             isRoot: user.isRoot || false, // ✅ Thêm isRoot vào đây
             schoolId: user.schoolId,
+            schoolName, // ✅ Thêm schoolName
             status: user.status,
         };
 
@@ -411,8 +422,36 @@ const resetPasswordWithOtp = async (email, otp, newPassword) => {
         throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, `Lỗi khi đặt lại mật khẩu: ${error.message}`);
     }
 };
+// ✅ Thêm hàm getInfoUserDetails
+const getInfoUserDetails = async (userId) => {
+    try {
+        const user = await UserModel.findOne({ _id: userId, _destroy: false }).select('-password').lean();
+
+        if (!user) {
+            throw new ApiError(StatusCodes.NOT_FOUND, 'Không tìm thấy người dùng');
+        }
+
+        // ✅ Populate school info
+        let school = null;
+        if (user.schoolId) {
+            school = await SchoolModel.findOne({
+                schoolId: user.schoolId,
+                _destroy: false,
+            }).select('name abbreviation');
+        }
+
+        return {
+            ...user,
+            school,
+        };
+    } catch (error) {
+        if (error instanceof ApiError) throw error;
+        throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, 'Lỗi khi lấy thông tin người dùng');
+    }
+};
 
 export const userServices = {
+    getInfoUserDetails, // ✅ Export
     login,
     logout,
     refreshToken,

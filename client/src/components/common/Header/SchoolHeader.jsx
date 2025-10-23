@@ -20,11 +20,14 @@ import { useUser } from '~/contexts/UserContext';
 import { ROLE_CONFIG, ROLE_DISPLAY } from '~/config/roleConfig';
 import { useState } from 'react';
 
-function SchoolHeader({ schoolName = 'Trường Mầm Non Kim Phụng', sidebarCollapsed, onToggleMobileSidebar }) {
+function SchoolHeader({ sidebarCollapsed, onToggleMobileSidebar }) {
     const navigate = useNavigate();
     const { user, clearUser } = useUser();
     const [anchorEl, setAnchorEl] = useState(null);
     const open = Boolean(anchorEl);
+
+    // ✅ Lấy tên trường từ user context
+    const schoolName = user?.schoolName || 'Trường Mầm Non';
 
     const displayUsername = user?.fullName || user?.username || 'Guest';
     const displayRole = ROLE_DISPLAY[user?.role] || '';
@@ -73,6 +76,7 @@ function SchoolHeader({ schoolName = 'Trường Mầm Non Kim Phụng', sidebarC
                     <IconButton sx={{ display: { xs: 'inline-flex', sm: 'none' } }} onClick={onToggleMobileSidebar}>
                         <MenuIcon />
                     </IconButton>
+                    {/* ✅ Hiển thị tên trường động */}
                     <Typography
                         variant="h6"
                         sx={{

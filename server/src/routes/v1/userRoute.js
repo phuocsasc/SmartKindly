@@ -11,6 +11,7 @@ const Router = express.Router();
 
 // ===== Authentication APIs =====
 Router.route('/login').post(userController.login);
+Router.route('/me').get(authMiddleware.isAuthorized, userController.getInfoUserDetails);
 Router.route('/logout').delete(userController.logout);
 Router.route('/refresh_token').put(userController.refreshToken);
 

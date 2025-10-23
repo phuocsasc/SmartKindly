@@ -35,6 +35,7 @@ function Login() {
                 role: res.data.role,
                 isRoot: res.data.isRoot || false,
                 schoolId: res.data.schoolId,
+                schoolName: res.data.schoolName || null, // ✅ Thêm schoolName
             };
 
             // Lưu token và thông tin User vào LocalStorage

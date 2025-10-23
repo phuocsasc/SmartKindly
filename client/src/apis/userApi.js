@@ -8,6 +8,13 @@ export const userApi = {
         return await authorizedAxiosInstance.post(`${API_ROOT}/v1/users/login`, credentials);
     },
 
+    // ✅ API lấy thông tin user hiện tại (cho context refresh)
+    getInfoUserDetails: async (userId) => {
+        // Nếu userId === 'me', gọi endpoint /me
+        const endpoint = userId === 'me' ? '/me' : `/${userId}`;
+        return await authorizedAxiosInstance.get(`${API_ROOT}/v1/users${endpoint}`);
+    },
+
     logout: async () => {
         return await authorizedAxiosInstance.delete(`${API_ROOT}/v1/users/logout`);
     },
@@ -37,6 +44,7 @@ export const userApi = {
         });
     },
 
+    // ✅ API lấy chi tiết user (cho trang quản lý user)
     getUserDetails: async (id) => {
         return await authorizedAxiosInstance.get(`${API_ROOT}/v1/users/management/${id}`);
     },

@@ -10,6 +10,22 @@ const login = async (req, res, next) => {
     }
 };
 
+// ✅ Thêm controller getInfoUserDetails
+const getInfoUserDetails = async (req, res, next) => {
+    try {
+        // ✅ Lấy userId từ JWT token (đã được verify bởi authMiddleware)
+        const userId = req.jwtDecoded.id;
+        const result = await userServices.getInfoUserDetails(userId);
+
+        res.status(StatusCodes.OK).json({
+            message: 'Lấy thông tin người dùng thành công!',
+            data: result,
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
 const logout = async (req, res, next) => {
     try {
         const result = await userServices.logout();
@@ -59,6 +75,7 @@ const resetPasswordWithOtp = async (req, res, next) => {
 
 export const userController = {
     login,
+    getInfoUserDetails, // ✅ Export
     logout,
     refreshToken,
     sendOtpToEmail,

@@ -100,6 +100,16 @@ function AcademicYear() {
     };
 
     const handleDelete = async (id, yearDisplay) => {
+        // ✅ Kiểm tra trạng thái trước khi xóa
+        if (status === 'active') {
+            toast.warning(
+                'Không thể xóa năm học đang hoạt động! Vui lòng chuyển sang trạng thái "Không hoạt động" trước khi xóa.',
+                {
+                    autoClose: 5000,
+                },
+            );
+            return;
+        }
         try {
             await showConfirm({
                 title: 'Xác nhận xóa năm học',
@@ -134,11 +144,6 @@ function AcademicYear() {
             flex: 0.8,
             minWidth: 120,
             sortable: false,
-            renderCell: (params) => (
-                <Typography variant="body2" fontWeight={600}>
-                    {params.value}
-                </Typography>
-            ),
         },
         {
             field: 'sem1StartDate',
@@ -198,6 +203,7 @@ function AcademicYear() {
             renderCell: (params) => {
                 const canUpdate = hasPermission(PERMISSIONS.UPDATE_ACADEMIC_YEAR);
                 const canDelete = hasPermission(PERMISSIONS.DELETE_ACADEMIC_YEAR);
+                const isActive = params.row.status === 'active'; // ✅ Kiểm tra status
 
                 return (
                     <Box sx={{ display: 'flex', justifyContent: 'center', gap: 0.5 }}>
@@ -209,14 +215,23 @@ function AcademicYear() {
                             </Tooltip>
                         )}
                         {canDelete && (
-                            <Tooltip title="Xóa năm học">
-                                <IconButton
-                                    color="error"
-                                    size="small"
-                                    onClick={() => handleDelete(params.row.id, params.row.yearDisplay)}
-                                >
-                                    <DeleteOutlineOutlinedIcon />
-                                </IconButton>
+                            <Tooltip title={isActive ? 'Không thể xóa năm học đang hoạt động' : 'Xóa năm học'}>
+                                <span>
+                                    <IconButton
+                                        color="error"
+                                        size="small"
+                                        disabled={isActive} // ✅ Disable nút khi đang hoạt động
+                                        onClick={() =>
+                                            handleDelete(params.row.id, params.row.yearDisplay, params.row.status)
+                                        }
+                                        sx={{
+                                            opacity: isActive ? 0.5 : 1,
+                                            cursor: isActive ? 'not-allowed' : 'pointer',
+                                        }}
+                                    >
+                                        <DeleteOutlineOutlinedIcon />
+                                    </IconButton>
+                                </span>
                             </Tooltip>
                         )}
                     </Box>

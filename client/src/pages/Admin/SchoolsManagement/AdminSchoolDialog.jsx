@@ -168,34 +168,6 @@ function AdminSchoolDialog({ open, mode, school, onClose, onSuccess }) {
             </DialogTitle>
 
             <DialogContent sx={{ px: 3, py: 2.5 }}>
-                {/* ✅ Hiển thị cảnh báo khi status chuyển sang "Không hoạt động" */}
-                {isStatusChangingToInactive && (
-                    <Alert severity="warning" icon={<WarningAmberIcon fontSize="inherit" />} sx={{ mb: 2 }}>
-                        <Typography variant="body2" fontWeight={600}>
-                            ⚠️ Cảnh báo: Vô hiệu hóa trường học
-                        </Typography>
-                        <Typography variant="body2">
-                            Khi chuyển trường sang trạng thái <strong>"Không hoạt động"</strong>, tất cả{' '}
-                            <strong>tài khoản</strong> của cán bộ, giáo viên, phụ huynh trong trường này sẽ tự động bị{' '}
-                            <strong>vô hiệu hóa</strong>.
-                        </Typography>
-                    </Alert>
-                )}
-
-                {/* ✅ Hiển thị thông báo khi status chuyển sang "Hoạt động" */}
-                {isStatusChangingToActive && (
-                    <Alert severity="info" icon={<InfoIcon fontSize="inherit" />} sx={{ mb: 2 }}>
-                        <Typography variant="body2" fontWeight={600}>
-                            ℹ️ Thông báo: Kích hoạt lại trường học
-                        </Typography>
-                        <Typography variant="body2">
-                            Khi chuyển trường sang trạng thái <strong>"Hoạt động"</strong>, tất cả{' '}
-                            <strong>tài khoản</strong> của cán bộ, giáo viên, phụ huynh trong trường này sẽ tự động được{' '}
-                            <strong>kích hoạt lại</strong>.
-                        </Typography>
-                    </Alert>
-                )}
-
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
                     {/* Section: Thông tin cơ bản */}
                     <Box>
@@ -340,7 +312,33 @@ function AdminSchoolDialog({ open, mode, school, onClose, onSuccess }) {
                     </Box>
 
                     <Divider />
+                    {/* ✅ Hiển thị cảnh báo khi status chuyển sang "Không hoạt động" */}
+                    {isStatusChangingToInactive && (
+                        <Alert severity="warning" icon={<WarningAmberIcon fontSize="inherit" />} sx={{ mb: 2 }}>
+                            <Typography variant="body2" fontWeight={600}>
+                                ⚠️ Cảnh báo: Vô hiệu hóa trường học
+                            </Typography>
+                            <Typography variant="body2">
+                                Khi chuyển trường sang trạng thái <strong>"Không hoạt động"</strong>, tất cả{' '}
+                                <strong>tài khoản</strong> của cán bộ, giáo viên, phụ huynh trong trường này sẽ tự động
+                                bị <strong>vô hiệu hóa</strong>.
+                            </Typography>
+                        </Alert>
+                    )}
 
+                    {/* ✅ Hiển thị thông báo khi status chuyển sang "Hoạt động" */}
+                    {isStatusChangingToActive && (
+                        <Alert severity="info" icon={<InfoIcon fontSize="inherit" />} sx={{ mb: 2 }}>
+                            <Typography variant="body2" fontWeight={600}>
+                                ℹ️ Thông báo: Kích hoạt lại trường học
+                            </Typography>
+                            <Typography variant="body2">
+                                Khi chuyển trường sang trạng thái <strong>"Hoạt động"</strong>, tất cả{' '}
+                                <strong>tài khoản</strong> của cán bộ, giáo viên, phụ huynh trong trường này sẽ tự động
+                                được <strong>kích hoạt lại</strong>.
+                            </Typography>
+                        </Alert>
+                    )}
                     {/* Section: Thông tin khác */}
                     <Box>
                         <Typography

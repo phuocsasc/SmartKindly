@@ -1,27 +1,38 @@
 import { AcademicYearModel } from '~/models/academicYearModel';
+import { UserModel } from '~/models/userModel';
 import ApiError from '~/utils/ApiError';
 import { StatusCodes } from 'http-status-codes';
 
 const createNew = async (data, userId) => {
     try {
-        // Kiểm tra năm học đã tồn tại chưa
+        // ✅ Lấy schoolId từ user
+        const user = await UserModel.findById(userId).select('schoolId');
+        if (!user || !user.schoolId) {
+            throw new ApiError(StatusCodes.FORBIDDEN, 'Bạn không thuộc trường học nào');
+        }
+
+        const schoolId = user.schoolId;
+
+        // ✅ Kiểm tra năm học đã tồn tại trong trường này chưa
         const existingYear = await AcademicYearModel.findOne({
+            schoolId,
             fromYear: data.fromYear,
             toYear: data.toYear,
             _destroy: false,
         });
 
         if (existingYear) {
-            throw new ApiError(StatusCodes.CONFLICT, 'Năm học này đã tồn tại');
+            throw new ApiError(StatusCodes.CONFLICT, 'Năm học này đã tồn tại trong trường của bạn');
         }
 
-        // Kiểm tra chỉ có 1 năm học active
+        // ✅ Nếu tạo năm học với status = "active", set các năm khác trong trường về "inactive"
         if (data.status === 'active') {
-            await AcademicYearModel.updateMany({ status: 'active' }, { status: 'inactive' });
+            await AcademicYearModel.updateMany({ schoolId, status: 'active' }, { status: 'inactive' });
         }
 
         const newAcademicYear = new AcademicYearModel({
             ...data,
+            schoolId, // ✅ Gán schoolId
             createdBy: userId,
         });
 
@@ -34,12 +45,19 @@ const createNew = async (data, userId) => {
     }
 };
 
-const getAll = async (query) => {
+const getAll = async (query, userId) => {
     try {
+        // ✅ Lấy schoolId từ user
+        const user = await UserModel.findById(userId).select('schoolId role');
+        if (!user || !user.schoolId) {
+            throw new ApiError(StatusCodes.FORBIDDEN, 'Bạn không thuộc trường học nào');
+        }
+
         const { page = 1, limit = 10, status = '' } = query;
         const skip = (page - 1) * limit;
 
-        const filter = { _destroy: false };
+        // ✅ Filter theo schoolId của user
+        const filter = { _destroy: false, schoolId: user.schoolId };
 
         // Lọc theo status
         if (status) {
@@ -64,16 +82,24 @@ const getAll = async (query) => {
             },
         };
     } catch (error) {
+        if (error instanceof ApiError) throw error;
         throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, 'Lỗi khi lấy danh sách năm học');
     }
 };
 
-const getDetails = async (id) => {
+const getDetails = async (id, userId) => {
     try {
-        const academicYear = await AcademicYearModel.findOne({ _id: id, _destroy: false }).populate(
-            'createdBy',
-            'username fullName',
-        );
+        // ✅ Lấy schoolId từ user
+        const user = await UserModel.findById(userId).select('schoolId');
+        if (!user || !user.schoolId) {
+            throw new ApiError(StatusCodes.FORBIDDEN, 'Bạn không thuộc trường học nào');
+        }
+
+        const academicYear = await AcademicYearModel.findOne({
+            _id: id,
+            schoolId: user.schoolId, // ✅ Chỉ lấy năm học của trường mình
+            _destroy: false,
+        }).populate('createdBy', 'username fullName');
 
         if (!academicYear) {
             throw new ApiError(StatusCodes.NOT_FOUND, 'Không tìm thấy năm học');
@@ -85,17 +111,28 @@ const getDetails = async (id) => {
     }
 };
 
-const update = async (id, data) => {
+const update = async (id, data, userId) => {
     try {
-        const academicYear = await AcademicYearModel.findOne({ _id: id, _destroy: false });
+        // ✅ Lấy schoolId từ user
+        const user = await UserModel.findById(userId).select('schoolId');
+        if (!user || !user.schoolId) {
+            throw new ApiError(StatusCodes.FORBIDDEN, 'Bạn không thuộc trường học nào');
+        }
+
+        const academicYear = await AcademicYearModel.findOne({
+            _id: id,
+            schoolId: user.schoolId, // ✅ Chỉ update năm học của trường mình
+            _destroy: false,
+        });
 
         if (!academicYear) {
             throw new ApiError(StatusCodes.NOT_FOUND, 'Không tìm thấy năm học');
         }
 
-        // Kiểm tra năm học đã tồn tại (nếu thay đổi năm)
+        // ✅ Kiểm tra năm học đã tồn tại (nếu thay đổi năm)
         if (data.fromYear && data.toYear) {
             const existingYear = await AcademicYearModel.findOne({
+                schoolId: user.schoolId,
                 fromYear: data.fromYear,
                 toYear: data.toYear,
                 _id: { $ne: id },
@@ -103,13 +140,20 @@ const update = async (id, data) => {
             });
 
             if (existingYear) {
-                throw new ApiError(StatusCodes.CONFLICT, 'Năm học này đã tồn tại');
+                throw new ApiError(StatusCodes.CONFLICT, 'Năm học này đã tồn tại trong trường của bạn');
             }
         }
 
-        // Kiểm tra chỉ có 1 năm học active
+        // ✅ Nếu chuyển sang "active", set các năm khác trong trường về "inactive"
         if (data.status === 'active' && academicYear.status !== 'active') {
-            await AcademicYearModel.updateMany({ _id: { $ne: id }, status: 'active' }, { status: 'inactive' });
+            await AcademicYearModel.updateMany(
+                {
+                    schoolId: user.schoolId,
+                    _id: { $ne: id },
+                    status: 'active',
+                },
+                { status: 'inactive' },
+            );
         }
 
         const updatedAcademicYear = await AcademicYearModel.findByIdAndUpdate(id, data, {
@@ -124,15 +168,25 @@ const update = async (id, data) => {
     }
 };
 
-const deleteAcademicYear = async (id) => {
+const deleteAcademicYear = async (id, userId) => {
     try {
-        const academicYear = await AcademicYearModel.findOne({ _id: id, _destroy: false });
+        // ✅ Lấy schoolId từ user
+        const user = await UserModel.findById(userId).select('schoolId');
+        if (!user || !user.schoolId) {
+            throw new ApiError(StatusCodes.FORBIDDEN, 'Bạn không thuộc trường học nào');
+        }
+
+        const academicYear = await AcademicYearModel.findOne({
+            _id: id,
+            schoolId: user.schoolId, // ✅ Chỉ xóa năm học của trường mình
+            _destroy: false,
+        });
 
         if (!academicYear) {
             throw new ApiError(StatusCodes.NOT_FOUND, 'Không tìm thấy năm học');
         }
 
-        // Không cho phép xóa năm học đang active
+        // ✅ Không cho phép xóa năm học đang active
         if (academicYear.status === 'active') {
             throw new ApiError(StatusCodes.FORBIDDEN, 'Không thể xóa năm học đang hoạt động');
         }
@@ -147,16 +201,32 @@ const deleteAcademicYear = async (id) => {
     }
 };
 
-const setActive = async (id) => {
+const setActive = async (id, userId) => {
     try {
-        const academicYear = await AcademicYearModel.findOne({ _id: id, _destroy: false });
+        // ✅ Lấy schoolId từ user
+        const user = await UserModel.findById(userId).select('schoolId');
+        if (!user || !user.schoolId) {
+            throw new ApiError(StatusCodes.FORBIDDEN, 'Bạn không thuộc trường học nào');
+        }
+
+        const academicYear = await AcademicYearModel.findOne({
+            _id: id,
+            schoolId: user.schoolId,
+            _destroy: false,
+        });
 
         if (!academicYear) {
             throw new ApiError(StatusCodes.NOT_FOUND, 'Không tìm thấy năm học');
         }
 
-        // Đặt tất cả năm học khác về inactive
-        await AcademicYearModel.updateMany({ _id: { $ne: id } }, { status: 'inactive' });
+        // ✅ Đặt tất cả năm học khác trong trường về inactive
+        await AcademicYearModel.updateMany(
+            {
+                schoolId: user.schoolId,
+                _id: { $ne: id },
+            },
+            { status: 'inactive' },
+        );
 
         // Đặt năm học hiện tại thành active
         academicYear.status = 'active';

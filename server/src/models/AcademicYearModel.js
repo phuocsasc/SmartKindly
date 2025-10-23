@@ -22,6 +22,12 @@ const SemesterSchema = new mongoose.Schema(
 
 const AcademicYearSchema = new mongoose.Schema(
     {
+        // ✅ Thêm schoolId
+        schoolId: {
+            type: String,
+            required: [true, 'schoolId là bắt buộc'],
+            ref: 'School',
+        },
         fromYear: {
             type: Number,
             required: [true, 'Năm bắt đầu là bắt buộc'],
@@ -77,9 +83,9 @@ AcademicYearSchema.pre('save', function (next) {
     next();
 });
 
-// Index để tìm kiếm nhanh hơn
-AcademicYearSchema.index({ fromYear: 1, toYear: 1 });
-AcademicYearSchema.index({ status: 1 });
+// ✅ Index để tìm kiếm nhanh hơn và đảm bảo unique trong cùng trường
+AcademicYearSchema.index({ schoolId: 1, fromYear: 1, toYear: 1 }, { unique: true });
+AcademicYearSchema.index({ schoolId: 1, status: 1 });
 AcademicYearSchema.index({ createdBy: 1 });
 
 export const AcademicYearModel = mongoose.model('AcademicYear', AcademicYearSchema);

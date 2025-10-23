@@ -16,7 +16,8 @@ const createNew = async (req, res, next) => {
 
 const getAll = async (req, res, next) => {
     try {
-        const result = await academicYearServices.getAll(req.query);
+        const userId = req.jwtDecoded.id; // ✅ Thêm userId
+        const result = await academicYearServices.getAll(req.query, userId);
         res.status(StatusCodes.OK).json({
             message: 'Lấy danh sách năm học thành công!',
             data: result,
@@ -28,7 +29,8 @@ const getAll = async (req, res, next) => {
 
 const getDetails = async (req, res, next) => {
     try {
-        const result = await academicYearServices.getDetails(req.params.id);
+        const userId = req.jwtDecoded.id; // ✅ Thêm userId
+        const result = await academicYearServices.getDetails(req.params.id, userId);
         res.status(StatusCodes.OK).json({
             message: 'Lấy thông tin năm học thành công!',
             data: result,
@@ -40,7 +42,8 @@ const getDetails = async (req, res, next) => {
 
 const update = async (req, res, next) => {
     try {
-        const result = await academicYearServices.update(req.params.id, req.body);
+        const userId = req.jwtDecoded.id; // ✅ Thêm userId
+        const result = await academicYearServices.update(req.params.id, req.body, userId);
         res.status(StatusCodes.OK).json({
             message: 'Cập nhật năm học thành công!',
             data: result,
@@ -52,7 +55,8 @@ const update = async (req, res, next) => {
 
 const deleteAcademicYear = async (req, res, next) => {
     try {
-        await academicYearServices.deleteAcademicYear(req.params.id);
+        const userId = req.jwtDecoded.id; // ✅ Thêm userId
+        await academicYearServices.deleteAcademicYear(req.params.id, userId);
         res.status(StatusCodes.OK).json({
             message: 'Xóa năm học thành công!',
         });
@@ -63,7 +67,8 @@ const deleteAcademicYear = async (req, res, next) => {
 
 const setActive = async (req, res, next) => {
     try {
-        const result = await academicYearServices.setActive(req.params.id);
+        const userId = req.jwtDecoded.id; // ✅ Thêm userId
+        const result = await academicYearServices.setActive(req.params.id, userId);
         res.status(StatusCodes.OK).json(result);
     } catch (error) {
         next(error);

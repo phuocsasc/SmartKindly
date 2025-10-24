@@ -5,6 +5,7 @@ import { dashboardRoute } from '~/routes/v1/dashboardRoute';
 import { schoolRoute } from '~/routes/v1/schoolRoute';
 import { academicYearRoute } from '~/routes/v1/academicYearRoute';
 import { adminUserManagementRoute } from '~/routes/v1/adminUserManagementRoute';
+import { departmentRoute } from './departmentRoute'; // ✅ Import
 
 const Router = express.Router();
 
@@ -27,5 +28,7 @@ Router.use('/academic-years', academicYearRoute);
 
 /** Admin User Management APIs */
 Router.use('/admin/users', adminUserManagementRoute);
+
+Router.use('/departments', departmentRoute); // ✅ Đăng ký route
 
 export const APIs_V1 = Router;

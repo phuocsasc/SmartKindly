@@ -32,6 +32,15 @@ function AcademicYearDialog({ open, mode, academicYear, onClose, onSuccess }) {
 
     const [loading, setLoading] = useState(false);
 
+    // ✅ Kiểm tra năm học đã kết thúc
+    const isInactive = mode === 'edit' && academicYear?.status === 'inactive';
+
+    // ✅ Kiểm tra năm học đã cấu hình
+    const isConfigured = mode === 'edit' && academicYear?.isConfig === true;
+
+    // ✅ Chỉ cho phép sửa status nếu đã cấu hình
+    const canOnlyEditStatus = mode === 'edit' && isConfigured && academicYear?.status === 'active';
+
     useEffect(() => {
         if (mode === 'edit' && academicYear) {
             const sem1 = academicYear.semesters?.find((s) => s.name === 'Học kì I') || {};
@@ -78,6 +87,11 @@ function AcademicYearDialog({ open, mode, academicYear, onClose, onSuccess }) {
     };
 
     const handleSubmit = async () => {
+        // ✅ Không cho submit nếu năm học đã inactive
+        if (isInactive) {
+            toast.error('Không thể chỉnh sửa năm học đã kết thúc!');
+            return;
+        }
         try {
             setLoading(true);
 
@@ -121,23 +135,34 @@ function AcademicYearDialog({ open, mode, academicYear, onClose, onSuccess }) {
             }
 
             // Prepare data
-            const dataToSubmit = {
-                fromYear: parseInt(formData.fromYear),
-                toYear: parseInt(formData.toYear),
-                semesters: [
-                    {
-                        name: 'Học kì I',
-                        startDate: formData.semester1StartDate.format('YYYY-MM-DD'),
-                        endDate: formData.semester1EndDate.format('YYYY-MM-DD'),
-                    },
-                    {
-                        name: 'Học kì II',
-                        startDate: formData.semester2StartDate.format('YYYY-MM-DD'),
-                        endDate: formData.semester2EndDate.format('YYYY-MM-DD'),
-                    },
-                ],
-                status: formData.status,
-            };
+            let dataToSubmit;
+
+            if (canOnlyEditStatus) {
+                // ✅ Chỉ gửi status nếu năm học đã cấu hình
+                dataToSubmit = {
+                    status: formData.status,
+                };
+            } else {
+                // ✅ Gửi đầy đủ data nếu chưa cấu hình
+                dataToSubmit = {
+                    fromYear: parseInt(formData.fromYear),
+                    toYear: parseInt(formData.toYear),
+                    semesters: [
+                        {
+                            name: 'Học kì I',
+                            startDate: formData.semester1StartDate.format('YYYY-MM-DD'),
+                            endDate: formData.semester1EndDate.format('YYYY-MM-DD'),
+                        },
+                        {
+                            name: 'Học kì II',
+                            startDate: formData.semester2StartDate.format('YYYY-MM-DD'),
+                            endDate: formData.semester2EndDate.format('YYYY-MM-DD'),
+                        },
+                    ],
+                    status: formData.status,
+                };
+            }
+            console.log('📤 [AcademicYearDialog] Data to submit:', dataToSubmit);
 
             if (mode === 'create') {
                 await academicYearApi.create(dataToSubmit);
@@ -158,157 +183,203 @@ function AcademicYearDialog({ open, mode, academicYear, onClose, onSuccess }) {
 
     return (
         <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
-            <DialogTitle>{mode === 'create' ? 'Thêm năm học mới' : 'Chỉnh sửa năm học'}</DialogTitle>
+            <DialogTitle>
+                {isInactive
+                    ? 'Xem thông tin năm học'
+                    : mode === 'create'
+                      ? 'Thêm năm học mới'
+                      : canOnlyEditStatus
+                        ? 'Kết thúc năm học'
+                        : 'Chỉnh sửa năm học'}
+            </DialogTitle>
             <DialogContent>
+                {/* ✅ Thông báo nếu năm học đã kết thúc */}
+                {isInactive && (
+                    <Box
+                        sx={{
+                            mb: 2,
+                            p: 1.5,
+                            bgcolor: '#e0e0e0',
+                            borderRadius: 1,
+                            border: '1px solid #9e9e9e',
+                        }}
+                    >
+                        <Typography variant="body2" color="text.secondary">
+                            ℹ️ Năm học đã kết thúc, không thể chỉnh sửa. Dữ liệu chỉ dùng để tham khảo.
+                        </Typography>
+                    </Box>
+                )}
+                {/* ✅ Thông báo nếu chỉ được sửa status */}
+                {canOnlyEditStatus && (
+                    <Box
+                        sx={{
+                            mb: 2,
+                            p: 1.5,
+                            bgcolor: '#fff3e0',
+                            borderRadius: 1,
+                            border: '1px solid #ff9800',
+                        }}
+                    >
+                        <Typography variant="body2" color="warning.main">
+                            ⚠️ Năm học đã cấu hình dữ liệu, chỉ có thể chuyển sang trạng thái "Đã xong".
+                        </Typography>
+                    </Box>
+                )}
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
-                    {/* Năm học */}
-                    <Box sx={{ display: 'flex', gap: 2 }}>
-                        <TextField
-                            label="Năm bắt đầu"
-                            type="number"
-                            value={formData.fromYear}
-                            onChange={(e) => handleFromYearChange(e.target.value)}
-                            required
-                            disabled={mode === 'edit'}
-                            fullWidth
-                            size="small"
-                            variant="outlined"
-                            sx={{
-                                '& .MuiOutlinedInput-root': {
-                                    borderRadius: 1.5,
-                                },
-                            }}
-                        />
-                        <TextField
-                            label="Năm kết thúc"
-                            type="number"
-                            value={formData.toYear}
-                            InputProps={{ readOnly: true }}
-                            required
-                            disabled
-                            fullWidth
-                            size="small"
-                            variant="outlined"
-                            sx={{
-                                '& .MuiOutlinedInput-root': {
-                                    borderRadius: 1.5,
-                                },
-                            }}
-                        />
-                    </Box>
-
-                    <Divider>
-                        <Typography variant="body2" color="text.secondary">
-                            Học kỳ I
-                        </Typography>
-                    </Divider>
-
-                    {/* Học kỳ I */}
-                    <Box sx={{ display: 'flex', gap: 2 }}>
-                        <DatePicker
-                            label="Ngày bắt đầu HK I"
-                            value={formData.semester1StartDate}
-                            onChange={(newValue) => setFormData({ ...formData, semester1StartDate: newValue })}
-                            format="DD/MM/YYYY"
-                            slotProps={{
-                                textField: {
-                                    required: true,
-                                    fullWidth: true,
-                                    size: 'small',
-                                    variant: 'outlined',
-                                    sx: {
+                    {/* Năm học - Disabled nếu đã inactive hoặc chỉ sửa status */}
+                    {!canOnlyEditStatus && (
+                        <>
+                            <Box sx={{ display: 'flex', gap: 2 }}>
+                                <TextField
+                                    label="Năm bắt đầu"
+                                    type="number"
+                                    value={formData.fromYear}
+                                    onChange={(e) => handleFromYearChange(e.target.value)}
+                                    required
+                                    disabled={mode === 'edit' || isInactive}
+                                    fullWidth
+                                    size="small"
+                                    variant="outlined"
+                                    sx={{
                                         '& .MuiOutlinedInput-root': {
                                             borderRadius: 1.5,
                                         },
-                                    },
-                                },
-                                actionBar: {
-                                    actions: ['clear', 'today'],
-                                },
-                            }}
-                        />
-                        <DatePicker
-                            label="Ngày kết thúc HK I"
-                            value={formData.semester1EndDate}
-                            onChange={(newValue) => setFormData({ ...formData, semester1EndDate: newValue })}
-                            format="DD/MM/YYYY"
-                            minDate={formData.semester1StartDate}
-                            slotProps={{
-                                textField: {
-                                    required: true,
-                                    fullWidth: true,
-                                    size: 'small',
-                                    variant: 'outlined',
-                                    sx: {
+                                    }}
+                                />
+                                <TextField
+                                    label="Năm kết thúc"
+                                    type="number"
+                                    value={formData.toYear}
+                                    disabled
+                                    fullWidth
+                                    size="small"
+                                    variant="outlined"
+                                    sx={{
                                         '& .MuiOutlinedInput-root': {
                                             borderRadius: 1.5,
                                         },
-                                    },
-                                },
-                                actionBar: {
-                                    actions: ['clear', 'today'],
-                                },
-                            }}
-                        />
-                    </Box>
+                                    }}
+                                />
+                            </Box>
 
-                    <Divider>
-                        <Typography variant="body2" color="text.secondary">
-                            Học kỳ II
-                        </Typography>
-                    </Divider>
+                            <Divider>
+                                <Typography variant="body2" color="text.secondary">
+                                    Học kỳ I
+                                </Typography>
+                            </Divider>
 
-                    {/* Học kỳ II */}
-                    <Box sx={{ display: 'flex', gap: 2 }}>
-                        <DatePicker
-                            label="Ngày bắt đầu HK II"
-                            value={formData.semester2StartDate}
-                            onChange={(newValue) => setFormData({ ...formData, semester2StartDate: newValue })}
-                            format="DD/MM/YYYY"
-                            minDate={formData.semester1EndDate}
-                            slotProps={{
-                                textField: {
-                                    required: true,
-                                    fullWidth: true,
-                                    size: 'small',
-                                    variant: 'outlined',
-                                    sx: {
-                                        '& .MuiOutlinedInput-root': {
-                                            borderRadius: 1.5,
+                            {/* Học kỳ I - Disabled nếu đã inactive */}
+                            <Box sx={{ display: 'flex', gap: 2 }}>
+                                <DatePicker
+                                    label="Ngày bắt đầu HK I"
+                                    value={formData.semester1StartDate}
+                                    onChange={(newValue) => setFormData({ ...formData, semester1StartDate: newValue })}
+                                    format="DD/MM/YYYY"
+                                    disabled={isInactive}
+                                    slotProps={{
+                                        textField: {
+                                            required: true,
+                                            fullWidth: true,
+                                            size: 'small',
+                                            variant: 'outlined',
+                                            sx: {
+                                                '& .MuiOutlinedInput-root': {
+                                                    borderRadius: 1.5,
+                                                },
+                                            },
                                         },
-                                    },
-                                },
-                                actionBar: {
-                                    actions: ['clear', 'today'],
-                                },
-                            }}
-                        />
-                        <DatePicker
-                            label="Ngày kết thúc HK II"
-                            value={formData.semester2EndDate}
-                            onChange={(newValue) => setFormData({ ...formData, semester2EndDate: newValue })}
-                            format="DD/MM/YYYY"
-                            minDate={formData.semester2StartDate}
-                            slotProps={{
-                                textField: {
-                                    required: true,
-                                    fullWidth: true,
-                                    size: 'small',
-                                    variant: 'outlined',
-                                    sx: {
-                                        '& .MuiOutlinedInput-root': {
-                                            borderRadius: 1.5,
+                                        actionBar: {
+                                            actions: ['clear', 'today'],
                                         },
-                                    },
-                                },
-                                actionBar: {
-                                    actions: ['clear', 'today'],
-                                },
-                            }}
-                        />
-                    </Box>
+                                    }}
+                                />
+                                <DatePicker
+                                    label="Ngày kết thúc HK I"
+                                    value={formData.semester1EndDate}
+                                    onChange={(newValue) => setFormData({ ...formData, semester1EndDate: newValue })}
+                                    format="DD/MM/YYYY"
+                                    minDate={formData.semester1StartDate}
+                                    disabled={isInactive}
+                                    slotProps={{
+                                        textField: {
+                                            required: true,
+                                            fullWidth: true,
+                                            size: 'small',
+                                            variant: 'outlined',
+                                            sx: {
+                                                '& .MuiOutlinedInput-root': {
+                                                    borderRadius: 1.5,
+                                                },
+                                            },
+                                        },
+                                        actionBar: {
+                                            actions: ['clear', 'today'],
+                                        },
+                                    }}
+                                />
+                            </Box>
 
-                    <Divider />
+                            <Divider>
+                                <Typography variant="body2" color="text.secondary">
+                                    Học kỳ II
+                                </Typography>
+                            </Divider>
+
+                            {/* Học kỳ II - Disabled nếu đã inactive */}
+                            <Box sx={{ display: 'flex', gap: 2 }}>
+                                <DatePicker
+                                    label="Ngày bắt đầu HK II"
+                                    value={formData.semester2StartDate}
+                                    onChange={(newValue) => setFormData({ ...formData, semester2StartDate: newValue })}
+                                    format="DD/MM/YYYY"
+                                    minDate={formData.semester1EndDate}
+                                    disabled={isInactive}
+                                    slotProps={{
+                                        textField: {
+                                            required: true,
+                                            fullWidth: true,
+                                            size: 'small',
+                                            variant: 'outlined',
+                                            sx: {
+                                                '& .MuiOutlinedInput-root': {
+                                                    borderRadius: 1.5,
+                                                },
+                                            },
+                                        },
+                                        actionBar: {
+                                            actions: ['clear', 'today'],
+                                        },
+                                    }}
+                                />
+                                <DatePicker
+                                    label="Ngày kết thúc HK II"
+                                    value={formData.semester2EndDate}
+                                    onChange={(newValue) => setFormData({ ...formData, semester2EndDate: newValue })}
+                                    format="DD/MM/YYYY"
+                                    minDate={formData.semester2StartDate}
+                                    disabled={isInactive}
+                                    slotProps={{
+                                        textField: {
+                                            required: true,
+                                            fullWidth: true,
+                                            size: 'small',
+                                            variant: 'outlined',
+                                            sx: {
+                                                '& .MuiOutlinedInput-root': {
+                                                    borderRadius: 1.5,
+                                                },
+                                            },
+                                        },
+                                        actionBar: {
+                                            actions: ['clear', 'today'],
+                                        },
+                                    }}
+                                />
+                            </Box>
+
+                            <Divider />
+                        </>
+                    )}
 
                     {/* Status */}
                     {/* ✅ Status - Chỉ hiển thị khi mode = 'edit' */}
@@ -321,14 +392,22 @@ function AcademicYearDialog({ open, mode, academicYear, onClose, onSuccess }) {
                                 label="Trạng thái"
                                 size="small"
                                 variant="outlined"
+                                disabled={isInactive}
                                 sx={{
                                     '& .MuiOutlinedInput-root': {
                                         borderRadius: 1.5,
                                     },
                                 }}
                             >
-                                <MenuItem value="active">Đang hoạt động</MenuItem>
-                                <MenuItem value="inactive">Đã xong</MenuItem>
+                                {/* ✅ Nếu đã cấu hình, chỉ hiển thị option "Đã xong" */}
+                                {canOnlyEditStatus ? (
+                                    <MenuItem value="inactive">Đã xong</MenuItem>
+                                ) : (
+                                    <>
+                                        <MenuItem value="active">Đang hoạt động</MenuItem>
+                                        <MenuItem value="inactive">Đã xong</MenuItem>
+                                    </>
+                                )}
                             </Select>
                         </FormControl>
                     )}
@@ -348,7 +427,7 @@ function AcademicYearDialog({ open, mode, academicYear, onClose, onSuccess }) {
                         fontWeight: 600,
                     }}
                 >
-                    Hủy
+                    {isInactive ? 'Đóng' : 'Hủy'}
                 </Button>
                 <Button
                     variant="contained"
@@ -361,7 +440,7 @@ function AcademicYearDialog({ open, mode, academicYear, onClose, onSuccess }) {
                         textTransform: 'none',
                         fontWeight: 600,
                         boxShadow: 2,
-                        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                        // background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
                         '&:hover': {
                             boxShadow: 3,
                             background: 'linear-gradient(135deg, #5568d3 0%, #6a4296 100%)',

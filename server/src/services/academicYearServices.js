@@ -5,13 +5,19 @@ import { StatusCodes } from 'http-status-codes';
 
 const createNew = async (data, userId) => {
     try {
+        console.log('📥 [createNew] Starting with data:', data);
+        console.log('📥 [createNew] User ID:', userId);
+
         // ✅ Lấy schoolId từ user
         const user = await UserModel.findById(userId).select('schoolId');
+        console.log('👤 [createNew] User found:', user);
+
         if (!user || !user.schoolId) {
             throw new ApiError(StatusCodes.FORBIDDEN, 'Bạn không thuộc trường học nào');
         }
 
         const schoolId = user.schoolId;
+        console.log('🏫 [createNew] School ID:', schoolId);
 
         // ✅ Kiểm tra đã có năm học "active" chưa
         const activeYear = await AcademicYearModel.findOne({
@@ -19,6 +25,7 @@ const createNew = async (data, userId) => {
             status: 'active',
             _destroy: false,
         });
+        console.log('🔍 [createNew] Active year check:', activeYear);
 
         if (activeYear) {
             throw new ApiError(
@@ -34,6 +41,7 @@ const createNew = async (data, userId) => {
             toYear: data.toYear,
             _destroy: false,
         });
+        console.log('🔍 [createNew] Existing year check:', existingYear);
 
         if (existingYear) {
             throw new ApiError(StatusCodes.CONFLICT, 'Năm học này đã tồn tại trong trường của bạn');
@@ -48,12 +56,19 @@ const createNew = async (data, userId) => {
             createdBy: userId,
         });
 
-        return await newAcademicYear.save();
+        console.log('💾 [createNew] Saving new academic year:', newAcademicYear);
+        const savedYear = await newAcademicYear.save();
+        console.log('✅ [createNew] Academic year saved successfully:', savedYear);
+
+        return savedYear;
     } catch (error) {
+        console.error('❌ [createNew] Error occurred:', error);
+        console.error('❌ [createNew] Error stack:', error.stack);
+
         if (error instanceof ApiError) {
             throw error;
         }
-        throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, 'Lỗi khi tạo năm học mới');
+        throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, 'Lỗi khi tạo năm học mới: ' + error.message);
     }
 };
 
@@ -121,6 +136,10 @@ const getDetails = async (id, userId) => {
 
 const update = async (id, data, userId) => {
     try {
+        console.log('📝 [update] Starting with id:', id);
+        console.log('📝 [update] Data:', data);
+        console.log('📝 [update] User ID:', userId);
+
         const user = await UserModel.findById(userId).select('schoolId');
         if (!user || !user.schoolId) {
             throw new ApiError(StatusCodes.FORBIDDEN, 'Bạn không thuộc trường học nào');
@@ -132,16 +151,70 @@ const update = async (id, data, userId) => {
             _destroy: false,
         });
 
+        console.log('🔍 [update] Academic year found:', academicYear);
+
         if (!academicYear) {
             throw new ApiError(StatusCodes.NOT_FOUND, 'Không tìm thấy năm học');
         }
 
-        // ✅ Nếu năm học đã cấu hình dữ liệu (isConfig = true), không cho phép chỉnh sửa
-        if (academicYear.isConfig && data.fromYear !== undefined) {
-            throw new ApiError(StatusCodes.FORBIDDEN, 'Năm học đã có dữ liệu cấu hình, không thể thay đổi năm học');
+        // ✅ LOGIC MỚI: Không cho phép chỉnh sửa năm học "Đã xong"
+        if (academicYear.status === 'inactive') {
+            throw new ApiError(
+                StatusCodes.FORBIDDEN,
+                'Không thể chỉnh sửa năm học đã kết thúc. Dữ liệu này chỉ dùng để tham khảo.',
+            );
         }
 
-        // ✅ Kiểm tra năm học đã tồn tại (nếu thay đổi năm)
+        // ✅ LOGIC MỚI: Nếu năm học đang active VÀ đã cấu hình (isConfig = true)
+        // Chỉ cho phép thay đổi status sang "inactive"
+        if (academicYear.status === 'active' && academicYear.isConfig === true) {
+            console.log('⚠️ [update] Năm học đang hoạt động và đã cấu hình');
+
+            // Kiểm tra xem có field nào khác ngoài status không
+            const allowedFields = ['status'];
+            const updateFields = Object.keys(data);
+            const hasOtherFields = updateFields.some((field) => !allowedFields.includes(field));
+
+            if (hasOtherFields) {
+                throw new ApiError(
+                    StatusCodes.FORBIDDEN,
+                    'Năm học đã cấu hình dữ liệu, chỉ có thể chuyển sang trạng thái "Đã xong"',
+                );
+            }
+
+            // Kiểm tra xem có đang chuyển sang inactive không
+            if (!data.status || data.status !== 'inactive') {
+                throw new ApiError(
+                    StatusCodes.FORBIDDEN,
+                    'Năm học đã cấu hình dữ liệu, chỉ có thể chuyển sang trạng thái "Đã xong"',
+                );
+            }
+
+            console.log('✅ [update] Cho phép chuyển năm học đã cấu hình sang inactive');
+        }
+
+        // ✅ LOGIC CŨ: Nếu năm học chưa cấu hình (isConfig = false) và đang active
+        // Cho phép chỉnh sửa tất cả ngoại trừ thay đổi năm học
+        if (academicYear.status === 'active' && academicYear.isConfig === false) {
+            console.log('📝 [update] Năm học đang hoạt động nhưng chưa cấu hình');
+
+            // Không cho phép thay đổi fromYear, toYear
+            if (data.fromYear !== undefined || data.toYear !== undefined) {
+                throw new ApiError(StatusCodes.FORBIDDEN, 'Không thể thay đổi năm học sau khi đã tạo');
+            }
+
+            // Nếu chuyển sang "inactive", cho phép
+            if (data.status === 'inactive') {
+                console.log('✅ [update] Chuyển năm học chưa cấu hình sang inactive');
+            }
+
+            // Nếu cập nhật học kỳ, cho phép
+            if (data.semesters) {
+                console.log('✅ [update] Cập nhật thông tin học kỳ');
+            }
+        }
+
+        // ✅ Kiểm tra năm học đã tồn tại (nếu thay đổi năm - nhưng ở trên đã chặn)
         if (data.fromYear && data.toYear) {
             const existingYear = await AcademicYearModel.findOne({
                 schoolId: user.schoolId,
@@ -156,13 +229,7 @@ const update = async (id, data, userId) => {
             }
         }
 
-        // ✅ Nếu chuyển sang "inactive", kiểm tra có năm học "active" khác không
-        if (data.status === 'inactive' && academicYear.status === 'active') {
-            // Cho phép chuyển xuống inactive (kết thúc năm học)
-            // Không cần kiểm tra gì thêm
-        }
-
-        // ✅ Nếu chuyển sang "active", kiểm tra đã có năm học active khác chưa
+        // ✅ Nếu chuyển sang "active" (từ inactive), kiểm tra đã có năm học active khác chưa
         if (data.status === 'active' && academicYear.status !== 'active') {
             const activeYear = await AcademicYearModel.findOne({
                 schoolId: user.schoolId,
@@ -184,10 +251,13 @@ const update = async (id, data, userId) => {
             runValidators: true,
         }).populate('createdBy', 'username fullName');
 
+        console.log('✅ [update] Academic year updated successfully:', updatedAcademicYear);
+
         return updatedAcademicYear;
     } catch (error) {
+        console.error('❌ [update] Error occurred:', error);
         if (error instanceof ApiError) throw error;
-        throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, 'Lỗi khi cập nhật năm học');
+        throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, 'Lỗi khi cập nhật năm học: ' + error.message);
     }
 };
 

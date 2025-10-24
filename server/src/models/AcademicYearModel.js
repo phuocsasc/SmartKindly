@@ -52,7 +52,12 @@ const AcademicYearSchema = new mongoose.Schema(
         status: {
             type: String,
             enum: ['active', 'inactive'],
-            default: 'inactive',
+            default: 'active', // ✅ Mặc định là "Đang hoạt động"
+        },
+        // ✅ Thêm field isConfig
+        isConfig: {
+            type: Boolean,
+            default: false, // Chưa cấu hình dữ liệu
         },
         createdBy: {
             type: mongoose.Schema.Types.ObjectId,

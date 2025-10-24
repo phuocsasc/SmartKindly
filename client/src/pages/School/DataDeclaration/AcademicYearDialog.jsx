@@ -27,7 +27,7 @@ function AcademicYearDialog({ open, mode, academicYear, onClose, onSuccess }) {
         semester1EndDate: null,
         semester2StartDate: null,
         semester2EndDate: null,
-        status: 'inactive',
+        status: 'active', // ✅ Mặc định "active"
     });
 
     const [loading, setLoading] = useState(false);
@@ -44,7 +44,7 @@ function AcademicYearDialog({ open, mode, academicYear, onClose, onSuccess }) {
                 semester1EndDate: sem1.endDate ? dayjs(sem1.endDate) : null,
                 semester2StartDate: sem2.startDate ? dayjs(sem2.startDate) : null,
                 semester2EndDate: sem2.endDate ? dayjs(sem2.endDate) : null,
-                status: academicYear.status || 'inactive',
+                status: academicYear.status || 'active',
             });
         } else {
             // Auto calculate toYear when fromYear changes
@@ -56,7 +56,7 @@ function AcademicYearDialog({ open, mode, academicYear, onClose, onSuccess }) {
                 semester1EndDate: dayjs(`${currentYear + 1}-01-15`),
                 semester2StartDate: dayjs(`${currentYear + 1}-01-16`),
                 semester2EndDate: dayjs(`${currentYear + 1}-06-30`),
-                status: 'inactive',
+                status: 'active',
             });
         }
     }, [mode, academicYear, open]);
@@ -311,24 +311,27 @@ function AcademicYearDialog({ open, mode, academicYear, onClose, onSuccess }) {
                     <Divider />
 
                     {/* Status */}
-                    <FormControl fullWidth>
-                        <InputLabel>Trạng thái</InputLabel>
-                        <Select
-                            value={formData.status}
-                            onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-                            label="Trạng thái"
-                            size="small"
-                            variant="outlined"
-                            sx={{
-                                '& .MuiOutlinedInput-root': {
-                                    borderRadius: 1.5,
-                                },
-                            }}
-                        >
-                            <MenuItem value="inactive">Không hoạt động</MenuItem>
-                            <MenuItem value="active">Đang hoạt động</MenuItem>
-                        </Select>
-                    </FormControl>
+                    {/* ✅ Status - Chỉ hiển thị khi mode = 'edit' */}
+                    {mode === 'edit' && (
+                        <FormControl fullWidth>
+                            <InputLabel>Trạng thái</InputLabel>
+                            <Select
+                                value={formData.status}
+                                onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+                                label="Trạng thái"
+                                size="small"
+                                variant="outlined"
+                                sx={{
+                                    '& .MuiOutlinedInput-root': {
+                                        borderRadius: 1.5,
+                                    },
+                                }}
+                            >
+                                <MenuItem value="active">Đang hoạt động</MenuItem>
+                                <MenuItem value="inactive">Đã xong</MenuItem>
+                            </Select>
+                        </FormControl>
+                    )}
                 </Box>
             </DialogContent>
 

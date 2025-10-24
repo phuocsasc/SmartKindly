@@ -16,6 +16,7 @@ import StorageOutlinedIcon from '@mui/icons-material/StorageOutlined';
 import AddCircleOutlineOutlinedIcon from '@mui/icons-material/AddCircleOutlineOutlined';
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
 import DeleteOutlineOutlinedIcon from '@mui/icons-material/DeleteOutlineOutlined';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import { useEffect, useState } from 'react';
 import MainLayout from '~/layouts/SchoolLayout';
 import PageContainer from '~/components/common/PageContainer';
@@ -34,7 +35,6 @@ function AcademicYear() {
     const { hasPermission } = usePermission(user?.role);
     const { dialogState, showConfirm, handleCancel } = useConfirmDialog();
 
-    // State
     const [rows, setRows] = useState([]);
     const [loading, setLoading] = useState(false);
     const [filterStatus, setFilterStatus] = useState('');
@@ -44,7 +44,9 @@ function AcademicYear() {
     const [dialogMode, setDialogMode] = useState('create');
     const [currentAcademicYear, setCurrentAcademicYear] = useState(null);
 
-    // Fetch academic years
+    // ✅ Kiểm tra có năm học "active" không
+    const hasActiveYear = rows.some((row) => row.status === 'active');
+
     const fetchAcademicYears = async () => {
         try {
             setLoading(true);
@@ -86,8 +88,14 @@ function AcademicYear() {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [paginationModel, filterStatus]);
 
-    // Handlers
     const handleCreate = () => {
+        // ✅ Kiểm tra có năm học "active" chưa
+        if (hasActiveYear) {
+            toast.warning(
+                'Đã có năm học đang hoạt động! Vui lòng chuyển sang trạng thái "Đã xong" trước khi tạo năm học mới.',
+            );
+            return;
+        }
         setDialogMode('create');
         setCurrentAcademicYear(null);
         setOpenDialog(true);
@@ -99,15 +107,14 @@ function AcademicYear() {
         setOpenDialog(true);
     };
 
-    const handleDelete = async (id, yearDisplay) => {
-        // ✅ Kiểm tra trạng thái trước khi xóa
+    const handleDelete = async (id, yearDisplay, status, isConfig) => {
         if (status === 'active') {
-            toast.warning(
-                'Không thể xóa năm học đang hoạt động! Vui lòng chuyển sang trạng thái "Không hoạt động" trước khi xóa.',
-                {
-                    autoClose: 5000,
-                },
-            );
+            toast.warning('Không thể xóa năm học đang hoạt động!');
+            return;
+        }
+
+        if (isConfig) {
+            toast.warning('Không thể xóa năm học đã có dữ liệu cấu hình!');
             return;
         }
         try {
@@ -186,10 +193,25 @@ function AcademicYear() {
             renderCell: (params) => {
                 const statusConfig = {
                     active: { label: 'Đang hoạt động', color: 'success' },
-                    inactive: { label: 'Không hoạt động', color: 'default' },
+                    inactive: { label: 'Đã xong', color: 'default' },
                 };
                 const config = statusConfig[params.value] || statusConfig.inactive;
                 return <Chip label={config.label} color={config.color} size="small" />;
+            },
+        },
+        // ✅ Thêm cột "Đã cấu hình"
+        {
+            field: 'isConfig',
+            headerName: 'Cấu hình',
+            flex: 0.7,
+            minWidth: 100,
+            sortable: false,
+            renderCell: (params) => {
+                return params.value ? (
+                    <Chip icon={<CheckCircleIcon />} label="Đã cấu hình" color="info" size="small" />
+                ) : (
+                    <Chip label="Chưa cấu hình" color="default" size="small" variant="outlined" />
+                );
             },
         },
         {
@@ -203,7 +225,8 @@ function AcademicYear() {
             renderCell: (params) => {
                 const canUpdate = hasPermission(PERMISSIONS.UPDATE_ACADEMIC_YEAR);
                 const canDelete = hasPermission(PERMISSIONS.DELETE_ACADEMIC_YEAR);
-                const isActive = params.row.status === 'active'; // ✅ Kiểm tra status
+                const isActive = params.row.status === 'active';
+                const isConfig = params.row.isConfig;
 
                 return (
                     <Box sx={{ display: 'flex', justifyContent: 'center', gap: 0.5 }}>
@@ -215,18 +238,31 @@ function AcademicYear() {
                             </Tooltip>
                         )}
                         {canDelete && (
-                            <Tooltip title={isActive ? 'Không thể xóa năm học đang hoạt động' : 'Xóa năm học'}>
+                            <Tooltip
+                                title={
+                                    isActive
+                                        ? 'Không thể xóa năm học đang hoạt động'
+                                        : isConfig
+                                          ? 'Không thể xóa năm học đã cấu hình dữ liệu'
+                                          : 'Xóa năm học'
+                                }
+                            >
                                 <span>
                                     <IconButton
                                         color="error"
                                         size="small"
-                                        disabled={isActive} // ✅ Disable nút khi đang hoạt động
+                                        disabled={isActive || isConfig}
                                         onClick={() =>
-                                            handleDelete(params.row.id, params.row.yearDisplay, params.row.status)
+                                            handleDelete(
+                                                params.row.id,
+                                                params.row.yearDisplay,
+                                                params.row.status,
+                                                params.row.isConfig,
+                                            )
                                         }
                                         sx={{
-                                            opacity: isActive ? 0.5 : 1,
-                                            cursor: isActive ? 'not-allowed' : 'pointer',
+                                            opacity: isActive || isConfig ? 0.5 : 1,
+                                            cursor: isActive || isConfig ? 'not-allowed' : 'pointer',
                                         }}
                                     >
                                         <DeleteOutlineOutlinedIcon />
@@ -243,14 +279,11 @@ function AcademicYear() {
     return (
         <MainLayout user={user}>
             <PageContainer>
-                {/* ======= BREADCRUMB ======= */}
                 <PageBreadcrumb
                     items={[{ text: 'Khai báo dữ liệu', icon: StorageOutlinedIcon, href: '/#' }, { text: 'Năm học' }]}
                 />
 
-                {/* ======= Danh sách năm học ======= */}
                 <Paper sx={{ p: 2, borderRadius: 2, boxShadow: 2 }}>
-                    {/* ======= Thanh công cụ ======= */}
                     <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
                         <Typography variant="h5" fontWeight={600}>
                             Danh sách năm học
@@ -266,15 +299,24 @@ function AcademicYear() {
                                 >
                                     <MenuItem value="">Tất cả</MenuItem>
                                     <MenuItem value="active">Đang hoạt động</MenuItem>
-                                    <MenuItem value="inactive">Không hoạt động</MenuItem>
+                                    <MenuItem value="inactive">Đã xong</MenuItem>
                                 </Select>
                             </FormControl>
 
                             {hasPermission(PERMISSIONS.CREATE_ACADEMIC_YEAR) && (
-                                <Tooltip title="Thêm năm học">
-                                    <IconButton sx={{ color: '#1976d2' }} onClick={handleCreate}>
-                                        <AddCircleOutlineOutlinedIcon />
-                                    </IconButton>
+                                <Tooltip title={hasActiveYear ? 'Đã có năm học đang hoạt động' : 'Thêm năm học mới'}>
+                                    <span>
+                                        <IconButton
+                                            sx={{
+                                                color: hasActiveYear ? 'grey' : '#1976d2',
+                                                cursor: hasActiveYear ? 'not-allowed' : 'pointer',
+                                            }}
+                                            onClick={handleCreate}
+                                            disabled={hasActiveYear}
+                                        >
+                                            <AddCircleOutlineOutlinedIcon />
+                                        </IconButton>
+                                    </span>
                                 </Tooltip>
                             )}
                         </Box>

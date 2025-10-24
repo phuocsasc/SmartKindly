@@ -24,11 +24,19 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { useTheme } from '@mui/material/styles';
 import logo_sidebar from '~/assets/logo_thanh_menu_tach_nen.png';
+import { useUser } from '~/contexts/UserContext';
+import { usePermission } from '~/hooks/usePermission';
+import { PERMISSIONS } from '~/config/rbacConfig';
 
 const menuItems = [
     { text: 'Trang chủ', icon: <DashboardIcon />, path: '/dashboard' },
 
-    { text: 'Quản lý người dùng', icon: <SwitchAccountOutlinedIcon />, path: '/users' },
+    {
+        text: 'Quản lý người dùng',
+        icon: <SwitchAccountOutlinedIcon />,
+        path: '/users',
+        permission: PERMISSIONS.VIEW_USERS, // ✅ Quyền yêu cầu
+    },
 
     {
         text: 'Khai báo dữ liệu',
@@ -105,6 +113,10 @@ const menuItems = [
 ];
 
 function SchoolSidebar({ collapsed, onToggle, mobileOpen, onCloseMobile }) {
+    // ✅ Lấy user và permission checker
+    const { user } = useUser();
+    const { hasPermission } = usePermission(user?.role);
+
     const navigate = useNavigate();
     const location = useLocation();
     const [openMenus, setOpenMenus] = useState({});
@@ -112,6 +124,16 @@ function SchoolSidebar({ collapsed, onToggle, mobileOpen, onCloseMobile }) {
 
     const theme = useTheme();
     const isSmUp = useMediaQuery(theme.breakpoints.up('sm'));
+
+    // ✅ Lọc menuItems dựa trên permission
+    const filteredMenuItems = menuItems.filter((item) => {
+        // Nếu menu có permission, check quyền
+        if (item.permission) {
+            return hasPermission(item.permission);
+        }
+        // Nếu không có permission field, luôn hiển thị
+        return true;
+    });
 
     useEffect(() => {
         const currentPath = location.pathname;
@@ -205,7 +227,8 @@ function SchoolSidebar({ collapsed, onToggle, mobileOpen, onCloseMobile }) {
                     '&::-webkit-scrollbar-thumb:hover': { backgroundColor: '#0071BC' },
                 }}
             >
-                {menuItems.map((item) => {
+                {/* ✅ Map qua filteredMenuItems thay vì menuItems */}
+                {filteredMenuItems.map((item) => {
                     const hasChildren = !!item.children;
                     const isActive = isMenuActive(item);
                     return (

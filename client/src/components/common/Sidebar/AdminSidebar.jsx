@@ -16,7 +16,7 @@ import KeyboardDoubleArrowRightOutlinedIcon from '@mui/icons-material/KeyboardDo
 import StorageOutlinedIcon from '@mui/icons-material/StorageOutlined';
 import SwitchAccountOutlinedIcon from '@mui/icons-material/SwitchAccountOutlined';
 import MapsHomeWorkOutlinedIcon from '@mui/icons-material/MapsHomeWorkOutlined';
-import SmartToyOutlinedIcon from '@mui/icons-material/SmartToyOutlined';
+// import SmartToyOutlinedIcon from '@mui/icons-material/SmartToyOutlined';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { useTheme } from '@mui/material/styles';
@@ -27,7 +27,7 @@ const menuItems = [
 
     { text: 'Quản lý trường học', icon: <MapsHomeWorkOutlinedIcon />, path: '/admin/school-management' },
     { text: 'Quản lý người dùng', icon: <SwitchAccountOutlinedIcon />, path: '/admin/users-management' },
-    { text: 'Quản lý AI Chatbot', icon: <SmartToyOutlinedIcon />, path: '/admin/chatbot-management' },
+    // { text: 'Quản lý AI Chatbot', icon: <SmartToyOutlinedIcon />, path: '/admin/chatbot-management' },
     {
         text: 'Ngân hàng dữ liệu',
         icon: <StorageOutlinedIcon />,

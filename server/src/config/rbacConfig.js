@@ -44,6 +44,9 @@ export const PERMISSIONS = {
     CREATE_CLASSROOM: 'create_classroom',
     UPDATE_CLASSROOM: 'update_classroom',
     DELETE_CLASSROOM: 'delete_classroom',
+
+    // Dashboard & cũ (giữ lại để tương thích)
+    VIEW_DASHBOARD: 'view_dashboard',
 };
 
 export const ROLE_PERMISSIONS = {
@@ -60,39 +63,23 @@ export const ROLE_PERMISSIONS = {
         ...Object.values(PERMISSIONS).filter((permission) => !permission.startsWith('admin_')),
     ],
     [ROLES.TO_TRUONG]: [
-        PERMISSIONS.VIEW_USERS,
-        // Xem thông tin nhà trường
+        // PERMISSIONS.VIEW_USERS,
         PERMISSIONS.VIEW_SCHOOL_INFO,
-        // Quản lý năm học (chỉ xem)
         PERMISSIONS.VIEW_ACADEMIC_YEAR,
-        // Quản lý tổ bộ môn (chỉ xem)
         PERMISSIONS.VIEW_DEPARTMENT,
-        // Quản lý lớp học (toàn quyền trong tổ của mình)
         PERMISSIONS.VIEW_CLASSROOM,
         PERMISSIONS.CREATE_CLASSROOM,
         PERMISSIONS.UPDATE_CLASSROOM,
         PERMISSIONS.DELETE_CLASSROOM,
+        PERMISSIONS.VIEW_DASHBOARD,
     ],
     [ROLES.GIAO_VIEN]: [
-        // Xem thông tin nhà trường
         PERMISSIONS.VIEW_SCHOOL_INFO,
-        // Xem thông tin năm học
         PERMISSIONS.VIEW_ACADEMIC_YEAR,
-        // Xem thông tin tổ bộ môn
         PERMISSIONS.VIEW_DEPARTMENT,
-        // Xem thông tin lớp học (chỉ lớp của mình)
         PERMISSIONS.VIEW_CLASSROOM,
+        PERMISSIONS.VIEW_DASHBOARD,
     ],
-    [ROLES.KE_TOAN]: [
-        // Xem thông tin nhà trường
-        PERMISSIONS.VIEW_SCHOOL_INFO,
-        // Xem danh sách lớp học (để quản lý học phí)
-        PERMISSIONS.VIEW_CLASSROOM,
-    ],
-    [ROLES.PHU_HUYNH]: [
-        // Xem thông tin nhà trường
-        PERMISSIONS.VIEW_SCHOOL_INFO,
-        // Chỉ xem thông tin cá nhân của con
-        // Sẽ được handle riêng trong business logic
-    ],
+    [ROLES.KE_TOAN]: [PERMISSIONS.VIEW_SCHOOL_INFO, PERMISSIONS.VIEW_CLASSROOM, PERMISSIONS.VIEW_DASHBOARD],
+    [ROLES.PHU_HUYNH]: [PERMISSIONS.VIEW_SCHOOL_INFO, PERMISSIONS.VIEW_DASHBOARD],
 };

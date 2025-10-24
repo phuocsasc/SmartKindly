@@ -60,7 +60,7 @@ export const ROLE_PERMISSIONS = {
     // tất cả quyền ngoại trừ quyền admin hệ thống
     [ROLES.BAN_GIAM_HIEU]: [...Object.values(PERMISSIONS).filter((permission) => !permission.startsWith('admin_'))],
     [ROLES.TO_TRUONG]: [
-        PERMISSIONS.VIEW_USERS,
+        // PERMISSIONS.VIEW_USERS,
         PERMISSIONS.VIEW_SCHOOL_INFO,
         PERMISSIONS.VIEW_ACADEMIC_YEAR,
         PERMISSIONS.VIEW_DEPARTMENT,

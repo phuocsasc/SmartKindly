@@ -5,6 +5,7 @@ import {
     IconButton,
     Box,
     Chip,
+    Tooltip,
     Menu,
     MenuItem,
     ListItemIcon,
@@ -15,6 +16,7 @@ import LogoutIcon from '@mui/icons-material/Logout';
 import PersonIcon from '@mui/icons-material/Person';
 import AccountCircleIcon from '@mui/icons-material/AccountCircle';
 import LockResetIcon from '@mui/icons-material/LockReset';
+import StarIcon from '@mui/icons-material/Star';
 import { useNavigate } from 'react-router-dom';
 import { useUser } from '~/contexts/UserContext';
 import { ROLE_CONFIG, ROLE_DISPLAY } from '~/config/roleConfig';
@@ -33,6 +35,9 @@ function SchoolHeader({ sidebarCollapsed, onToggleMobileSidebar }) {
     const displayRole = ROLE_DISPLAY[user?.role] || '';
     const roleConfig = ROLE_CONFIG[user?.role] || { color: '#757575', bgColor: '#f5f5f5', icon: PersonIcon };
     const RoleIcon = roleConfig.icon;
+
+    // ✅ Kiểm tra xem có phải BGH Root không
+    const isRoot = user?.role === 'ban_giam_hieu' && user?.isRoot === true;
 
     const handleOpenMenu = (event) => {
         setAnchorEl(event.currentTarget);
@@ -92,57 +97,105 @@ function SchoolHeader({ sidebarCollapsed, onToggleMobileSidebar }) {
 
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                     {/* Desktop Chip - Clickable */}
-                    <Chip
-                        icon={<RoleIcon sx={{ color: `${roleConfig.color} !important`, fontSize: 20 }} />}
-                        label={
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                                <Typography component="span" sx={{ fontWeight: 400, fontSize: 14 }}>
-                                    {displayRole} {' || '}
-                                </Typography>
-                                <Typography component="span" sx={{ fontWeight: 400, fontSize: 14 }}>
-                                    {displayUsername}
-                                </Typography>
-                            </Box>
-                        }
-                        onClick={handleOpenMenu}
-                        sx={{
-                            display: { xs: 'none', sm: 'flex' },
-                            bgcolor: roleConfig.bgColor,
-                            color: roleConfig.color,
-                            fontWeight: 600,
-                            maxWidth: 340,
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                            whiteSpace: 'nowrap',
-                            cursor: 'pointer',
-                            '&:hover': {
-                                opacity: 0.8,
-                            },
-                            '& .MuiChip-icon': {
-                                marginLeft: '8px',
-                            },
-                        }}
-                    />
+                    <Tooltip title={isRoot ? 'Ban giám hiệu Root - Quyền cao nhất trong trường' : ''} arrow>
+                        <Box sx={{ position: 'relative', display: { xs: 'none', sm: 'inline-block' } }}>
+                            <Chip
+                                icon={<RoleIcon sx={{ color: `${roleConfig.color} !important`, fontSize: 20 }} />}
+                                label={
+                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                                        <Typography component="span" sx={{ fontWeight: 400, fontSize: 14 }}>
+                                            {displayRole} {' || '}
+                                        </Typography>
+                                        <Typography component="span" sx={{ fontWeight: 400, fontSize: 14 }}>
+                                            {displayUsername}
+                                        </Typography>
+                                    </Box>
+                                }
+                                onClick={handleOpenMenu}
+                                sx={{
+                                    bgcolor: roleConfig.bgColor,
+                                    color: roleConfig.color,
+                                    fontWeight: 600,
+                                    maxWidth: 340,
+                                    overflow: 'hidden',
+                                    textOverflow: 'ellipsis',
+                                    whiteSpace: 'nowrap',
+                                    cursor: 'pointer',
+                                    // ✅ Thêm border vàng nếu là Root
+                                    border: isRoot ? '2px solid #FFD700' : `1px solid ${roleConfig.color}`,
+                                    boxShadow: isRoot ? '0 0 8px rgba(255, 215, 0, 0.4)' : 'none',
+                                    transition: 'all 0.3s ease',
+                                    '&:hover': {
+                                        opacity: 0.8,
+                                        boxShadow: isRoot ? '0 0 12px rgba(255, 215, 0, 0.6)' : 'none',
+                                    },
+                                    '& .MuiChip-icon': {
+                                        marginLeft: '8px',
+                                    },
+                                }}
+                            />
+
+                            {/* ✅ Ngôi sao vàng cho Root */}
+                            {isRoot && (
+                                <StarIcon
+                                    sx={{
+                                        position: 'absolute',
+                                        top: -6,
+                                        right: -6,
+                                        fontSize: 16,
+                                        color: '#FFD700',
+                                        filter: 'drop-shadow(0 0 3px rgba(255, 215, 0, 0.8))',
+                                        transform: 'rotate(-15deg)',
+                                        pointerEvents: 'none', // ✅ Không cản click vào chip
+                                    }}
+                                />
+                            )}
+                        </Box>
+                    </Tooltip>
 
                     {/* Mobile Chip - Clickable */}
-                    <Chip
-                        icon={<RoleIcon sx={{ color: `${roleConfig.color} !important`, fontSize: 18 }} />}
-                        label={displayUsername}
-                        onClick={handleOpenMenu}
-                        sx={{
-                            display: { xs: 'flex', sm: 'none' },
-                            bgcolor: roleConfig.bgColor,
-                            color: roleConfig.color,
-                            fontWeight: 600,
-                            cursor: 'pointer',
-                            '&:hover': {
-                                opacity: 0.8,
-                            },
-                            '& .MuiChip-icon': {
-                                marginLeft: '8px',
-                            },
-                        }}
-                    />
+                    <Tooltip title={isRoot ? 'Ban giám hiệu Root - Quyền cao nhất trong trường' : ''} arrow>
+                        <Box sx={{ position: 'relative', display: { xs: 'inline-block', sm: 'none' } }}>
+                            <Chip
+                                icon={<RoleIcon sx={{ color: `${roleConfig.color} !important`, fontSize: 18 }} />}
+                                label={displayUsername}
+                                onClick={handleOpenMenu}
+                                sx={{
+                                    bgcolor: roleConfig.bgColor,
+                                    color: roleConfig.color,
+                                    fontWeight: 600,
+                                    cursor: 'pointer',
+                                    // ✅ Thêm border vàng nếu là Root
+                                    border: isRoot ? '2px solid #FFD700' : `1px solid ${roleConfig.color}`,
+                                    boxShadow: isRoot ? '0 0 8px rgba(255, 215, 0, 0.4)' : 'none',
+                                    transition: 'all 0.3s ease',
+                                    '&:hover': {
+                                        opacity: 0.8,
+                                        boxShadow: isRoot ? '0 0 12px rgba(255, 215, 0, 0.6)' : 'none',
+                                    },
+                                    '& .MuiChip-icon': {
+                                        marginLeft: '8px',
+                                    },
+                                }}
+                            />
+
+                            {/* ✅ Ngôi sao vàng cho Root (Mobile) */}
+                            {isRoot && (
+                                <StarIcon
+                                    sx={{
+                                        position: 'absolute',
+                                        top: -6,
+                                        right: -6,
+                                        fontSize: 16,
+                                        color: '#FFD700',
+                                        filter: 'drop-shadow(0 0 3px rgba(255, 215, 0, 0.8))',
+                                        transform: 'rotate(-15deg)',
+                                        pointerEvents: 'none',
+                                    }}
+                                />
+                            )}
+                        </Box>
+                    </Tooltip>
 
                     {/* Menu */}
                     <Menu

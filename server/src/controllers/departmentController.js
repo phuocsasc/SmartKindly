@@ -68,7 +68,7 @@ const deleteDepartment = async (req, res, next) => {
 const getAvailableManagers = async (req, res, next) => {
     try {
         const userId = req.jwtDecoded.id;
-        const { departmentName } = req.query;
+        const { departmentName, academicYearId, currentDepartmentId } = req.query; // ✅ Thêm currentDepartmentId
 
         if (!departmentName) {
             return res.status(StatusCodes.BAD_REQUEST).json({
@@ -76,7 +76,18 @@ const getAvailableManagers = async (req, res, next) => {
             });
         }
 
-        const result = await departmentServices.getAvailableManagers(departmentName, userId);
+        if (!academicYearId) {
+            return res.status(StatusCodes.BAD_REQUEST).json({
+                message: 'Năm học là bắt buộc',
+            });
+        }
+
+        const result = await departmentServices.getAvailableManagers(
+            departmentName,
+            academicYearId,
+            userId,
+            currentDepartmentId, // ✅ Truyền thêm currentDepartmentId
+        );
         res.status(StatusCodes.OK).json({
             message: 'Lấy danh sách cán bộ thành công!',
             data: result,

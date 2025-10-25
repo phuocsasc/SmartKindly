@@ -84,6 +84,40 @@ const createNew = async (data, userId) => {
             );
         }
 
+        // ✅ LOGIC MỚI: Kiểm tra cán bộ đã thuộc tổ bộ môn khác trong năm học này chưa
+        const existingDepartments = await DepartmentModel.find({
+            schoolId,
+            academicYearId: data.academicYearId,
+            _destroy: false,
+            managers: { $in: data.managers }, // Tìm các department có chứa bất kỳ manager nào trong danh sách
+        }).populate('managers', 'fullName');
+
+        if (existingDepartments.length > 0) {
+            // Lấy danh sách cán bộ bị trùng
+            const duplicateManagers = [];
+
+            existingDepartments.forEach((dept) => {
+                dept.managers.forEach((manager) => {
+                    if (data.managers.includes(manager._id.toString())) {
+                        duplicateManagers.push({
+                            name: manager.fullName,
+                            departmentName: dept.name,
+                        });
+                    }
+                });
+            });
+
+            // Tạo thông báo lỗi chi tiết
+            const errorMessages = duplicateManagers.map(
+                (dm) => `"${dm.name}" đã thuộc tổ bộ môn "${dm.departmentName}"`,
+            );
+
+            throw new ApiError(
+                StatusCodes.CONFLICT,
+                `Không thể thêm cán bộ vì: ${errorMessages.join(', ')}. Mỗi cán bộ chỉ được thuộc 1 tổ bộ môn trong năm học.`,
+            );
+        }
+
         // ✅ Tạo departmentId tự động
         const departmentId = await DepartmentModel.generateDepartmentId();
 
@@ -268,6 +302,53 @@ const update = async (id, data, userId) => {
                     `Cán bộ "${invalidNames}" không phù hợp với vai trò của tổ bộ môn "${departmentName}". Chỉ chấp nhận vai trò: ${allowedRoles.join(', ')}`,
                 );
             }
+
+            // ✅ LOGIC MỚI: Chỉ kiểm tra cán bộ MỚI THÊM VÀO (không nằm trong danh sách cũ)
+            const oldManagerIds = department.managers.map((m) => m.toString());
+            const newManagerIds = data.managers.filter((managerId) => !oldManagerIds.includes(managerId));
+
+            console.log('🔍 [Department update] Manager comparison:', {
+                oldManagers: oldManagerIds,
+                newManagers: data.managers,
+                addedManagers: newManagerIds,
+            });
+
+            // ✅ Chỉ kiểm tra duplicate cho các cán bộ MỚI thêm vào
+            if (newManagerIds.length > 0) {
+                const existingDepartments = await DepartmentModel.find({
+                    schoolId: user.schoolId,
+                    academicYearId: department.academicYearId._id,
+                    _id: { $ne: id }, // ✅ Loại trừ tổ bộ môn đang update
+                    _destroy: false,
+                    managers: { $in: newManagerIds }, // ✅ Chỉ kiểm tra các cán bộ MỚI
+                }).populate('managers', 'fullName');
+
+                if (existingDepartments.length > 0) {
+                    const duplicateManagers = [];
+
+                    existingDepartments.forEach((dept) => {
+                        dept.managers.forEach((manager) => {
+                            if (newManagerIds.includes(manager._id.toString())) {
+                                duplicateManagers.push({
+                                    name: manager.fullName,
+                                    departmentName: dept.name,
+                                });
+                            }
+                        });
+                    });
+
+                    if (duplicateManagers.length > 0) {
+                        const errorMessages = duplicateManagers.map(
+                            (dm) => `"${dm.name}" đã thuộc tổ bộ môn "${dm.departmentName}"`,
+                        );
+
+                        throw new ApiError(
+                            StatusCodes.CONFLICT,
+                            `Không thể cập nhật vì: ${errorMessages.join(', ')}. Mỗi cán bộ chỉ được thuộc 1 tổ bộ môn trong năm học.`,
+                        );
+                    }
+                }
+            }
         }
 
         // ✅ Cập nhật
@@ -322,7 +403,7 @@ const deleteDepartment = async (id, userId) => {
 };
 
 // ✅ API lấy danh sách cán bộ theo tên tổ bộ môn
-const getAvailableManagers = async (departmentName, userId) => {
+const getAvailableManagers = async (departmentName, academicYearId, userId, currentDepartmentId = null) => {
     try {
         const user = await UserModel.findById(userId).select('schoolId');
         if (!user || !user.schoolId) {
@@ -337,14 +418,43 @@ const getAvailableManagers = async (departmentName, userId) => {
         }
 
         // ✅ Lấy danh sách user phù hợp
-        const managers = await UserModel.find({
+        const allManagers = await UserModel.find({
             schoolId: user.schoolId,
             role: { $in: allowedRoles },
             status: true, // Chỉ lấy user đang kích hoạt
             _destroy: false,
         }).select('fullName username role email phone');
 
-        return managers;
+        // ✅ LOGIC MỚI: Lấy danh sách cán bộ đã được chọn trong các tổ bộ môn KHÁC (không bao gồm tổ bộ môn hiện tại)
+        const filter = {
+            schoolId: user.schoolId,
+            academicYearId,
+            _destroy: false,
+        };
+
+        // ✅ Nếu đang update (có currentDepartmentId), loại trừ tổ bộ môn hiện tại
+        if (currentDepartmentId) {
+            filter._id = { $ne: currentDepartmentId };
+        }
+
+        const assignedDepartments = await DepartmentModel.find(filter).select('managers');
+
+        // Tạo Set các manager ID đã được assign cho tổ bộ môn KHÁC
+        const assignedManagerIds = new Set();
+        assignedDepartments.forEach((dept) => {
+            dept.managers.forEach((managerId) => {
+                assignedManagerIds.add(managerId.toString());
+            });
+        });
+
+        // ✅ Lọc ra các manager chưa được assign HOẶC đang thuộc tổ bộ môn hiện tại
+        const availableManagers = allManagers.filter((manager) => !assignedManagerIds.has(manager._id.toString()));
+
+        console.log(
+            `📊 [getAvailableManagers] Total: ${allManagers.length}, Assigned to others: ${assignedManagerIds.size}, Available: ${availableManagers.length}`,
+        );
+
+        return availableManagers;
     } catch (error) {
         if (error instanceof ApiError) throw error;
         throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, 'Lỗi khi lấy danh sách cán bộ');

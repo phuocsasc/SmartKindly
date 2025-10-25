@@ -36,6 +36,7 @@ export const UserProvider = ({ children }) => {
                 isRoot: userData.isRoot || false,
                 schoolId: userData.schoolId, // ✅ Lấy từ server
                 schoolName: userData.school?.name || null, // ✅ Lấy từ server
+                status: userData.status,
             };
 
             setUser(fullUserInfo);

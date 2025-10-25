@@ -30,10 +30,10 @@ export const departmentApi = {
         return await authorizedAxiosInstance.delete(`${API_ROOT}/v1/departments/${id}`);
     },
 
-    // Lấy danh sách cán bộ có thể chọn theo tên tổ bộ môn
-    getAvailableManagers: async (departmentName) => {
+    // Lấy danh sách cán bộ có thể chọn theo tên tổ bộ môn và năm học
+    getAvailableManagers: async (departmentName, academicYearId, currentDepartmentId = null) => {
         return await authorizedAxiosInstance.get(`${API_ROOT}/v1/departments/available-managers`, {
-            params: { departmentName },
+            params: { departmentName, academicYearId, currentDepartmentId },
         });
     },
 };

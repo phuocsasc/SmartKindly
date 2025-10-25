@@ -76,7 +76,9 @@ function DepartmentDialog({ open, mode, department, academicYearId, onClose, onS
     const fetchAvailableManagers = async (departmentName) => {
         try {
             setLoadingManagers(true);
-            const res = await departmentApi.getAvailableManagers(departmentName);
+            // ✅ Truyền thêm currentDepartmentId khi ở chế độ edit
+            const currentDepartmentId = mode === 'edit' && department ? department._id : null;
+            const res = await departmentApi.getAvailableManagers(departmentName, academicYearId, currentDepartmentId);
             setAvailableManagers(res.data.data);
         } catch (error) {
             console.error('Error fetching managers:', error);

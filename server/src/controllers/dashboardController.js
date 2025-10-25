@@ -8,6 +8,10 @@ const access = async (req, res) => {
             username: req.jwtDecoded.username,
             fullName: req.jwtDecoded.fullName,
             role: req.jwtDecoded.role,
+            isRoot: req.jwtDecoded.isRoot || false,
+            schoolId: req.jwtDecoded.schoolId,
+            schoolName: req.jwtDecoded.schoolName,
+            status: req.jwtDecoded.status,
         };
 
         res.status(StatusCodes.OK).json(userInfo);

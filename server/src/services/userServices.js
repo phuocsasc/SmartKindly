@@ -6,7 +6,7 @@ import ApiError from '~/utils/ApiError';
 import { StatusCodes } from 'http-status-codes';
 import { JwtProvider } from '~/providers/JwtProvider';
 import { env } from '~/config/environment';
-import { OtpModel } from '~/models/OtpModel';
+import { OtpModel } from '~/models/otpModel';
 import { ResendProvider } from '~/providers/ResendProvider';
 
 const login = async (data) => {
@@ -50,11 +50,9 @@ const login = async (data) => {
         // ✅ Bước 5: Tạo JWT token
         const userInfo = {
             id: user._id,
-            userId: user.userId,
+            // userId: user.userId,
             username: user.username,
             fullName: user.fullName,
-            email: user.email,
-            phone: user.phone,
             role: user.role,
             isRoot: user.isRoot || false, // ✅ Thêm isRoot vào đây
             schoolId: user.schoolId,
@@ -106,6 +104,10 @@ const refreshToken = async (refreshToken) => {
             username: decoded.username,
             fullName: decoded.fullName,
             role: decoded.role,
+            isRoot: decoded.isRoot || false,
+            schoolId: decoded.schoolId,
+            schoolName: decoded.schoolName,
+            status: decoded.status,
         };
 
         // Tạo access token mới

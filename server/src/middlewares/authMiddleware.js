@@ -1,6 +1,7 @@
 import { StatusCodes } from 'http-status-codes';
 import { JwtProvider } from '~/providers/JwtProvider';
 import dotenv from 'dotenv';
+import { UserModel } from '~/models/userModel';
 dotenv.config();
 
 // Middleware này sẽ đảm nhiệm việc quan trọng: Lấy và xác thực cái JWT accessToken nhận được từ phía FE có hơp lệ hay không
@@ -21,9 +22,21 @@ const isAuthorized = async (req, res, next) => {
         );
         // console.log('accessTokenDecoded: ', accessTokenDecoded);
 
+        // 🔍 Đảm bảo lấy thông tin user mới nhất từ DB
+        const dbUser = await UserModel.findById(accessTokenDecoded.id).select('schoolId role isRoot');
+        if (!dbUser) {
+            return res.status(StatusCodes.UNAUTHORIZED).json({ message: 'Người dùng không tồn tại hoặc đã bị xóa' });
+        }
+
+        // ✅ Gộp thông tin token + DB (ưu tiên DB)
         // Bước 02: Quan trọng: Nếu như token hợp lệ, thì sẽ cần phải lưu thông tin giải mã được
         // vào cái req.jwtDecoded, để sử dụng cho các tầng cần xử lý ở phía sau
-        req.jwtDecoded = accessTokenDecoded;
+        req.jwtDecoded = {
+            ...accessTokenDecoded,
+            schoolId: dbUser.schoolId,
+            role: dbUser.role,
+            isRoot: dbUser.isRoot,
+        };
 
         // Bước 03: cho phép cải request đi tiếp
         next();

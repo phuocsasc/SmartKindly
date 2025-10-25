@@ -17,6 +17,7 @@ import StorageOutlinedIcon from '@mui/icons-material/StorageOutlined';
 import AddCircleOutlineOutlinedIcon from '@mui/icons-material/AddCircleOutlineOutlined';
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
 import DeleteOutlineOutlinedIcon from '@mui/icons-material/DeleteOutlineOutlined';
+import DoneOutlinedIcon from '@mui/icons-material/DoneOutlined';
 import { useEffect, useState } from 'react';
 import MainLayout from '~/layouts/SchoolLayout';
 import PageContainer from '~/components/common/PageContainer';
@@ -158,40 +159,71 @@ function Department() {
 
     // Columns
     const columns = [
-        { field: 'stt', headerName: 'STT', width: 60, sortable: false },
+        { field: 'stt', headerName: 'STT', width: 40, sortable: false },
         {
             field: 'name',
             headerName: 'Tên tổ bộ môn',
-            flex: 1.5,
-            minWidth: 180,
+            flex: 1,
+            minWidth: 150,
             sortable: false,
             renderCell: (params) => (
-                <Chip
-                    label={params.value}
-                    size="small"
+                <Typography
                     sx={{
-                        fontWeight: 600,
-                        bgcolor: '#e3f2fd',
-                        color: '#1976d2',
+                        fontWeight: 500,
+                        color: '#000',
+                        whiteSpace: 'normal',
+                        wordBreak: 'break-word',
                     }}
-                />
+                >
+                    {params.value}
+                </Typography>
             ),
         },
         {
             field: 'managersDisplay',
             headerName: 'Cán bộ quản lý',
-            flex: 2,
+            flex: 1.5,
             minWidth: 200,
             sortable: false,
+            renderCell: (params) => (
+                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                    {params.row.managers?.length ? (
+                        params.row.managers.map((m) => (
+                            <Chip
+                                key={m._id}
+                                label={m.fullName}
+                                size="small"
+                                sx={{
+                                    bgcolor: '#e0e0e0',
+                                    color: '#000',
+                                    fontSize: '0.75rem',
+                                    fontWeight: 500,
+                                }}
+                            />
+                        ))
+                    ) : (
+                        <Typography variant="body2" color="text.secondary">
+                            Chưa có
+                        </Typography>
+                    )}
+                </Box>
+            ),
         },
         {
             field: 'note',
             headerName: 'Ghi chú',
-            flex: 1.5,
+            flex: 2.0,
             minWidth: 150,
             sortable: false,
             renderCell: (params) => (
-                <Typography variant="body2" color="text.secondary" noWrap>
+                <Typography
+                    variant="body2"
+                    color="text.primary" // ✅ màu đen bình thường
+                    sx={{
+                        whiteSpace: 'normal',
+                        wordBreak: 'break-word',
+                    }}
+                >
                     {params.value || '---'}
                 </Typography>
             ),
@@ -199,10 +231,9 @@ function Department() {
         {
             field: 'actions',
             headerName: 'Thao tác',
-            flex: 0.8,
+            flex: 0.5,
             minWidth: 100,
             sortable: false,
-            filterable: false,
             disableColumnMenu: true,
             renderCell: (params) => {
                 const canUpdate = hasPermission(PERMISSIONS.UPDATE_DEPARTMENT);
@@ -217,20 +248,14 @@ function Department() {
                                     color="primary"
                                     size="small"
                                     onClick={() => handleEdit(params.row)}
-                                    sx={{
-                                        opacity: isActiveYear ? 1 : 0.5,
-                                    }}
+                                    sx={{ opacity: isActiveYear ? 1 : 0.5 }}
                                 >
                                     <EditOutlinedIcon />
                                 </IconButton>
                             </Tooltip>
                         )}
                         {canDelete && (
-                            <Tooltip
-                                title={
-                                    isActiveYear ? 'Xóa tổ bộ môn' : 'Không thể xóa tổ bộ môn của năm học đã kết thúc'
-                                }
-                            >
+                            <Tooltip title={isActiveYear ? 'Xóa' : 'Không thể xóa'}>
                                 <span>
                                     <IconButton
                                         color="error"
@@ -282,7 +307,7 @@ function Department() {
                             />
 
                             {/* Chọn năm học */}
-                            <FormControl size="small" sx={{ minWidth: { xs: '48%', sm: 200 } }}>
+                            <FormControl size="small" sx={{ minWidth: { xs: '48%', sm: 100 } }}>
                                 <InputLabel>Năm học</InputLabel>
                                 <Select
                                     value={selectedYear}
@@ -303,7 +328,7 @@ function Department() {
                                                     {year.fromYear}-{year.toYear}
                                                 </Typography>
                                                 {year.status === 'active' && (
-                                                    <Chip label="Đang hoạt động" color="success" size="small" />
+                                                    <DoneOutlinedIcon color="success" size="small" />
                                                 )}
                                             </Box>
                                         </MenuItem>
@@ -351,11 +376,11 @@ function Department() {
                             <Typography variant="body2" color={isActiveYear ? 'success.main' : 'warning.main'}>
                                 {isActiveYear ? (
                                     <>
-                                        📌 <strong>Năm học đang hoạt động:</strong> Bạn có thể thêm, sửa, xóa tổ bộ môn.
+                                        <strong>Năm học đang hoạt động</strong>
                                     </>
                                 ) : (
                                     <>
-                                        👁️ <strong>Chế độ xem:</strong> Năm học đã kết thúc, chỉ được xem dữ liệu.
+                                        <strong>Năm học đã kết thúc</strong>
                                     </>
                                 )}
                             </Typography>
@@ -376,12 +401,39 @@ function Department() {
                         pageSizeOptions={[5, 10, 20, 50]}
                         autoHeight
                         sx={{
-                            '& .MuiDataGrid-columnHeader .MuiDataGrid-sortIcon': {
-                                display: 'none',
+                            // 💠 HEADER STYLE
+                            '& .MuiDataGrid-columnHeaders': {
+                                backgroundColor: '#e3f2fd', // ✅ xanh biển nhạt
+                                color: '#1976d2', // ✅ chữ xanh đậm
+                                fontWeight: 900,
+                                borderBottom: '2px solid #bbdefb', // ✅ viền dưới header
                             },
+                            '& .MuiDataGrid-columnHeader': {
+                                borderRight: '1px solid #bbdefb', // ✅ đường kẻ giữa các cột header
+                                textAlign: 'center',
+                            },
+
+                            // 💠 BODY STYLE
                             '& .MuiDataGrid-cell': {
-                                borderBottom: '1px solid #f0f0f0',
+                                borderRight: '1px solid #e0e0e0', // ✅ đường kẻ giữa các cột body
+                                borderBottom: '1px solid #f0f0f0', // ✅ đường kẻ ngang
+                                alignItems: 'center',
+                                whiteSpace: 'normal',
+                                wordBreak: 'break-word',
+                                color: '#000',
                             },
+                            '& .MuiDataGrid-cell:focus, & .MuiDataGrid-cell:focus-within': {
+                                outline: 'none', // ✅ bỏ border khi click
+                            },
+
+                            // 💠 ROW HOVER (nếu muốn)
+                            '& .MuiDataGrid-row:hover': {
+                                backgroundColor: '#f5faff',
+                            },
+
+                            // 💠 BO GÓC NHẸ, BÓNG NHẸ
+                            borderRadius: 2,
+                            boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
                         }}
                         slots={{
                             noRowsOverlay: () => (

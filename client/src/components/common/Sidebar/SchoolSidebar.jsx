@@ -53,7 +53,7 @@ const menuItems = [
         icon: <PeopleIcon />,
         children: [
             { text: 'Hồ sơ cán bộ', path: '/staff/profile' },
-            { text: 'Phân công phụ trách', path: '/staff/assignment' },
+            // { text: 'Phân công phụ trách', path: '/staff/assignment' },
             { text: 'Đánh giá xếp loại', path: '/staff/evaluation' },
             { text: 'Danh hiệu thi đua', path: '/staff/reward' },
         ],
@@ -73,11 +73,11 @@ const menuItems = [
         text: 'Kế hoạch giáo dục',
         icon: <HistoryEduOutlinedIcon />,
         children: [
-            { text: 'Mục tiêu năm học nhà trường theo từng độ tuổi', path: '/edu-plan/year-target' },
-            { text: 'Kế hoạch giáo dục theo chủ đề/tuần/tháng', path: '/edu-plan/theme-plan' },
+            { text: 'Mục tiêu năm học theo từng độ tuổi', path: '/edu-plan/year-target' },
+            { text: 'Kế hoạch giáo dục theo chủ đề/ tuần/ tháng', path: '/edu-plan/theme-plan' },
             { text: 'Thời khóa biểu', path: '/edu-plan/schedule' },
-            { text: 'Các chủ đề/sự kiện', path: '/edu-plan/events' },
-            { text: 'Nội dung - hoạt động giáo dục', path: '/edu-plan/activities' },
+            { text: 'Các chủ đề/ sự kiện', path: '/edu-plan/events' },
+            { text: 'Nội dung/ hoạt động giáo dục', path: '/edu-plan/activities' },
         ],
     },
     {

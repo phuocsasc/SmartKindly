@@ -2,9 +2,8 @@ import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import Button from '@mui/material/Button';
 import HomeIcon from '@mui/icons-material/Home';
-import PlanetSvg from '~/assets/planet.svg';
-import AstronautSvg from '~/assets/astronaut.svg';
-import ParticlesBackground from '~/assets/pngtree-starry-sky-white-blue-stars.jpg';
+import PlanetSvg from '~/assets/Logo_chinh_tach_nen.png';
+import ParticlesBackground from '~/assets/anhnen404.png';
 import { useUser } from '~/contexts/UserContext';
 import { useNavigate } from 'react-router-dom';
 
@@ -33,17 +32,17 @@ function NotFound() {
         >
             <Box
                 sx={{
-                    '@keyframes stars': {
-                        '0%': { backgroundPosition: '-100% 100%' },
-                        '100%': { backgroundPosition: '0 0' },
+                    '@keyframes moveBg': {
+                        '0%': { backgroundPositionX: '0%' },
+                        '100%': { backgroundPositionX: '100%' },
                     },
-                    animation: 'stars 8s linear infinite alternate',
+                    animation: 'moveBg 3s linear infinite alternate', // thời gian càng dài càng mượt
                     width: '100%',
                     height: '100%',
                     backgroundImage: `url(${ParticlesBackground})`,
-                    backgroundSize: 'contain',
-                    backgroundRepeat: 'repeat',
-                    backgroundPosition: 'center',
+                    backgroundRepeat: 'no-repeat',
+                    backgroundSize: 'cover', // ✅ full màn hình, không bị cắt
+                    backgroundPosition: 'center center', // canh giữa
                     display: 'flex',
                     flexDirection: 'column',
                     alignItems: 'center',
@@ -53,7 +52,7 @@ function NotFound() {
                 <Typography
                     variant="h1"
                     tabIndex={-1}
-                    sx={{ fontSize: '100px', fontWeight: 800, outline: 'none', userSelect: 'none' }}
+                    sx={{ fontSize: '140px', fontWeight: 800, outline: 'none', userSelect: 'none', color: '#b30f00ff' }}
                 >
                     404
                 </Typography>
@@ -63,53 +62,37 @@ function NotFound() {
                     sx={{
                         fontSize: '18px !important',
                         lineHeight: '25px',
-                        fontWeight: 400,
+                        fontWeight: 600,
                         maxWidth: '350px',
                         textAlign: 'center',
                         outline: 'none',
                         userSelect: 'none',
+                        color: '#0071bd',
                     }}
                 >
-                    LẠC TRONG&nbsp;
-                    <Typography
-                        component="span"
-                        tabIndex={-1}
-                        sx={{ color: '#fdba26', fontWeight: 500, outline: 'none', userSelect: 'none' }}
-                    >
-                        KHÔNG GIAN
-                    </Typography>
+                    TRANG NÀY KHÔNG TỒN TẠI!
                 </Typography>
 
-                <Typography tabIndex={-1} sx={{ outline: 'none', userSelect: 'none' }}>
-                    ? Hmm, trang này không tồn tại nhen bồ tèo.
-                </Typography>
-
-                <Box sx={{ width: '390px', height: '390px', position: 'relative' }}>
+                <Box
+                    sx={{
+                        width: '390px',
+                        height: '390px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        mt: -5,
+                    }}
+                >
                     <Box
                         component="img"
                         tabIndex={-1}
                         sx={{
-                            width: '50px',
-                            height: '50px',
-                            position: 'absolute',
-                            top: '20px',
-                            right: '25px',
                             outline: 'none',
                             userSelect: 'none',
                             pointerEvents: 'none',
-                            '@keyframes spinAround': {
-                                from: { transform: 'rotate(0deg)' },
-                                to: { transform: 'rotate(360deg)' },
-                            },
-                            animation: 'spinAround 5s linear 0s infinite',
+                            width: '290px',
+                            height: '290px',
                         }}
-                        src={AstronautSvg}
-                        alt="cover-phuocdev-mot-lap-trinh-vien"
-                    />
-                    <Box
-                        component="img"
-                        tabIndex={-1}
-                        sx={{ outline: 'none', userSelect: 'none', pointerEvents: 'none' }}
                         src={PlanetSvg}
                         alt="cover-phuocdev-mot-lap-trinh-vien"
                     />
@@ -121,13 +104,15 @@ function NotFound() {
                     onClick={handleGoHome}
                     disableRipple
                     sx={{
+                        mt: -5,
                         display: 'flex',
                         alignItems: 'center',
+                        backgroundColor: '#0071bd',
                         color: 'white',
                         borderColor: 'white',
                         outline: 'none',
                         '&:focus': { outline: 'none' },
-                        '&:hover': { color: '#fdba26', borderColor: '#fdba26' },
+                        '&:hover': { color: '#fdba26', backgroundColor: '#0071bdff', borderColor: '#fdba26' },
                     }}
                 >
                     Về trang chủ

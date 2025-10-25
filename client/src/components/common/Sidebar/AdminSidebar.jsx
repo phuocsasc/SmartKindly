@@ -34,7 +34,7 @@ const menuItems = [
         children: [
             { text: 'Mục tiêu năm học', path: '/admin/edu-plan/year-target' },
             { text: 'Kế hoạch giáo dục', path: '/admin/edu-plan/theme-plan' },
-            { text: 'Chủ đề/ sự kiện', path: '/admin/edu-plan/events' },
+            // { text: 'Chủ đề/ sự kiện', path: '/admin/edu-plan/events' },
         ],
     },
 ];

@@ -19,6 +19,7 @@ import ReceiptLongIcon from '@mui/icons-material/ReceiptLong';
 import SchoolIcon from '@mui/icons-material/School';
 import NotificationsNoneIcon from '@mui/icons-material/NotificationsNone';
 import MainLayout from '~/layouts/SchoolLayout';
+import PageContainer from '~/components/common/PageContainer';
 import { useUser } from '~/contexts/UserContext';
 
 function StatCard({ title, value, deltaText, icon, color = 'primary' }) {
@@ -47,19 +48,7 @@ export default function Dashboard() {
 
     return (
         <MainLayout user={user}>
-            {/* Container co giãn mềm, căn giữa – giống Material UI Container */}
-            <Box
-                sx={{
-                    width: '100%',
-                    maxWidth: 1400,
-                    mx: 'auto',
-                    px: { xs: 1.5, sm: 2.5, md: 3 },
-                    py: { xs: 1.5, sm: 1 },
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: 2,
-                }}
-            >
+            <PageContainer>
                 {/* Header khu vực trang */}
                 <Box
                     sx={{
@@ -74,12 +63,6 @@ export default function Dashboard() {
                         <Typography variant="h5" sx={{ fontWeight: 700 }}>
                             Tổng quan nhà trường
                         </Typography>
-                        {/* <Chip
-                            label={`Xin chào, ${user?.fullName || user?.username || 'Guest'}`}
-                            size="small"
-                            color="primary"
-                            variant="soft"
-                        /> */}
                     </Box>
                 </Box>
 
@@ -236,7 +219,7 @@ export default function Dashboard() {
                         </Grid>
                     </CardContent>
                 </Card>
-            </Box>
+            </PageContainer>
         </MainLayout>
     );
 }

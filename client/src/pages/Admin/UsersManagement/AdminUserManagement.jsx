@@ -603,17 +603,39 @@ function AdminUserManagement() {
                         pageSizeOptions={[5, 10, 20, 50]}
                         autoHeight
                         sx={{
-                            '& .MuiDataGrid-columnHeader .MuiDataGrid-sortIcon': {
-                                display: 'none',
+                            // 💠 HEADER STYLE
+                            '& .MuiDataGrid-columnHeaders': {
+                                backgroundColor: '#e3f2fd', // ✅ xanh biển nhạt
+                                color: '#1976d2', // ✅ chữ xanh đậm
+                                fontWeight: 900,
+                                borderBottom: '2px solid #bbdefb', // ✅ viền dưới header
                             },
-                            '& .MuiDataGrid-columnHeader:focus, & .MuiDataGrid-columnHeader:focus-within': {
-                                outline: 'none',
+                            '& .MuiDataGrid-columnHeader': {
+                                borderRight: '1px solid #bbdefb', // ✅ đường kẻ giữa các cột header
+                                textAlign: 'center',
                             },
-                            '& .MuiDataGrid-row:hover': { cursor: 'pointer', backgroundColor: '#f5f5f5' },
+
+                            // 💠 BODY STYLE
+                            '& .MuiDataGrid-cell': {
+                                borderRight: '1px solid #e0e0e0', // ✅ đường kẻ giữa các cột body
+                                borderBottom: '1px solid #f0f0f0', // ✅ đường kẻ ngang
+                                alignItems: 'center',
+                                whiteSpace: 'normal',
+                                wordBreak: 'break-word',
+                                color: '#000',
+                            },
                             '& .MuiDataGrid-cell:focus, & .MuiDataGrid-cell:focus-within': {
-                                outline: 'none !important',
+                                outline: 'none', // ✅ bỏ border khi click
                             },
-                            '& .MuiDataGrid-columnHeaders': { backgroundColor: '#e3f2fd', fontWeight: 'bold' },
+
+                            // 💠 ROW HOVER (nếu muốn)
+                            '& .MuiDataGrid-row:hover': {
+                                backgroundColor: '#f5faff',
+                            },
+
+                            // 💠 BO GÓC NHẸ, BÓNG NHẸ
+                            borderRadius: 2,
+                            boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
                         }}
                         slots={{
                             noRowsOverlay: () => (

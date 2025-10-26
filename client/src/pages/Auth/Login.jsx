@@ -75,7 +75,7 @@ function Login() {
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                backgroundImage: 'url("/src/assets/anh_nen_dang_nhap.png")',
+                backgroundImage: 'url("/src/assets/anh_nen_dang_nhap-2.png")',
                 backgroundSize: 'cover',
                 backgroundPosition: 'center',
                 backgroundRepeat: 'no-repeat',

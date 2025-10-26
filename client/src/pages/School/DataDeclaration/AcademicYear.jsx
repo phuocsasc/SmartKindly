@@ -190,6 +190,8 @@ function AcademicYear() {
             flex: 0.8,
             minWidth: 100,
             sortable: false,
+            headerAlign: 'center',
+            align: 'center',
             renderCell: (params) => {
                 const statusConfig = {
                     active: { label: 'Đang hoạt động', color: 'success' },
@@ -206,6 +208,8 @@ function AcademicYear() {
             flex: 0.8,
             minWidth: 100,
             sortable: false,
+            headerAlign: 'center',
+            align: 'center',
             renderCell: (params) => {
                 return params.value ? (
                     <Chip icon={<CheckCircleIcon />} label="Đã cấu hình" color="info" size="small" />
@@ -289,7 +293,33 @@ function AcademicYear() {
                             Danh sách năm học
                         </Typography>
 
-                        <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', flexWrap: 'wrap' }}>
+                        <Box
+                            sx={{
+                                display: 'flex',
+                                gap: 1,
+                                alignItems: 'center',
+                                flexWrap: 'wrap',
+                                '& .MuiOutlinedInput-root': {
+                                    borderRadius: 1.5,
+
+                                    // ✅ Khi hover viền sáng màu xanh nhạt
+                                    '&:hover fieldset': {
+                                        borderColor: '#0071bc',
+                                    },
+
+                                    // ✅ Khi focus viền đậm màu xanh biển
+                                    '&.Mui-focused fieldset': {
+                                        borderColor: '#0071bc',
+                                        borderWidth: 2,
+                                    },
+                                },
+
+                                // ✅ Đổi màu label khi focus
+                                '& label.Mui-focused': {
+                                    color: '#0071bc',
+                                },
+                            }}
+                        >
                             <FormControl size="small" sx={{ minWidth: { xs: '48%', sm: 150 } }}>
                                 <InputLabel>Trạng thái</InputLabel>
                                 <Select
@@ -342,6 +372,10 @@ function AcademicYear() {
                                 color: '#1976d2', // ✅ chữ xanh đậm
                                 fontWeight: 900,
                                 borderBottom: '2px solid #bbdefb', // ✅ viền dưới header
+                            },
+                            '& .MuiDataGrid-columnHeaderTitle': {
+                                fontWeight: 'bold', // ✅ chữ in đậm
+                                fontSize: '0.95rem', // ✅ tùy chọn: chỉnh kích thước chữ
                             },
                             '& .MuiDataGrid-columnHeader': {
                                 borderRight: '1px solid #bbdefb', // ✅ đường kẻ giữa các cột header

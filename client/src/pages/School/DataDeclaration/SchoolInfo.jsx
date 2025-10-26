@@ -1,5 +1,16 @@
 import { useState, useEffect } from 'react';
-import { Typography, Paper, Box, TextField, Button, CircularProgress, Divider, Chip } from '@mui/material';
+import {
+    Typography,
+    Paper,
+    Box,
+    TextField,
+    Button,
+    CircularProgress,
+    Divider,
+    Chip,
+    Avatar,
+    Fade,
+} from '@mui/material';
 import MainLayout from '~/layouts/SchoolLayout';
 import PageContainer from '~/components/common/PageContainer';
 import PageBreadcrumb from '~/components/common/PageBreadcrumb';
@@ -163,14 +174,34 @@ function SchoolInfo() {
                     ]}
                 />
 
-                {/* Page Content */}
-                <Paper sx={{ p: 3, borderRadius: 2, boxShadow: 2 }}>
-                    {/* Header */}
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                            <SchoolIcon sx={{ fontSize: 32, color: 'primary.main' }} />
+                {/* Header Card */}
+                <Fade in timeout={500}>
+                    <Paper
+                        elevation={3}
+                        sx={{
+                            borderRadius: 3,
+                            p: 2,
+                            mb: 0,
+                            background: 'linear-gradient(135deg, #e3f2fd 0%, #f9f9ff 100%)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            boxShadow: '0 4px 20px rgba(0, 113, 188, 0.1)',
+                        }}
+                    >
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                            <Avatar
+                                sx={{
+                                    bgcolor: '#0071bc',
+                                    width: 50,
+                                    height: 50,
+                                    boxShadow: '0 0 10px rgba(0, 113, 188, 0.3)',
+                                }}
+                            >
+                                <SchoolIcon sx={{ fontSize: 28, color: '#fff' }} />
+                            </Avatar>
                             <Box>
-                                <Typography variant="h5" fontWeight={600}>
+                                <Typography variant="h5" fontWeight={700} color="primary">
                                     Thông tin nhà trường
                                 </Typography>
                                 <Typography variant="body2" color="text.secondary">
@@ -178,40 +209,84 @@ function SchoolInfo() {
                                 </Typography>
                             </Box>
                         </Box>
-                        {!canUpdate && <Chip label="Chỉ xem" color="default" size="small" sx={{ fontWeight: 600 }} />}
-                    </Box>
 
-                    <Divider sx={{ mb: 3 }} />
+                        {!canUpdate && (
+                            <Chip
+                                label="Chế độ xem"
+                                color="default"
+                                sx={{
+                                    fontWeight: 600,
+                                    bgcolor: '#eceff1',
+                                    color: '#555',
+                                }}
+                            />
+                        )}
+                    </Paper>
+                </Fade>
 
-                    {/* Form */}
-                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-                        {/* Section: Thông tin cơ bản */}
+                {/* Form Card */}
+                <Paper
+                    elevation={2}
+                    sx={{
+                        p: 2,
+                        borderRadius: 3,
+                        boxShadow: '0 6px 16px rgba(0,0,0,0.05)',
+                        backgroundColor: '#fff',
+                        /* ✅ Style chung cho input */
+                        '& .MuiOutlinedInput-root': {
+                            borderRadius: 1.5,
+
+                            // ✅ Khi hover viền sáng màu xanh nhạt
+                            '&:hover fieldset': {
+                                borderColor: '#0071bc',
+                            },
+
+                            // ✅ Khi focus viền đậm màu xanh biển
+                            '&.Mui-focused fieldset': {
+                                borderColor: '#0071bc',
+                                borderWidth: 2,
+                            },
+                        },
+
+                        // ✅ Đổi màu label khi focus
+                        '& label.Mui-focused': {
+                            color: '#0071bc',
+                        },
+                    }}
+                >
+                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+                        {/* ===== Thông tin cơ bản ===== */}
                         <Box>
                             <Typography
-                                variant="subtitle2"
+                                variant="subtitle1"
                                 sx={{
                                     mb: 2,
-                                    color: 'secondary.main',
-                                    fontWeight: 600,
+                                    fontWeight: 700,
+                                    color: '#c02c15ff',
                                     display: 'flex',
                                     alignItems: 'center',
                                     gap: 1,
                                 }}
                             >
-                                <Box sx={{ width: 3, height: 14, bgcolor: 'secondary.main', borderRadius: 1 }} />
+                                <Box sx={{ width: 4, height: 16, bgcolor: '#c02c15ff', borderRadius: 2 }} />
                                 Thông tin cơ bản
                             </Typography>
-
                             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                                 <TextField
                                     label="Tên trường học"
                                     value={formData.name}
                                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                                     disabled={!canUpdate}
-                                    required
-                                    fullWidth
                                     size="small"
-                                    sx={{ '& .MuiOutlinedInput-root': { borderRadius: 1.5 } }}
+                                    fullWidth
+                                    sx={{
+                                        '& .MuiOutlinedInput-root': {
+                                            borderRadius: 2,
+                                            '&.Mui-focused fieldset': { borderColor: '#0071bc', borderWidth: 2 },
+                                            '&:hover fieldset': { borderColor: '#aee2ff' },
+                                        },
+                                        '& label.Mui-focused': { color: '#0071bc' },
+                                    }}
                                 />
 
                                 <Box sx={{ display: 'flex', gap: 2 }}>
@@ -219,53 +294,49 @@ function SchoolInfo() {
                                         label="Tên viết tắt"
                                         value={formData.abbreviation}
                                         disabled
-                                        helperText="Không thể thay đổi"
-                                        fullWidth
+                                        helperText="Tiền tố trước tên tài khoản.Không thể thay đổi"
                                         size="small"
-                                        sx={{ '& .MuiOutlinedInput-root': { borderRadius: 1.5 } }}
+                                        fullWidth
                                     />
                                     <TextField
                                         label="Mã số thuế"
                                         value={formData.taxCode}
                                         onChange={(e) => setFormData({ ...formData, taxCode: e.target.value })}
                                         disabled={!canUpdate}
-                                        fullWidth
                                         size="small"
-                                        sx={{ '& .MuiOutlinedInput-root': { borderRadius: 1.5 } }}
+                                        fullWidth
                                     />
                                 </Box>
-
                                 <TextField
                                     label="Địa chỉ"
                                     value={formData.address}
                                     onChange={(e) => setFormData({ ...formData, address: e.target.value })}
                                     disabled={!canUpdate}
                                     required
-                                    fullWidth
-                                    size="small"
                                     multiline
                                     rows={2}
-                                    sx={{ '& .MuiOutlinedInput-root': { borderRadius: 1.5 } }}
+                                    size="small"
+                                    fullWidth
                                 />
                             </Box>
                         </Box>
 
                         <Divider />
 
-                        {/* Section: Thông tin liên hệ */}
+                        {/* ===== Thông tin liên hệ ===== */}
                         <Box>
                             <Typography
-                                variant="subtitle2"
+                                variant="subtitle1"
                                 sx={{
                                     mb: 2,
-                                    color: 'primary.main',
-                                    fontWeight: 600,
+                                    fontWeight: 700,
+                                    color: '#0071bc',
                                     display: 'flex',
                                     alignItems: 'center',
                                     gap: 1,
                                 }}
                             >
-                                <Box sx={{ width: 3, height: 14, bgcolor: 'primary.main', borderRadius: 1 }} />
+                                <Box sx={{ width: 4, height: 16, bgcolor: '#0071bc', borderRadius: 2 }} />
                                 Thông tin liên hệ
                             </Typography>
 
@@ -275,65 +346,56 @@ function SchoolInfo() {
                                     value={formData.manager}
                                     onChange={(e) => setFormData({ ...formData, manager: e.target.value })}
                                     disabled={!canUpdate}
-                                    required
-                                    fullWidth
                                     size="small"
-                                    sx={{ '& .MuiOutlinedInput-root': { borderRadius: 1.5 } }}
+                                    fullWidth
                                 />
-
                                 <Box sx={{ display: 'flex', gap: 2 }}>
                                     <TextField
                                         label="Số điện thoại"
                                         value={formData.phone}
                                         onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                                         disabled={!canUpdate}
-                                        required
-                                        fullWidth
                                         size="small"
-                                        sx={{ '& .MuiOutlinedInput-root': { borderRadius: 1.5 } }}
+                                        fullWidth
                                     />
                                     <TextField
                                         label="Email"
                                         value={formData.email}
                                         onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                                         disabled={!canUpdate}
-                                        fullWidth
                                         size="small"
-                                        sx={{ '& .MuiOutlinedInput-root': { borderRadius: 1.5 } }}
+                                        fullWidth
                                     />
                                 </Box>
-
                                 <TextField
                                     label="Website"
                                     value={formData.website}
                                     onChange={(e) => setFormData({ ...formData, website: e.target.value })}
                                     disabled={!canUpdate}
-                                    fullWidth
                                     size="small"
-                                    sx={{ '& .MuiOutlinedInput-root': { borderRadius: 1.5 } }}
+                                    fullWidth
                                 />
                             </Box>
                         </Box>
 
                         <Divider />
 
-                        {/* Section: Thông tin khác */}
+                        {/* ===== Thông tin khác ===== */}
                         <Box>
                             <Typography
-                                variant="subtitle2"
+                                variant="subtitle1"
                                 sx={{
                                     mb: 2,
-                                    color: 'success.main',
-                                    fontWeight: 600,
+                                    fontWeight: 700,
+                                    color: '#2e7d32',
                                     display: 'flex',
                                     alignItems: 'center',
                                     gap: 1,
                                 }}
                             >
-                                <Box sx={{ width: 3, height: 14, bgcolor: 'success.main', borderRadius: 1 }} />
+                                <Box sx={{ width: 4, height: 16, bgcolor: '#2e7d32', borderRadius: 2 }} />
                                 Thông tin khác
                             </Typography>
-
                             <Box sx={{ display: 'flex', gap: 2 }}>
                                 <DatePicker
                                     label="Ngày thành lập"
@@ -343,10 +405,19 @@ function SchoolInfo() {
                                     format="DD/MM/YYYY"
                                     slotProps={{
                                         textField: {
-                                            required: true,
                                             fullWidth: true,
                                             size: 'small',
-                                            sx: { '& .MuiOutlinedInput-root': { borderRadius: 1.5 } },
+                                            sx: {
+                                                '& .MuiOutlinedInput-root': {
+                                                    borderRadius: 2,
+                                                    '&.Mui-focused fieldset': {
+                                                        borderColor: '#0071bc',
+                                                        borderWidth: 2,
+                                                    },
+                                                    '&:hover fieldset': { borderColor: '#aee2ff' },
+                                                },
+                                                '& label.Mui-focused': { color: '#0071bc' },
+                                            },
                                         },
                                     }}
                                 />
@@ -356,27 +427,38 @@ function SchoolInfo() {
                                     value={formData.status ? 'Hoạt động' : 'Không hoạt động'}
                                     disabled
                                     helperText="Không thể thay đổi"
-                                    fullWidth
                                     size="small"
-                                    sx={{ '& .MuiOutlinedInput-root': { borderRadius: 1.5 } }}
+                                    fullWidth
                                 />
                             </Box>
                         </Box>
 
-                        {/* Action Buttons */}
+                        {/* ===== Action Buttons ===== */}
                         {canUpdate && (
-                            <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 2, mt: 2 }}>
+                            <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 2 }}>
                                 <Button
                                     variant="contained"
                                     onClick={handleUpdate}
                                     disabled={loading}
                                     sx={{
-                                        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                                        px: 2,
+                                        // py: 1,
+                                        borderRadius: 2,
+                                        fontWeight: 600,
+                                        boxShadow: '0 3px 10px rgba(0, 113, 188, 0.3)',
                                         textTransform: 'none',
-                                        minWidth: 150,
+                                        background: 'linear-gradient(135deg, #0071bc 100%, #aee2ff 100%)',
+                                        '&:hover': {
+                                            boxShadow: 3,
+                                            background: 'linear-gradient(135deg, #1180caff 100%, #aee2ff 100%)',
+                                        },
                                     }}
                                 >
-                                    {loading ? <CircularProgress size={24} /> : 'Cập nhật thông tin'}
+                                    {loading ? (
+                                        <CircularProgress size={22} sx={{ color: '#fff' }} />
+                                    ) : (
+                                        'Cập nhật thông tin'
+                                    )}
                                 </Button>
                             </Box>
                         )}

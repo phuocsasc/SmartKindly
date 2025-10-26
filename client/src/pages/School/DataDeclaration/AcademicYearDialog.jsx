@@ -192,7 +192,29 @@ function AcademicYearDialog({ open, mode, academicYear, onClose, onSuccess }) {
                         ? 'Kết thúc năm học'
                         : 'Chỉnh sửa năm học'}
             </DialogTitle>
-            <DialogContent>
+            <DialogContent
+                sx={{
+                    '& .MuiOutlinedInput-root': {
+                        borderRadius: 1.5,
+
+                        // ✅ Khi hover viền sáng màu xanh nhạt
+                        '&:hover fieldset': {
+                            borderColor: '#0071bc',
+                        },
+
+                        // ✅ Khi focus viền đậm màu xanh biển
+                        '&.Mui-focused fieldset': {
+                            borderColor: '#0071bc',
+                            borderWidth: 2,
+                        },
+                    },
+
+                    // ✅ Đổi màu label khi focus
+                    '& label.Mui-focused': {
+                        color: '#0071bc',
+                    },
+                }}
+            >
                 {/* ✅ Thông báo nếu năm học đã kết thúc */}
                 {isInactive && (
                     <Box
@@ -205,7 +227,7 @@ function AcademicYearDialog({ open, mode, academicYear, onClose, onSuccess }) {
                         }}
                     >
                         <Typography variant="body2" color="text.secondary">
-                            ℹ️ Năm học đã kết thúc, không thể chỉnh sửa. Dữ liệu chỉ dùng để tham khảo.
+                            ℹ️ Năm học <strong>Đã kết thúc</strong>, không thể chỉnh sửa. Dữ liệu chỉ dùng để tham khảo.
                         </Typography>
                     </Box>
                 )}
@@ -221,7 +243,10 @@ function AcademicYearDialog({ open, mode, academicYear, onClose, onSuccess }) {
                         }}
                     >
                         <Typography variant="body2" color="warning.main">
-                            ⚠️ Năm học đã cấu hình dữ liệu, chỉ có thể chuyển sang trạng thái "Đã xong".
+                            <strong>
+                                ⚠️ {formData.fromYear}-{formData.toYear}
+                            </strong>{' '}
+                            đã cấu hình dữ liệu, chỉ có thể chuyển sang trạng thái <strong>"Đã xong"</strong>.
                         </Typography>
                     </Box>
                 )}
@@ -440,10 +465,10 @@ function AcademicYearDialog({ open, mode, academicYear, onClose, onSuccess }) {
                         textTransform: 'none',
                         fontWeight: 600,
                         boxShadow: 2,
-                        // background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                        background: 'linear-gradient(135deg, #0071bc 100%, #aee2ff 100%)',
                         '&:hover': {
                             boxShadow: 3,
-                            background: 'linear-gradient(135deg, #5568d3 0%, #6a4296 100%)',
+                            background: 'linear-gradient(135deg, #1180caff 100%, #aee2ff 100%)',
                         },
                     }}
                 >

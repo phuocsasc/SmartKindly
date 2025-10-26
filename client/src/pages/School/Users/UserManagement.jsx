@@ -253,6 +253,8 @@ function UserManagement() {
             flex: 0.9,
             minwidth: 130,
             sortable: false,
+            headerAlign: 'center',
+            align: 'center',
             renderCell: (params) => (
                 <Chip
                     label={params.value ? 'Kích hoạt' : 'Vô hiệu hóa'}
@@ -396,7 +398,33 @@ function UserManagement() {
                             Danh sách người dùng
                         </Typography>
 
-                        <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', flexWrap: 'wrap' }}>
+                        <Box
+                            sx={{
+                                display: 'flex',
+                                gap: 1,
+                                alignItems: 'center',
+                                flexWrap: 'wrap' /* ✅ Style chung cho input */,
+                                '& .MuiOutlinedInput-root': {
+                                    borderRadius: 1.5,
+
+                                    // ✅ Khi hover viền sáng màu xanh nhạt
+                                    '&:hover fieldset': {
+                                        borderColor: '#0071bc',
+                                    },
+
+                                    // ✅ Khi focus viền đậm màu xanh biển
+                                    '&.Mui-focused fieldset': {
+                                        borderColor: '#0071bc',
+                                        borderWidth: 2,
+                                    },
+                                },
+
+                                // ✅ Đổi màu label khi focus
+                                '& label.Mui-focused': {
+                                    color: '#0071bc',
+                                },
+                            }}
+                        >
                             <TextField
                                 size="small"
                                 placeholder="Tìm kiếm..."
@@ -475,12 +503,26 @@ function UserManagement() {
                         pageSizeOptions={[5, 10, 20, 50]}
                         autoHeight
                         sx={{
+                            // 💠 STYLE CHO CHECKBOX
+                            '& .MuiCheckbox-root': {
+                                color: '#0071bc', // ✅ màu viền và icon mặc định
+                                '&.Mui-checked': {
+                                    color: '#0071bc', // ✅ màu khi tick
+                                },
+                                '&:hover': {
+                                    backgroundColor: '#aee2ff33', // ✅ hiệu ứng hover nhẹ màu xanh nhạt
+                                },
+                            },
                             // 💠 HEADER STYLE
                             '& .MuiDataGrid-columnHeaders': {
                                 backgroundColor: '#e3f2fd', // ✅ xanh biển nhạt
                                 color: '#1976d2', // ✅ chữ xanh đậm
                                 fontWeight: 900,
                                 borderBottom: '2px solid #bbdefb', // ✅ viền dưới header
+                            },
+                            '& .MuiDataGrid-columnHeaderTitle': {
+                                fontWeight: 'bold', // ✅ chữ in đậm
+                                fontSize: '0.95rem', // ✅ tùy chọn: chỉnh kích thước chữ
                             },
                             '& .MuiDataGrid-columnHeader': {
                                 borderRight: '1px solid #bbdefb', // ✅ đường kẻ giữa các cột header

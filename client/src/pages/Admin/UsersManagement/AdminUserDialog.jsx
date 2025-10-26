@@ -135,8 +135,8 @@ function AdminUserDialog({ open, mode, user, schools, onClose, onSuccess }) {
             {/* Header */}
             <DialogTitle
                 sx={{
-                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                    color: 'white',
+                    background: 'linear-gradient(135deg, #0071bc 0%, #aee2ff 100%)',
+                    color: '#fff',
                     py: 1,
                     position: 'relative',
                     mb: 2,
@@ -170,17 +170,50 @@ function AdminUserDialog({ open, mode, user, schools, onClose, onSuccess }) {
                         },
                     }}
                 >
-                    <CloseIcon fontSize="small" />
+                    <CloseIcon fontSize="small" sx={{ color: 'red' }} />
                 </IconButton>
             </DialogTitle>
 
-            <DialogContent sx={{ px: 3, py: 2.5 }}>
+            <DialogContent
+                sx={{
+                    px: 3,
+                    py: 2.5,
+                    maxHeight: '70vh', // 👈 cần có để xuất hiện scroll
+                    overflowY: 'auto',
+                    mt: -2,
+                    '&::-webkit-scrollbar': { width: '6px' },
+                    '&::-webkit-scrollbar-track': { backgroundColor: '#e3f2fd' },
+                    '&::-webkit-scrollbar-thumb': { backgroundColor: '#0964a1a4', borderRadius: '4px' },
+                    '&::-webkit-scrollbar-thumb:hover': { backgroundColor: '#0071BC' },
+                    /* ✅ Style chung cho input */
+                    '& .MuiOutlinedInput-root': {
+                        borderRadius: 1.5,
+
+                        // ✅ Khi hover viền sáng màu xanh nhạt
+                        '&:hover fieldset': {
+                            borderColor: '#0071bc',
+                        },
+
+                        // ✅ Khi focus viền đậm màu xanh biển
+                        '&.Mui-focused fieldset': {
+                            borderColor: '#0071bc',
+                            borderWidth: 2,
+                        },
+                    },
+
+                    // ✅ Đổi màu label khi focus
+                    '& label.Mui-focused': {
+                        color: '#0071bc',
+                    },
+                }}
+            >
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
                     {/* Section: Thông tin trường học */}
                     <Box>
                         <Typography
                             variant="subtitle2"
                             sx={{
+                                mt: 2,
                                 mb: 1.5,
                                 color: 'secondary.main',
                                 fontWeight: 600,
@@ -416,6 +449,16 @@ function AdminUserDialog({ open, mode, user, schools, onClose, onSuccess }) {
                                 <FormControlLabel
                                     control={
                                         <Checkbox
+                                            sx={{
+                                                borderRadius: 1.0,
+                                                color: '#0071bc',
+                                                '&.Mui-checked': {
+                                                    color: '#0071bc', // ✅ màu khi đã được check
+                                                },
+                                                '&:hover': {
+                                                    backgroundColor: '#aee2ff33', // ✅ hiệu ứng hover nhẹ (tùy chọn)
+                                                },
+                                            }}
                                             checked={formData.isRoot}
                                             onChange={(e) => setFormData({ ...formData, isRoot: e.target.checked })}
                                         />
@@ -477,8 +520,8 @@ function AdminUserDialog({ open, mode, user, schools, onClose, onSuccess }) {
                             }}
                         >
                             <Typography variant="caption" color="text.secondary">
-                                <strong>Lưu ý:</strong> Sau khi tạo, hệ thống sẽ tự động sinh:
-                                <br />• <strong>User ID:</strong> 8 chữ số ngẫu nhiên
+                                <strong style={{ color: '#d5b905ff' }}>Lưu ý:</strong> Sau khi tạo, hệ thống sẽ tự động
+                                sinh:
                                 <br />• <strong>Tên tài khoản:</strong> Viết tắt trường + họ tên (VD: HKP.nguyenvana)
                                 <br />• <strong>Mật khẩu mặc định:</strong> 123456
                             </Typography>
@@ -515,10 +558,10 @@ function AdminUserDialog({ open, mode, user, schools, onClose, onSuccess }) {
                         textTransform: 'none',
                         fontWeight: 600,
                         boxShadow: 2,
-                        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                        background: 'linear-gradient(135deg, #0071bc 100%, #aee2ff 100%)',
                         '&:hover': {
                             boxShadow: 3,
-                            background: 'linear-gradient(135deg, #5568d3 0%, #6a4296 100%)',
+                            background: 'linear-gradient(135deg, #1180caff 100%, #aee2ff 100%)',
                         },
                     }}
                 >

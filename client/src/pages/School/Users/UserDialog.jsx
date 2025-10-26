@@ -121,8 +121,8 @@ function UserDialog({ open, mode, user, onClose, onSuccess }) {
             {/* Header with gradient background */}
             <DialogTitle
                 sx={{
-                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                    color: 'white',
+                    background: 'linear-gradient(135deg, #0071bc 0%, #aee2ff 100%)',
+                    color: '#fff',
                     py: 1,
                     position: 'relative',
                     mb: 2,
@@ -157,11 +157,35 @@ function UserDialog({ open, mode, user, onClose, onSuccess }) {
                         },
                     }}
                 >
-                    <CloseIcon fontSize="small" />
+                    <CloseIcon fontSize="small" sx={{ color: 'red' }} />
                 </IconButton>
             </DialogTitle>
 
-            <DialogContent sx={{ px: 3, py: 2.5 }}>
+            <DialogContent
+                sx={{
+                    px: 3,
+                    py: 2.5,
+                    '& .MuiOutlinedInput-root': {
+                        borderRadius: 1.5,
+
+                        // ✅ Khi hover viền sáng màu xanh nhạt
+                        '&:hover fieldset': {
+                            borderColor: '#0071bc',
+                        },
+
+                        // ✅ Khi focus viền đậm màu xanh biển
+                        '&.Mui-focused fieldset': {
+                            borderColor: '#0071bc',
+                            borderWidth: 2,
+                        },
+                    },
+
+                    // ✅ Đổi màu label khi focus
+                    '& label.Mui-focused': {
+                        color: '#0071bc',
+                    },
+                }}
+            >
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
                     {/* Thông báo tên tài khoản tự động */}
                     {isCreateMode && (
@@ -410,10 +434,10 @@ function UserDialog({ open, mode, user, onClose, onSuccess }) {
                         textTransform: 'none',
                         fontWeight: 600,
                         boxShadow: 2,
-                        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                        background: 'linear-gradient(135deg, #0071bc 100%, #aee2ff 100%)',
                         '&:hover': {
                             boxShadow: 3,
-                            background: 'linear-gradient(135deg, #5568d3 0%, #6a4296 100%)',
+                            background: 'linear-gradient(135deg, #1180caff 100%, #aee2ff 100%)',
                         },
                     }}
                 >

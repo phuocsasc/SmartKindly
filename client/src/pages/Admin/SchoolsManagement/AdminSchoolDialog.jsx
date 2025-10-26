@@ -10,6 +10,7 @@ import {
     FormControl,
     InputLabel,
     Select,
+    Avatar,
     MenuItem,
     Typography,
     IconButton,
@@ -148,32 +149,83 @@ function AdminSchoolDialog({ open, mode, school, onClose, onSuccess }) {
         >
             <DialogTitle
                 sx={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                    background: 'linear-gradient(135deg, #0071bc 0%, #aee2ff 100%)',
                     color: '#fff',
-                    py: 2,
+                    py: 1,
+                    position: 'relative',
+                    mb: 2,
                 }}
             >
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                    {mode === 'create' ? <SchoolIcon /> : <EditIcon />}
-                    <Typography variant="h6" fontWeight={600}>
+                    <Avatar
+                        sx={{
+                            bgcolor: 'rgba(255, 255, 255, 0.2)',
+                            width: 30,
+                            height: 30,
+                        }}
+                    >
+                        {mode === 'create' ? <SchoolIcon fontSize="small" /> : <EditIcon fontSize="small" />}
+                    </Avatar>
+                    <Typography variant="h7" fontWeight={400}>
                         {mode === 'create' ? 'Thêm trường học mới' : 'Chỉnh sửa thông tin trường học'}
                     </Typography>
                 </Box>
-                <IconButton onClick={onClose} sx={{ color: '#fff' }}>
-                    <CloseIcon />
+                <IconButton
+                    size="small"
+                    onClick={onClose}
+                    sx={{
+                        position: 'absolute',
+                        right: 8,
+                        top: 8,
+                        '&:hover': {
+                            bgcolor: 'rgba(255, 255, 255, 0.1)',
+                        },
+                    }}
+                >
+                    <CloseIcon fontSize="small" sx={{ color: 'red' }} />
                 </IconButton>
             </DialogTitle>
 
-            <DialogContent sx={{ px: 3, py: 2.5 }}>
+            <DialogContent
+                sx={{
+                    px: 3,
+                    py: 2.5,
+                    maxHeight: '70vh', // 👈 cần có để xuất hiện scroll
+                    overflowY: 'auto',
+                    mt: -2,
+                    '&::-webkit-scrollbar': { width: '6px' },
+                    '&::-webkit-scrollbar-track': { backgroundColor: '#e3f2fd' },
+                    '&::-webkit-scrollbar-thumb': { backgroundColor: '#0964a1a4', borderRadius: '4px' },
+                    '&::-webkit-scrollbar-thumb:hover': { backgroundColor: '#0071BC' },
+                    /* ✅ Style chung cho input */
+                    '& .MuiOutlinedInput-root': {
+                        borderRadius: 1.5,
+
+                        // ✅ Khi hover viền sáng màu xanh nhạt
+                        '&:hover fieldset': {
+                            borderColor: '#0071bc',
+                        },
+
+                        // ✅ Khi focus viền đậm màu xanh biển
+                        '&.Mui-focused fieldset': {
+                            borderColor: '#0071bc',
+                            borderWidth: 2,
+                        },
+                    },
+
+                    // ✅ Đổi màu label khi focus
+                    '& label.Mui-focused': {
+                        color: '#0071bc',
+                    },
+                }}
+            >
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
                     {/* Section: Thông tin cơ bản */}
                     <Box>
                         <Typography
                             variant="subtitle2"
                             sx={{
+                                mt: 2,
                                 mb: 1.5,
                                 color: 'secondary.main',
                                 fontWeight: 600,
@@ -427,8 +479,12 @@ function AdminSchoolDialog({ open, mode, school, onClose, onSuccess }) {
                             ? 'linear-gradient(135deg, #f44336 0%, #e91e63 100%)'
                             : isStatusChangingToActive
                               ? 'linear-gradient(135deg, #4caf50 0%, #8bc34a 100%)'
-                              : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                              : 'linear-gradient(135deg, #0071bc 100%, #aee2ff 100%)',
                         minWidth: 120,
+                        '&:hover': {
+                            boxShadow: 3,
+                            background: 'linear-gradient(135deg, #1180caff 100%, #aee2ff 100%)',
+                        },
                     }}
                 >
                     {loading ? (

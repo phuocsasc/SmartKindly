@@ -179,11 +179,37 @@ function UserInfo() {
             <PageContainer>
                 <PageBreadcrumb items={[{ text: 'Thông tin tài khoản' }]} />
 
-                <Paper sx={{ borderRadius: 2, boxShadow: 2, overflow: 'hidden' }}>
+                <Paper
+                    sx={{
+                        borderRadius: 2,
+                        boxShadow: 2,
+                        overflow: 'hidden',
+                        /* ✅ Style chung cho input */
+                        '& .MuiOutlinedInput-root': {
+                            borderRadius: 1.5,
+
+                            // ✅ Khi hover viền sáng màu xanh nhạt
+                            '&:hover fieldset': {
+                                borderColor: '#0071bc',
+                            },
+
+                            // ✅ Khi focus viền đậm màu xanh biển
+                            '&.Mui-focused fieldset': {
+                                borderColor: '#0071bc',
+                                borderWidth: 2,
+                            },
+                        },
+
+                        // ✅ Đổi màu label khi focus
+                        '& label.Mui-focused': {
+                            color: '#0071bc',
+                        },
+                    }}
+                >
                     {/* Header */}
                     <Box
                         sx={{
-                            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                            background: 'linear-gradient(135deg, #0071bc 0%, #aee2ff 100%)',
                             px: 2,
                             py: 1.5,
                             color: 'white',
@@ -220,9 +246,23 @@ function UserInfo() {
                                 minHeight: 46,
                                 '& .MuiTab-root': {
                                     minHeight: 46,
-                                    paddingY: 1.5,
+                                    py: 1.5,
                                     fontSize: '14px',
                                     textTransform: 'none',
+                                    color: '#555', // màu mặc định
+                                    transition: 'all 0.3s ease',
+                                },
+                                '& .MuiTab-root:hover': {
+                                    color: '#0071bc', // hover
+                                },
+                                '& .Mui-selected': {
+                                    color: '#0071bc', // text + icon khi active
+                                    fontWeight: 600,
+                                },
+                                '& .MuiTabs-indicator': {
+                                    backgroundColor: '#0071bc', // border-bottom của tab active
+                                    height: 3,
+                                    borderRadius: 2,
                                 },
                             }}
                         >
@@ -329,7 +369,11 @@ function UserInfo() {
                                             variant="contained"
                                             size="small"
                                             sx={{
-                                                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                                                background: 'linear-gradient(135deg, #0071bc 100%, #aee2ff 100%)',
+                                                '&:hover': {
+                                                    boxShadow: 3,
+                                                    background: 'linear-gradient(135deg, #1180caff 100%, #aee2ff 100%)',
+                                                },
                                                 textTransform: 'none',
                                             }}
                                         >
@@ -411,7 +455,11 @@ function UserInfo() {
                                             disabled={loading}
                                             color="warning"
                                             sx={{
-                                                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                                                background: 'linear-gradient(135deg, #0071bc 100%, #aee2ff 100%)',
+                                                '&:hover': {
+                                                    boxShadow: 3,
+                                                    background: 'linear-gradient(135deg, #1180caff 100%, #aee2ff 100%)',
+                                                },
                                                 textTransform: 'none',
                                             }}
                                             size="small"

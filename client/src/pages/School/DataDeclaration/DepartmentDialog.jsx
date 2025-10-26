@@ -155,26 +155,70 @@ function DepartmentDialog({ open, mode, department, academicYearId, onClose, onS
             {/* Header */}
             <DialogTitle
                 sx={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                    background: 'linear-gradient(135deg, #0071bc 0%, #aee2ff 100%)',
                     color: '#fff',
-                    py: 2,
+                    py: 1,
+                    position: 'relative',
+                    mb: 2,
                 }}
             >
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                    {isCreateMode ? <AddCircleOutlineIcon /> : <EditIcon />}
+                    <Avatar
+                        sx={{
+                            bgcolor: 'rgba(255, 255, 255, 0.2)',
+                            width: 30,
+                            height: 30,
+                        }}
+                    >
+                        {isCreateMode ? <AddCircleOutlineIcon fontSize="small" /> : <EditIcon fontSize="small" />}
+                    </Avatar>
                     <Typography variant="h6" fontWeight={600}>
                         {isCreateMode ? 'Thêm tổ bộ môn mới' : 'Chỉnh sửa tổ bộ môn'}
                     </Typography>
                 </Box>
-                <IconButton onClick={onClose} sx={{ color: '#fff' }}>
-                    <CloseIcon />
+                <IconButton
+                    onClick={onClose}
+                    size="small"
+                    sx={{
+                        position: 'absolute',
+                        right: 8,
+                        top: 8,
+                        color: 'white',
+                        '&:hover': {
+                            bgcolor: 'rgba(255, 255, 255, 0.1)',
+                        },
+                    }}
+                >
+                    <CloseIcon sx={{ color: 'red' }} />
                 </IconButton>
             </DialogTitle>
 
-            <DialogContent sx={{ px: 3, py: 2.5 }}>
+            <DialogContent
+                sx={{
+                    px: 3,
+                    py: 2.5,
+                    /* ✅ Style chung cho input */
+                    '& .MuiOutlinedInput-root': {
+                        borderRadius: 1.5,
+
+                        // ✅ Khi hover viền sáng màu xanh nhạt
+                        '&:hover fieldset': {
+                            borderColor: '#0071bc',
+                        },
+
+                        // ✅ Khi focus viền đậm màu xanh biển
+                        '&.Mui-focused fieldset': {
+                            borderColor: '#0071bc',
+                            borderWidth: 2,
+                        },
+                    },
+
+                    // ✅ Đổi màu label khi focus
+                    '& label.Mui-focused': {
+                        color: '#0071bc',
+                    },
+                }}
+            >
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
                     {/* Tên tổ bộ môn */}
                     <Box>
@@ -297,9 +341,6 @@ function DepartmentDialog({ open, mode, department, academicYearId, onClose, onS
                                                         <Typography variant="body2" fontWeight={600}>
                                                             {manager.fullName}
                                                         </Typography>
-                                                        <Typography variant="caption" color="text.secondary">
-                                                            {manager.username} • {manager.email}
-                                                        </Typography>
                                                     </Box>
                                                 </Box>
                                             </MenuItem>
@@ -371,10 +412,10 @@ function DepartmentDialog({ open, mode, department, academicYearId, onClose, onS
                         textTransform: 'none',
                         fontWeight: 600,
                         boxShadow: 2,
-                        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                        background: 'linear-gradient(135deg, #0071bc 100%, #aee2ff 100%)',
                         '&:hover': {
                             boxShadow: 3,
-                            background: 'linear-gradient(135deg, #5568d3 0%, #6a4296 100%)',
+                            background: 'linear-gradient(135deg, #1180caff 100%, #aee2ff 100%)',
                         },
                     }}
                 >

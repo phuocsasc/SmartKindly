@@ -198,11 +198,6 @@ const update = async (id, data, userId) => {
         if (academicYear.status === 'active' && academicYear.isConfig === false) {
             console.log('📝 [update] Năm học đang hoạt động nhưng chưa cấu hình');
 
-            // Không cho phép thay đổi fromYear, toYear
-            if (data.fromYear !== undefined || data.toYear !== undefined) {
-                throw new ApiError(StatusCodes.FORBIDDEN, 'Không thể thay đổi năm học sau khi đã tạo');
-            }
-
             // Nếu chuyển sang "inactive", cho phép
             if (data.status === 'inactive') {
                 console.log('✅ [update] Chuyển năm học chưa cấu hình sang inactive');
@@ -276,11 +271,6 @@ const deleteAcademicYear = async (id, userId) => {
 
         if (!academicYear) {
             throw new ApiError(StatusCodes.NOT_FOUND, 'Không tìm thấy năm học');
-        }
-
-        // ✅ Không cho phép xóa năm học đang "active"
-        if (academicYear.status === 'active') {
-            throw new ApiError(StatusCodes.FORBIDDEN, 'Không thể xóa năm học đang hoạt động');
         }
 
         // ✅ Không cho phép xóa năm học đã cấu hình dữ liệu

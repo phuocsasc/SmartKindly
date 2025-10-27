@@ -89,7 +89,14 @@ AcademicYearSchema.pre('save', function (next) {
 });
 
 // ✅ Index để tìm kiếm nhanh hơn và đảm bảo unique trong cùng trường
-AcademicYearSchema.index({ schoolId: 1, fromYear: 1, toYear: 1 }, { unique: true });
+// ✅ Thêm _destroy vào index để cho phép tái tạo năm học đã xóa
+AcademicYearSchema.index(
+    { schoolId: 1, fromYear: 1, toYear: 1, _destroy: 1 },
+    {
+        unique: true,
+        partialFilterExpression: { _destroy: false }, // ✅ Chỉ áp dụng unique cho bản ghi chưa xóa
+    },
+);
 AcademicYearSchema.index({ schoolId: 1, status: 1 });
 AcademicYearSchema.index({ createdBy: 1 });
 

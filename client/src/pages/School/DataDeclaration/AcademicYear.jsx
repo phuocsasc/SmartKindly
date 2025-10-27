@@ -108,11 +108,6 @@ function AcademicYear() {
     };
 
     const handleDelete = async (id, yearDisplay, status, isConfig) => {
-        if (status === 'active') {
-            toast.warning('Không thể xóa năm học đang hoạt động!');
-            return;
-        }
-
         if (isConfig) {
             toast.warning('Không thể xóa năm học đã có dữ liệu cấu hình!');
             return;
@@ -229,7 +224,6 @@ function AcademicYear() {
             renderCell: (params) => {
                 const canUpdate = hasPermission(PERMISSIONS.UPDATE_ACADEMIC_YEAR);
                 const canDelete = hasPermission(PERMISSIONS.DELETE_ACADEMIC_YEAR);
-                const isActive = params.row.status === 'active';
                 const isConfig = params.row.isConfig;
 
                 return (
@@ -242,20 +236,12 @@ function AcademicYear() {
                             </Tooltip>
                         )}
                         {canDelete && (
-                            <Tooltip
-                                title={
-                                    isActive
-                                        ? 'Không thể xóa năm học đang hoạt động'
-                                        : isConfig
-                                          ? 'Không thể xóa năm học đã cấu hình dữ liệu'
-                                          : 'Xóa năm học'
-                                }
-                            >
+                            <Tooltip title={isConfig ? 'Không thể xóa năm học đã cấu hình dữ liệu' : 'Xóa năm học'}>
                                 <span>
                                     <IconButton
                                         color="error"
                                         size="small"
-                                        disabled={isActive || isConfig}
+                                        disabled={isConfig}
                                         onClick={() =>
                                             handleDelete(
                                                 params.row.id,
@@ -265,8 +251,8 @@ function AcademicYear() {
                                             )
                                         }
                                         sx={{
-                                            opacity: isActive || isConfig ? 0.5 : 1,
-                                            cursor: isActive || isConfig ? 'not-allowed' : 'pointer',
+                                            opacity: isConfig ? 0.5 : 1,
+                                            cursor: isConfig ? 'not-allowed' : 'pointer',
                                         }}
                                     >
                                         <DeleteOutlineOutlinedIcon />

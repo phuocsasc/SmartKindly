@@ -41,6 +41,9 @@ function AcademicYearDialog({ open, mode, academicYear, onClose, onSuccess }) {
     // ✅ Chỉ cho phép sửa status nếu đã cấu hình
     const canOnlyEditStatus = mode === 'edit' && isConfigured && academicYear?.status === 'active';
 
+    // ✅ LOGIC MỚI: Ẩn select trạng thái nếu năm học đang hoạt động và chưa cấu hình
+    const shouldShowStatusSelect = mode === 'edit' && (isInactive || isConfigured);
+
     useEffect(() => {
         if (mode === 'edit' && academicYear) {
             const sem1 = academicYear.semesters?.find((s) => s.name === 'Học kì I') || {};
@@ -95,43 +98,53 @@ function AcademicYearDialog({ open, mode, academicYear, onClose, onSuccess }) {
         try {
             setLoading(true);
 
-            // Validate
-            if (!formData.fromYear || !formData.toYear) {
-                toast.error('Vui lòng nhập đầy đủ thông tin năm học!');
-                return;
-            }
+            // Validate - Bỏ qua nếu chỉ sửa status
+            if (!canOnlyEditStatus) {
+                if (!formData.fromYear || !formData.toYear) {
+                    toast.error('Vui lòng nhập đầy đủ thông tin năm học!');
+                    return;
+                }
 
-            if (formData.toYear !== formData.fromYear + 1) {
-                toast.error('Năm kết thúc phải lớn hơn năm bắt đầu đúng 1 năm!');
-                return;
-            }
+                const fromYear = parseInt(formData.fromYear);
+                const toYear = parseInt(formData.toYear);
 
-            if (
-                !formData.semester1StartDate ||
-                !formData.semester1EndDate ||
-                !formData.semester2StartDate ||
-                !formData.semester2EndDate
-            ) {
-                toast.error('Vui lòng chọn đầy đủ ngày học kỳ!');
-                return;
-            }
+                if (isNaN(fromYear) || isNaN(toYear)) {
+                    toast.error('Năm học phải là số hợp lệ!');
+                    return;
+                }
 
-            // Validate ngày học kỳ I
-            if (formData.semester1EndDate.isBefore(formData.semester1StartDate)) {
-                toast.error('Ngày kết thúc HK I phải sau ngày bắt đầu!');
-                return;
-            }
+                if (toYear !== fromYear + 1) {
+                    toast.error('Năm kết thúc phải lớn hơn năm bắt đầu đúng 1 năm!');
+                    return;
+                }
 
-            // Validate ngày học kỳ II
-            if (formData.semester2EndDate.isBefore(formData.semester2StartDate)) {
-                toast.error('Ngày kết thúc HK II phải sau ngày bắt đầu!');
-                return;
-            }
+                if (
+                    !formData.semester1StartDate ||
+                    !formData.semester1EndDate ||
+                    !formData.semester2StartDate ||
+                    !formData.semester2EndDate
+                ) {
+                    toast.error('Vui lòng chọn đầy đủ ngày học kỳ!');
+                    return;
+                }
 
-            // Validate HK II phải sau HK I
-            if (formData.semester2StartDate.isBefore(formData.semester1EndDate)) {
-                toast.error('Học kỳ II phải bắt đầu sau khi học kỳ I kết thúc!');
-                return;
+                // Validate ngày học kỳ I
+                if (formData.semester1EndDate.isBefore(formData.semester1StartDate)) {
+                    toast.error('Ngày kết thúc HK I phải sau ngày bắt đầu!');
+                    return;
+                }
+
+                // Validate ngày học kỳ II
+                if (formData.semester2EndDate.isBefore(formData.semester2StartDate)) {
+                    toast.error('Ngày kết thúc HK II phải sau ngày bắt đầu!');
+                    return;
+                }
+
+                // Validate HK II phải sau HK I
+                if (formData.semester2StartDate.isBefore(formData.semester1EndDate)) {
+                    toast.error('Học kỳ II phải bắt đầu sau khi học kỳ I kết thúc!');
+                    return;
+                }
             }
 
             // Prepare data
@@ -406,9 +419,11 @@ function AcademicYearDialog({ open, mode, academicYear, onClose, onSuccess }) {
                         </>
                     )}
 
-                    {/* Status */}
-                    {/* ✅ Status - Chỉ hiển thị khi mode = 'edit' */}
-                    {mode === 'edit' && (
+                    {/* ✅ LOGIC MỚI: Chỉ hiển thị select Status khi:
+                        - Năm học đã inactive (chỉ xem)
+                        - HOẶC năm học đã cấu hình (chỉ cho chuyển sang inactive)
+                    */}
+                    {shouldShowStatusSelect && (
                         <FormControl fullWidth>
                             <InputLabel>Trạng thái</InputLabel>
                             <Select
@@ -454,26 +469,28 @@ function AcademicYearDialog({ open, mode, academicYear, onClose, onSuccess }) {
                 >
                     {isInactive ? 'Đóng' : 'Hủy'}
                 </Button>
-                <Button
-                    variant="contained"
-                    onClick={handleSubmit}
-                    disabled={loading}
-                    size="small"
-                    sx={{
-                        borderRadius: 1.5,
-                        px: 3,
-                        textTransform: 'none',
-                        fontWeight: 600,
-                        boxShadow: 2,
-                        background: 'linear-gradient(135deg, #0071bc 100%, #aee2ff 100%)',
-                        '&:hover': {
-                            boxShadow: 3,
-                            background: 'linear-gradient(135deg, #1180caff 100%, #aee2ff 100%)',
-                        },
-                    }}
-                >
-                    {loading ? 'Đang xử lý...' : mode === 'create' ? 'Tạo mới' : 'Cập nhật'}
-                </Button>
+                {!isInactive && (
+                    <Button
+                        variant="contained"
+                        onClick={handleSubmit}
+                        disabled={loading}
+                        size="small"
+                        sx={{
+                            borderRadius: 1.5,
+                            px: 3,
+                            textTransform: 'none',
+                            fontWeight: 600,
+                            boxShadow: 2,
+                            background: 'linear-gradient(135deg, #0071bc 100%, #aee2ff 100%)',
+                            '&:hover': {
+                                boxShadow: 3,
+                                background: 'linear-gradient(135deg, #1180caff 100%, #aee2ff 100%)',
+                            },
+                        }}
+                    >
+                        {loading ? 'Đang xử lý...' : mode === 'create' ? 'Tạo mới' : 'Cập nhật'}
+                    </Button>
+                )}
             </DialogActions>
         </Dialog>
     );

@@ -36,4 +36,9 @@ export const departmentApi = {
             params: { departmentName, academicYearId, currentDepartmentId },
         });
     },
+
+    // Copy departments từ năm học khác
+    copyFromYear: async (data) => {
+        return await authorizedAxiosInstance.post(`${API_ROOT}/v1/departments/copy-from-year`, data);
+    },
 };

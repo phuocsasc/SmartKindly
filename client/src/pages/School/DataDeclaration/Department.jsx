@@ -18,6 +18,7 @@ import AddCircleOutlineOutlinedIcon from '@mui/icons-material/AddCircleOutlineOu
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
 import DeleteOutlineOutlinedIcon from '@mui/icons-material/DeleteOutlineOutlined';
 import DoneOutlinedIcon from '@mui/icons-material/DoneOutlined';
+import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import { useEffect, useState } from 'react';
 import MainLayout from '~/layouts/SchoolLayout';
 import PageContainer from '~/components/common/PageContainer';
@@ -31,11 +32,13 @@ import { toast } from 'react-toastify';
 import DepartmentDialog from './DepartmentDialog';
 import ConfirmDialog from '~/components/common/ConfirmDialog';
 import { useConfirmDialog } from '~/hooks/useConfirmDialog';
+import DepartmentCopyDialog from './DepartmentCopyDialog'; // ✅ Import
 
 function Department() {
     const { user } = useUser();
     const { hasPermission } = usePermission(user?.role);
     const { dialogState, showConfirm, handleCancel } = useConfirmDialog();
+    const [openCopyDialog, setOpenCopyDialog] = useState(false); // ✅ Thêm state
 
     // State
     const [rows, setRows] = useState([]);
@@ -385,6 +388,14 @@ function Department() {
                                     </span>
                                 </Tooltip>
                             )}
+                            {/* ✅ Nút Copy từ năm học cũ */}
+                            {hasPermission(PERMISSIONS.CREATE_DEPARTMENT) && isActiveYear && (
+                                <Tooltip title="Copy tổ bộ môn từ năm học cũ">
+                                    <IconButton sx={{ color: '#764ba2' }} onClick={() => setOpenCopyDialog(true)}>
+                                        <ContentCopyIcon />
+                                    </IconButton>
+                                </Tooltip>
+                            )}
                         </Box>
                     </Box>
 
@@ -513,6 +524,16 @@ function Department() {
                 onClose={() => setOpenDialog(false)}
                 onSuccess={() => {
                     setOpenDialog(false);
+                    fetchDepartments();
+                }}
+            />
+
+            {/* ✅ Dialog Copy từ năm học cũ */}
+            <DepartmentCopyDialog
+                open={openCopyDialog}
+                currentYearId={activeYearId}
+                onClose={() => setOpenCopyDialog(false)}
+                onSuccess={() => {
                     fetchDepartments();
                 }}
             />

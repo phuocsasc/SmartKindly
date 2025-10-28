@@ -460,6 +460,115 @@ const getAvailableManagers = async (departmentName, academicYearId, userId, curr
         throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, 'Lỗi khi lấy danh sách cán bộ');
     }
 };
+const copyFromYear = async (data, userId) => {
+    try {
+        console.log('📋 [Department copyFromYear] Starting with data:', data);
+        const { fromAcademicYearId, toAcademicYearId } = data;
+
+        // ✅ Lấy schoolId từ user
+        const user = await UserModel.findById(userId).select('schoolId');
+        if (!user || !user.schoolId) {
+            throw new ApiError(StatusCodes.FORBIDDEN, 'Bạn không thuộc trường học nào');
+        }
+
+        const schoolId = user.schoolId;
+
+        // ✅ Kiểm tra năm học nguồn (từ năm cũ)
+        const fromAcademicYear = await AcademicYearModel.findOne({
+            _id: fromAcademicYearId,
+            schoolId,
+            _destroy: false,
+        });
+
+        if (!fromAcademicYear) {
+            throw new ApiError(StatusCodes.NOT_FOUND, 'Không tìm thấy năm học nguồn');
+        }
+
+        // ✅ Kiểm tra năm học đích (năm hiện tại)
+        const toAcademicYear = await AcademicYearModel.findOne({
+            _id: toAcademicYearId,
+            schoolId,
+            status: 'active',
+            _destroy: false,
+        });
+
+        if (!toAcademicYear) {
+            throw new ApiError(StatusCodes.NOT_FOUND, 'Không tìm thấy năm học đích hoặc năm học không đang hoạt động');
+        }
+
+        // ✅ Kiểm tra năm học đích đã có dữ liệu chưa
+        const existingDepartments = await DepartmentModel.find({
+            schoolId,
+            academicYearId: toAcademicYearId,
+            _destroy: false,
+        });
+
+        if (existingDepartments.length > 0) {
+            throw new ApiError(
+                StatusCodes.CONFLICT,
+                `Năm học ${toAcademicYear.fromYear}-${toAcademicYear.toYear} đã có ${existingDepartments.length} tổ bộ môn. Vui lòng xóa hết trước khi copy.`,
+            );
+        }
+
+        // ✅ Lấy danh sách tổ bộ môn từ năm cũ
+        const sourceDepartments = await DepartmentModel.find({
+            schoolId,
+            academicYearId: fromAcademicYearId,
+            _destroy: false,
+        }).populate('managers', '_id');
+
+        if (sourceDepartments.length === 0) {
+            throw new ApiError(StatusCodes.NOT_FOUND, 'Năm học nguồn không có tổ bộ môn nào');
+        }
+
+        console.log(`📋 [Department copyFromYear] Found ${sourceDepartments.length} departments to copy`);
+
+        // ✅ Copy từng tổ bộ môn
+        const copiedDepartments = [];
+        for (const sourceDept of sourceDepartments) {
+            const departmentId = await DepartmentModel.generateDepartmentId();
+
+            const newDepartment = new DepartmentModel({
+                departmentId,
+                schoolId,
+                academicYearId: toAcademicYearId,
+                name: sourceDept.name,
+                managers: sourceDept.managers.map((m) => m._id), // Copy manager IDs
+                note: sourceDept.note || '',
+                createdBy: userId,
+            });
+
+            const savedDept = await newDepartment.save();
+            copiedDepartments.push(savedDept);
+        }
+
+        // ✅ Đánh dấu năm học đích đã cấu hình
+        if (!toAcademicYear.isConfig) {
+            toAcademicYear.isConfig = true;
+            await toAcademicYear.save();
+            console.log('✅ [Department copyFromYear] Academic year marked as configured');
+        }
+
+        console.log(`✅ [Department copyFromYear] Copied ${copiedDepartments.length} departments successfully`);
+
+        // ✅ Populate data để trả về
+        const populatedDepartments = await DepartmentModel.find({
+            _id: { $in: copiedDepartments.map((d) => d._id) },
+        })
+            .populate('academicYearId', 'fromYear toYear status')
+            .populate('managers', 'fullName username role email phone')
+            .populate('createdBy', 'fullName username');
+
+        return {
+            count: populatedDepartments.length,
+            departments: populatedDepartments,
+        };
+    } catch (error) {
+        console.error('❌ [Department copyFromYear] Error:', error);
+        if (error instanceof ApiError) throw error;
+        throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, 'Lỗi khi copy tổ bộ môn: ' + error.message);
+    }
+};
 
 export const departmentServices = {
     createNew,
@@ -468,4 +577,5 @@ export const departmentServices = {
     update,
     deleteDepartment,
     getAvailableManagers,
+    copyFromYear,
 };

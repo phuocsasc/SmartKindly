@@ -14,6 +14,13 @@ Router.route('/available-managers').get(
     departmentController.getAvailableManagers,
 );
 
+// API copy departments từ năm học khác
+Router.route('/copy-from-year').post(
+    authMiddleware.isAuthorized,
+    rbacMiddleware.isValidPermission([PERMISSIONS.CREATE_DEPARTMENT]),
+    departmentController.copyFromYear,
+);
+
 // API lấy danh sách và tạo mới tổ bộ môn
 Router.route('/')
     .get(

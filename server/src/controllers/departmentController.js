@@ -97,6 +97,19 @@ const getAvailableManagers = async (req, res, next) => {
     }
 };
 
+const copyFromYear = async (req, res, next) => {
+    try {
+        const userId = req.jwtDecoded.id;
+        const result = await departmentServices.copyFromYear(req.body, userId);
+        res.status(StatusCodes.CREATED).json({
+            message: 'Copy tổ bộ môn từ năm học cũ thành công!',
+            data: result,
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
 export const departmentController = {
     createNew,
     getAll,
@@ -104,4 +117,5 @@ export const departmentController = {
     update,
     deleteDepartment,
     getAvailableManagers,
+    copyFromYear,
 };

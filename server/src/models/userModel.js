@@ -15,6 +15,11 @@ const UserSchema = new mongoose.Schema(
             },
             ref: 'School',
         },
+        classId: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'Class',
+            default: null,
+        },
         username: {
             type: String,
             required: [true, 'Tên tài khoản là bắt buộc'],

@@ -139,14 +139,14 @@ function ClassesCopyDialog({ open, currentYearId, onClose, onSuccess }) {
         {
             field: 'name',
             headerName: 'Tên lớp',
-            flex: 1.2,
+            flex: 1,
             minWidth: 120,
             sortable: false,
             renderCell: (params) => (
                 <Typography
                     sx={{
-                        fontWeight: 600,
-                        color: '#1976d2',
+                        fontWeight: 500,
+                        color: '#000',
                         whiteSpace: 'normal',
                         wordBreak: 'break-word',
                     }}
@@ -158,31 +158,13 @@ function ClassesCopyDialog({ open, currentYearId, onClose, onSuccess }) {
         {
             field: 'grade',
             headerName: 'Khối',
-            flex: 0.8,
-            minWidth: 80,
-            sortable: false,
-            renderCell: (params) => (
-                <Chip
-                    label={params.value}
-                    size="small"
-                    sx={{
-                        bgcolor: '#e3f2fd',
-                        color: '#1976d2',
-                        fontWeight: 500,
-                    }}
-                />
-            ),
-        },
-        {
-            field: 'ageGroup',
-            headerName: 'Nhóm lớp',
-            flex: 1,
+            flex: 0.5,
             minWidth: 100,
             sortable: false,
             renderCell: (params) => (
                 <Typography
-                    variant="body2"
                     sx={{
+                        fontWeight: 500,
                         color: '#000',
                         whiteSpace: 'normal',
                         wordBreak: 'break-word',
@@ -193,21 +175,20 @@ function ClassesCopyDialog({ open, currentYearId, onClose, onSuccess }) {
             ),
         },
         {
+            field: 'ageGroup',
+            headerName: 'Nhóm lớp',
+            flex: 0.8,
+            minWidth: 100,
+            sortable: false,
+        },
+        {
             field: 'teacherName',
             headerName: 'Giáo viên chủ nhiệm',
-            flex: 1.5,
-            minWidth: 150,
+            flex: 1,
+            minWidth: 180,
             sortable: false,
             renderCell: (params) => (
-                <Typography
-                    variant="body2"
-                    sx={{
-                        fontWeight: 500,
-                        color: '#000',
-                        whiteSpace: 'normal',
-                        wordBreak: 'break-word',
-                    }}
-                >
+                <Typography variant="body2" fontWeight={500} sx={{ textTransform: 'uppercase' }}>
                     {params.value}
                 </Typography>
             ),
@@ -215,7 +196,7 @@ function ClassesCopyDialog({ open, currentYearId, onClose, onSuccess }) {
         {
             field: 'sessionsDisplay',
             headerName: 'Buổi học',
-            flex: 1,
+            flex: 0.8,
             minWidth: 100,
             sortable: false,
             renderCell: (params) => (
@@ -240,7 +221,7 @@ function ClassesCopyDialog({ open, currentYearId, onClose, onSuccess }) {
             field: 'description',
             headerName: 'Ghi chú',
             flex: 1.5,
-            minWidth: 120,
+            minWidth: 150,
             sortable: false,
             renderCell: (params) => (
                 <Typography
@@ -262,7 +243,7 @@ function ClassesCopyDialog({ open, currentYearId, onClose, onSuccess }) {
             {/* Header */}
             <DialogTitle
                 sx={{
-                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                    background: 'linear-gradient(135deg, #0071bc 0%, #aee2ff 100%)',
                     color: '#fff',
                     py: 1,
                     position: 'relative',
@@ -308,27 +289,32 @@ function ClassesCopyDialog({ open, currentYearId, onClose, onSuccess }) {
                     overflowY: 'auto',
                     mt: -2,
                     '&::-webkit-scrollbar': { width: '6px' },
-                    '&::-webkit-scrollbar-track': { backgroundColor: '#f3e5f5' },
-                    '&::-webkit-scrollbar-thumb': { backgroundColor: '#9c27b0', borderRadius: '4px' },
-                    '&::-webkit-scrollbar-thumb:hover': { backgroundColor: '#7b1fa2' },
+                    '&::-webkit-scrollbar-track': { backgroundColor: '#e3f2fd' },
+                    '&::-webkit-scrollbar-thumb': { backgroundColor: '#0964a1a4', borderRadius: '4px' },
+                    '&::-webkit-scrollbar-thumb:hover': { backgroundColor: '#0071BC' },
+                    /* ✅ Style chung cho input */
                     '& .MuiOutlinedInput-root': {
                         borderRadius: 1.5,
-                        '&:hover fieldset': { borderColor: '#667eea' },
-                        '&.Mui-focused fieldset': { borderColor: '#667eea', borderWidth: 2 },
+
+                        // ✅ Khi hover viền sáng màu xanh nhạt
+                        '&:hover fieldset': {
+                            borderColor: '#0071bc',
+                        },
+
+                        // ✅ Khi focus viền đậm màu xanh biển
+                        '&.Mui-focused fieldset': {
+                            borderColor: '#0071bc',
+                            borderWidth: 2,
+                        },
                     },
-                    '& label.Mui-focused': { color: '#667eea' },
+
+                    // ✅ Đổi màu label khi focus
+                    '& label.Mui-focused': {
+                        color: '#0071bc',
+                    },
                 }}
             >
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
-                    {/* Thông báo */}
-                    <Alert severity="info" sx={{ borderRadius: 2 }}>
-                        <Typography variant="body2">
-                            <strong>Lưu ý:</strong> Chức năng này sẽ copy toàn bộ lớp học (bao gồm giáo viên chủ nhiệm,
-                            khối, nhóm lớp, buổi học và ghi chú) từ năm học đã chọn sang năm học hiện tại đang hoạt
-                            động.
-                        </Typography>
-                    </Alert>
-
                     {/* Chọn năm học */}
                     <Box>
                         <Typography
@@ -407,36 +393,43 @@ function ClassesCopyDialog({ open, currentYearId, onClose, onSuccess }) {
                                     hideFooter
                                     autoHeight={false}
                                     sx={{
-                                        // HEADER STYLE
+                                        // 💠 HEADER STYLE
                                         '& .MuiDataGrid-columnHeaders': {
-                                            backgroundColor: '#f3e5f5',
-                                            color: '#7b1fa2',
+                                            backgroundColor: '#e3f2fd', // ✅ xanh biển nhạt
+                                            color: '#1976d2', // ✅ chữ xanh đậm
                                             fontWeight: 900,
-                                            borderBottom: '2px solid #ce93d8',
+                                            borderBottom: '2px solid #bbdefb', // ✅ viền dưới header
                                         },
                                         '& .MuiDataGrid-columnHeaderTitle': {
-                                            fontWeight: 'bold',
-                                            fontSize: '0.95rem',
+                                            fontWeight: 'bold', // ✅ chữ in đậm
+                                            fontSize: '0.95rem', // ✅ tùy chọn: chỉnh kích thước chữ
                                         },
                                         '& .MuiDataGrid-columnHeader': {
-                                            borderRight: '1px solid #e1bee7',
+                                            borderRight: '1px solid #bbdefb', // ✅ đường kẻ giữa các cột header
                                             textAlign: 'center',
                                         },
 
-                                        // BODY STYLE
+                                        // 💠 BODY STYLE
                                         '& .MuiDataGrid-cell': {
-                                            borderRight: '1px solid #e0e0e0',
-                                            borderBottom: '1px solid #f0f0f0',
+                                            borderRight: '1px solid #e0e0e0', // ✅ đường kẻ giữa các cột body
+                                            borderBottom: '1px solid #f0f0f0', // ✅ đường kẻ ngang
                                             alignItems: 'center',
                                             whiteSpace: 'normal',
                                             wordBreak: 'break-word',
                                             color: '#000',
                                         },
-
-                                        // ROW HOVER
-                                        '& .MuiDataGrid-row:hover': {
-                                            backgroundColor: '#fce4ec',
+                                        '& .MuiDataGrid-cell:focus, & .MuiDataGrid-cell:focus-within': {
+                                            outline: 'none', // ✅ bỏ border khi click
                                         },
+
+                                        // 💠 ROW HOVER (nếu muốn)
+                                        '& .MuiDataGrid-row:hover': {
+                                            backgroundColor: '#f5faff',
+                                        },
+
+                                        // 💠 BO GÓC NHẸ, BÓNG NHẸ
+                                        borderRadius: 2,
+                                        boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
                                     }}
                                     slots={{
                                         noRowsOverlay: () => (

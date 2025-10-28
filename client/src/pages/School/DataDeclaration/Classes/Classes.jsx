@@ -170,57 +170,60 @@ function Classes() {
 
     // Columns
     const columns = [
-        { field: 'stt', headerName: 'STT', width: 60, sortable: false },
+        { field: 'stt', headerName: 'STT', width: 40, sortable: false },
         {
             field: 'name',
             headerName: 'Tên lớp',
-            flex: 1.2,
-            minWidth: 150,
+            flex: 1,
+            minWidth: 120,
             sortable: false,
             renderCell: (params) => (
-                <Chip
-                    label={params.value}
-                    size="small"
+                <Typography
                     sx={{
-                        fontWeight: 600,
-                        bgcolor: '#e3f2fd',
-                        color: '#1976d2',
+                        fontWeight: 500,
+                        color: '#000',
+                        whiteSpace: 'normal',
+                        wordBreak: 'break-word',
                     }}
-                />
+                >
+                    {params.value}
+                </Typography>
             ),
         },
         {
             field: 'grade',
-            headerName: 'Khối',
-            flex: 0.8,
+            headerName: 'Tên khối',
+            flex: 0.5,
             minWidth: 100,
             sortable: false,
             renderCell: (params) => (
-                <Chip
-                    label={params.value}
-                    size="small"
-                    color="secondary"
+                <Typography
                     sx={{
                         fontWeight: 500,
+                        color: '#000',
+                        whiteSpace: 'normal',
+                        wordBreak: 'break-word',
                     }}
-                />
+                >
+                    {params.value}
+                </Typography>
             ),
         },
         {
             field: 'ageGroup',
             headerName: 'Nhóm lớp',
-            flex: 1,
-            minWidth: 120,
+            flex: 0.8,
+            minWidth: 100,
             sortable: false,
         },
         {
             field: 'teacherName',
             headerName: 'Giáo viên chủ nhiệm',
-            flex: 1.5,
+            flex: 1,
             minWidth: 180,
             sortable: false,
             renderCell: (params) => (
-                <Typography variant="body2" fontWeight={500}>
+                <Typography variant="body2" fontWeight={500} sx={{ textTransform: 'uppercase' }}>
                     {params.value}
                 </Typography>
             ),
@@ -228,13 +231,23 @@ function Classes() {
         {
             field: 'sessionsDisplay',
             headerName: 'Buổi học',
-            flex: 1,
-            minWidth: 120,
+            flex: 0.8,
+            minWidth: 100,
             sortable: false,
             renderCell: (params) => (
                 <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
                     {params.value.split(', ').map((session, index) => (
-                        <Chip key={index} label={session} size="small" color="success" variant="outlined" />
+                        <Chip
+                            key={index}
+                            label={session}
+                            size="small"
+                            sx={{
+                                bgcolor: '#e0e0e0',
+                                color: '#000',
+                                fontSize: '0.75rem',
+                                fontWeight: 500,
+                            }}
+                        />
                     ))}
                 </Box>
             ),
@@ -255,7 +268,7 @@ function Classes() {
             field: 'actions',
             headerName: 'Thao tác',
             flex: 0.5,
-            minWidth: 100,
+            minWidth: 80,
             sortable: false,
             disableColumnMenu: true,
             renderCell: (params) => {
@@ -413,7 +426,7 @@ function Classes() {
                                     </>
                                 ) : (
                                     <>
-                                        <strong>Năm học đã kết thúc</strong> - Chỉ xem dữ liệu
+                                        <strong>Năm học đã kết thúc</strong>
                                     </>
                                 )}
                             </Typography>
@@ -432,14 +445,45 @@ function Classes() {
                         onPaginationModelChange={setPaginationModel}
                         pageSizeOptions={[5, 10, 25, 50]}
                         rowCount={totalRows}
+                        autoHeight
                         sx={{
-                            '& .MuiDataGrid-cell': {
-                                borderBottom: '1px solid #f0f0f0',
-                            },
+                            // 💠 HEADER STYLE
                             '& .MuiDataGrid-columnHeaders': {
-                                bgcolor: '#f5f5f5',
-                                fontWeight: 600,
+                                backgroundColor: '#e3f2fd', // ✅ xanh biển nhạt
+                                color: '#1976d2', // ✅ chữ xanh đậm
+                                fontWeight: 900,
+                                borderBottom: '2px solid #bbdefb', // ✅ viền dưới header
                             },
+                            '& .MuiDataGrid-columnHeaderTitle': {
+                                fontWeight: 'bold', // ✅ chữ in đậm
+                                fontSize: '0.95rem', // ✅ tùy chọn: chỉnh kích thước chữ
+                            },
+                            '& .MuiDataGrid-columnHeader': {
+                                borderRight: '1px solid #bbdefb', // ✅ đường kẻ giữa các cột header
+                                textAlign: 'center',
+                            },
+
+                            // 💠 BODY STYLE
+                            '& .MuiDataGrid-cell': {
+                                borderRight: '1px solid #e0e0e0', // ✅ đường kẻ giữa các cột body
+                                borderBottom: '1px solid #f0f0f0', // ✅ đường kẻ ngang
+                                alignItems: 'center',
+                                whiteSpace: 'normal',
+                                wordBreak: 'break-word',
+                                color: '#000',
+                            },
+                            '& .MuiDataGrid-cell:focus, & .MuiDataGrid-cell:focus-within': {
+                                outline: 'none', // ✅ bỏ border khi click
+                            },
+
+                            // 💠 ROW HOVER (nếu muốn)
+                            '& .MuiDataGrid-row:hover': {
+                                backgroundColor: '#f5faff',
+                            },
+
+                            // 💠 BO GÓC NHẸ, BÓNG NHẸ
+                            borderRadius: 2,
+                            boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
                         }}
                         slots={{
                             noRowsOverlay: () => (
@@ -452,7 +496,7 @@ function Classes() {
                                     }}
                                 >
                                     <Typography variant="body2" color="text.secondary">
-                                        Chưa có lớp học nào
+                                        {selectedYear ? 'Chưa có lớp nào' : 'Vui lòng chọn năm học'}
                                     </Typography>
                                 </Box>
                             ),

@@ -25,7 +25,7 @@ import {
 import CloseIcon from '@mui/icons-material/Close';
 import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
 import EditIcon from '@mui/icons-material/Edit';
-import SchoolIcon from '@mui/icons-material/School';
+import PersonOutlinedIcon from '@mui/icons-material/PersonOutlined';
 import { classApi } from '~/apis/classApi';
 import { toast } from 'react-toastify';
 
@@ -185,21 +185,22 @@ function ClassDialog({ open, mode, classData, academicYearId, onClose, onSuccess
             {/* Header */}
             <DialogTitle
                 sx={{
-                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                    background: 'linear-gradient(135deg, #0071bc 0%, #aee2ff 100%)',
                     color: '#fff',
-                    py: 2,
+                    py: 1,
                     position: 'relative',
+                    mb: 2,
                 }}
             >
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
                     <Avatar
                         sx={{
                             bgcolor: 'rgba(255, 255, 255, 0.2)',
-                            width: 35,
-                            height: 35,
+                            width: 30,
+                            height: 30,
                         }}
                     >
-                        {isCreateMode ? <AddCircleOutlineIcon /> : <EditIcon />}
+                        {isCreateMode ? <AddCircleOutlineIcon fontSize="small" /> : <EditIcon fontSize="small" />}
                     </Avatar>
                     <Typography variant="h6" fontWeight={600}>
                         {isCreateMode ? 'Thêm lớp học mới' : 'Chỉnh sửa lớp học'}
@@ -207,14 +208,18 @@ function ClassDialog({ open, mode, classData, academicYearId, onClose, onSuccess
                 </Box>
                 <IconButton
                     onClick={onClose}
+                    size="small"
                     sx={{
                         position: 'absolute',
                         right: 8,
                         top: 8,
-                        color: '#fff',
+                        color: 'white',
+                        '&:hover': {
+                            bgcolor: 'rgba(255, 255, 255, 0.1)',
+                        },
                     }}
                 >
-                    <CloseIcon />
+                    <CloseIcon sx={{ color: 'red' }} />
                 </IconButton>
             </DialogTitle>
 
@@ -222,12 +227,33 @@ function ClassDialog({ open, mode, classData, academicYearId, onClose, onSuccess
                 sx={{
                     px: 3,
                     py: 2.5,
+                    maxHeight: '70vh', // 👈 cần có để xuất hiện scroll
+                    overflowY: 'auto',
+                    mt: -2,
+                    '&::-webkit-scrollbar': { width: '6px' },
+                    '&::-webkit-scrollbar-track': { backgroundColor: '#e3f2fd' },
+                    '&::-webkit-scrollbar-thumb': { backgroundColor: '#0964a1a4', borderRadius: '4px' },
+                    '&::-webkit-scrollbar-thumb:hover': { backgroundColor: '#0071BC' },
+                    /* ✅ Style chung cho input */
                     '& .MuiOutlinedInput-root': {
                         borderRadius: 1.5,
-                        '&:hover fieldset': { borderColor: '#667eea' },
-                        '&.Mui-focused fieldset': { borderColor: '#667eea', borderWidth: 2 },
+
+                        // ✅ Khi hover viền sáng màu xanh nhạt
+                        '&:hover fieldset': {
+                            borderColor: '#0071bc',
+                        },
+
+                        // ✅ Khi focus viền đậm màu xanh biển
+                        '&.Mui-focused fieldset': {
+                            borderColor: '#0071bc',
+                            borderWidth: 2,
+                        },
                     },
-                    '& label.Mui-focused': { color: '#667eea' },
+
+                    // ✅ Đổi màu label khi focus
+                    '& label.Mui-focused': {
+                        color: '#0071bc',
+                    },
                 }}
             >
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
@@ -322,7 +348,7 @@ function ClassDialog({ open, mode, classData, academicYearId, onClose, onSuccess
                             </Box>
                         ) : availableTeachers.length === 0 ? (
                             <Alert severity="warning" sx={{ borderRadius: 1.5 }}>
-                                Không có giáo viên khả dụng. Tất cả giáo viên đã được phân công.
+                                Không có giáo viên khả dụng.
                             </Alert>
                         ) : (
                             <FormControl fullWidth size="small">
@@ -336,7 +362,7 @@ function ClassDialog({ open, mode, classData, academicYearId, onClose, onSuccess
                                     {availableTeachers.map((teacher) => (
                                         <MenuItem key={teacher._id} value={teacher._id}>
                                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                                <SchoolIcon fontSize="small" color="action" />
+                                                <PersonOutlinedIcon fontSize="small" color="action" />
                                                 <Typography variant="body2">{teacher.fullName}</Typography>
                                                 <Chip label={teacher.username} size="small" variant="outlined" />
                                             </Box>
@@ -485,10 +511,10 @@ function ClassDialog({ open, mode, classData, academicYearId, onClose, onSuccess
                         textTransform: 'none',
                         fontWeight: 600,
                         boxShadow: 2,
-                        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                        background: 'linear-gradient(135deg, #0071bc 100%, #aee2ff 100%)',
                         '&:hover': {
                             boxShadow: 3,
-                            background: 'linear-gradient(135deg, #5568d3 0%, #6a4296 100%)',
+                            background: 'linear-gradient(135deg, #1180caff 100%, #aee2ff 100%)',
                         },
                     }}
                 >

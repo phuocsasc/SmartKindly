@@ -20,9 +20,9 @@ import ForgotPassword from '~/pages/Auth/ForgotPassword';
 
 // Data-Declaration
 import SchoolInfo from '~/pages/School/DataDeclaration/SchoolInfo';
-import AcademicYear from '~/pages/School/DataDeclaration/AcademicYear';
-import Department from '~/pages/School/DataDeclaration/Department';
-import Classes from '~/pages/School/DataDeclaration/Classes';
+import AcademicYear from '~/pages/School/DataDeclaration/AcademicYear/AcademicYear';
+import Department from '~/pages/School/DataDeclaration/Department/Department';
+import Classes from '~/pages/School/DataDeclaration/Classes/Classes';
 
 /**
  * Protected Routes với UserContext

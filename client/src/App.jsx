@@ -24,6 +24,9 @@ import AcademicYear from '~/pages/School/DataDeclaration/AcademicYear/AcademicYe
 import Department from '~/pages/School/DataDeclaration/Department/Department';
 import Classes from '~/pages/School/DataDeclaration/Classes/Classes';
 
+// ✅ Personnel Management
+import PersonnelRecord from '~/pages/School/Personnel/PersonnelRecord/PersonnelRecord';
+
 /**
  * Protected Routes với UserContext
  */
@@ -90,6 +93,11 @@ function AppContent() {
                 <Route path="/data-declaration/department" element={<Department />} />
                 <Route path="/data-declaration/classes" element={<Classes />} />
                 {/* End - Data-Declaration */}
+
+                {/* ✅ Personnel Management - Quản lý cán bộ */}
+                <Route element={<RbacRoute requiredPermission={PERMISSIONS.VIEW_PERSONNEL_RECORDS} />}>
+                    <Route path="/staff/profile" element={<PersonnelRecord />} />
+                </Route>
             </Route>
 
             <Route path="/access-denied" element={<AccessDenied />} />

@@ -7,6 +7,7 @@ import { academicYearRoute } from '~/routes/v1/academicYearRoute';
 import { adminUserManagementRoute } from '~/routes/v1/adminUserManagementRoute';
 import { departmentRoute } from './departmentRoute'; // ✅ Import
 import { classRoute } from './classRoute';
+import { personnelRecordRoute } from './personnelRecordRoute';
 
 const Router = express.Router();
 
@@ -33,5 +34,7 @@ Router.use('/admin/users', adminUserManagementRoute);
 Router.use('/departments', departmentRoute); // ✅ Đăng ký route
 
 Router.use('/classes', classRoute);
+
+Router.use('/personnel-records', personnelRecordRoute);
 
 export const APIs_V1 = Router;

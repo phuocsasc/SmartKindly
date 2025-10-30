@@ -109,9 +109,29 @@ SchoolSchema.statics.generateSchoolId = async function () {
 };
 
 // Index để tìm kiếm nhanh hơn
-SchoolSchema.index({ name: 'text', address: 'text' });
-SchoolSchema.index({ slug: 1 });
-SchoolSchema.index({ schoolId: 1 });
-SchoolSchema.index({ abbreviation: 1 });
+// SchoolSchema.index({ name: 'text', address: 'text' });
+// SchoolSchema.index({ slug: 1 });
+// SchoolSchema.index({ schoolId: 1 });
+// SchoolSchema.index({ abbreviation: 1 });
+
+// ✅ Compound indexes
+SchoolSchema.index({ status: 1, _destroy: 1 }); // ✅ Filter active schools
+SchoolSchema.index({ schoolId: 1, _destroy: 1 }); // ✅ Unique lookup
+
+// ✅ Text search
+SchoolSchema.index(
+    {
+        name: 'text',
+        address: 'text',
+        abbreviation: 'text',
+    },
+    {
+        weights: {
+            name: 10,
+            abbreviation: 5,
+            address: 3,
+        },
+    },
+);
 
 export const SchoolModel = mongoose.model('School', SchoolSchema);

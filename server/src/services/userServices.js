@@ -424,22 +424,34 @@ const resetPasswordWithOtp = async (email, otp, newPassword) => {
         throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, `Lỗi khi đặt lại mật khẩu: ${error.message}`);
     }
 };
-// ✅ Thêm hàm getInfoUserDetails
+// ✅ Tối ưu getInfoUserDetails
 const getInfoUserDetails = async (userId) => {
     try {
-        const user = await UserModel.findOne({ _id: userId, _destroy: false }).select('-password').lean();
+        // ✅ Parallel query user + school
+        const [user, school] = await Promise.all([
+            UserModel.findOne({ _id: userId, _destroy: false })
+                .select('-password') // ✅ Loại password
+                .lean(),
+
+            // ✅ Fetch school nếu có schoolId
+            userId
+                ? (async () => {
+                      const u = await UserModel.findById(userId).select('schoolId').lean();
+                      if (u?.schoolId) {
+                          return SchoolModel.findOne({
+                              schoolId: u.schoolId,
+                              _destroy: false,
+                          })
+                              .select('name abbreviation')
+                              .lean();
+                      }
+                      return null;
+                  })()
+                : null,
+        ]);
 
         if (!user) {
             throw new ApiError(StatusCodes.NOT_FOUND, 'Không tìm thấy người dùng');
-        }
-
-        // ✅ Populate school info
-        let school = null;
-        if (user.schoolId) {
-            school = await SchoolModel.findOne({
-                schoolId: user.schoolId,
-                _destroy: false,
-            }).select('name abbreviation');
         }
 
         return {

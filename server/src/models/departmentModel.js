@@ -68,7 +68,16 @@ const DepartmentSchema = new mongoose.Schema(
 );
 
 // Index compound để tránh trùng lặp tổ bộ môn trong cùng năm học
-DepartmentSchema.index({ schoolId: 1, academicYearId: 1, name: 1, _destroy: 1 }, { unique: true });
+// DepartmentSchema.index({ schoolId: 1, academicYearId: 1, name: 1, _destroy: 1 }, { unique: true });
+
+// ✅ Compound indexes
+DepartmentSchema.index({ schoolId: 1, academicYearId: 1, _destroy: 1 }); // ✅ Main query
+DepartmentSchema.index({ schoolId: 1, academicYearId: 1, name: 1, _destroy: 1 }); // ✅ Unique + filter
+DepartmentSchema.index({ managers: 1 }); // ✅ Find by manager
+DepartmentSchema.index({ createdAt: -1 }); // ✅ Sort
+
+// ✅ Text search
+DepartmentSchema.index({ name: 'text' });
 
 // Static method: Tạo departmentId tự động
 DepartmentSchema.statics.generateDepartmentId = async function () {

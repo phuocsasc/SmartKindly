@@ -95,67 +95,43 @@ const getAll = async (query) => {
         const { page = 1, limit = 10, search = '', role = '', status = '', schoolId = '' } = query;
         const skip = (page - 1) * limit;
 
-        // ✅ Luôn loại trừ admin khỏi danh sách
         const filter = {
             _destroy: false,
-            role: { $ne: 'admin' }, // ✅ Không lấy user có role admin
+            role: { $ne: 'admin' },
         };
 
-        // Tìm kiếm
+        // ✅ Text search nếu có
         if (search) {
-            filter.$or = [
-                { username: { $regex: search, $options: 'i' } },
-                { fullName: { $regex: search, $options: 'i' } },
-                { email: { $regex: search, $options: 'i' } },
-                { phone: { $regex: search, $options: 'i' } },
-            ];
+            filter.$text = { $search: search }; // ✅ Sử dụng text index
         }
 
-        // Lọc theo role
-        if (role) {
-            filter.role = role;
-        }
+        if (role) filter.role = role;
+        if (status !== '') filter.status = status === 'true';
+        if (schoolId) filter.schoolId = schoolId;
 
-        // Lọc theo status
-        if (status !== '') {
-            filter.status = status === 'true';
-        }
+        // ✅ Parallel query
+        const [users, total] = await Promise.all([
+            UserModel.find(filter).select('-password').skip(skip).limit(Number(limit)).sort({ createdAt: -1 }).lean(),
 
-        // Lọc theo schoolId
-        if (schoolId) {
-            filter.schoolId = schoolId;
-        }
+            UserModel.countDocuments(filter),
+        ]);
 
-        // ✅ Populate school và select cả status
-        const users = await UserModel.find(filter)
-            .select('-password')
-            .skip(skip)
-            .limit(Number(limit))
-            .sort({ createdAt: -1 })
+        // ✅ Batch populate schools (1 query thay vì N queries)
+        const schoolIds = [...new Set(users.map((u) => u.schoolId).filter(Boolean))];
+        const schools = await SchoolModel.find({
+            schoolId: { $in: schoolIds },
+            _destroy: false,
+        })
+            .select('schoolId name abbreviation address status')
             .lean();
 
-        // ✅ Populate school information với status
-        const usersWithSchool = await Promise.all(
-            users.map(async (user) => {
-                if (user.schoolId) {
-                    const school = await SchoolModel.findOne({
-                        schoolId: user.schoolId,
-                        _destroy: false,
-                    }).select('name abbreviation address status'); // ✅ Thêm status
+        const schoolMap = new Map(schools.map((s) => [s.schoolId, s]));
 
-                    return {
-                        ...user,
-                        school: school || null,
-                    };
-                }
-                return {
-                    ...user,
-                    school: null,
-                };
-            }),
-        );
-
-        const total = await UserModel.countDocuments(filter);
+        // ✅ Map school to users
+        const usersWithSchool = users.map((user) => ({
+            ...user,
+            school: user.schoolId ? schoolMap.get(user.schoolId) : null,
+        }));
 
         return {
             users: usersWithSchool,

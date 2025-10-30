@@ -87,11 +87,37 @@ const UserSchema = new mongoose.Schema(
 );
 
 // Index
-UserSchema.index({ username: 1 });
-UserSchema.index({ userId: 1 });
-UserSchema.index({ email: 1 });
-UserSchema.index({ fullName: 'text' });
-UserSchema.index({ schoolId: 1 });
+// UserSchema.index({ username: 1 });
+// UserSchema.index({ userId: 1 });
+// UserSchema.index({ email: 1 });
+// UserSchema.index({ fullName: 'text' });
+// UserSchema.index({ schoolId: 1 });
+
+// ✅ Thêm compound indexes để tối ưu query phổ biến
+UserSchema.index({ schoolId: 1, role: 1, status: 1, _destroy: 1 }); // ✅ Filter users by school + role + status
+UserSchema.index({ schoolId: 1, _destroy: 1 }); // ✅ Query users by school
+UserSchema.index({ email: 1, _destroy: 1 }); // ✅ Login/forgot password
+UserSchema.index({ username: 1, _destroy: 1 }); // ✅ Login
+UserSchema.index({ classId: 1 }); // ✅ Find teacher by class
+UserSchema.index({ createdAt: -1 }); // ✅ Sort by created date
+
+// ✅ Text search index cho search box
+UserSchema.index(
+    {
+        fullName: 'text',
+        username: 'text',
+        email: 'text',
+        phone: 'text',
+    },
+    {
+        weights: {
+            fullName: 10,
+            username: 5,
+            email: 3,
+            phone: 1,
+        },
+    },
+);
 
 // Middleware: Hash password
 UserSchema.pre('save', async function (next) {

@@ -154,7 +154,7 @@ const createNew = async (data, userId) => {
 
 const getAll = async (query, userId) => {
     try {
-        const user = await UserModel.findById(userId).select('schoolId role');
+        const user = await UserModel.findById(userId).select('schoolId role').lean();
         if (!user || !user.schoolId) {
             throw new ApiError(StatusCodes.FORBIDDEN, 'Bạn không thuộc trường học nào');
         }
@@ -164,27 +164,26 @@ const getAll = async (query, userId) => {
 
         const filter = { _destroy: false, schoolId: user.schoolId };
 
-        if (academicYearId) {
-            filter.academicYearId = academicYearId;
-        }
+        if (academicYearId) filter.academicYearId = academicYearId;
+        if (grade) filter.grade = grade;
+        if (search) filter.name = { $regex: search, $options: 'i' };
 
-        if (grade) {
-            filter.grade = grade;
-        }
+        // ✅ Parallel query: data + count
+        const [classes, total] = await Promise.all([
+            ClassModel.find(filter)
+                .select(
+                    'classId name grade ageGroup description sessions homeRoomTeacher academicYearId createdBy createdAt',
+                ) // ✅ Select only needed fields
+                .populate('academicYearId', 'fromYear toYear status')
+                .populate('homeRoomTeacher', 'fullName username email phone')
+                .populate('createdBy', 'fullName username')
+                .skip(skip)
+                .limit(parseInt(limit))
+                .sort({ createdAt: -1 })
+                .lean(), // ✅ lean() để tăng tốc
 
-        if (search) {
-            filter.$or = [{ name: { $regex: search, $options: 'i' } }];
-        }
-
-        const classes = await ClassModel.find(filter)
-            .populate('academicYearId', 'fromYear toYear status')
-            .populate('homeRoomTeacher', 'fullName username email phone')
-            .populate('createdBy', 'fullName username')
-            .skip(skip)
-            .limit(parseInt(limit))
-            .sort({ createdAt: -1 });
-
-        const total = await ClassModel.countDocuments(filter);
+            ClassModel.countDocuments(filter),
+        ]);
 
         return {
             classes,
@@ -409,73 +408,68 @@ const deleteClass = async (id, userId) => {
 };
 
 // ✅ API lấy danh sách giáo viên có thể chọn (loại trừ Tổ cấp dưỡng và đã được gán lớp)
+// ✅ Tối ưu getAvailableTeachers - Dùng aggregation
 const getAvailableTeachers = async (academicYearId, userId, currentClassId = null) => {
     try {
-        const user = await UserModel.findById(userId).select('schoolId');
+        const user = await UserModel.findById(userId).select('schoolId').lean();
         if (!user || !user.schoolId) {
             throw new ApiError(StatusCodes.FORBIDDEN, 'Bạn không thuộc trường học nào');
         }
 
-        // ✅ Lấy tất cả giáo viên
-        const allTeachers = await UserModel.find({
-            schoolId: user.schoolId,
-            role: 'giao_vien',
-            status: true,
-            _destroy: false,
-        }).select('fullName username email phone');
+        // ✅ Parallel query
+        const [allTeachers, careTeamDept, assignedClasses] = await Promise.all([
+            // 1. Lấy tất cả giáo viên
+            UserModel.find({
+                schoolId: user.schoolId,
+                role: 'giao_vien',
+                status: true,
+                _destroy: false,
+            })
+                .select('fullName username email phone')
+                .lean(),
 
-        // ✅ Lấy danh sách giáo viên trong Tổ cấp dưỡng (năm học hiện tại)
-        const careTeamDept = await DepartmentModel.findOne({
-            schoolId: user.schoolId,
-            academicYearId,
-            name: 'Tổ cấp dưỡng',
-            _destroy: false,
-        }).select('managers');
+            // 2. Lấy Tổ cấp dưỡng
+            DepartmentModel.findOne({
+                schoolId: user.schoolId,
+                academicYearId,
+                name: 'Tổ cấp dưỡng',
+                _destroy: false,
+            })
+                .select('managers')
+                .lean(),
 
-        const careTeamManagerIds = new Set(careTeamDept?.managers.map((m) => m.toString()) || []);
+            // 3. Lấy các lớp đã được gán
+            ClassModel.find({
+                schoolId: user.schoolId,
+                academicYearId,
+                _destroy: false,
+            })
+                .select('homeRoomTeacher')
+                .lean(),
+        ]);
 
-        // ✅ Lấy danh sách giáo viên đã được gán lớp TRONG NĂM HỌC HIỆN TẠI
-        const classesInCurrentYear = await ClassModel.find({
-            schoolId: user.schoolId,
-            academicYearId, // ✅ Chỉ lấy lớp trong năm học hiện tại
-            _destroy: false,
-        }).select('homeRoomTeacher');
+        // ✅ Process data
+        const careTeamManagerIds = new Set((careTeamDept?.managers || []).map((m) => m.toString()));
 
         const assignedTeacherIds = new Set(
-            classesInCurrentYear
+            assignedClasses
                 .map((cls) => cls.homeRoomTeacher.toString())
                 .filter((teacherId) => {
-                    // ✅ Nếu đang edit, cho phép giữ giáo viên hiện tại
                     if (currentClassId) {
-                        const currentClass = classesInCurrentYear.find((cls) => cls._id.toString() === currentClassId);
+                        const currentClass = assignedClasses.find((cls) => cls._id.toString() === currentClassId);
                         if (currentClass && currentClass.homeRoomTeacher.toString() === teacherId) {
-                            return false; // Không loại trừ giáo viên hiện tại
+                            return false;
                         }
                     }
                     return true;
                 }),
         );
 
-        // ✅ Lọc giáo viên khả dụng
+        // ✅ Filter available teachers
         const availableTeachers = allTeachers.filter((teacher) => {
             const teacherId = teacher._id.toString();
-
-            // Loại bỏ nếu trong Tổ cấp dưỡng
-            if (careTeamManagerIds.has(teacherId)) {
-                return false;
-            }
-
-            // Loại bỏ nếu đã được gán lớp trong năm học hiện tại
-            if (assignedTeacherIds.has(teacherId)) {
-                return false;
-            }
-
-            return true;
+            return !careTeamManagerIds.has(teacherId) && !assignedTeacherIds.has(teacherId);
         });
-
-        console.log(
-            `📊 [getAvailableTeachers] Total: ${allTeachers.length}, In care team: ${careTeamManagerIds.size}, Assigned in current year: ${assignedTeacherIds.size}, Available: ${availableTeachers.length}`,
-        );
 
         return availableTeachers;
     } catch (error) {

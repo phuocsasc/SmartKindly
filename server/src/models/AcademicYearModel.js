@@ -90,14 +90,19 @@ AcademicYearSchema.pre('save', function (next) {
 
 // ✅ Index để tìm kiếm nhanh hơn và đảm bảo unique trong cùng trường
 // ✅ Thêm _destroy vào index để cho phép tái tạo năm học đã xóa
-AcademicYearSchema.index(
-    { schoolId: 1, fromYear: 1, toYear: 1, _destroy: 1 },
-    {
-        unique: true,
-        partialFilterExpression: { _destroy: false }, // ✅ Chỉ áp dụng unique cho bản ghi chưa xóa
-    },
-);
-AcademicYearSchema.index({ schoolId: 1, status: 1 });
-AcademicYearSchema.index({ createdBy: 1 });
+// AcademicYearSchema.index(
+//     { schoolId: 1, fromYear: 1, toYear: 1, _destroy: 1 },
+//     {
+//         unique: true,
+//         partialFilterExpression: { _destroy: false }, // ✅ Chỉ áp dụng unique cho bản ghi chưa xóa
+//     },
+// );
+// AcademicYearSchema.index({ schoolId: 1, status: 1 });
+// AcademicYearSchema.index({ createdBy: 1 });
+
+// ✅ Compound indexes
+AcademicYearSchema.index({ schoolId: 1, status: 1, _destroy: 1 }); // ✅ Find active year
+AcademicYearSchema.index({ schoolId: 1, fromYear: -1, _destroy: 1 }); // ✅ Sort by year
+AcademicYearSchema.index({ schoolId: 1, isConfig: 1, _destroy: 1 }); // ✅ Find configured years
 
 export const AcademicYearModel = mongoose.model('AcademicYear', AcademicYearSchema);

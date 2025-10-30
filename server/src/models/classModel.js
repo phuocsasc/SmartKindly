@@ -124,13 +124,22 @@ ClassSchema.pre('save', function (next) {
 });
 
 // Index compound để tránh trùng lặp tên lớp trong cùng năm học
-ClassSchema.index(
-    { schoolId: 1, academicYearId: 1, name: 1, _destroy: 1 },
-    {
-        unique: true,
-        partialFilterExpression: { _destroy: false },
-    },
-);
+// ClassSchema.index(
+//     { schoolId: 1, academicYearId: 1, name: 1, _destroy: 1 },
+//     {
+//         unique: true,
+//         partialFilterExpression: { _destroy: false },
+//     },
+// );
+
+// ✅ Compound indexes
+ClassSchema.index({ schoolId: 1, academicYearId: 1, _destroy: 1 }); // ✅ Main query
+ClassSchema.index({ schoolId: 1, academicYearId: 1, grade: 1, _destroy: 1 }); // ✅ Filter by grade
+ClassSchema.index({ homeRoomTeacher: 1, _destroy: 1 }); // ✅ Find by teacher
+ClassSchema.index({ createdAt: -1 }); // ✅ Sort
+
+// ✅ Text search
+ClassSchema.index({ name: 'text' });
 
 // Static method: Tạo classId tự động
 ClassSchema.statics.generateClassId = async function () {

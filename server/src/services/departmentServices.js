@@ -158,7 +158,7 @@ const createNew = async (data, userId) => {
 
 const getAll = async (query, userId) => {
     try {
-        const user = await UserModel.findById(userId).select('schoolId');
+        const user = await UserModel.findById(userId).select('schoolId').lean();
         if (!user || !user.schoolId) {
             throw new ApiError(StatusCodes.FORBIDDEN, 'Bạn không thuộc trường học nào');
         }
@@ -167,24 +167,23 @@ const getAll = async (query, userId) => {
         const skip = (page - 1) * limit;
 
         const filter = { _destroy: false, schoolId: user.schoolId };
+        if (academicYearId) filter.academicYearId = academicYearId;
+        if (name) filter.name = name;
 
-        if (academicYearId) {
-            filter.academicYearId = academicYearId;
-        }
+        // ✅ Parallel query
+        const [departments, total] = await Promise.all([
+            DepartmentModel.find(filter)
+                .select('departmentId name note managers academicYearId createdBy createdAt') // ✅ Select only needed
+                .populate('academicYearId', 'fromYear toYear status')
+                .populate('managers', 'fullName username role email phone')
+                .populate('createdBy', 'fullName username')
+                .skip(skip)
+                .limit(parseInt(limit))
+                .sort({ createdAt: -1 })
+                .lean(),
 
-        if (name) {
-            filter.name = name;
-        }
-
-        const departments = await DepartmentModel.find(filter)
-            .populate('academicYearId', 'fromYear toYear status')
-            .populate('managers', 'fullName username role email phone')
-            .populate('createdBy', 'fullName username')
-            .skip(skip)
-            .limit(parseInt(limit))
-            .sort({ createdAt: -1 });
-
-        const total = await DepartmentModel.countDocuments(filter);
+            DepartmentModel.countDocuments(filter),
+        ]);
 
         return {
             departments,

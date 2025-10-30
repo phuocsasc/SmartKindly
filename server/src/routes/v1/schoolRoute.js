@@ -4,6 +4,8 @@ import { schoolController } from '~/controllers/schoolController';
 import { authMiddleware } from '~/middlewares/authMiddleware';
 import { rbacMiddleware } from '~/middlewares/rbacMiddleware';
 import { PERMISSIONS } from '~/config/rbacConfig';
+import { setCacheHeaders } from '~/middlewares/httpCacheMiddleware';
+
 
 const Router = express.Router();
 
@@ -12,6 +14,7 @@ Router.route('/my-school')
     .get(
         authMiddleware.isAuthorized,
         rbacMiddleware.isValidPermission([PERMISSIONS.VIEW_SCHOOL_INFO]),
+        setCacheHeaders(600), // ✅ 10 phút
         schoolController.getSchoolInfo,
     )
     .put(

@@ -47,6 +47,24 @@ export const PERMISSIONS = {
 
     // Dashboard & cũ (giữ lại để tương thích)
     VIEW_DASHBOARD: 'view_dashboard',
+
+    // Quản lý hồ sơ cán bộ
+    VIEW_PERSONNEL_RECORDS: 'view_personnel_records',
+    CREATE_PERSONNEL_RECORDS: 'create_personnel_records',
+    UPDATE_PERSONNEL_RECORDS: 'update_personnel_records',
+    DELETE_PERSONNEL_RECORDS: 'delete_personnel_records',
+
+    // Quản lý đánh giá xếp loại cán bộ
+    VIEW_PERSONNEL_EVALUATION: 'view_personnel_evaluation',
+    CREATE_PERSONNEL_EVALUATION: 'create_personnel_evaluation',
+    UPDATE_PERSONNEL_EVALUATION: 'update_personnel_evaluation',
+    DELETE_PERSONNEL_EVALUATION: 'delete_personnel_evaluation',
+
+    // Quản lý danh hiệu thi đua cán bộ
+    VIEW_PERSONNEL_COMMENDATION: 'view_personnel_commendation',
+    CREATE_PERSONNEL_COMMENDATION: 'create_personnel_commendation',
+    UPDATE_PERSONNEL_COMMENDATION: 'update_personnel_commendation',
+    DELETE_PERSONNEL_COMMENDATION: 'delete_personnel_commendation',
 };
 
 export const ROLE_PERMISSIONS = {
@@ -72,6 +90,9 @@ export const ROLE_PERMISSIONS = {
         PERMISSIONS.UPDATE_CLASSROOM,
         PERMISSIONS.DELETE_CLASSROOM,
         PERMISSIONS.VIEW_DASHBOARD,
+        PERMISSIONS.VIEW_PERSONNEL_RECORDS,
+        PERMISSIONS.VIEW_PERSONNEL_EVALUATION,
+        PERMISSIONS.VIEW_PERSONNEL_COMMENDATION,
     ],
     [ROLES.GIAO_VIEN]: [
         PERMISSIONS.VIEW_SCHOOL_INFO,
@@ -79,6 +100,9 @@ export const ROLE_PERMISSIONS = {
         PERMISSIONS.VIEW_DEPARTMENT,
         PERMISSIONS.VIEW_CLASSROOM,
         PERMISSIONS.VIEW_DASHBOARD,
+        PERMISSIONS.VIEW_PERSONNEL_RECORDS,
+        PERMISSIONS.VIEW_PERSONNEL_EVALUATION,
+        PERMISSIONS.VIEW_PERSONNEL_COMMENDATION,
     ],
     [ROLES.KE_TOAN]: [PERMISSIONS.VIEW_SCHOOL_INFO, PERMISSIONS.VIEW_CLASSROOM, PERMISSIONS.VIEW_DASHBOARD],
     [ROLES.PHU_HUYNH]: [PERMISSIONS.VIEW_SCHOOL_INFO, PERMISSIONS.VIEW_DASHBOARD],

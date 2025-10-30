@@ -312,7 +312,7 @@ function Classes() {
         <MainLayout user={user}>
             <PageContainer>
                 <PageBreadcrumb
-                    items={[{ text: 'Khai báo dữ liệu', icon: StorageOutlinedIcon, href: '/#' }, { text: 'Lớp học' }]}
+                    items={[{ text: 'Khai báo dữ liệu', icon: StorageOutlinedIcon, href: '#' }, { text: 'Lớp học' }]}
                 />
 
                 <Paper sx={{ p: 2, borderRadius: 2, boxShadow: 2 }}>

@@ -270,7 +270,7 @@ function AcademicYear() {
         <MainLayout user={user}>
             <PageContainer>
                 <PageBreadcrumb
-                    items={[{ text: 'Khai báo dữ liệu', icon: StorageOutlinedIcon, href: '/#' }, { text: 'Năm học' }]}
+                    items={[{ text: 'Khai báo dữ liệu', icon: StorageOutlinedIcon, href: '#' }, { text: 'Năm học' }]}
                 />
 
                 <Paper sx={{ p: 2, borderRadius: 2, boxShadow: 2 }}>

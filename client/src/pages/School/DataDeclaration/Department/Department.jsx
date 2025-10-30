@@ -288,7 +288,7 @@ function Department() {
             <PageContainer>
                 {/* Breadcrumb */}
                 <PageBreadcrumb
-                    items={[{ text: 'Khai báo dữ liệu', icon: StorageOutlinedIcon, href: '/#' }, { text: 'Tổ bộ môn' }]}
+                    items={[{ text: 'Khai báo dữ liệu', icon: StorageOutlinedIcon, href: '#' }, { text: 'Tổ bộ môn' }]}
                 />
 
                 {/* Page Content */}

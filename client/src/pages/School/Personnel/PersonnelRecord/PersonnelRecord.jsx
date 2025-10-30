@@ -363,7 +363,7 @@ function PersonnelRecord() {
         <MainLayout user={user}>
             <PageContainer>
                 <PageBreadcrumb
-                    items={[{ text: 'Quản lý cán bộ', icon: PeopleIcon, href: '/#' }, { text: 'Hồ sơ cán bộ' }]}
+                    items={[{ text: 'Quản lý cán bộ', icon: PeopleIcon, href: '#' }, { text: 'Hồ sơ cán bộ' }]}
                 />
 
                 <Paper sx={{ p: 2, borderRadius: 2, boxShadow: 2 }}>

@@ -26,6 +26,8 @@ import Classes from '~/pages/School/DataDeclaration/Classes/Classes';
 
 // ✅ Personnel Management
 import PersonnelRecord from '~/pages/School/Personnel/PersonnelRecord/PersonnelRecord';
+import PersonnelEvaluation from '~/pages/School/Personnel/PersonnelEvaluation/PersonnelEvaluation';
+import PersonnelCommendation from '~/pages/School/Personnel/PersonnelCommendation/PersonnelCommendation';
 
 /**
  * Protected Routes với UserContext
@@ -97,6 +99,8 @@ function AppContent() {
                 {/* ✅ Personnel Management - Quản lý cán bộ */}
                 <Route element={<RbacRoute requiredPermission={PERMISSIONS.VIEW_PERSONNEL_RECORDS} />}>
                     <Route path="/staff/profile" element={<PersonnelRecord />} />
+                    <Route path="/staff/evaluation" element={<PersonnelEvaluation />} />
+                    <Route path="/staff/reward" element={<PersonnelCommendation />} />
                 </Route>
             </Route>
 

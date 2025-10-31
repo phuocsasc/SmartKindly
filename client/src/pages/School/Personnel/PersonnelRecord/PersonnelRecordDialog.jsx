@@ -413,6 +413,7 @@ function PersonnelRecordDialog({ open, mode, record, onClose, onSuccess }) {
             };
 
             // ✅ Gỡ bỏ field null (gọn gàng hơn)
+            // eslint-disable-next-line no-unused-vars
             const finalData = Object.fromEntries(Object.entries(dataToSubmit).filter(([_, v]) => v != null));
 
             // ✅ Gọi API

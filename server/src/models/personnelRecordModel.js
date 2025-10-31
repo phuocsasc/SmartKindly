@@ -163,7 +163,13 @@ const PersonnelRecordSchema = new mongoose.Schema(
             type: String,
             required: [true, 'Số điện thoại là bắt buộc'],
             trim: true,
-            match: [/^[0-9]{10,11}$/, 'Số điện thoại phải có 10-11 chữ số'],
+            validate: {
+                validator: function (v) {
+                    // ✅ Cho phép empty string hoặc valid phone
+                    return v === '' || /^[0-9]{10,11}$/.test(v);
+                },
+                message: 'Số điện thoại phải có 10-11 chữ số',
+            },
         },
         socialInsuranceNumber: {
             type: String,
@@ -181,34 +187,34 @@ const PersonnelRecordSchema = new mongoose.Schema(
         isYouthUnionMember: {
             type: String,
             enum: {
-                values: ['Có', 'Không'],
+                values: ['Có', 'Không', ''], // ✅ Thêm '' vào enum
                 message: 'Giá trị không hợp lệ',
             },
-            default: undefined, // ✅ Cho phép undefined
+            default: '', // ✅ Default là empty string
         },
         isPartyMember: {
             type: String,
             enum: {
-                values: ['Có', 'Không'],
+                values: ['Có', 'Không', ''],
                 message: 'Giá trị không hợp lệ',
             },
-            default: undefined, // ✅ Cho phép undefined
+            default: '',
         },
         isTradeUnionMember: {
             type: String,
             enum: {
-                values: ['Có', 'Không'],
+                values: ['Có', 'Không', ''],
                 message: 'Giá trị không hợp lệ',
             },
-            default: undefined, // ✅ Cho phép undefined
+            default: '',
         },
         familyBackground: {
             type: String,
             enum: {
-                values: ['Công nhân', 'Nông dân', 'Thành phần khác'],
+                values: ['Công nhân', 'Nông dân', 'Thành phần khác', ''],
                 message: 'Giá trị không hợp lệ',
             },
-            default: undefined,
+            default: '',
         },
         // Thông tin gia đình - Bố
         fatherName: {
@@ -272,10 +278,11 @@ const PersonnelRecordSchema = new mongoose.Schema(
                     'Đại học',
                     'Đại học sư phạm',
                     'Đại học và có chứng chỉ BDNVSP',
+                    '',
                 ],
                 message: 'Giá trị không hợp lệ',
             },
-            default: undefined,
+            default: '',
         },
         mainMajor: {
             type: String,
@@ -301,10 +308,10 @@ const PersonnelRecordSchema = new mongoose.Schema(
         languageCertificateGroup: {
             type: String,
             enum: {
-                values: ['Chứng chỉ trong nước', 'Chứng chỉ quốc tế'],
+                values: ['Chứng chỉ trong nước', 'Chứng chỉ quốc tế', ''],
                 message: 'Giá trị không hợp lệ',
             },
-            default: undefined,
+            default: '',
         },
         itLevel: {
             type: String,
@@ -313,10 +320,10 @@ const PersonnelRecordSchema = new mongoose.Schema(
         politicalTheoryLevel: {
             type: String,
             enum: {
-                values: ['Cử nhân', 'Sơ cấp', 'Trung cấp', 'Cao cấp'],
+                values: ['Cử nhân', 'Sơ cấp', 'Trung cấp', 'Cao cấp', ''],
                 message: 'Giá trị không hợp lệ',
             },
-            default: undefined,
+            default: '',
         },
         recruitmentDate: {
             type: Date,

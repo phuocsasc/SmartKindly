@@ -234,10 +234,116 @@ const deleteRecord = async (id, userId) => {
     }
 };
 
+const importBulk = async (records, userId) => {
+    try {
+        console.log('📥 [importBulk Service] Starting with userId:', userId);
+        console.log('📥 [importBulk Service] Records count:', records.length);
+
+        // ✅ Kiểm tra userId
+        if (!userId) {
+            throw new ApiError(StatusCodes.BAD_REQUEST, 'User ID không hợp lệ');
+        }
+
+        const user = await UserModel.findById(userId).select('schoolId');
+        console.log('👤 [importBulk Service] User found:', user);
+
+        if (!user || !user.schoolId) {
+            throw new ApiError(StatusCodes.FORBIDDEN, 'Bạn không thuộc trường học nào');
+        }
+
+        console.log('🏫 [importBulk Service] School ID:', user.schoolId);
+
+        let created = 0;
+        let updated = 0;
+        const errors = [];
+
+        for (const [index, recordData] of records.entries()) {
+            try {
+                // ✅ Nếu có personnelCode → Cập nhật
+                if (recordData.personnelCode && recordData.personnelCode.trim() !== '') {
+                    const existing = await PersonnelRecordModel.findOne({
+                        personnelCode: recordData.personnelCode,
+                        schoolId: user.schoolId,
+                        _destroy: false,
+                    });
+
+                    if (existing) {
+                        Object.assign(existing, recordData);
+                        await existing.save();
+                        updated++;
+                        console.log(`✅ [importBulk] Updated: ${recordData.personnelCode}`);
+                    } else {
+                        errors.push({
+                            row: index + 6,
+                            message: `Không tìm thấy mã cán bộ ${recordData.personnelCode}`,
+                        });
+                    }
+                }
+                // ✅ Nếu không có personnelCode → Tạo mới
+                else {
+                    // Check duplicate email
+                    if (recordData.email) {
+                        const existingEmail = await PersonnelRecordModel.findOne({
+                            schoolId: user.schoolId,
+                            email: recordData.email.toLowerCase(),
+                            _destroy: false,
+                        });
+                        if (existingEmail) {
+                            errors.push({ row: index + 6, message: `Email ${recordData.email} đã tồn tại` });
+                            continue;
+                        }
+                    }
+
+                    // Check duplicate idCard
+                    if (recordData.idCardNumber) {
+                        const existingIdCard = await PersonnelRecordModel.findOne({
+                            schoolId: user.schoolId,
+                            idCardNumber: recordData.idCardNumber,
+                            _destroy: false,
+                        });
+                        if (existingIdCard) {
+                            errors.push({
+                                row: index + 6,
+                                message: `CMND ${recordData.idCardNumber} đã tồn tại`,
+                            });
+                            continue;
+                        }
+                    }
+
+                    // Generate personnelCode
+                    const personnelCode = await PersonnelRecordModel.generatePersonnelCode(user.schoolId);
+
+                    // Create new
+                    await PersonnelRecordModel.create({
+                        ...recordData,
+                        personnelCode,
+                        schoolId: user.schoolId,
+                        createdBy: userId,
+                    });
+                    created++;
+                    console.log(`✅ [importBulk] Created: ${recordData.fullName} (${personnelCode})`);
+                }
+            } catch (error) {
+                console.error(`❌ [importBulk] Row ${index + 6} error:`, error.message);
+                errors.push({ row: index + 6, message: error.message });
+            }
+        }
+
+        console.log(`✅ [importBulk] Finished: ${created} created, ${updated} updated, ${errors.length} errors`);
+
+        return { created, updated, errors };
+    } catch (error) {
+        console.error('❌ [importBulk Service] Error:', error);
+        if (error instanceof ApiError) throw error;
+        throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, 'Lỗi khi import dữ liệu: ' + error.message);
+    }
+};
+
 export const personnelRecordServices = {
     createNew,
     getAll,
     getDetails,
     update,
     deleteRecord,
+    importBulk,
 };

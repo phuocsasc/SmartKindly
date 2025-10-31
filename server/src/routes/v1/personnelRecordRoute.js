@@ -7,6 +7,14 @@ import { PERMISSIONS } from '~/config/rbacConfig';
 
 const Router = express.Router();
 
+// ✅ Import bulk
+Router.post(
+    '/import',
+    authMiddleware.isAuthorized,
+    rbacMiddleware.isValidPermission([PERMISSIONS.CREATE_PERSONNEL_RECORDS]),
+    personnelRecordController.importBulk,
+);
+
 // API lấy danh sách và tạo mới hồ sơ cán bộ
 Router.route('/')
     .get(

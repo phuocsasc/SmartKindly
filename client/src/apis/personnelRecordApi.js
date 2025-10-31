@@ -29,4 +29,9 @@ export const personnelRecordApi = {
     delete: async (id) => {
         return await authorizedAxiosInstance.delete(`${API_ROOT}/v1/personnel-records/${id}`);
     },
+
+    // ✅ Import bulk records
+    importBulk: async (data) => {
+        return await authorizedAxiosInstance.post(`${API_ROOT}/v1/personnel-records/import`, { records: data });
+    },
 };

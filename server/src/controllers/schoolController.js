@@ -96,6 +96,12 @@ const getSchoolInfo = async (req, res, next) => {
         // console.log('🔍 Fetching school with schoolId:', schoolId);
         const result = await schoolServices.getBySchoolId(schoolId);
         // console.log('✅ School data fetched successfully');
+        // ✅ Force no-cache cho endpoint này
+        res.set({
+            'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+            Pragma: 'no-cache',
+            Expires: '0',
+        });
         res.status(StatusCodes.OK).json({
             message: 'Lấy thông tin trường học thành công!',
             data: result,

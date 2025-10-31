@@ -64,10 +64,34 @@ const deleteRecord = async (req, res, next) => {
     }
 };
 
+const importBulk = async (req, res, next) => {
+    try {
+        // ✅ FIX: Dùng id thay vì _id (vì JWT decode trả về id, không phải _id)
+        const userId = req.jwtDecoded.id; // ✅ Thay đổi từ _id thành id
+        const { records } = req.body;
+
+        if (!records || !Array.isArray(records) || records.length === 0) {
+            return res.status(StatusCodes.BAD_REQUEST).json({
+                success: false,
+                message: 'Danh sách records không hợp lệ',
+            });
+        }
+
+        console.log('📥 [importBulk Controller] userId:', userId);
+        console.log('📥 [importBulk Controller] records count:', records.length);
+
+        const result = await personnelRecordServices.importBulk(records, userId);
+        res.status(StatusCodes.OK).json({ success: true, data: result });
+    } catch (error) {
+        next(error);
+    }
+};
+
 export const personnelRecordController = {
     createNew,
     getAll,
     getDetails,
     update,
     deleteRecord,
+    importBulk,
 };

@@ -111,6 +111,7 @@ const createNew = async (req, res, next) => {
         idCardIssuePlace: Joi.string().trim().allow('', null),
         phone: Joi.string()
             .required()
+            .allow(null, '')
             .pattern(/^[0-9]{10,11}$/)
             .messages({
                 'string.pattern.base': 'Số điện thoại phải có 10-11 chữ số',
@@ -119,10 +120,10 @@ const createNew = async (req, res, next) => {
         socialInsuranceNumber: Joi.string().trim().allow('', null),
         detailedAddress: Joi.string().max(300).trim().allow('', null),
         healthStatus: Joi.string().trim().allow('', null),
-        isYouthUnionMember: Joi.string().valid('Có', 'Không').allow('', null),
-        isPartyMember: Joi.string().valid('Có', 'Không').allow('', null),
-        isTradeUnionMember: Joi.string().valid('Có', 'Không').allow('', null),
-        familyBackground: Joi.string().valid('Công nhân', 'Nông dân', 'Thành phần khác').allow('', null),
+        isYouthUnionMember: Joi.string().valid('Có', 'Không', null, '').allow('', null),
+        isPartyMember: Joi.string().valid('Có', 'Không', null, '').allow('', null),
+        isTradeUnionMember: Joi.string().valid('Có', 'Không', null, '').allow('', null),
+        familyBackground: Joi.string().valid('Công nhân', 'Nông dân', 'Thành phần khác', null, '').allow('', null),
         // Thông tin gia đình
         fatherName: Joi.string().trim().allow('', null),
         fatherBirthYear: Joi.number().integer().min(1900).max(new Date().getFullYear()).allow(null),
@@ -148,6 +149,8 @@ const createNew = async (req, res, next) => {
                 'Đại học',
                 'Đại học sư phạm',
                 'Đại học và có chứng chỉ BDNVSP',
+                null,
+                '',
             )
             .allow('', null),
         mainMajor: Joi.string().trim().allow('', null),
@@ -157,9 +160,11 @@ const createNew = async (req, res, next) => {
             .allow('', null),
         mainForeignLanguage: Joi.string().trim().allow('', null),
         foreignLanguageLevel: Joi.string().trim().allow('', null),
-        languageCertificateGroup: Joi.string().valid('Chứng chỉ trong nước', 'Chứng chỉ quốc tế').allow('', null),
+        languageCertificateGroup: Joi.string()
+            .valid('Chứng chỉ trong nước', 'Chứng chỉ quốc tế', null, '')
+            .allow('', null),
         itLevel: Joi.string().trim().allow('', null),
-        politicalTheoryLevel: Joi.string().valid('Cử nhân', 'Sơ cấp', 'Trung cấp', 'Cao cấp').allow('', null),
+        politicalTheoryLevel: Joi.string().valid('Cử nhân', 'Sơ cấp', 'Trung cấp', 'Cao cấp', null, '').allow('', null),
         recruitmentDate: Joi.date().allow(null),
     });
 

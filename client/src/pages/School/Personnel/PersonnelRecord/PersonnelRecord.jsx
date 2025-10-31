@@ -33,6 +33,13 @@ import PersonnelRecordDialog from './PersonnelRecordDialog';
 import { toast } from 'react-toastify';
 import dayjs from 'dayjs';
 
+import FileDownloadOutlinedIcon from '@mui/icons-material/FileDownloadOutlined';
+import { exportPersonnelRecordsToExcel } from '~/utils/personnelRecordExcelExport';
+import { schoolApi } from '~/apis/schoolApi';
+
+import FileUploadOutlinedIcon from '@mui/icons-material/FileUploadOutlined';
+import ImportPersonnelDialog from './ImportPersonnedDialog';
+
 // ✅ Constants
 const DEPARTMENTS = [
     'CBQL',
@@ -79,6 +86,9 @@ function PersonnelRecord() {
     const [dialogMode, setDialogMode] = useState('create');
     const [currentRecord, setCurrentRecord] = useState(null);
     const [debounceSearch, setDebounceSearch] = useState('');
+
+    const [exportLoading, setExportLoading] = useState(false);
+    const [openImportDialog, setOpenImportDialog] = useState(false);
 
     // Debounce search
     useEffect(() => {
@@ -158,6 +168,37 @@ function PersonnelRecord() {
         } catch (error) {
             if (error?.isCancel) return;
             toast.error(error?.response?.data?.message || 'Lỗi khi xóa hồ sơ!');
+        }
+    };
+
+    // ✅ Handler xuất Excel - FIX: Dùng getSchoolInfo thay vì getDetails
+    const handleExportExcel = async () => {
+        try {
+            setExportLoading(true);
+
+            // Lấy tất cả records (không phân trang)
+            const res = await personnelRecordApi.getAll({
+                page: 1,
+                limit: 9999, // Lấy hết
+                search: '',
+                department: '',
+                workStatus: '',
+                positionGroup: '',
+            });
+
+            // ✅ FIX: Lấy thông tin trường của user hiện tại
+            const schoolRes = await schoolApi.getSchoolInfo(); // Thay vì getDetails(user.schoolId)
+            const schoolName = schoolRes.data.data.name;
+
+            // Xuất Excel
+            await exportPersonnelRecordsToExcel(res.data.data.records, schoolName);
+
+            toast.success('Xuất file Excel thành công!');
+        } catch (error) {
+            console.error('Error exporting Excel:', error);
+            toast.error('Lỗi khi xuất file Excel!');
+        } finally {
+            setExportLoading(false);
         }
     };
 
@@ -454,6 +495,28 @@ function PersonnelRecord() {
                                     </IconButton>
                                 </Tooltip>
                             )}
+                            {/* ✅ Nút Import Excel */}
+                            {hasPermission(PERMISSIONS.CREATE_PERSONNEL_RECORDS) && (
+                                <Tooltip title="Nhập dữ liệu từ Excel">
+                                    <IconButton sx={{ color: '#f57c00' }} onClick={() => setOpenImportDialog(true)}>
+                                        <FileUploadOutlinedIcon />
+                                    </IconButton>
+                                </Tooltip>
+                            )}
+                            {/* ✅ Nút Xuất Excel */}
+                            <Tooltip title="Xuất file Excel">
+                                <IconButton
+                                    sx={{ color: '#2e7d32' }}
+                                    onClick={handleExportExcel}
+                                    disabled={exportLoading}
+                                >
+                                    {exportLoading ? (
+                                        <CircularProgress size={24} sx={{ color: '#2e7d32' }} />
+                                    ) : (
+                                        <FileDownloadOutlinedIcon />
+                                    )}
+                                </IconButton>
+                            </Tooltip>
                         </Box>
                     </Box>
 
@@ -558,6 +621,17 @@ function PersonnelRecord() {
                     setOpenDialog(false);
                     fetchRecords();
                 }}
+            />
+
+            {/* ✅ Import Dialog */}
+            <ImportPersonnelDialog
+                open={openImportDialog}
+                onClose={() => setOpenImportDialog(false)}
+                onSuccess={() => {
+                    setOpenImportDialog(false);
+                    fetchRecords();
+                }}
+                schoolName={user?.schoolName || 'Mầm non Huynh Kim Phụng'}
             />
 
             {/* Confirm Dialog */}

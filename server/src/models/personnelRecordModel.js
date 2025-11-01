@@ -1,4 +1,6 @@
 import mongoose from 'mongoose';
+import { PersonnelEvaluationModel } from './personnelEvaluationModel.js';
+import { AcademicYearModel } from './academicYearModel.js';
 
 const PersonnelRecordSchema = new mongoose.Schema(
     {
@@ -391,5 +393,81 @@ PersonnelRecordSchema.statics.generatePersonnelCode = async function (schoolId) 
 
     return `${schoolId}-CB${paddedNumber}`;
 };
+
+// ✅ Middleware: Sync evaluation khi update PersonnelRecord
+PersonnelRecordSchema.post('findOneAndUpdate', async function (doc) {
+    try {
+        if (doc && !doc._destroy) {
+            const isEligible =
+                ['Tổ trưởng', 'Tổ phó', 'Giáo viên'].includes(doc.positionGroup) && doc.workStatus === 'Đang làm việc';
+
+            // ✅ Lấy năm học đang active
+            const activeYear = await AcademicYearModel.findOne({
+                schoolId: doc.schoolId,
+                status: 'active',
+                _destroy: false,
+            });
+
+            if (activeYear && isEligible) {
+                // ✅ Sync evaluation cho năm học active
+                await PersonnelEvaluationModel.findOneAndUpdate(
+                    { personnelRecordId: doc._id, academicYearId: activeYear._id },
+                    {
+                        fullName: doc.fullName,
+                        personnelCode: doc.personnelCode,
+                        _destroy: false,
+                    },
+                    { upsert: true },
+                );
+                console.log(`✅ [PersonnelRecord] Auto-synced evaluation for ${doc.fullName}`);
+            } else if (!isEligible) {
+                // ✅ Xóa evaluation nếu không còn đủ điều kiện
+                await PersonnelEvaluationModel.updateMany({ personnelRecordId: doc._id }, { _destroy: true });
+                console.log(`✅ [PersonnelRecord] Removed evaluations for ${doc.fullName}`);
+            }
+        }
+    } catch (error) {
+        console.error('❌ [PersonnelRecord post-update] Error:', error);
+    }
+});
+
+// ✅ Middleware: Tạo evaluation khi tạo mới PersonnelRecord
+PersonnelRecordSchema.post('save', async function (doc) {
+    try {
+        if (this.isNew && !doc._destroy) {
+            const isEligible =
+                ['Tổ trưởng', 'Tổ phó', 'Giáo viên'].includes(doc.positionGroup) && doc.workStatus === 'Đang làm việc';
+
+            if (isEligible) {
+                const activeYear = await AcademicYearModel.findOne({
+                    schoolId: doc.schoolId,
+                    status: 'active',
+                    _destroy: false,
+                });
+
+                if (activeYear) {
+                    const existingEval = await PersonnelEvaluationModel.findOne({
+                        personnelRecordId: doc._id,
+                        academicYearId: activeYear._id,
+                        _destroy: false,
+                    });
+
+                    if (!existingEval) {
+                        await PersonnelEvaluationModel.create({
+                            personnelRecordId: doc._id,
+                            academicYearId: activeYear._id,
+                            schoolId: doc.schoolId,
+                            fullName: doc.fullName,
+                            personnelCode: doc.personnelCode,
+                        });
+                        console.log(`✅ [PersonnelRecord] Auto-created evaluation for ${doc.fullName}`);
+                    }
+                }
+            }
+        }
+    } catch (error) {
+        console.error('❌ [PersonnelRecord post-save] Error:', error);
+    }
+});
 
 export const PersonnelRecordModel = mongoose.model('PersonnelRecord', PersonnelRecordSchema);

@@ -64,8 +64,8 @@ const DROPDOWN_VALUES = {
  * ✅ Định nghĩa cấu trúc columns (header + required + validation)
  */
 const COLUMNS_CONFIG = [
-    { key: 'stt', header: 'STT', width: 8, required: true },
-    { key: 'personnelCode', header: 'Mã cán bộ', width: 15, required: true },
+    { key: 'stt', header: 'STT', width: 8 },
+    { key: 'personnelCode', header: 'Mã cán bộ', width: 15 },
     { key: 'fullName', header: 'Họ và tên', width: 25, required: true, note: 'Họ tên phải có ít nhất 3 ký tự' },
     { key: 'department', header: 'Tổ bộ môn', width: 20, required: true, dropdown: DROPDOWN_VALUES.department },
     { key: 'identificationNumber', header: 'Mã định danh', width: 15, note: 'Tối đa 12 ký tự' },

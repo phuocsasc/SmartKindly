@@ -8,6 +8,7 @@ import { adminUserManagementRoute } from '~/routes/v1/adminUserManagementRoute';
 import { departmentRoute } from './departmentRoute'; // ✅ Import
 import { classRoute } from './classRoute';
 import { personnelRecordRoute } from './personnelRecordRoute';
+import { personnelEvaluationRoute } from './personnelEvaluationRoute'; // ✅ Import
 
 const Router = express.Router();
 
@@ -36,5 +37,8 @@ Router.use('/departments', departmentRoute); // ✅ Đăng ký route
 Router.use('/classes', classRoute);
 
 Router.use('/personnel-records', personnelRecordRoute);
+
+/** Personnel Evaluation APIs */
+Router.use('/personnel-evaluations', personnelEvaluationRoute); // ✅ Thêm route
 
 export const APIs_V1 = Router;

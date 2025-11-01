@@ -56,7 +56,7 @@ const menuItems = [
             { text: 'Hồ sơ cán bộ', path: '/staff/profile' },
             // { text: 'Phân công phụ trách', path: '/staff/assignment' },
             { text: 'Đánh giá xếp loại', path: '/staff/evaluation' },
-            { text: 'Danh hiệu thi đua', path: '/staff/reward' },
+            // { text: 'Danh hiệu thi đua', path: '/staff/reward' },
         ],
     },
     {

@@ -302,6 +302,44 @@ function PersonnelRecord() {
                 />
             ),
         },
+        // ✅ THÊM MỚI: Cột Số điện thoại
+        {
+            field: 'phone',
+            headerName: 'Số điện thoại',
+            flex: 1,
+            minWidth: 120,
+            sortable: false,
+            renderCell: (params) => (
+                <Typography
+                    sx={{
+                        // fontFamily: 'monospace',
+                        color: '#555',
+                    }}
+                >
+                    {params.value || '---'}
+                </Typography>
+            ),
+        },
+        // ✅ THÊM MỚI: Cột Email
+        {
+            field: 'email',
+            headerName: 'Email cán bộ',
+            flex: 1.5,
+            minWidth: 200,
+            sortable: false,
+            renderCell: (params) => (
+                <Typography
+                    sx={{
+                        whiteSpace: 'normal',
+                        wordBreak: 'break-all',
+                        color: '#555',
+                        // fontSize: '0.875rem',
+                    }}
+                >
+                    {params.value || '---'}
+                </Typography>
+            ),
+        },
         {
             field: 'contractType',
             headerName: 'Hình thức hợp đồng',

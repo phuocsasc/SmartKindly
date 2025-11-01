@@ -204,18 +204,17 @@ function PersonnelRecord() {
 
     // Columns
     const columns = [
-        { field: 'stt', headerName: 'STT', width: 60, sortable: false },
+        { field: 'stt', headerName: 'STT', width: 40, sortable: false },
         {
             field: 'fullName',
             headerName: 'Họ tên cán bộ',
             flex: 1.5,
-            minWidth: 180,
+            minWidth: 160,
             sortable: false,
             renderCell: (params) => (
                 <Typography
                     sx={{
                         fontWeight: 600,
-                        color: '#1976d2',
                         whiteSpace: 'normal',
                         wordBreak: 'break-word',
                     }}
@@ -289,7 +288,7 @@ function PersonnelRecord() {
             field: 'positionGroup',
             headerName: 'Nhóm chức vụ',
             flex: 1,
-            minWidth: 120,
+            minWidth: 130,
             sortable: false,
             renderCell: (params) => (
                 <Chip
@@ -325,7 +324,7 @@ function PersonnelRecord() {
             field: 'majorDegreeLevelDisplay',
             headerName: 'Trình độ chuyên ngành',
             flex: 1.2,
-            minWidth: 150,
+            minWidth: 190,
             sortable: false,
             renderCell: (params) => (
                 <Typography
@@ -363,7 +362,7 @@ function PersonnelRecord() {
             field: 'actions',
             headerName: 'Thao tác',
             flex: 0.8,
-            minWidth: 120,
+            minWidth: 100,
             sortable: false,
             disableColumnMenu: true,
             renderCell: (params) => {
@@ -521,93 +520,178 @@ function PersonnelRecord() {
                     </Box>
 
                     {/* DataGrid */}
-                    <DataGrid
-                        rows={rows}
-                        columns={columns}
-                        loading={loading}
-                        paginationMode="server"
-                        paginationModel={paginationModel}
-                        onPaginationModelChange={setPaginationModel}
-                        pageSizeOptions={[5, 10, 25, 50]}
-                        rowCount={totalRows}
-                        disableRowSelectionOnClick
-                        disableColumnMenu
-                        autoHeight
-                        sx={{
-                            // 💠 HEADER STYLE
-                            '& .MuiDataGrid-columnHeaders': {
-                                backgroundColor: '#e3f2fd', // ✅ xanh biển nhạt
-                                color: '#1976d2', // ✅ chữ xanh đậm
-                                fontWeight: 900,
-                                borderBottom: '2px solid #bbdefb', // ✅ viền dưới header
-                            },
-                            '& .MuiDataGrid-columnHeaderTitle': {
-                                fontWeight: 'bold', // ✅ chữ in đậm
-                                fontSize: '0.95rem', // ✅ tùy chọn: chỉnh kích thước chữ
-                            },
-                            '& .MuiDataGrid-columnHeader': {
-                                borderRight: '1px solid #bbdefb', // ✅ đường kẻ giữa các cột header
-                                textAlign: 'center',
-                            },
+                    <Box sx={{ display: 'flex', width: '100%', overflow: 'hidden' }}>
+                        {/* Bảng bên trái: 3 cột cố định */}
+                        <Box
+                            sx={{
+                                flex: '0 0 400px', // tổng chiều rộng ~ STT (40) + Họ tên (160) + Mã cán bộ (140) + padding
+                                backgroundColor: '#fff',
+                            }}
+                        >
+                            <DataGrid
+                                rows={rows}
+                                columns={columns.filter((c) => ['stt', 'fullName', 'personnelCode'].includes(c.field))}
+                                loading={loading}
+                                disableColumnMenu
+                                disableRowSelectionOnClick
+                                hideFooter
+                                autoHeight
+                                rowHeight={52}
+                                sx={{
+                                    '& .MuiDataGrid-columnHeaders': {
+                                        backgroundColor: '#e3f2fd',
+                                        color: '#1976d2',
+                                        fontWeight: 900,
+                                        borderBottom: '2px solid #bbdefb',
+                                    },
+                                    '& .MuiDataGrid-columnHeaderTitle': {
+                                        fontWeight: 'bold',
+                                        fontSize: '0.95rem',
+                                        whiteSpace: 'normal',
+                                        lineHeight: '1.2rem',
+                                    },
+                                    '& .MuiDataGrid-cell': {
+                                        borderBottom: '1px solid #e0e0e0',
+                                        borderRight: '1px solid #e0e0e0',
+                                        color: '#000',
+                                        whiteSpace: 'normal',
+                                        wordBreak: 'break-word',
+                                    },
+                                    '& .MuiDataGrid-row:hover': { backgroundColor: '#f5faff' },
+                                }}
+                                slots={{
+                                    noRowsOverlay: () => (
+                                        <Box
+                                            sx={{
+                                                display: 'flex',
+                                                justifyContent: 'center',
+                                                alignItems: 'center',
+                                                height: '100%',
+                                            }}
+                                        >
+                                            <Typography variant="body2" color="text.secondary">
+                                                Không có dữ liệu
+                                            </Typography>
+                                        </Box>
+                                    ),
+                                    loadingOverlay: () => (
+                                        <Box
+                                            sx={{
+                                                display: 'flex',
+                                                justifyContent: 'center',
+                                                alignItems: 'center',
+                                                height: '100%',
+                                            }}
+                                        >
+                                            <CircularProgress />
+                                        </Box>
+                                    ),
+                                }}
+                            />
+                        </Box>
 
-                            // 💠 BODY STYLE
-                            '& .MuiDataGrid-cell': {
-                                borderRight: '1px solid #e0e0e0', // ✅ đường kẻ giữa các cột body
-                                borderBottom: '1px solid #f0f0f0', // ✅ đường kẻ ngang
-                                alignItems: 'center',
-                                whiteSpace: 'normal',
-                                wordBreak: 'break-word',
-                                color: '#000',
-                            },
-                            '& .MuiDataGrid-cell:focus, & .MuiDataGrid-cell:focus-within': {
-                                outline: 'none', // ✅ bỏ border khi click
-                            },
-
-                            // 💠 ROW HOVER (nếu muốn)
-                            '& .MuiDataGrid-row:hover': {
-                                backgroundColor: '#f5faff',
-                            },
-
-                            // 💠 BO GÓC NHẸ, BÓNG NHẸ
-                            borderRadius: 2,
-                            boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
-                        }}
-                        localeText={{
-                            MuiTablePagination: {
-                                labelRowsPerPage: 'Số hàng mỗi trang:',
-                                labelDisplayedRows: ({ from, to, count }) =>
-                                    `${from} - ${to} của ${count !== -1 ? count : `hơn ${to}`}`,
-                            },
-                        }}
-                        slots={{
-                            noRowsOverlay: () => (
-                                <Box
-                                    sx={{
-                                        display: 'flex',
-                                        justifyContent: 'center',
+                        {/* Bảng bên phải: bắt đầu từ “Ngày sinh”, có thanh scroll ngang */}
+                        <Box
+                            sx={{
+                                flex: 1,
+                                overflowX: 'auto',
+                                '& .MuiDataGrid-virtualScroller': {
+                                    overflowX: 'auto',
+                                    '&::-webkit-scrollbar': { height: '8px', width: '6px' },
+                                    '&::-webkit-scrollbar-track': { backgroundColor: '#e3f2fd' },
+                                    '&::-webkit-scrollbar-thumb': {
+                                        backgroundColor: '#0964a1a4',
+                                        // borderRadius: '4px',
+                                    },
+                                    '&::-webkit-scrollbar-thumb:hover': { backgroundColor: '#0071BC' },
+                                },
+                            }}
+                        >
+                            <DataGrid
+                                rows={rows}
+                                columns={columns.filter((c) => !['stt', 'fullName', 'personnelCode'].includes(c.field))}
+                                loading={loading}
+                                paginationMode="server"
+                                paginationModel={paginationModel}
+                                onPaginationModelChange={setPaginationModel}
+                                pageSizeOptions={[5, 10, 25, 50]}
+                                rowCount={totalRows}
+                                disableRowSelectionOnClick
+                                disableColumnMenu
+                                autoHeight
+                                sx={{
+                                    borderLeft: 'none',
+                                    borderBottom: 'none',
+                                    borderRight: 'none',
+                                    '& .MuiDataGrid-virtualScroller': {
+                                        overflowX: 'auto',
+                                    },
+                                    '& .MuiDataGrid-columnHeaders': {
+                                        backgroundColor: '#e3f2fd',
+                                        color: '#1976d2',
+                                        fontWeight: 900,
+                                        borderRight: '2px solid #bbdefb',
+                                        borderBottom: '2px solid #bbdefb',
+                                    },
+                                    '& .MuiDataGrid-columnHeaderTitle': {
+                                        fontWeight: 'bold',
+                                        fontSize: '0.95rem',
+                                        whiteSpace: 'normal',
+                                        lineHeight: '1.2rem',
+                                    },
+                                    '& .MuiDataGrid-cell': {
+                                        borderRight: '1px solid #e0e0e0',
+                                        borderBottom: '1px solid #f0f0f0',
                                         alignItems: 'center',
-                                        height: '100%',
-                                    }}
-                                >
-                                    <Typography variant="body2" color="text.secondary">
-                                        Không có dữ liệu
-                                    </Typography>
-                                </Box>
-                            ),
-                            loadingOverlay: () => (
-                                <Box
-                                    sx={{
-                                        display: 'flex',
-                                        justifyContent: 'center',
-                                        alignItems: 'center',
-                                        height: '100%',
-                                    }}
-                                >
-                                    <CircularProgress />
-                                </Box>
-                            ),
-                        }}
-                    />
+                                        whiteSpace: 'normal',
+                                        // wordBreak: 'break-word',
+                                        color: '#000',
+                                    },
+                                    '& .MuiDataGrid-cell:focus, & .MuiDataGrid-cell:focus-within': {
+                                        outline: 'none',
+                                    },
+                                    '& .MuiDataGrid-row:hover': { backgroundColor: '#f5faff' },
+                                    // borderRadius: 2,
+                                    boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+                                }}
+                                localeText={{
+                                    MuiTablePagination: {
+                                        labelRowsPerPage: 'Số hàng mỗi trang:',
+                                        labelDisplayedRows: ({ from, to, count }) =>
+                                            `${from} - ${to} của ${count !== -1 ? count : `hơn ${to}`}`,
+                                    },
+                                }}
+                                slots={{
+                                    noRowsOverlay: () => (
+                                        <Box
+                                            sx={{
+                                                display: 'flex',
+                                                justifyContent: 'center',
+                                                alignItems: 'center',
+                                                height: '100%',
+                                            }}
+                                        >
+                                            <Typography variant="body2" color="text.secondary">
+                                                Không có dữ liệu
+                                            </Typography>
+                                        </Box>
+                                    ),
+                                    loadingOverlay: () => (
+                                        <Box
+                                            sx={{
+                                                display: 'flex',
+                                                justifyContent: 'center',
+                                                alignItems: 'center',
+                                                height: '100%',
+                                            }}
+                                        >
+                                            <CircularProgress />
+                                        </Box>
+                                    ),
+                                }}
+                            />
+                        </Box>
+                    </Box>
                 </Paper>
             </PageContainer>
 

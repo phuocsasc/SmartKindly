@@ -450,9 +450,9 @@ function PersonnelRecordDialog({ open, mode, record, onClose, onSuccess }) {
                 {/* Header */}
                 <DialogTitle
                     sx={{
-                        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                        background: 'linear-gradient(135deg, #0071bc 0%, #aee2ff 100%)',
                         color: '#fff',
-                        py: 1.5,
+                        py: 1,
                         position: 'relative',
                         mb: 2,
                     }}
@@ -488,9 +488,9 @@ function PersonnelRecordDialog({ open, mode, record, onClose, onSuccess }) {
                         overflowY: 'auto',
                         mt: -2,
                         '&::-webkit-scrollbar': { width: '6px' },
-                        '&::-webkit-scrollbar-track': { backgroundColor: '#f3e5f5' },
-                        '&::-webkit-scrollbar-thumb': { backgroundColor: '#9c27b0', borderRadius: '4px' },
-                        '&::-webkit-scrollbar-thumb:hover': { backgroundColor: '#7b1fa2' },
+                        '&::-webkit-scrollbar-track': { backgroundColor: '#e3f2fd' },
+                        '&::-webkit-scrollbar-thumb': { backgroundColor: '#0964a1a4', borderRadius: '4px' },
+                        '&::-webkit-scrollbar-thumb:hover': { backgroundColor: '#0071BC' },
                         '& .MuiOutlinedInput-root': {
                             borderRadius: 1.5,
                             '&:hover fieldset': { borderColor: '#667eea' },
@@ -1514,10 +1514,10 @@ function PersonnelRecordDialog({ open, mode, record, onClose, onSuccess }) {
                                 textTransform: 'none',
                                 fontWeight: 600,
                                 boxShadow: 2,
-                                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                                background: 'linear-gradient(135deg, #0071bc 100%, #aee2ff 100%)',
                                 '&:hover': {
                                     boxShadow: 3,
-                                    background: 'linear-gradient(135deg, #5568d3 0%, #6a4296 100%)',
+                                    background: 'linear-gradient(135deg, #1180caff 100%, #aee2ff 100%)',
                                 },
                             }}
                         >

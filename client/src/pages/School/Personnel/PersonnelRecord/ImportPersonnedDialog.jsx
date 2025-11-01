@@ -386,10 +386,11 @@ function ImportPersonnelDialog({ open, onClose, onSuccess, schoolName }) {
             {/* Header */}
             <DialogTitle
                 sx={{
-                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                    background: 'linear-gradient(135deg, #0071bc 0%, #aee2ff 100%)',
                     color: '#fff',
-                    py: 1.5,
+                    py: 1,
                     position: 'relative',
+                    mb: 2,
                 }}
             >
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
@@ -411,7 +412,7 @@ function ImportPersonnelDialog({ open, onClose, onSuccess, schoolName }) {
                         '&:hover': { bgcolor: 'rgba(255, 255, 255, 0.1)' },
                     }}
                 >
-                    <CloseIcon />
+                    <CloseIcon sx={{ color: 'red' }} />
                 </IconButton>
             </DialogTitle>
 
@@ -426,7 +427,7 @@ function ImportPersonnelDialog({ open, onClose, onSuccess, schoolName }) {
                         variant="outlined"
                         startIcon={<FileDownloadIcon />}
                         onClick={handleDownloadTemplate}
-                        sx={{ borderRadius: 1.5 }}
+                        sx={{ borderRadius: 1.5, borderColor: '#0071bc', color: '#0071bc' }}
                     >
                         Tải file Excel mẫu
                     </Button>
@@ -539,7 +540,18 @@ function ImportPersonnelDialog({ open, onClose, onSuccess, schoolName }) {
                     onClick={handleUpload}
                     variant="contained"
                     disabled={!previewData || validationErrors.length > 0 || loading}
-                    sx={{ borderRadius: 1.5, px: 3 }}
+                    sx={{
+                        borderRadius: 1.5,
+                        px: 3,
+                        textTransform: 'none',
+                        fontWeight: 600,
+                        boxShadow: 2,
+                        background: 'linear-gradient(135deg, #0071bc 100%, #aee2ff 100%)',
+                        '&:hover': {
+                            boxShadow: 3,
+                            background: 'linear-gradient(135deg, #1180caff 100%, #aee2ff 100%)',
+                        },
+                    }}
                 >
                     {loading ? 'Đang tải lên...' : 'Tải lên'}
                 </Button>

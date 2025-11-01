@@ -89,6 +89,7 @@ function ClassDialog({ open, mode, classData, academicYearId, onClose, onSuccess
             setAgeGroups([]);
             setAvailableTeachers([]);
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [mode, classData, open]);
 
     // Fetch age groups khi chọn grade

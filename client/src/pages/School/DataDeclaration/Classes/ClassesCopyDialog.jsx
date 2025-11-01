@@ -36,6 +36,7 @@ function ClassesCopyDialog({ open, currentYearId, onClose, onSuccess }) {
         if (open) {
             fetchConfiguredYears();
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [open]);
 
     // Fetch classes khi chọn năm
@@ -492,10 +493,10 @@ function ClassesCopyDialog({ open, currentYearId, onClose, onSuccess }) {
                         textTransform: 'none',
                         fontWeight: 600,
                         boxShadow: 2,
-                        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                        background: 'linear-gradient(135deg, #0071bc 100%, #aee2ff 100%)',
                         '&:hover': {
                             boxShadow: 3,
-                            background: 'linear-gradient(135deg, #5568d3 0%, #6a4296 100%)',
+                            background: 'linear-gradient(135deg, #1180caff 100%, #aee2ff 100%)',
                         },
                     }}
                 >

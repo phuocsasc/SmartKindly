@@ -5,7 +5,7 @@ const PersonnelRecordSchema = new mongoose.Schema(
         personnelCode: {
             type: String,
             required: [true, 'Mã cán bộ là bắt buộc'],
-            unique: true,
+            // unique: true,
             trim: true,
         },
         schoolId: {
@@ -353,10 +353,18 @@ const PersonnelRecordSchema = new mongoose.Schema(
 PersonnelRecordSchema.index({ schoolId: 1, _destroy: 1 }); // Main query
 PersonnelRecordSchema.index({ schoolId: 1, department: 1, _destroy: 1 }); // Filter by department
 PersonnelRecordSchema.index({ schoolId: 1, workStatus: 1, _destroy: 1 }); // Filter by status
-PersonnelRecordSchema.index({ personnelCode: 1, _destroy: 1 }); // Unique lookup
+// PersonnelRecordSchema.index({ personnelCode: 1, _destroy: 1 }); // Unique lookup
 PersonnelRecordSchema.index({ email: 1, _destroy: 1 }); // Email lookup
 PersonnelRecordSchema.index({ idCardNumber: 1, _destroy: 1 }); // ID card lookup
 PersonnelRecordSchema.index({ createdAt: -1 }); // Sort
+// ✅ Unique trong phạm vi schoolId, chỉ tính bản ghi chưa xóa (_destroy: false)
+PersonnelRecordSchema.index(
+    { schoolId: 1, personnelCode: 1 },
+    {
+        unique: true,
+        partialFilterExpression: { _destroy: false },
+    },
+);
 
 // ✅ Text search index
 PersonnelRecordSchema.index(

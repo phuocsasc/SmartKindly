@@ -8,7 +8,9 @@ import ApiError from '~/utils/ApiError';
 import { StatusCodes } from 'http-status-codes';
 
 /**
- * ✅ Lấy tất cả đánh giá theo năm học (tự động sync với PersonnelRecord)
+ * ✅ Lấy tất cả đánh giá theo năm học
+ * - Năm học active: Tự động sync với PersonnelRecord
+ * - Năm học đã xong: Chỉ hiển thị dữ liệu đã lưu (không sync)
  */
 const getAll = async (query, userId) => {
     try {
@@ -20,75 +22,109 @@ const getAll = async (query, userId) => {
         const { page = 1, limit = 10, search = '', academicYearId = '' } = query;
         const skip = (page - 1) * limit;
 
-        // ✅ Lấy năm học đang active nếu không truyền academicYearId
         let targetYearId = academicYearId;
+        let targetYear;
+
         if (!targetYearId) {
-            const activeYear = await AcademicYearModel.findOne({
+            targetYear = await AcademicYearModel.findOne({
                 schoolId: user.schoolId,
                 status: 'active',
                 _destroy: false,
             });
 
-            if (!activeYear) {
+            if (!targetYear) {
                 throw new ApiError(StatusCodes.NOT_FOUND, 'Không tìm thấy năm học đang hoạt động');
             }
-            targetYearId = activeYear._id.toString();
+            targetYearId = targetYear._id.toString();
+        } else {
+            targetYear = await AcademicYearModel.findById(targetYearId);
+            if (!targetYear) {
+                throw new ApiError(StatusCodes.NOT_FOUND, 'Không tìm thấy năm học');
+            }
         }
 
-        // ✅ Lấy PersonnelRecord đủ điều kiện
-        const personnelRecords = await PersonnelRecordModel.find({
-            schoolId: user.schoolId,
-            _destroy: false,
-            positionGroup: { $in: ['Tổ trưởng', 'Tổ phó', 'Giáo viên'] },
-            workStatus: 'Đang làm việc',
-        })
-            .select('_id personnelCode fullName')
-            .lean();
+        console.log(`📊 [PersonnelEvaluation getAll] Year ${targetYearId}, Status: ${targetYear.status}`);
 
-        console.log(
-            `📊 [PersonnelEvaluation getAll] Found ${personnelRecords.length} eligible personnel for year ${targetYearId}`,
-        );
+        // ✅ CHỈ SYNC NẾU NĂM HỌC ĐANG ACTIVE
+        if (targetYear.status === 'active') {
+            console.log('🔄 [PersonnelEvaluation getAll] Syncing for active year...');
 
-        // ✅ Sync: Tạo evaluation cho năm học hiện tại nếu chưa có
-        for (const record of personnelRecords) {
-            try {
-                const existingEval = await PersonnelEvaluationModel.findOne({
-                    personnelRecordId: record._id,
-                    academicYearId: targetYearId,
-                    _destroy: false,
-                });
+            // ✅ Lấy PersonnelRecord đủ điều kiện (workStatus = "Đang làm việc")
+            const personnelRecords = await PersonnelRecordModel.find({
+                schoolId: user.schoolId,
+                _destroy: false,
+                positionGroup: { $in: ['Tổ trưởng', 'Tổ phó', 'Giáo viên'] },
+                workStatus: 'Đang làm việc', // ✅ CHỈ lấy người đang làm việc
+            })
+                .select('_id personnelCode fullName')
+                .lean();
 
-                if (!existingEval) {
-                    await PersonnelEvaluationModel.create({
-                        personnelRecordId: record._id,
-                        academicYearId: targetYearId,
-                        schoolId: user.schoolId,
-                        fullName: record.fullName,
-                        personnelCode: record.personnelCode,
-                        officialEvaluation: '',
-                        regularTraining: '',
-                        excellentTeacher: '',
-                        emulationTitle: '',
-                        notes: '',
-                    });
-                    console.log(`✅ [PersonnelEvaluation] Created for ${record.fullName} in year ${targetYearId}`);
-                }
-            } catch (error) {
-                if (error.code !== 11000) {
-                    console.error(
-                        `❌ [PersonnelEvaluation] Error creating evaluation for ${record.fullName}:`,
-                        error.message,
-                    );
+            console.log(`📊 Found ${personnelRecords.length} eligible personnel (workStatus = "Đang làm việc")`);
+
+            // ✅ Lấy tất cả evaluation hiện có trong năm active
+            const existingEvaluations = await PersonnelEvaluationModel.find({
+                schoolId: user.schoolId,
+                academicYearId: targetYearId,
+                _destroy: false,
+            })
+                .select('personnelRecordId')
+                .lean();
+
+            const existingPersonnelIds = new Set(existingEvaluations.map((e) => e.personnelRecordId.toString()));
+            const activePersonnelIds = new Set(personnelRecords.map((p) => p._id.toString()));
+
+            // ✅ Tạo evaluation cho cán bộ mới đủ điều kiện
+            for (const record of personnelRecords) {
+                if (!existingPersonnelIds.has(record._id.toString())) {
+                    try {
+                        await PersonnelEvaluationModel.create({
+                            personnelRecordId: record._id,
+                            academicYearId: targetYearId,
+                            schoolId: user.schoolId,
+                            fullName: record.fullName,
+                            personnelCode: record.personnelCode,
+                            officialEvaluation: '',
+                            regularTraining: '',
+                            excellentTeacher: '',
+                            emulationTitle: '',
+                            notes: '',
+                        });
+                        console.log(`✅ Created evaluation for ${record.fullName}`);
+                    } catch (error) {
+                        if (error.code !== 11000) {
+                            console.error(`❌ Error creating evaluation for ${record.fullName}:`, error.message);
+                        }
+                    }
                 }
             }
+
+            // ✅ Xóa (_destroy: true) evaluation của những người KHÔNG CÒN đủ điều kiện
+            for (const evaluation of existingEvaluations) {
+                const personnelId = evaluation.personnelRecordId.toString();
+                if (!activePersonnelIds.has(personnelId)) {
+                    await PersonnelEvaluationModel.updateOne({ _id: evaluation._id }, { _destroy: true });
+                    console.log(`✅ Removed evaluation for personnelId: ${personnelId} (không còn đủ điều kiện)`);
+                }
+            }
+        } else {
+            console.log('📋 [PersonnelEvaluation getAll] Năm học đã xong - chỉ đọc dữ liệu, KHÔNG sync');
         }
 
         // ✅ Build filter
         const evalFilter = {
             schoolId: user.schoolId,
             academicYearId: targetYearId,
-            _destroy: false,
         };
+
+        // ✅ NẾU NĂM HỌC ĐANG ACTIVE: Chỉ lấy evaluation chưa bị _destroy (cán bộ "Đang làm việc")
+        // ✅ NẾU NĂM HỌC ĐÃ KẾT THÚC: Lấy TẤT CẢ evaluation (bao gồm cả người "Nghỉ việc")
+        if (targetYear.status === 'active') {
+            evalFilter._destroy = false; // ✅ Chỉ lấy người đang làm việc
+            console.log('🔍 [PersonnelEvaluation getAll] Active year - Chỉ hiển thị người đang làm việc');
+        } else {
+            // ❌ KHÔNG lọc _destroy - Hiển thị tất cả (kể cả người nghỉ việc)
+            console.log('🔍 [PersonnelEvaluation getAll] Inactive year - Hiển thị tất cả (kể cả người nghỉ việc)');
+        }
 
         if (search) {
             evalFilter.$or = [
@@ -185,7 +221,7 @@ const update = async (id, data, userId) => {
         if (evaluation.academicYearId.status !== 'active') {
             throw new ApiError(
                 StatusCodes.FORBIDDEN,
-                `Không thể chỉnh sửa đánh giá của năm học ${evaluation.academicYearId.fromYear}-${evaluation.academicYearId.toYear}. Chỉ có thể đánh giá trong năm học đang hoạt động!`,
+                `Không thể chỉnh sửa đánh giá của năm học ${evaluation.academicYearId.fromYear}-${evaluation.academicYearId.toYear}. Năm học đã kết thúc, dữ liệu chỉ để tham khảo!`,
             );
         }
 
@@ -245,7 +281,10 @@ const deleteEvaluation = async (id, userId) => {
 
         // ✅ Kiểm tra năm học có đang active không
         if (evaluation.academicYearId.status !== 'active') {
-            throw new ApiError(StatusCodes.FORBIDDEN, 'Chỉ có thể xóa đánh giá trong năm học đang hoạt động');
+            throw new ApiError(
+                StatusCodes.FORBIDDEN,
+                'Không thể xóa đánh giá của năm học đã kết thúc. Dữ liệu chỉ để tham khảo!',
+            );
         }
 
         // Soft delete

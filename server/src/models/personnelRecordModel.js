@@ -431,7 +431,53 @@ PersonnelRecordSchema.post('findOneAndUpdate', async function (doc) {
     }
 });
 
-// ✅ Middleware: Tạo evaluation khi tạo mới PersonnelRecord
+// ✅ Middleware: Sync evaluation CHỈ KHI update PersonnelRecord TRONG NĂM HỌC ACTIVE
+PersonnelRecordSchema.post('findOneAndUpdate', async function (doc) {
+    try {
+        if (doc && !doc._destroy) {
+            const isEligible =
+                ['Tổ trưởng', 'Tổ phó', 'Giáo viên'].includes(doc.positionGroup) && doc.workStatus === 'Đang làm việc';
+
+            // ✅ CHỈ LẤY NĂM HỌC ACTIVE
+            const activeYear = await AcademicYearModel.findOne({
+                schoolId: doc.schoolId,
+                status: 'active',
+                _destroy: false,
+            });
+
+            if (activeYear && isEligible) {
+                // ✅ CHỈ sync evaluation cho NĂM HỌC ACTIVE
+                await PersonnelEvaluationModel.findOneAndUpdate(
+                    { personnelRecordId: doc._id, academicYearId: activeYear._id },
+                    {
+                        fullName: doc.fullName,
+                        personnelCode: doc.personnelCode,
+                        _destroy: false,
+                    },
+                    { upsert: true },
+                );
+                console.log(`✅ [PersonnelRecord] Auto-synced evaluation for ${doc.fullName} in ACTIVE year`);
+            } else if (!isEligible && activeYear) {
+                // ✅ CHỈ xóa evaluation trong NĂM HỌC ACTIVE (KHÔNG ảnh hưởng năm cũ)
+                const deleteResult = await PersonnelEvaluationModel.updateMany(
+                    {
+                        personnelRecordId: doc._id,
+                        academicYearId: activeYear._id, // ✅ CHỈ năm active
+                        _destroy: false,
+                    },
+                    { _destroy: true },
+                );
+                console.log(
+                    `✅ [PersonnelRecord] Removed ACTIVE year evaluation for ${doc.fullName} (${deleteResult.modifiedCount} records)`,
+                );
+            }
+        }
+    } catch (error) {
+        console.error('❌ [PersonnelRecord post-update] Error:', error);
+    }
+});
+
+// ✅ Middleware: Tạo evaluation CHỈ CHO NĂM HỌC ACTIVE khi tạo mới PersonnelRecord
 PersonnelRecordSchema.post('save', async function (doc) {
     try {
         if (this.isNew && !doc._destroy) {
@@ -439,6 +485,7 @@ PersonnelRecordSchema.post('save', async function (doc) {
                 ['Tổ trưởng', 'Tổ phó', 'Giáo viên'].includes(doc.positionGroup) && doc.workStatus === 'Đang làm việc';
 
             if (isEligible) {
+                // ✅ CHỈ LẤY NĂM HỌC ACTIVE
                 const activeYear = await AcademicYearModel.findOne({
                     schoolId: doc.schoolId,
                     status: 'active',
@@ -460,7 +507,7 @@ PersonnelRecordSchema.post('save', async function (doc) {
                             fullName: doc.fullName,
                             personnelCode: doc.personnelCode,
                         });
-                        console.log(`✅ [PersonnelRecord] Auto-created evaluation for ${doc.fullName}`);
+                        console.log(`✅ [PersonnelRecord] Auto-created evaluation for ${doc.fullName} in ACTIVE year`);
                     }
                 }
             }

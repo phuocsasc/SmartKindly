@@ -32,9 +32,14 @@ import { toast } from 'react-toastify';
 import PersonnelEvaluationDialog from './PersonnelEvaluationDialog';
 import { PERMISSIONS } from '~/config/rbacConfig';
 
+import FileDownloadOutlinedIcon from '@mui/icons-material/FileDownloadOutlined';
+import { exportPersonnelEvaluationToExcel } from '~/utils/personnelEvaluationExcelExport';
+import { schoolApi } from '~/apis/schoolApi';
+
 function PersonnelEvaluation() {
     const { user } = useUser();
     const { hasPermission } = usePermission(user?.role);
+    const [exportLoading, setExportLoading] = useState(false);
 
     // State
     const [rows, setRows] = useState([]);
@@ -125,6 +130,44 @@ function PersonnelEvaluation() {
         setDialogMode('view');
         setCurrentEvaluation(evaluation);
         setOpenDialog(true);
+    };
+
+    // ✅ Handler xuất Excel
+    const handleExportExcel = async () => {
+        if (!selectedYear) {
+            toast.warning('Vui lòng chọn năm học trước khi xuất file!');
+            return;
+        }
+
+        try {
+            setExportLoading(true);
+
+            // Lấy tất cả records (không phân trang)
+            const res = await personnelEvaluationApi.getAll({
+                page: 1,
+                limit: 9999,
+                search: '',
+                academicYearId: selectedYear,
+            });
+
+            // Lấy thông tin trường
+            const schoolRes = await schoolApi.getSchoolInfo();
+            const schoolName = schoolRes.data.data.name;
+
+            // Lấy tên năm học
+            const selectedYearData = academicYears.find((year) => year._id === selectedYear);
+            const academicYearName = selectedYearData ? `${selectedYearData.fromYear}-${selectedYearData.toYear}` : '';
+
+            // Xuất Excel
+            await exportPersonnelEvaluationToExcel(res.data.data.records, schoolName, academicYearName);
+
+            toast.success('Xuất file Excel thành công!');
+        } catch (error) {
+            console.error('Error exporting Excel:', error);
+            toast.error('Lỗi khi xuất file Excel!');
+        } finally {
+            setExportLoading(false);
+        }
     };
 
     // ✅ Columns Definition
@@ -391,6 +434,21 @@ function PersonnelEvaluation() {
                                     ))}
                                 </Select>
                             </FormControl>
+
+                            {/* ✅ Nút Xuất Excel */}
+                            <Tooltip title="Xuất file Excel">
+                                <IconButton
+                                    sx={{ color: '#2e7d32' }}
+                                    onClick={handleExportExcel}
+                                    disabled={exportLoading || !selectedYear}
+                                >
+                                    {exportLoading ? (
+                                        <CircularProgress size={24} sx={{ color: '#2e7d32' }} />
+                                    ) : (
+                                        <FileDownloadOutlinedIcon />
+                                    )}
+                                </IconButton>
+                            </Tooltip>
                         </Box>
                     </Box>
 

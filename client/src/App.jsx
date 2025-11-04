@@ -12,6 +12,8 @@ import { UserProvider, useUser } from '~/contexts/UserContext';
 import AdminInfo from '~/pages/Admin/AdminInfo';
 import AdminSchoolManagement from '~/pages/Admin/SchoolsManagement/AdminSchoolManagement';
 import AdminUserManagement from '~/pages/Admin/UsersManagement/AdminUserManagement';
+import AdminYearTarget from '~/pages/Admin/DataBank/YearTarget/AdminYearTarget';
+import AdminThemePlan from '~/pages/Admin/DataBank/ThemePlan/AdminThemePlan';
 
 // Users
 import UserManagement from '~/pages/School/Users/UserManagement';
@@ -70,6 +72,13 @@ function AppContent() {
                 </Route>
                 <Route element={<RbacRoute requiredPermission={PERMISSIONS.ADMIN_MANAGE_USERS} />}>
                     <Route path="/admin/users-management" element={<AdminUserManagement />} />
+                </Route>
+
+                <Route element={<RbacRoute requiredPermission={PERMISSIONS.ADMIN_DATA_BANK} />}>
+                    <Route path="/admin/edu-plan/year-target" element={<AdminYearTarget />} />
+                </Route>
+                <Route element={<RbacRoute requiredPermission={PERMISSIONS.ADMIN_DATA_BANK} />}>
+                    <Route path="/admin/edu-plan/theme-plan" element={<AdminThemePlan />} />
                 </Route>
                 <Route path="/admin/user-info" element={<AdminInfo />} />
 

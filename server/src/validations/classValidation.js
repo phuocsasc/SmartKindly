@@ -10,7 +10,7 @@ const createNew = async (req, res, next) => {
             'any.only': 'Khối không hợp lệ',
         }),
         ageGroup: Joi.string()
-            .valid('3-12 tháng', '13-24 tháng', '25-36 tháng', '3-4 tuổi', '4-5 tuổi', '5-6 tuổi')
+            .valid('3-12 tháng', '12-24 tháng', '24-36 tháng', '3-4 tuổi', '4-5 tuổi', '5-6 tuổi')
             .required()
             .messages({
                 'any.required': 'Nhóm lớp là bắt buộc',
@@ -55,7 +55,7 @@ const update = async (req, res, next) => {
             'any.only': 'Khối không hợp lệ',
         }),
         ageGroup: Joi.string()
-            .valid('3-12 tháng', '13-24 tháng', '25-36 tháng', '3-4 tuổi', '4-5 tuổi', '5-6 tuổi')
+            .valid('3-12 tháng', '12-24 tháng', '24-36 tháng', '3-4 tuổi', '4-5 tuổi', '5-6 tuổi')
             .messages({
                 'any.only': 'Nhóm lớp không hợp lệ',
             }),

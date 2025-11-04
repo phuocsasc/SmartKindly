@@ -35,8 +35,8 @@ const ClassSchema = new mongoose.Schema(
                 values: [
                     // Nhà trẻ
                     '3-12 tháng',
-                    '13-24 tháng',
-                    '25-36 tháng',
+                    '12-24 tháng',
+                    '24-36 tháng',
                     // Mầm
                     '3-4 tuổi',
                     // Chồi
@@ -110,7 +110,7 @@ ClassSchema.pre('save', function (next) {
 // Validate ageGroup phù hợp với grade
 ClassSchema.pre('save', function (next) {
     const ageGroupsByGrade = {
-        'Nhà trẻ': ['3-12 tháng', '13-24 tháng', '25-36 tháng'],
+        'Nhà trẻ': ['3-12 tháng', '12-24 tháng', '24-36 tháng'],
         Mầm: ['3-4 tuổi'],
         Chồi: ['4-5 tuổi'],
         Lá: ['5-6 tuổi'],
@@ -160,7 +160,7 @@ ClassSchema.statics.generateClassId = async function () {
 // Helper method: Lấy danh sách nhóm lớp theo khối
 ClassSchema.statics.getAgeGroupsByGrade = function (grade) {
     const ageGroupMapping = {
-        'Nhà trẻ': ['3-12 tháng', '13-24 tháng', '25-36 tháng'],
+        'Nhà trẻ': ['3-12 tháng', '12-24 tháng', '24-36 tháng'],
         Mầm: ['3-4 tuổi'],
         Chồi: ['4-5 tuổi'],
         Lá: ['5-6 tuổi'],

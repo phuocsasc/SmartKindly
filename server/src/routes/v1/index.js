@@ -9,6 +9,7 @@ import { departmentRoute } from './departmentRoute'; // ✅ Import
 import { classRoute } from './classRoute';
 import { personnelRecordRoute } from './personnelRecordRoute';
 import { personnelEvaluationRoute } from './personnelEvaluationRoute'; // ✅ Import
+import { yearTargetRoute } from './yearTargetRoute'; // ✅ Import
 
 const Router = express.Router();
 
@@ -40,5 +41,8 @@ Router.use('/personnel-records', personnelRecordRoute);
 
 /** Personnel Evaluation APIs */
 Router.use('/personnel-evaluations', personnelEvaluationRoute); // ✅ Thêm route
+
+/** Year Target APIs */
+Router.use('/year-targets', yearTargetRoute); // ✅ Đăng ký route
 
 export const APIs_V1 = Router;

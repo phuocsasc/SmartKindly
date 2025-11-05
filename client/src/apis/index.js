@@ -33,3 +33,6 @@ export * from './classApi';
 
 // Export personnelRecordApi
 export * from './personnelRecordApi';
+
+// Export yearTargetApi
+export * from './yearTargetApi';

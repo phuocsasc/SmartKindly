@@ -6,7 +6,7 @@ import { rbacMiddleware } from '~/middlewares/rbacMiddleware';
 import { PERMISSIONS } from '~/config/rbacConfig';
 
 const Router = express.Router();
-
+// localhost:8017/v1/classes/available-teachers/
 // API lấy danh sách giáo viên có thể chọn
 Router.route('/available-teachers').get(
     authMiddleware.isAuthorized,

@@ -60,6 +60,18 @@ const menuItems = [
         ],
     },
     {
+        text: 'Kế hoạch giáo dục',
+        icon: <HistoryEduOutlinedIcon />,
+        children: [
+            { text: 'Mục tiêu năm học theo từng độ tuổi', path: '/edu-plan/year-target' },
+            { text: 'Hoạt động giáo dục theo từng mục tiêu', path: '/edu-plan/activities' },
+            { text: 'Thời khóa biểu', path: '/edu-plan/schedule' },
+            { text: 'Các chủ đề - sự kiện', path: '/edu-plan/events-theme' },
+            { text: 'Kế hoạch giáo dục theo chủ đề', path: '/edu-plan/theme-plan' },
+            { text: 'Kế hoạch giáo dục theo tháng - tuần', path: '/edu-plan/monthly-plan' },
+        ],
+    },
+    {
         text: 'Quản lý trẻ',
         icon: <ChildCareOutlinedIcon />,
         children: [
@@ -70,17 +82,7 @@ const menuItems = [
             { text: 'Đánh giá hoàn thành chương trình', path: '/children/program-complete' },
         ],
     },
-    {
-        text: 'Kế hoạch giáo dục',
-        icon: <HistoryEduOutlinedIcon />,
-        children: [
-            { text: 'Mục tiêu năm học theo từng độ tuổi', path: '/edu-plan/year-target' },
-            { text: 'Kế hoạch giáo dục theo chủ đề/ tuần/ tháng', path: '/edu-plan/theme-plan' },
-            { text: 'Thời khóa biểu', path: '/edu-plan/schedule' },
-            { text: 'Các chủ đề/ sự kiện', path: '/edu-plan/events' },
-            { text: 'Nội dung/ hoạt động giáo dục', path: '/edu-plan/activities' },
-        ],
-    },
+
     {
         text: 'Dinh dưỡng',
         icon: <RestaurantOutlinedIcon />,

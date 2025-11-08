@@ -26,10 +26,17 @@ import AcademicYear from '~/pages/School/DataDeclaration/AcademicYear/AcademicYe
 import Department from '~/pages/School/DataDeclaration/Department/Department';
 import Classes from '~/pages/School/DataDeclaration/Classes/Classes';
 
-// ✅ Personnel Management
+// ✅ Quản lý cán bộ
 import PersonnelRecord from '~/pages/School/Personnel/PersonnelRecord/PersonnelRecord';
 import PersonnelEvaluation from '~/pages/School/Personnel/PersonnelEvaluation/PersonnelEvaluation';
-import PersonnelCommendation from '~/pages/School/Personnel/PersonnelCommendation/PersonnelCommendation';
+
+// Quản lý kế hoạch giáo dục
+import YearTarget from '~/pages/School/EducationPlan/YearTarget/YearTarget';
+import SchoolEducationalActivity from '~/pages/School/EducationPlan/EducationalActivity/EducationalActivity';
+import Schedule from '~/pages/School/EducationPlan/Schedule/Schedule';
+import EventTheme from './pages/School/EducationPlan/EventTheme/EventTheme';
+import ThemePlan from './pages/School/EducationPlan/ThemPlan/ThemPlan';
+import MonthlyPlan from './pages/School/EducationPlan/MonthlyPlan/MonthlyPlan';
 
 /**
  * Protected Routes với UserContext
@@ -109,7 +116,26 @@ function AppContent() {
                 <Route element={<RbacRoute requiredPermission={PERMISSIONS.VIEW_PERSONNEL_RECORDS} />}>
                     <Route path="/staff/profile" element={<PersonnelRecord />} />
                     <Route path="/staff/evaluation" element={<PersonnelEvaluation />} />
-                    <Route path="/staff/reward" element={<PersonnelCommendation />} />
+                </Route>
+
+                {/* ✅ Personnel Management - Quản lý kế hoạch giáo dục */}
+                <Route element={<RbacRoute requiredPermission={PERMISSIONS.VIEW_YEAR_TARGET} />}>
+                    <Route path="/edu-plan/year-target" element={<YearTarget />} />
+                </Route>
+                <Route element={<RbacRoute requiredPermission={PERMISSIONS.VIEW_EDUCATION_ACTIVITY} />}>
+                    <Route path="/edu-plan/activities" element={<SchoolEducationalActivity />} />
+                </Route>
+                <Route element={<RbacRoute requiredPermission={PERMISSIONS.VIEW_THEME_EVENT} />}>
+                    <Route path="/edu-plan/events-theme" element={<EventTheme />} />
+                </Route>
+                <Route element={<RbacRoute requiredPermission={PERMISSIONS.VIEW_SCHEDULE} />}>
+                    <Route path="/edu-plan/schedule" element={<Schedule />} />
+                </Route>
+                <Route element={<RbacRoute requiredPermission={PERMISSIONS.VIEW_THEME_PLAN} />}>
+                    <Route path="/edu-plan/theme-plan" element={<ThemePlan />} />
+                </Route>
+                <Route element={<RbacRoute requiredPermission={PERMISSIONS.VIEW_MONTHLY_PLAN} />}>
+                    <Route path="/edu-plan/monthly-plan" element={<MonthlyPlan />} />
                 </Route>
             </Route>
 

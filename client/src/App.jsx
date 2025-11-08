@@ -13,7 +13,7 @@ import AdminInfo from '~/pages/Admin/AdminInfo';
 import AdminSchoolManagement from '~/pages/Admin/SchoolsManagement/AdminSchoolManagement';
 import AdminUserManagement from '~/pages/Admin/UsersManagement/AdminUserManagement';
 import AdminYearTarget from '~/pages/Admin/DataBank/YearTarget/AdminYearTarget';
-import AdminThemePlan from '~/pages/Admin/DataBank/ThemePlan/AdminThemePlan';
+import EducationalActivity from '~/pages/Admin/DataBank/ThemePlan/EducationalActivity';
 
 // Users
 import UserManagement from '~/pages/School/Users/UserManagement';
@@ -78,7 +78,7 @@ function AppContent() {
                     <Route path="/admin/edu-plan/year-target" element={<AdminYearTarget />} />
                 </Route>
                 <Route element={<RbacRoute requiredPermission={PERMISSIONS.ADMIN_DATA_BANK} />}>
-                    <Route path="/admin/edu-plan/theme-plan" element={<AdminThemePlan />} />
+                    <Route path="/admin/edu-plan/theme-plan" element={<EducationalActivity />} />
                 </Route>
                 <Route path="/admin/user-info" element={<AdminInfo />} />
 

@@ -10,6 +10,7 @@ import { classRoute } from './classRoute';
 import { personnelRecordRoute } from './personnelRecordRoute';
 import { personnelEvaluationRoute } from './personnelEvaluationRoute'; // ✅ Import
 import { yearTargetRoute } from './yearTargetRoute'; // ✅ Import
+import { educationalActivityRoute } from './educationalActivityRoute'; // ✅ Import
 
 const Router = express.Router();
 
@@ -44,5 +45,8 @@ Router.use('/personnel-evaluations', personnelEvaluationRoute); // ✅ Thêm rou
 
 /** Year Target APIs */
 Router.use('/year-targets', yearTargetRoute); // ✅ Đăng ký route
+
+/** Educational Activity APIs */
+Router.use('/educational-activities', educationalActivityRoute); // ✅ Register
 
 export const APIs_V1 = Router;

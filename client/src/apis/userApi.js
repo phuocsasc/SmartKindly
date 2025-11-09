@@ -36,6 +36,11 @@ export const userApi = {
         return await authorizedAxiosInstance.post(`${API_ROOT}/v1/users/forgot-password/reset-password`, data);
     },
 
+    // ✅ Kiểm tra user có đang được sử dụng không
+    checkUserInUse: async (userId) => {
+        return await authorizedAxiosInstance.get(`${API_ROOT}/v1/users/management/${userId}/check-in-use`);
+    },
+
     // User Management
     getAllUsers: async (params) => {
         const { page = 1, limit = 10, search = '', role = '', status = '' } = params;

@@ -37,4 +37,4 @@ export * from './personnelRecordApi';
 // Export yearTargetApi
 export * from './yearTargetApi';
 
-export * from './educationalActivityApi'
+export * from './educationalActivityApi';

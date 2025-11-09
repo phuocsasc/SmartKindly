@@ -30,6 +30,12 @@ Router.route('/management/:id/change-password').put(
     userValidation.changePassword,
     userManagementController.changePassword,
 );
+// ✅ API kiểm tra user có đang được sử dụng không
+Router.route('/management/:id/check-in-use').get(
+    authMiddleware.isAuthorized,
+    rbacMiddleware.isValidPermission([PERMISSIONS.VIEW_USERS]),
+    userManagementController.checkUserInUse,
+);
 
 Router.route('/management/delete-many').post(
     authMiddleware.isAuthorized,

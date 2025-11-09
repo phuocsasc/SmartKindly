@@ -3,6 +3,66 @@ import { SchoolModel } from '~/models/schoolModel';
 import ApiError from '~/utils/ApiError';
 import { StatusCodes } from 'http-status-codes';
 import { removeVietnameseTones } from '~/utils/formatters';
+import { DepartmentModel } from '~/models/departmentModel';
+import { ClassModel } from '~/models/classModel';
+import { AcademicYearModel } from '~/models/academicYearModel';
+
+/**
+ * ✅ Kiểm tra user có đang được sử dụng trong năm học active không
+ */
+const checkUserInUse = async (userId, schoolId) => {
+    try {
+        // Lấy năm học đang active
+        const activeYear = await AcademicYearModel.findOne({
+            schoolId,
+            status: 'active',
+            _destroy: false,
+        });
+
+        if (!activeYear) {
+            return { inUse: false };
+        }
+
+        // ✅ Kiểm tra trong Tổ bộ môn
+        const departmentUsage = await DepartmentModel.findOne({
+            schoolId,
+            academicYearId: activeYear._id,
+            managers: userId,
+            _destroy: false,
+        }).select('name');
+
+        if (departmentUsage) {
+            return {
+                inUse: true,
+                type: 'department',
+                name: departmentUsage.name,
+                message: `Cán bộ đang được phân công trong tổ bộ môn "${departmentUsage.name}" của năm học ${activeYear.fromYear}-${activeYear.toYear}`,
+            };
+        }
+
+        // ✅ Kiểm tra làm giáo viên chủ nhiệm
+        const classUsage = await ClassModel.findOne({
+            schoolId,
+            academicYearId: activeYear._id,
+            homeRoomTeacher: userId,
+            _destroy: false,
+        }).select('name');
+
+        if (classUsage) {
+            return {
+                inUse: true,
+                type: 'class',
+                name: classUsage.name,
+                message: `Giáo viên đang làm chủ nhiệm lớp "${classUsage.name}" của năm học ${activeYear.fromYear}-${activeYear.toYear}`,
+            };
+        }
+
+        return { inUse: false };
+    } catch (error) {
+        console.error('❌ Error checking user in use:', error);
+        return { inUse: false };
+    }
+};
 
 // ✅ Hàm tạo username tự động
 const generateUsername = (abbreviation, fullName) => {
@@ -191,14 +251,31 @@ const update = async (id, data, schoolScope) => {
             throw new ApiError(StatusCodes.NOT_FOUND, 'Không tìm thấy người dùng');
         }
 
+        // ✅ KIỂM TRA NẾU THAY ĐỔI VAI TRÒ
+        if (data.role && data.role !== user.role) {
+            console.log('🔄 [UserManagement update] Attempting to change role:', {
+                oldRole: user.role,
+                newRole: data.role,
+            });
+
+            // ✅ Kiểm tra user có đang được sử dụng không
+            const usageCheck = await checkUserInUse(id, user.schoolId);
+
+            if (usageCheck.inUse) {
+                throw new ApiError(
+                    StatusCodes.CONFLICT,
+                    `Không thể thay đổi vai trò! ${usageCheck.message}. Vui lòng xóa khỏi ${usageCheck.type === 'department' ? 'tổ bộ môn' : 'lớp học'} trước.`,
+                );
+            }
+        }
+
         // ✅ FIX: Kiểm tra BGH - CHO PHÉP TỰ CẬP NHẬT THÔNG TIN CÁ NHÂN
         if (user.role === 'ban_giam_hieu') {
             const requestUser = await UserModel.findById(schoolScope.userId);
-            const isSelf = requestUser._id.toString() === id; // ✅ Kiểm tra có phải tự update mình không
+            const isSelf = requestUser._id.toString() === id;
 
             // ✅ Nếu KHÔNG phải tự update mình
             if (!isSelf) {
-                // Chỉ admin hoặc BGH root mới được update BGH khác
                 if (schoolScope.role !== 'admin' && (!requestUser.isRoot || requestUser.role !== 'ban_giam_hieu')) {
                     throw new ApiError(
                         StatusCodes.FORBIDDEN,
@@ -251,7 +328,7 @@ const update = async (id, data, schoolScope) => {
 
         // ✅ Không cho phép thay đổi userId, username, schoolId, password
         delete data.userId;
-        delete data.username; // ✅ Username không bao giờ đổi
+        delete data.username;
         delete data.schoolId;
         if (data.password) {
             delete data.password;
@@ -276,11 +353,20 @@ const deleteUser = async (id, schoolScope) => {
             throw new ApiError(StatusCodes.NOT_FOUND, 'Không tìm thấy người dùng');
         }
 
+        // ✅ KIỂM TRA USER CÓ ĐANG ĐƯỢC SỬ DỤNG KHÔNG
+        const usageCheck = await checkUserInUse(id, user.schoolId);
+
+        if (usageCheck.inUse) {
+            throw new ApiError(
+                StatusCodes.CONFLICT,
+                `Không thể xóa! ${usageCheck.message}. Vui lòng xóa khỏi ${usageCheck.type === 'department' ? 'tổ bộ môn' : 'lớp học'} trước.`,
+            );
+        }
+
         // ✅ Không cho phép BGH thường xóa BGH
         if (user.role === 'ban_giam_hieu') {
             const requestUser = await UserModel.findById(schoolScope.userId);
 
-            // Chỉ BGH root mới được xóa BGH
             if (!requestUser.isRoot || requestUser.role !== 'ban_giam_hieu') {
                 throw new ApiError(
                     StatusCodes.FORBIDDEN,
@@ -288,7 +374,6 @@ const deleteUser = async (id, schoolScope) => {
                 );
             }
 
-            // Không cho phép BGH root tự xóa mình
             if (requestUser.isRoot && requestUser._id.toString() === id) {
                 throw new ApiError(StatusCodes.FORBIDDEN, 'Không thể tự xóa tài khoản Root của chính mình');
             }
@@ -310,7 +395,6 @@ const deleteManyUsers = async (ids, schoolScope) => {
             throw new ApiError(StatusCodes.BAD_REQUEST, 'Danh sách ID không hợp lệ');
         }
 
-        // ✅ Filter: chỉ xóa user cùng trường
         const filter = {
             _id: { $in: ids },
             _destroy: false,
@@ -325,8 +409,18 @@ const deleteManyUsers = async (ids, schoolScope) => {
 
         const requestUser = await UserModel.findById(schoolScope.userId);
 
-        // Kiểm tra từng user
+        // ✅ Kiểm tra từng user
         for (const user of users) {
+            // ✅ KIỂM TRA USER CÓ ĐANG ĐƯỢC SỬ DỤNG KHÔNG
+            const usageCheck = await checkUserInUse(user._id.toString(), user.schoolId);
+
+            if (usageCheck.inUse) {
+                throw new ApiError(
+                    StatusCodes.CONFLICT,
+                    `Không thể xóa "${user.fullName}" (${user.username})! ${usageCheck.message}. Vui lòng xóa khỏi ${usageCheck.type === 'department' ? 'tổ bộ môn' : 'lớp học'} trước.`,
+                );
+            }
+
             // ✅ Không cho phép BGH thường xóa BGH
             if (user.role === 'ban_giam_hieu') {
                 if (!requestUser.isRoot || requestUser.role !== 'ban_giam_hieu') {
@@ -336,7 +430,6 @@ const deleteManyUsers = async (ids, schoolScope) => {
                     );
                 }
 
-                // Không cho phép tự xóa mình
                 if (requestUser._id.toString() === user._id.toString()) {
                     throw new ApiError(StatusCodes.FORBIDDEN, 'Không thể tự xóa tài khoản của chính mình');
                 }
@@ -394,4 +487,5 @@ export const userManagementServices = {
     deleteUser,
     deleteManyUsers,
     changePassword,
+    checkUserInUse,
 };

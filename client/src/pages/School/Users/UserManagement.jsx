@@ -129,15 +129,38 @@ function UserManagement() {
         setOpenDialog(true);
     };
 
-    const handleEdit = (userData) => {
-        setDialogMode('edit');
-        setCurrentUser(userData);
-        setOpenDialog(true);
+    const handleEdit = async (userData) => {
+        // ✅ Kiểm tra user có đang được sử dụng không
+        try {
+            const checkRes = await userApi.checkUserInUse(userData.id);
+            const usageData = checkRes.data.data;
+
+            if (usageData.inUse) {
+                toast.warning(usageData.message, { autoClose: 5000 });
+                return; // Không cho mở dialog
+            }
+
+            setDialogMode('edit');
+            setCurrentUser(userData);
+            setOpenDialog(true);
+        } catch (error) {
+            console.error('Error checking user in use:', error);
+            toast.error('Lỗi khi kiểm tra trạng thái người dùng!');
+        }
     };
 
     // ✅ Xóa 1 user - CẬP NHẬT
     const handleDelete = async (id) => {
+        // ✅ Kiểm tra user có đang được sử dụng không
         try {
+            const checkRes = await userApi.checkUserInUse(id);
+            const usageData = checkRes.data.data;
+
+            if (usageData.inUse) {
+                toast.warning(usageData.message, { autoClose: 5000 });
+                return; // Không cho xóa
+            }
+
             await showConfirm({
                 title: 'Xác nhận xóa người dùng',
                 message: `Bạn có chắc chắn muốn xóa người dùng này?`,
@@ -150,22 +173,31 @@ function UserManagement() {
                         fetchUsers();
                         fetchRoleStats();
                     } catch (deleteError) {
-                        // ✅ Hiển thị lỗi chi tiết từ backend
                         const errorMessage = deleteError?.response?.data?.message || 'Lỗi khi xóa người dùng!';
                         toast.error(errorMessage);
-                        console.error('Delete user error:', deleteError);
                     }
                 },
             });
         } catch (error) {
-            // ✅ Lỗi khi mở confirm dialog
-            console.error('Error showing confirm dialog:', error);
+            console.error('Error checking user in use:', error);
+            toast.error('Lỗi khi kiểm tra trạng thái người dùng!');
         }
     };
 
     // ✅ Xóa nhiều users - CẬP NHẬT
     const handleDeleteMany = async () => {
+        // ✅ Kiểm tra từng user trước khi xóa
         try {
+            for (const userId of selectedRows) {
+                const checkRes = await userApi.checkUserInUse(userId);
+                const usageData = checkRes.data.data;
+
+                if (usageData.inUse) {
+                    toast.warning(`Có user đang được sử dụng! ${usageData.message}`, { autoClose: 5000 });
+                    return;
+                }
+            }
+
             await showConfirm({
                 title: 'Xác nhận xóa nhiều người dùng',
                 message: `Bạn có chắc chắn muốn xóa ${selectedRows.length} người dùng đã chọn?`,
@@ -179,16 +211,14 @@ function UserManagement() {
                         fetchUsers();
                         fetchRoleStats();
                     } catch (deleteError) {
-                        // ✅ Hiển thị lỗi chi tiết từ backend
                         const errorMessage = deleteError?.response?.data?.message || 'Lỗi khi xóa người dùng!';
                         toast.error(errorMessage);
-                        console.error('Delete many users error:', deleteError);
                     }
                 },
             });
         } catch (error) {
-            // ✅ Lỗi khi mở confirm dialog
-            console.error('Error showing confirm dialog:', error);
+            console.error('Error checking users in use:', error);
+            toast.error('Lỗi khi kiểm tra trạng thái người dùng!');
         }
     };
 

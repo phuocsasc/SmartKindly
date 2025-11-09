@@ -1,6 +1,7 @@
 import { StatusCodes } from 'http-status-codes';
 import { userManagementServices } from '~/services/userManagementServices';
 import ApiError from '~/utils/ApiError';
+import { UserModel } from '~/models/userModel';
 
 const createNew = async (req, res, next) => {
     try {
@@ -93,6 +94,25 @@ const changePassword = async (req, res, next) => {
     }
 };
 
+const checkUserInUse = async (req, res, next) => {
+    try {
+        const userId = req.params.id;
+        const user = await UserModel.findById(userId).select('schoolId');
+
+        if (!user) {
+            throw new ApiError(StatusCodes.NOT_FOUND, 'Không tìm thấy người dùng');
+        }
+
+        const result = await userManagementServices.checkUserInUse(userId, user.schoolId);
+
+        res.status(StatusCodes.OK).json({
+            data: result,
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
 export const userManagementController = {
     createNew,
     getAll,
@@ -101,4 +121,5 @@ export const userManagementController = {
     deleteUser,
     deleteManyUsers,
     changePassword,
+    checkUserInUse,
 };

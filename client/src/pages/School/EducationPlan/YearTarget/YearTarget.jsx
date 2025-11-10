@@ -6,6 +6,7 @@ import {
     Tabs,
     Tab,
     IconButton,
+    Button,
     Tooltip,
     CircularProgress,
     Chip,
@@ -38,6 +39,7 @@ import { PERMISSIONS } from '~/config/rbacConfig';
 import { toast } from 'react-toastify';
 import YearTargetDialog from './YearTargetDialog';
 import YearTargetCopyDialog from './YearTargetCopyDialog';
+import YearTargetCopySystemDialog from './YearTargetCopySystemDialog'; // ✅ Import new dialog
 import ConfirmDialog from '~/components/common/ConfirmDialog';
 
 const ALL_AGE_GROUPS = [
@@ -79,6 +81,8 @@ function YearTarget() {
     const canUpdate = hasPermission(PERMISSIONS.UPDATE_YEAR_TARGET);
     const canDelete = hasPermission(PERMISSIONS.DELETE_YEAR_TARGET);
     const canView = hasPermission(PERMISSIONS.VIEW_YEAR_TARGET);
+
+    const [openCopySystemDialog, setOpenCopySystemDialog] = useState(false); // ✅ Add new state
 
     // ✅ Fetch Academic Years
     const fetchAcademicYears = async () => {
@@ -387,6 +391,8 @@ function YearTarget() {
             open: true,
             title: 'Xác nhận xóa mục tiêu',
             content: `Bạn có chắc chắn muốn xóa mục tiêu "${row.targetCode}"?`,
+            severity: 'error', // ✅ Thêm severity
+            confirmText: 'Xóa', // ✅ Thêm confirmText
             onConfirm: () => confirmDelete(row),
         });
     };
@@ -417,15 +423,30 @@ function YearTarget() {
 
             await schoolYearTargetApi.update(currentData._id, { mainFields: renumberedMainFields });
             toast.success('Xóa mục tiêu thành công!');
+
+            // ✅ Đóng dialog sau khi xóa thành công
+            handleCancel();
+
+            // Refresh data
             fetchYearTargets();
         } catch (error) {
             console.error('Error deleting target:', error);
             toast.error('Lỗi khi xóa mục tiêu!');
+
+            // ✅ Đóng dialog ngay cả khi có lỗi
+            handleCancel();
         }
     };
 
     const handleCancel = () => {
-        setDialogState({ ...dialogState, open: false });
+        setDialogState({
+            open: false,
+            title: '',
+            content: '',
+            severity: 'warning',
+            confirmText: 'Xác nhận',
+            onConfirm: null,
+        });
     };
 
     return (
@@ -477,11 +498,52 @@ function YearTarget() {
 
                             {/* Nút Copy từ năm học cũ */}
                             {canCreate && isActiveYear && (
-                                <Tooltip title="Copy mục tiêu từ năm học cũ">
-                                    <IconButton sx={{ color: '#764ba2' }} onClick={() => setOpenCopyDialog(true)}>
-                                        <ContentCopyIcon />
-                                    </IconButton>
-                                </Tooltip>
+                                <Button
+                                    variant="outlined"
+                                    size="small"
+                                    startIcon={<ContentCopyIcon />}
+                                    onClick={() => setOpenCopyDialog(true)}
+                                    sx={{
+                                        borderColor: '#764ba2',
+                                        color: '#764ba2',
+                                        textTransform: 'none',
+                                        fontWeight: 600,
+                                        borderRadius: 1,
+                                        px: 1,
+                                        py: 1,
+                                        '&:hover': {
+                                            borderColor: '#5a3680',
+                                            bgcolor: 'rgba(118, 75, 162, 0.04)',
+                                        },
+                                    }}
+                                >
+                                    Copy từ năm học cũ
+                                </Button>
+                            )}
+
+                            {/* ✅ Nút Copy từ hệ thống */}
+                            {canCreate && isActiveYear && (
+                                <Button
+                                    variant="outlined"
+                                    size="small"
+                                    startIcon={<ContentCopyIcon />}
+                                    onClick={() => setOpenCopySystemDialog(true)}
+                                    sx={{
+                                        borderColor: '#667eea',
+                                        color: '#667eea',
+                                        textTransform: 'none',
+                                        fontWeight: 600,
+                                        borderRadius: 1,
+                                        px: 1,
+                                        py: 1,
+                                        '&:hover': {
+                                            borderColor: '#4d5bc9',
+                                            bgcolor: 'rgba(102, 126, 234, 0.04)',
+                                        },
+                                    }}
+                                >
+                                    Copy từ hệ thống
+                                </Button>
                             )}
                         </Box>
                     </Box>
@@ -745,6 +807,17 @@ function YearTarget() {
                 onClose={() => setOpenCopyDialog(false)}
                 onSuccess={() => {
                     setOpenCopyDialog(false);
+                    fetchYearTargets();
+                }}
+            />
+
+            {/* ✅ Dialog copy từ hệ thống */}
+            <YearTargetCopySystemDialog
+                open={openCopySystemDialog}
+                currentYearId={activeYearId}
+                onClose={() => setOpenCopySystemDialog(false)}
+                onSuccess={() => {
+                    setOpenCopySystemDialog(false);
                     fetchYearTargets();
                 }}
             />

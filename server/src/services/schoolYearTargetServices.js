@@ -555,6 +555,138 @@ const initializeDefaultTargets = async (academicYearId, userId) => {
     }
 };
 
+/**
+ * ✅ Copy từ hệ thống (YearTarget)
+ */
+const copyFromSystem = async (academicYearId, userId) => {
+    try {
+        console.log('📋 [SchoolYearTarget copyFromSystem] Starting with academicYearId:', academicYearId);
+
+        const user = await UserModel.findById(userId).select('schoolId role');
+        if (!user || !user.schoolId) {
+            throw new ApiError(StatusCodes.FORBIDDEN, 'Bạn không thuộc trường học nào');
+        }
+
+        // ✅ Chỉ ban giám hiệu mới được copy
+        if (user.role !== 'ban_giam_hieu') {
+            throw new ApiError(StatusCodes.FORBIDDEN, 'Chỉ ban giám hiệu mới có quyền copy mục tiêu từ hệ thống');
+        }
+
+        const schoolId = user.schoolId;
+
+        // ✅ Kiểm tra năm học đích (phải là active)
+        const toYear = await AcademicYearModel.findOne({
+            _id: academicYearId,
+            schoolId,
+            status: 'active',
+            _destroy: false,
+        });
+
+        if (!toYear) {
+            throw new ApiError(StatusCodes.NOT_FOUND, 'Năm học đích không hợp lệ hoặc không đang hoạt động');
+        }
+
+        // ✅ Import YearTargetModel để lấy mục tiêu từ hệ thống
+        const { YearTargetModel } = await import('~/models/yearTargetModel.js');
+
+        // ✅ Lấy tất cả mục tiêu từ hệ thống (YearTarget collection)
+        const systemTargets = await YearTargetModel.find({ _destroy: false });
+
+        if (systemTargets.length === 0) {
+            throw new ApiError(StatusCodes.NOT_FOUND, 'Hệ thống chưa có mục tiêu mẫu nào');
+        }
+
+        console.log(`📋 Found ${systemTargets.length} system targets to copy`);
+
+        // ✅ Xóa CỨNG tất cả mục tiêu hiện tại của năm học đang active
+        const deleteResult = await SchoolYearTargetModel.deleteMany({
+            schoolId,
+            academicYearId,
+            _destroy: false,
+        });
+
+        console.log(`🗑️ Hard deleted ${deleteResult.deletedCount} existing targets in destination year`);
+
+        // ✅ Copy từng mục tiêu từ hệ thống
+        const copiedTargets = [];
+        for (const systemTarget of systemTargets) {
+            const newTarget = new SchoolYearTargetModel({
+                schoolId,
+                academicYearId,
+                ageGroup: systemTarget.ageGroup,
+                mainFields: systemTarget.mainFields, // Copy toàn bộ structure
+                createdBy: userId,
+            });
+
+            await newTarget.save();
+            copiedTargets.push(newTarget);
+        }
+
+        // ✅ Đánh dấu năm học đích đã cấu hình
+        if (!toYear.isConfig) {
+            toYear.isConfig = true;
+            await toYear.save();
+            console.log('✅ [SchoolYearTarget copyFromSystem] Academic year marked as configured');
+        }
+
+        const populatedTargets = await SchoolYearTargetModel.find({
+            _id: { $in: copiedTargets.map((t) => t._id) },
+        })
+            .populate('createdBy', 'fullName username')
+            .populate('academicYearId', 'fromYear toYear status')
+            .lean();
+
+        console.log('✅ [SchoolYearTarget copyFromSystem] Copied successfully');
+        return {
+            count: populatedTargets.length,
+            targets: populatedTargets,
+        };
+    } catch (error) {
+        console.error('❌ [SchoolYearTarget copyFromSystem] Error:', error);
+        if (error instanceof ApiError) throw error;
+        throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, 'Lỗi khi copy mục tiêu từ hệ thống: ' + error.message);
+    }
+};
+
+/**
+ * ✅ Get system preview cho dialog copy
+ */
+const getSystemPreview = async (userId) => {
+    try {
+        console.log('📋 [SchoolYearTarget getSystemPreview] Starting');
+
+        const user = await UserModel.findById(userId).select('schoolId role');
+        if (!user || !user.schoolId) {
+            throw new ApiError(StatusCodes.FORBIDDEN, 'Bạn không thuộc trường học nào');
+        }
+
+        // ✅ Chỉ ban giám hiệu mới được xem preview
+        if (user.role !== 'ban_giam_hieu') {
+            throw new ApiError(StatusCodes.FORBIDDEN, 'Chỉ ban giám hiệu mới có quyền xem mục tiêu mẫu từ hệ thống');
+        }
+
+        // ✅ Import YearTargetModel để lấy mục tiêu từ hệ thống
+        const { YearTargetModel } = await import('~/models/yearTargetModel.js');
+
+        // ✅ Lấy tất cả mục tiêu từ hệ thống (YearTarget collection)
+        const systemTargets = await YearTargetModel.find({ _destroy: false }).lean();
+
+        console.log(`📋 Found ${systemTargets.length} system targets for preview`);
+
+        return {
+            count: systemTargets.length,
+            targets: systemTargets,
+        };
+    } catch (error) {
+        console.error('❌ [SchoolYearTarget getSystemPreview] Error:', error);
+        if (error instanceof ApiError) throw error;
+        throw new ApiError(
+            StatusCodes.INTERNAL_SERVER_ERROR,
+            'Lỗi khi lấy thông tin xem trước từ hệ thống: ' + error.message,
+        );
+    }
+};
+
 export const schoolYearTargetServices = {
     createNew,
     getAll,
@@ -562,5 +694,7 @@ export const schoolYearTargetServices = {
     update,
     deleteTarget,
     copyFromYear,
+    copyFromSystem, // ✅ Add new function
+    getSystemPreview,
     initializeDefaultTargets,
 };

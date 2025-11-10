@@ -35,6 +35,18 @@ export const schoolYearTargetApi = {
         return await authorizedAxiosInstance.post(`${API_ROOT}/v1/school-year-targets/copy-from-year`, data);
     },
 
+    // ✅ Copy từ hệ thống
+    copyFromSystem: async (academicYearId) => {
+        return await authorizedAxiosInstance.post(`${API_ROOT}/v1/school-year-targets/copy-from-system`, {
+            academicYearId,
+        });
+    },
+
+    // ✅ Lấy preview từ hệ thống
+    getSystemPreview: async () => {
+        return await authorizedAxiosInstance.get(`${API_ROOT}/v1/school-year-targets/system-preview`);
+    },
+
     // Khởi tạo mục tiêu mặc định
     initializeDefaults: async (academicYearId) => {
         return await authorizedAxiosInstance.post(`${API_ROOT}/v1/school-year-targets/initialize`, {

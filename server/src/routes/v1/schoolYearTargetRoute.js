@@ -21,6 +21,20 @@ Router.route('/copy-from-year').post(
     schoolYearTargetController.copyFromYear,
 );
 
+// ✅ API copy từ hệ thống
+Router.route('/copy-from-system').post(
+    authMiddleware.isAuthorized,
+    rbacMiddleware.isValidPermission([PERMISSIONS.CREATE_YEAR_TARGET]),
+    schoolYearTargetController.copyFromSystem,
+);
+
+// ✅ API lấy preview từ hệ thống
+Router.route('/system-preview').get(
+    authMiddleware.isAuthorized,
+    rbacMiddleware.isValidPermission([PERMISSIONS.VIEW_YEAR_TARGET]),
+    schoolYearTargetController.getSystemPreview,
+);
+
 // API lấy danh sách và tạo mới
 Router.route('/')
     .get(

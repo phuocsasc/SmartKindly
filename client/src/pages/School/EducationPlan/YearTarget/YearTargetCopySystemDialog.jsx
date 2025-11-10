@@ -6,13 +6,8 @@ import {
     DialogActions,
     Button,
     Box,
-    FormControl,
-    InputLabel,
-    Select,
-    MenuItem,
     Typography,
     IconButton,
-    Chip,
     Avatar,
     Alert,
     Tabs,
@@ -24,10 +19,12 @@ import {
     TableHead,
     TableRow,
     Paper,
+    Chip,
+    CircularProgress,
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
-import ContentCopyIcon from '@mui/icons-material/ContentCopy';
-import { schoolYearTargetApi, academicYearApi } from '~/apis';
+import CloudDownloadIcon from '@mui/icons-material/CloudDownload';
+import { schoolYearTargetApi } from '~/apis';
 import { toast } from 'react-toastify';
 
 const ALL_AGE_GROUPS = [
@@ -39,65 +36,30 @@ const ALL_AGE_GROUPS = [
     { value: 'Khối lá 5-6 tuổi', label: 'Khối lá 5-6 tuổi' },
 ];
 
-function YearTargetCopyDialog({ open, currentYearId, onClose, onSuccess }) {
-    const [selectedFromYear, setSelectedFromYear] = useState('');
-    const [availableYears, setAvailableYears] = useState([]);
+function YearTargetCopySystemDialog({ open, currentYearId, onClose, onSuccess }) {
     const [loading, setLoading] = useState(false);
+    const [fetchingPreview, setFetchingPreview] = useState(false);
     const [previewData, setPreviewData] = useState({});
     const [tabValue, setTabValue] = useState(0);
     const [allowedAgeGroups, setAllowedAgeGroups] = useState([]);
 
-    // ✅ Fetch các năm học inactive
+    // ✅ Fetch preview từ hệ thống khi mở dialog
     useEffect(() => {
-        if (open && currentYearId) {
-            fetchAvailableYears();
+        if (open) {
+            fetchSystemPreview();
         }
-    }, [open, currentYearId]);
+    }, [open]);
 
-    // ✅ Fetch preview khi chọn năm
-    useEffect(() => {
-        if (selectedFromYear) {
-            fetchPreviewData();
-        } else {
-            setPreviewData({});
-            setAllowedAgeGroups([]);
-            setTabValue(0);
-        }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [selectedFromYear]);
-
-    const fetchAvailableYears = async () => {
+    const fetchSystemPreview = async () => {
         try {
-            console.log('🔍 [YearTargetCopyDialog] Fetching inactive years...');
+            setFetchingPreview(true);
+            console.log('🔍 [YearTargetCopySystemDialog] Fetching system targets...');
 
-            const academicYearsRes = await academicYearApi.getAll({ page: 1, limit: 100, status: 'inactive' });
-            const inactiveYears = academicYearsRes.data.data.academicYears;
-
-            console.log('📅 Inactive years:', inactiveYears.length);
-            setAvailableYears(inactiveYears);
-
-            if (inactiveYears.length > 0) {
-                setSelectedFromYear(inactiveYears[0]._id);
-            }
-        } catch (error) {
-            console.error('❌ Error fetching available years:', error);
-            toast.error('Lỗi khi tải danh sách năm học!');
-        }
-    };
-
-    const fetchPreviewData = async () => {
-        try {
-            console.log('🔍 [YearTargetCopyDialog] Fetching preview data for year:', selectedFromYear);
-
-            const res = await schoolYearTargetApi.getAll({
-                page: 1,
-                limit: 100,
-                academicYearId: selectedFromYear,
-                ageGroup: '',
-            });
-
+            // ✅ Gọi API mới từ schoolYearTargetApi
+            const res = await schoolYearTargetApi.getSystemPreview();
             const targets = res.data.data.targets;
-            console.log('🎯 Targets found:', targets.length);
+
+            console.log('🎯 System targets found:', targets.length);
 
             if (targets.length === 0) {
                 setPreviewData({});
@@ -119,43 +81,36 @@ function YearTargetCopyDialog({ open, currentYearId, onClose, onSuccess }) {
             setAllowedAgeGroups(filtered);
             setTabValue(0);
         } catch (error) {
-            console.error('❌ Error fetching preview:', error);
-            toast.error('Lỗi khi tải thông tin xem trước!');
+            console.error('❌ Error fetching system preview:', error);
+            toast.error('Lỗi khi tải thông tin xem trước từ hệ thống!');
+        } finally {
+            setFetchingPreview(false);
         }
     };
 
     const handleCopy = async () => {
-        if (!selectedFromYear) {
-            toast.error('Vui lòng chọn năm học cần copy!');
-            return;
-        }
-
         if (Object.keys(previewData).length === 0) {
-            toast.error('Năm học được chọn không có dữ liệu mục tiêu!');
+            toast.error('Hệ thống chưa có dữ liệu mục tiêu mẫu!');
             return;
         }
 
         try {
             setLoading(true);
 
-            await schoolYearTargetApi.copyFromYear({
-                fromAcademicYearId: selectedFromYear,
-                toAcademicYearId: currentYearId,
-            });
+            await schoolYearTargetApi.copyFromSystem(currentYearId);
 
-            toast.success('Copy mục tiêu từ năm học cũ thành công!');
+            toast.success('Copy mục tiêu từ hệ thống thành công!');
             onSuccess();
             handleClose();
         } catch (error) {
-            console.error('Error copying year targets:', error);
-            toast.error(error.response?.data?.message || 'Lỗi khi copy mục tiêu năm học!');
+            console.error('Error copying from system:', error);
+            toast.error(error.response?.data?.message || 'Lỗi khi copy mục tiêu từ hệ thống!');
         } finally {
             setLoading(false);
         }
     };
 
     const handleClose = () => {
-        setSelectedFromYear('');
         setPreviewData({});
         setAllowedAgeGroups([]);
         setTabValue(0);
@@ -273,7 +228,7 @@ function YearTargetCopyDialog({ open, currentYearId, onClose, onSuccess }) {
             {/* Header */}
             <DialogTitle
                 sx={{
-                    background: 'linear-gradient(135deg, #764ba2 0%, #667eea 100%)',
+                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
                     color: '#fff',
                     py: 1.5,
                     position: 'relative',
@@ -287,10 +242,10 @@ function YearTargetCopyDialog({ open, currentYearId, onClose, onSuccess }) {
                             height: 32,
                         }}
                     >
-                        <ContentCopyIcon fontSize="small" />
+                        <CloudDownloadIcon fontSize="small" />
                     </Avatar>
                     <Typography variant="h6" fontWeight={600}>
-                        Copy mục tiêu từ năm học cũ
+                        Copy mục tiêu từ hệ thống
                     </Typography>
                 </Box>
                 <IconButton
@@ -315,8 +270,8 @@ function YearTargetCopyDialog({ open, currentYearId, onClose, onSuccess }) {
                     {/* Thông báo */}
                     <Alert severity="info" sx={{ borderRadius: 2 }}>
                         <Typography variant="body2">
-                            Chức năng này sẽ <strong>copy toàn bộ mục tiêu</strong> (bao gồm cả các mục tiêu cụ thể) từ
-                            năm học đã kết thúc sang năm học đang hoạt động.
+                            Chức năng này sẽ <strong>copy toàn bộ mục tiêu mẫu</strong> từ hệ thống (Ngân hàng dữ liệu)
+                            sang năm học đang hoạt động của trường.
                         </Typography>
                         <Typography variant="body2" sx={{ mt: 1 }}>
                             ⚠️ <strong>Lưu ý:</strong> Dữ liệu hiện tại của năm học đang hoạt động sẽ bị{' '}
@@ -324,72 +279,31 @@ function YearTargetCopyDialog({ open, currentYearId, onClose, onSuccess }) {
                         </Typography>
                     </Alert>
 
-                    {/* Chọn năm học nguồn */}
-                    <Box>
-                        <Typography
-                            variant="subtitle2"
-                            sx={{
-                                mb: 1.5,
-                                color: '#764ba2',
-                                fontWeight: 600,
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: 1,
-                            }}
-                        >
-                            <Box sx={{ width: 3, height: 14, bgcolor: '#764ba2', borderRadius: 1 }} />
-                            Chọn năm học nguồn
-                        </Typography>
-
-                        {availableYears.length === 0 ? (
-                            <Alert severity="warning" sx={{ borderRadius: 2 }}>
-                                Không có năm học nào đã kết thúc để copy!
-                            </Alert>
-                        ) : (
-                            <FormControl fullWidth size="small">
-                                <InputLabel>Chọn năm học *</InputLabel>
-                                <Select
-                                    value={selectedFromYear}
-                                    onChange={(e) => setSelectedFromYear(e.target.value)}
-                                    label="Chọn năm học *"
-                                    sx={{ borderRadius: 1.5 }}
-                                >
-                                    {availableYears.map((year) => (
-                                        <MenuItem key={year._id} value={year._id}>
-                                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                                <Typography variant="body2" fontWeight={600}>
-                                                    {year.fromYear}-{year.toYear}
-                                                </Typography>
-                                                <Chip label="Đã kết thúc" size="small" color="default" />
-                                            </Box>
-                                        </MenuItem>
-                                    ))}
-                                </Select>
-                            </FormControl>
-                        )}
-                    </Box>
-
                     {/* Preview data với Tabs */}
-                    {selectedFromYear && (
+                    {fetchingPreview ? (
+                        <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+                            <CircularProgress />
+                        </Box>
+                    ) : (
                         <Box>
                             <Typography
                                 variant="subtitle2"
                                 sx={{
                                     mb: 1.5,
-                                    color: '#764ba2',
+                                    color: '#667eea',
                                     fontWeight: 600,
                                     display: 'flex',
                                     alignItems: 'center',
                                     gap: 1,
                                 }}
                             >
-                                <Box sx={{ width: 3, height: 14, bgcolor: '#764ba2', borderRadius: 1 }} />
-                                Thông tin xem trước ({allowedAgeGroups.length} nhóm tuổi)
+                                <Box sx={{ width: 3, height: 14, bgcolor: '#667eea', borderRadius: 1 }} />
+                                Mục tiêu mẫu từ hệ thống ({allowedAgeGroups.length} nhóm tuổi)
                             </Typography>
 
                             {allowedAgeGroups.length === 0 ? (
                                 <Alert severity="warning" sx={{ borderRadius: 2 }}>
-                                    Năm học này chưa có dữ liệu mục tiêu nào!
+                                    Hệ thống chưa có dữ liệu mục tiêu mẫu nào!
                                 </Alert>
                             ) : (
                                 <>
@@ -407,11 +321,11 @@ function YearTargetCopyDialog({ open, currentYearId, onClose, onSuccess }) {
                                                     fontSize: '0.85rem',
                                                 },
                                                 '& .Mui-selected': {
-                                                    color: '#764ba2',
+                                                    color: '#667eea',
                                                     fontWeight: 600,
                                                 },
                                                 '& .MuiTabs-indicator': {
-                                                    backgroundColor: '#764ba2',
+                                                    backgroundColor: '#667eea',
                                                     height: 3,
                                                 },
                                             }}
@@ -439,7 +353,7 @@ function YearTargetCopyDialog({ open, currentYearId, onClose, onSuccess }) {
                                                 overflowY: 'auto',
                                                 '&::-webkit-scrollbar': { width: 6 },
                                                 '&::-webkit-scrollbar-thumb': {
-                                                    backgroundColor: '#764ba2',
+                                                    backgroundColor: '#667eea',
                                                     borderRadius: 4,
                                                 },
                                             }}
@@ -450,7 +364,7 @@ function YearTargetCopyDialog({ open, currentYearId, onClose, onSuccess }) {
                                                         <TableCell
                                                             sx={{
                                                                 fontWeight: 700,
-                                                                bgcolor: '#f3e5f5',
+                                                                bgcolor: '#ede7f6',
                                                                 width: '30%',
                                                             }}
                                                         >
@@ -459,7 +373,7 @@ function YearTargetCopyDialog({ open, currentYearId, onClose, onSuccess }) {
                                                         <TableCell
                                                             sx={{
                                                                 fontWeight: 700,
-                                                                bgcolor: '#f3e5f5',
+                                                                bgcolor: '#ede7f6',
                                                                 width: '30%',
                                                             }}
                                                         >
@@ -468,7 +382,7 @@ function YearTargetCopyDialog({ open, currentYearId, onClose, onSuccess }) {
                                                         <TableCell
                                                             sx={{
                                                                 fontWeight: 700,
-                                                                bgcolor: '#f3e5f5',
+                                                                bgcolor: '#ede7f6',
                                                                 width: '40%',
                                                             }}
                                                         >
@@ -558,8 +472,8 @@ function YearTargetCopyDialog({ open, currentYearId, onClose, onSuccess }) {
                                                                                 label={row.targetCode}
                                                                                 size="small"
                                                                                 sx={{
-                                                                                    bgcolor: '#f3e5f5',
-                                                                                    color: '#764ba2',
+                                                                                    bgcolor: '#ede7f6',
+                                                                                    color: '#667eea',
                                                                                     fontWeight: 600,
                                                                                 }}
                                                                             />
@@ -601,16 +515,16 @@ function YearTargetCopyDialog({ open, currentYearId, onClose, onSuccess }) {
                 <Button
                     variant="contained"
                     onClick={handleCopy}
-                    disabled={loading || !selectedFromYear || Object.keys(previewData).length === 0}
+                    disabled={loading || fetchingPreview || Object.keys(previewData).length === 0}
                     size="small"
                     sx={{
                         borderRadius: 1.5,
                         px: 3,
                         textTransform: 'none',
                         fontWeight: 600,
-                        background: 'linear-gradient(135deg, #764ba2 0%, #667eea 100%)',
+                        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
                         '&:hover': {
-                            background: 'linear-gradient(135deg, #5a3680 0%, #4d5bc9 100%)',
+                            background: 'linear-gradient(135deg, #4d5bc9 0%, #5a3680 100%)',
                         },
                     }}
                 >
@@ -621,4 +535,4 @@ function YearTargetCopyDialog({ open, currentYearId, onClose, onSuccess }) {
     );
 }
 
-export default YearTargetCopyDialog;
+export default YearTargetCopySystemDialog;

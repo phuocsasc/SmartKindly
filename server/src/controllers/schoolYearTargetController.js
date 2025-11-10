@@ -90,6 +90,30 @@ const initializeDefaults = async (req, res, next) => {
         next(error);
     }
 };
+const getSystemPreview = async (req, res, next) => {
+    try {
+        const userId = req.jwtDecoded.id;
+        const result = await schoolYearTargetServices.getSystemPreview(userId);
+        res.status(StatusCodes.OK).json({
+            message: 'Lấy thông tin xem trước từ hệ thống thành công!',
+            data: result,
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+const copyFromSystem = async (req, res, next) => {
+    try {
+        const userId = req.jwtDecoded.id;
+        const result = await schoolYearTargetServices.copyFromSystem(req.body.academicYearId, userId);
+        res.status(StatusCodes.CREATED).json({
+            message: 'Copy mục tiêu từ hệ thống thành công!',
+            data: result,
+        });
+    } catch (error) {
+        next(error);
+    }
+};
 
 export const schoolYearTargetController = {
     createNew,
@@ -98,5 +122,7 @@ export const schoolYearTargetController = {
     update,
     deleteTarget,
     copyFromYear,
+    copyFromSystem, // ✅ Add new function
+    getSystemPreview,
     initializeDefaults,
 };

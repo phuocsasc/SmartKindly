@@ -60,12 +60,6 @@ export const PERMISSIONS = {
     UPDATE_PERSONNEL_EVALUATION: 'update_personnel_evaluation',
     DELETE_PERSONNEL_EVALUATION: 'delete_personnel_evaluation',
 
-    // Quản lý danh hiệu thi đua cán bộ
-    VIEW_PERSONNEL_COMMENDATION: 'view_personnel_commendation',
-    CREATE_PERSONNEL_COMMENDATION: 'create_personnel_commendation',
-    UPDATE_PERSONNEL_COMMENDATION: 'update_personnel_commendation',
-    DELETE_PERSONNEL_COMMENDATION: 'delete_personnel_commendation',
-
     // Quản lý mục tiêu năm học theo từng độ tuổi
     VIEW_YEAR_TARGET: 'view_year_target',
     CREATE_YEAR_TARGET: 'create_year_target',
@@ -125,7 +119,6 @@ export const ROLE_PERMISSIONS = {
         PERMISSIONS.VIEW_DASHBOARD,
         PERMISSIONS.VIEW_PERSONNEL_RECORDS,
         PERMISSIONS.VIEW_PERSONNEL_EVALUATION,
-        PERMISSIONS.VIEW_PERSONNEL_COMMENDATION,
         PERMISSIONS.VIEW_YEAR_TARGET,
         PERMISSIONS.VIEW_EDUCATION_ACTIVITY,
         PERMISSIONS.CREATE_EDUCATION_ACTIVITY,
@@ -156,7 +149,6 @@ export const ROLE_PERMISSIONS = {
         PERMISSIONS.VIEW_DASHBOARD,
         PERMISSIONS.VIEW_PERSONNEL_RECORDS,
         PERMISSIONS.VIEW_PERSONNEL_EVALUATION,
-        PERMISSIONS.VIEW_PERSONNEL_COMMENDATION,
         PERMISSIONS.VIEW_YEAR_TARGET,
         PERMISSIONS.VIEW_EDUCATION_ACTIVITY,
         PERMISSIONS.CREATE_EDUCATION_ACTIVITY,

@@ -11,6 +11,7 @@ import { personnelRecordRoute } from './personnelRecordRoute';
 import { personnelEvaluationRoute } from './personnelEvaluationRoute'; // ✅ Import
 import { yearTargetRoute } from './yearTargetRoute'; // ✅ Import
 import { educationalActivityRoute } from './educationalActivityRoute'; // ✅ Import
+import { schoolYearTargetRoute } from '~/routes/v1/schoolYearTargetRoute.js';
 
 const Router = express.Router();
 
@@ -48,5 +49,7 @@ Router.use('/year-targets', yearTargetRoute); // ✅ Đăng ký route
 
 /** Educational Activity APIs */
 Router.use('/educational-activities', educationalActivityRoute); // ✅ Register
+
+Router.use('/school-year-targets', schoolYearTargetRoute);
 
 export const APIs_V1 = Router;

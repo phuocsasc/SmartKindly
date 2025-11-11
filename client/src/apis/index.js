@@ -40,3 +40,5 @@ export * from './yearTargetApi';
 export * from './educationalActivityApi';
 
 export * from './schoolYearTargetApi';
+
+export * from './schoolEducationalActivityApi';

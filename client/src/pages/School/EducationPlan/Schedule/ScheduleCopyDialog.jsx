@@ -41,6 +41,7 @@ function ScheduleCopyDialog({ open, currentYearId, onClose, onSuccess }) {
         if (open && currentYearId) {
             fetchAvailableYears();
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [open, currentYearId]);
 
     useEffect(() => {

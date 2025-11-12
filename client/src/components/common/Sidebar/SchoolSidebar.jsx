@@ -66,9 +66,9 @@ const menuItems = [
             { text: 'Mục tiêu năm học theo từng độ tuổi', path: '/edu-plan/year-target' },
             { text: 'Hoạt động giáo dục theo từng mục tiêu', path: '/edu-plan/activities' },
             { text: 'Thời khóa biểu', path: '/edu-plan/schedule' },
-            { text: 'Các chủ đề - sự kiện', path: '/edu-plan/events-theme' },
-            { text: 'Kế hoạch giáo dục theo chủ đề', path: '/edu-plan/theme-plan' },
-            { text: 'Kế hoạch giáo dục theo tháng - tuần', path: '/edu-plan/monthly-plan' },
+            // { text: 'Các chủ đề - sự kiện', path: '/edu-plan/events-theme' },
+            // { text: 'Kế hoạch giáo dục theo chủ đề', path: '/edu-plan/theme-plan' },
+            { text: 'Kế hoạch giáo dục chi tiết theo tuần', path: '/edu-plan/monthly-plan' },
         ],
     },
     {

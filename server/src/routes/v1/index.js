@@ -13,6 +13,7 @@ import { yearTargetRoute } from './yearTargetRoute'; // ✅ Import
 import { educationalActivityRoute } from './educationalActivityRoute'; // ✅ Import
 import { schoolYearTargetRoute } from '~/routes/v1/schoolYearTargetRoute.js';
 import { schoolEducationalActivityRoute } from './schoolEducationalActivityRoute.js';
+import { scheduleRoute } from './scheduleRoute.js';
 
 const Router = express.Router();
 
@@ -55,5 +56,7 @@ Router.use('/school-year-targets', schoolYearTargetRoute);
 
 // ✅ School Educational Activity Routes
 Router.use('/school-educational-activities', schoolEducationalActivityRoute);
+
+Router.use('/schedules', scheduleRoute);
 
 export const APIs_V1 = Router;

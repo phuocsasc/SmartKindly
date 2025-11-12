@@ -4,7 +4,7 @@ import MainLayout from '~/layouts/SchoolLayout';
 import PageContainer from '~/components/common/PageContainer';
 import PageBreadcrumb from '~/components/common/PageBreadcrumb';
 import { useUser } from '~/contexts/UserContext';
-function MonthlyPlan() {
+function WeeklyPlan() {
     const { user } = useUser();
     return (
         <MainLayout user={user}>
@@ -26,4 +26,4 @@ function MonthlyPlan() {
         </MainLayout>
     );
 }
-export default MonthlyPlan;
+export default WeeklyPlan;

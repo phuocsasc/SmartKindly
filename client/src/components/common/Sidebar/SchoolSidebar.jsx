@@ -68,7 +68,7 @@ const menuItems = [
             { text: 'Thời khóa biểu', path: '/edu-plan/schedule' },
             // { text: 'Các chủ đề - sự kiện', path: '/edu-plan/events-theme' },
             // { text: 'Kế hoạch giáo dục theo chủ đề', path: '/edu-plan/theme-plan' },
-            { text: 'Kế hoạch giáo dục chi tiết theo tuần', path: '/edu-plan/monthly-plan' },
+            { text: 'Kế hoạch giáo dục chi tiết theo tuần', path: '/edu-plan/weekly-plan' },
         ],
     },
     {

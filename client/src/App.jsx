@@ -36,7 +36,7 @@ import SchoolEducationalActivity from '~/pages/School/EducationPlan/EducationalA
 import Schedule from '~/pages/School/EducationPlan/Schedule/Schedule';
 import EventTheme from './pages/School/EducationPlan/EventTheme/EventTheme';
 import ThemePlan from './pages/School/EducationPlan/ThemPlan/ThemPlan';
-import MonthlyPlan from './pages/School/EducationPlan/MonthlyPlan/MonthlyPlan';
+import WeeklyPlan from './pages/School/EducationPlan/WeeklyPlan/WeeklyPlan';
 
 /**
  * Protected Routes với UserContext
@@ -135,7 +135,7 @@ function AppContent() {
                     <Route path="/edu-plan/theme-plan" element={<ThemePlan />} />
                 </Route>
                 <Route element={<RbacRoute requiredPermission={PERMISSIONS.VIEW_MONTHLY_PLAN} />}>
-                    <Route path="/edu-plan/monthly-plan" element={<MonthlyPlan />} />
+                    <Route path="/edu-plan/weekly-plan" element={<WeeklyPlan />} />
                 </Route>
             </Route>
 

@@ -422,7 +422,7 @@ function WeeklyPlan() {
                                             sx={{
                                                 fontWeight: 700,
                                                 bgcolor: '#ede7f6',
-                                                minWidth: 130,
+                                                minWidth: 140,
                                                 borderRight: '2px solid #d1c4e9',
                                                 position: 'sticky',
                                                 left: 0,
@@ -443,7 +443,7 @@ function WeeklyPlan() {
                                                     sx={{
                                                         fontWeight: 700,
                                                         bgcolor: '#e3f2fd',
-                                                        minWidth: 100,
+                                                        minWidth: 200,
                                                     }}
                                                 >
                                                     {day} {date ? `(${formatDateDisplay(date)})` : ''}
@@ -485,42 +485,44 @@ function WeeklyPlan() {
                                                         sx={{
                                                             bgcolor: '#fafafa',
                                                             verticalAlign: 'top',
-                                                            p: 1.5,
+                                                            py: 1,
+                                                            px: 0.5,
                                                             position: 'relative',
                                                         }}
                                                     >
                                                         {hasContent ? (
-                                                            <Box sx={{ position: 'relative' }}>
+                                                            <Box
+                                                                sx={{
+                                                                    maxHeight: 200,
+                                                                    overflowY: 'overlay',
+                                                                    paddingRight: 0,
+                                                                    scrollbarGutter: 'stable both-edges',
+                                                                    '&::-webkit-scrollbar': {
+                                                                        width: '6px',
+                                                                    },
+                                                                    '&::-webkit-scrollbar-track': {
+                                                                        backgroundColor: '#e3f2fd',
+                                                                    },
+                                                                    '&::-webkit-scrollbar-thumb': {
+                                                                        backgroundColor: '#0964a1a4',
+                                                                        borderRadius: '4px',
+                                                                    },
+                                                                    '&::-webkit-scrollbar-thumb:hover': {
+                                                                        backgroundColor: '#0071BC',
+                                                                    },
+                                                                }}
+                                                            >
                                                                 <Chip
                                                                     label={
-                                                                        <Box
-                                                                            sx={{
-                                                                                maxHeight: 150,
-                                                                                overflowY: 'auto',
-                                                                                py: 1,
-                                                                                pr: canUpdate && isActiveYear ? 3 : 0,
-                                                                                '&::-webkit-scrollbar': {
-                                                                                    width: '6px',
-                                                                                },
-                                                                                '&::-webkit-scrollbar-track': {
-                                                                                    backgroundColor: '#e3f2fd',
-                                                                                },
-                                                                                '&::-webkit-scrollbar-thumb': {
-                                                                                    backgroundColor: '#0964a1a4',
-                                                                                    borderRadius: '4px',
-                                                                                },
-                                                                                '&::-webkit-scrollbar-thumb:hover': {
-                                                                                    backgroundColor: '#0071BC',
-                                                                                },
-                                                                            }}
-                                                                        >
+                                                                        <Box>
                                                                             <Typography
                                                                                 variant="body2"
                                                                                 sx={{
                                                                                     whiteSpace: 'pre-wrap',
                                                                                     wordBreak: 'break-word',
+                                                                                    py: 0.5,
                                                                                     fontSize: '0.875rem',
-                                                                                    lineHeight: 1.6,
+                                                                                    lineHeight: 1.4,
                                                                                     color: '#000',
                                                                                 }}
                                                                             >
@@ -555,8 +557,8 @@ function WeeklyPlan() {
                                                                             }
                                                                             sx={{
                                                                                 position: 'absolute',
-                                                                                top: 8,
-                                                                                right: 8,
+                                                                                top: -4,
+                                                                                right: 0,
                                                                                 color: '#667eea',
                                                                                 bgcolor: 'rgba(255, 255, 255, 0.9)',
                                                                                 '&:hover': {

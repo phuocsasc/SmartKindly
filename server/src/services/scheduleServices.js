@@ -1,10 +1,12 @@
 // server/src/services/scheduleServices.js
 
+import { WeeklyPlanModel } from '~/models/weeklyPlanModel.js';
 import { ScheduleModel } from '~/models/scheduleModel.js';
 import { AcademicYearModel } from '~/models/academicYearModel.js';
 import { UserModel } from '~/models/userModel.js';
 import ApiError from '~/utils/ApiError';
 import { StatusCodes } from 'http-status-codes';
+import dayjs from 'dayjs';
 
 /**
  * ✅ Helper: Tính toán các tuần trong năm học
@@ -41,6 +43,99 @@ const calculateWeeks = (sem1StartDate, sem2EndDate) => {
     }
 
     return weeks;
+};
+
+/**
+ * ✅ Helper: Kiểm tra xem đã có Weekly Plan nào có nội dung chưa
+ */
+const hasExistingWeeklyPlanContent = async (schoolId, academicYearId) => {
+    try {
+        console.log(
+            '🔍 [hasExistingWeeklyPlanContent] Checking for schoolId:',
+            schoolId,
+            'academicYearId:',
+            academicYearId,
+        );
+
+        // Tìm tất cả weekly plans trong năm học
+        const weeklyPlans = await WeeklyPlanModel.find({
+            schoolId,
+            academicYearId,
+            _destroy: false,
+        }).lean();
+
+        console.log(`📋 [hasExistingWeeklyPlanContent] Found ${weeklyPlans.length} weekly plans`);
+
+        // Kiểm tra xem có plan nào có nội dung không
+        for (const plan of weeklyPlans) {
+            const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'];
+
+            for (const day of days) {
+                const activities = plan[day] || [];
+
+                // Kiểm tra xem có activity nào có detailedContent không
+                const hasContent = activities.some(
+                    (activity) => activity.detailedContent && activity.detailedContent.trim().length > 0,
+                );
+
+                if (hasContent) {
+                    console.log(`✅ [hasExistingWeeklyPlanContent] Found content in plan ${plan._id} on ${day}`);
+                    return true;
+                }
+            }
+        }
+
+        console.log('📋 [hasExistingWeeklyPlanContent] No content found');
+        return false;
+    } catch (error) {
+        console.error('❌ [hasExistingWeeklyPlanContent] Error:', error);
+        throw error;
+    }
+};
+
+/**
+ * ✅ Helper: Đồng bộ activity periods từ schedule sang weekly plans
+ */
+const syncWeeklyPlansWithSchedule = async (scheduleId, newActivityPeriods) => {
+    try {
+        console.log('🔄 [syncWeeklyPlansWithSchedule] Starting sync for scheduleId:', scheduleId);
+
+        const schedule = await ScheduleModel.findById(scheduleId).lean();
+        if (!schedule) return;
+
+        // Lấy tất cả weekly plans liên quan đến schedule này
+        const weeklyPlans = await WeeklyPlanModel.find({
+            schoolId: schedule.schoolId,
+            academicYearId: schedule.academicYearId,
+            scheduleId: schedule._id,
+            _destroy: false,
+        });
+
+        console.log(`📋 [syncWeeklyPlansWithSchedule] Found ${weeklyPlans.length} weekly plans to sync`);
+
+        // Update từng weekly plan
+        for (const plan of weeklyPlans) {
+            const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'];
+
+            for (const day of days) {
+                // Map activity periods mới
+                plan[day] = newActivityPeriods.map((period) => ({
+                    activityPeriodId: period._id || period.activityPeriodId,
+                    startTime: period.startTime,
+                    endTime: period.endTime,
+                    description: period.description,
+                    detailedContent: '', // ✅ Reset content vì mốc thời gian đã thay đổi
+                }));
+            }
+
+            await plan.save();
+        }
+
+        console.log(`✅ [syncWeeklyPlansWithSchedule] Synced ${weeklyPlans.length} weekly plans successfully`);
+    } catch (error) {
+        console.error('❌ [syncWeeklyPlansWithSchedule] Error:', error);
+        throw error;
+    }
 };
 
 /**
@@ -159,7 +254,7 @@ const getByAcademicYear = async (academicYearId, userId) => {
 const updateActivityPeriods = async (scheduleId, data, userId) => {
     try {
         console.log('📋 [Schedule updateActivityPeriods] Starting with data:', data);
-        const { activityPeriods } = data; // ✅ Bỏ weekNumber
+        const { activityPeriods } = data;
 
         const user = await UserModel.findById(userId).select('schoolId role');
         if (!user || !user.schoolId) {
@@ -186,18 +281,31 @@ const updateActivityPeriods = async (scheduleId, data, userId) => {
             throw new ApiError(StatusCodes.FORBIDDEN, 'Chỉ có thể cập nhật thời khóa biểu của năm học đang hoạt động');
         }
 
+        // ✅ Kiểm tra xem đã có Weekly Plan nào có nội dung chưa
+        const hasContent = await hasExistingWeeklyPlanContent(user.schoolId, schedule.academicYearId._id);
+
+        if (hasContent) {
+            throw new ApiError(
+                StatusCodes.CONFLICT,
+                'Không thể cập nhật thời khóa biểu vì đã có giáo viên lên kế hoạch chi tiết theo tuần. Vui lòng xóa hết nội dung kế hoạch trước khi thay đổi mốc hoạt động.',
+            );
+        }
+
         // ✅ Áp dụng mốc hoạt động cho TẤT CẢ các tuần
         schedule.weeks.forEach((week) => {
-            week.activityPeriods = activityPeriods.map((period) => ({
+            week.activityPeriods = activityPeriods.map((period, index) => ({
                 startTime: period.startTime,
                 endTime: period.endTime,
                 description: period.description,
-                order: period.order,
+                order: index + 1,
             }));
         });
 
         schedule.lastUpdatedBy = userId;
         await schedule.save();
+
+        // ✅ Đồng bộ sang Weekly Plans
+        await syncWeeklyPlansWithSchedule(scheduleId, schedule.weeks[0].activityPeriods);
 
         const updated = await ScheduleModel.findById(scheduleId)
             .populate('academicYearId', 'fromYear toYear status')
@@ -208,7 +316,7 @@ const updateActivityPeriods = async (scheduleId, data, userId) => {
         console.log('✅ [Schedule updateActivityPeriods] Updated successfully for all weeks');
         return {
             schedule: updated,
-            message: `Đã cập nhật mốc hoạt động cho ${schedule.weeks.length} tuần`,
+            message: `Đã cập nhật mốc hoạt động cho ${schedule.weeks.length} tuần và đồng bộ kế hoạch chi tiết`,
         };
     } catch (error) {
         console.error('❌ [Schedule updateActivityPeriods] Error:', error);
@@ -308,6 +416,16 @@ const copyActivityPeriodsFromYear = async (data, userId) => {
             throw new ApiError(StatusCodes.FORBIDDEN, 'Chỉ có thể copy vào năm học đang hoạt động');
         }
 
+        // ✅ Kiểm tra xem đã có Weekly Plan nào có nội dung chưa
+        const hasContent = await hasExistingWeeklyPlanContent(schoolId, toAcademicYearId);
+
+        if (hasContent) {
+            throw new ApiError(
+                StatusCodes.CONFLICT,
+                'Không thể copy thời khóa biểu vì đã có giáo viên lên kế hoạch chi tiết theo tuần. Vui lòng xóa hết nội dung kế hoạch trước khi copy.',
+            );
+        }
+
         // ✅ Copy mốc hoạt động từ tuần đầu tiên của năm nguồn
         const sourceFirstWeek = sourceSchedule.weeks[0];
         if (!sourceFirstWeek || sourceFirstWeek.activityPeriods.length === 0) {
@@ -318,16 +436,19 @@ const copyActivityPeriodsFromYear = async (data, userId) => {
 
         // ✅ Áp dụng cho tất cả các tuần trong năm đích
         targetSchedule.weeks.forEach((week) => {
-            week.activityPeriods = sourceActivityPeriods.map((period) => ({
+            week.activityPeriods = sourceActivityPeriods.map((period, index) => ({
                 startTime: period.startTime,
                 endTime: period.endTime,
                 description: period.description,
-                order: period.order,
+                order: index + 1,
             }));
         });
 
         targetSchedule.lastUpdatedBy = userId;
         await targetSchedule.save();
+
+        // ✅ Đồng bộ sang Weekly Plans
+        await syncWeeklyPlansWithSchedule(targetSchedule._id, targetSchedule.weeks[0].activityPeriods);
 
         const updated = await ScheduleModel.findById(targetSchedule._id)
             .populate('academicYearId', 'fromYear toYear status')
@@ -338,7 +459,7 @@ const copyActivityPeriodsFromYear = async (data, userId) => {
         console.log('✅ [Schedule copyActivityPeriodsFromYear] Copied successfully');
         return {
             schedule: updated,
-            message: `Đã copy ${sourceActivityPeriods.length} mốc hoạt động cho ${targetSchedule.weeks.length} tuần`,
+            message: `Đã copy ${sourceActivityPeriods.length} mốc hoạt động cho ${targetSchedule.weeks.length} tuần và đồng bộ kế hoạch chi tiết`,
         };
     } catch (error) {
         console.error('❌ [Schedule copyActivityPeriodsFromYear] Error:', error);

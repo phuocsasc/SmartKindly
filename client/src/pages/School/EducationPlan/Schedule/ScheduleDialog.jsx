@@ -144,9 +144,10 @@ function ScheduleDialog({ open, scheduleId, existingPeriods, totalWeeks, onClose
         <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
             <DialogTitle
                 sx={{
-                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                    color: '#fff',
-                    py: 1.5,
+                    background: 'linear-gradient(135deg, #0071bc 0%, #aee2ff 100%)',
+                    color: 'white',
+                    py: 1,
+                    mb: 2,
                     position: 'relative',
                 }}
             >
@@ -177,16 +178,34 @@ function ScheduleDialog({ open, scheduleId, existingPeriods, totalWeeks, onClose
                         },
                     }}
                 >
-                    <CloseIcon />
+                    <CloseIcon sx={{ color: 'red' }} />
                 </IconButton>
             </DialogTitle>
 
-            <DialogContent sx={{ px: 3, py: 3 }}>
+            <DialogContent
+                sx={{
+                    px: 3,
+                    py: 2.5,
+                    maxHeight: '75vh',
+                    overflowY: 'auto',
+                    mt: -2,
+                    '&::-webkit-scrollbar': { width: '6px' },
+                    '&::-webkit-scrollbar-track': { backgroundColor: '#e3f2fd' },
+                    '&::-webkit-scrollbar-thumb': { backgroundColor: '#0964a1a4', borderRadius: '4px' },
+                    '&::-webkit-scrollbar-thumb:hover': { backgroundColor: '#0071BC' },
+                    '& .MuiOutlinedInput-root': {
+                        borderRadius: 1.5,
+                        '&:hover fieldset': { borderColor: '#667eea' },
+                        '&.Mui-focused fieldset': { borderColor: '#667eea', borderWidth: 2 },
+                    },
+                    '& label.Mui-focused': { color: '#667eea' },
+                }}
+            >
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                     {/* ✅ Thông báo áp dụng cho tất cả tuần */}
-                    <Alert severity="info" sx={{ borderRadius: 2 }}>
+                    <Alert severity="info" sx={{ borderRadius: 2, mt: 2 }}>
                         <Typography variant="body2">
-                            ⏰ Mốc hoạt động này sẽ được áp dụng cho <strong>TẤT CẢ {totalWeeks} tuần</strong> trong năm
+                            Mốc hoạt động này sẽ được áp dụng cho <strong>TẤT CẢ {totalWeeks} tuần</strong> trong năm
                             học.
                         </Typography>
                         <Typography variant="body2" sx={{ mt: 1 }}>
@@ -314,9 +333,11 @@ function ScheduleDialog({ open, scheduleId, existingPeriods, totalWeeks, onClose
                         px: 3,
                         textTransform: 'none',
                         fontWeight: 600,
-                        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                        boxShadow: 2,
+                        background: 'linear-gradient(135deg, #0071bc 100%, #aee2ff 100%)',
                         '&:hover': {
-                            background: 'linear-gradient(135deg, #4d5bc9 0%, #5a3680 100%)',
+                            boxShadow: 3,
+                            background: 'linear-gradient(135deg, #1180caff 100%, #aee2ff 100%)',
                         },
                     }}
                 >

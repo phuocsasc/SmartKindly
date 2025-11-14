@@ -140,9 +140,10 @@ function ScheduleCopyDialog({ open, currentYearId, onClose, onSuccess }) {
         <Dialog open={open} onClose={handleClose} maxWidth="md" fullWidth>
             <DialogTitle
                 sx={{
-                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                    color: '#fff',
-                    py: 1.5,
+                    background: 'linear-gradient(135deg, #0071bc 0%, #aee2ff 100%)',
+                    color: 'white',
+                    py: 1,
+                    mb: 2,
                     position: 'relative',
                 }}
             >
@@ -173,7 +174,7 @@ function ScheduleCopyDialog({ open, currentYearId, onClose, onSuccess }) {
                         },
                     }}
                 >
-                    <CloseIcon />
+                    <CloseIcon sx={{ color: 'red' }} />
                 </IconButton>
             </DialogTitle>
 
@@ -186,8 +187,7 @@ function ScheduleCopyDialog({ open, currentYearId, onClose, onSuccess }) {
                             học đang hoạt động.
                         </Typography>
                         <Typography variant="body2" sx={{ mt: 1 }}>
-                            ⚠️ <strong>Lưu ý:</strong> Các mốc hoạt động hiện tại sẽ bị{' '}
-                            <strong>ghi đè hoàn toàn</strong>.
+                            <strong>Lưu ý:</strong> Các mốc hoạt động hiện tại sẽ bị <strong>ghi đè hoàn toàn</strong>.
                         </Typography>
                     </Alert>
 
@@ -308,9 +308,11 @@ function ScheduleCopyDialog({ open, currentYearId, onClose, onSuccess }) {
                         px: 3,
                         textTransform: 'none',
                         fontWeight: 600,
-                        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                        boxShadow: 2,
+                        background: 'linear-gradient(135deg, #0071bc 100%, #aee2ff 100%)',
                         '&:hover': {
-                            background: 'linear-gradient(135deg, #4d5bc9 0%, #5a3680 100%)',
+                            boxShadow: 3,
+                            background: 'linear-gradient(135deg, #1180caff 100%, #aee2ff 100%)',
                         },
                     }}
                 >

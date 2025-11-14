@@ -106,9 +106,10 @@ function WeeklyPlanDialog({ open, data, onClose, onSuccess }) {
         <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
             <DialogTitle
                 sx={{
-                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                    color: '#fff',
-                    py: 1.5,
+                    background: 'linear-gradient(135deg, #0071bc 0%, #aee2ff 100%)',
+                    color: 'white',
+                    py: 1,
+                    mb: 2,
                     position: 'relative',
                 }}
             >
@@ -139,35 +140,54 @@ function WeeklyPlanDialog({ open, data, onClose, onSuccess }) {
                         },
                     }}
                 >
-                    <CloseIcon />
+                    <CloseIcon sx={{ color: 'red' }} />
                 </IconButton>
             </DialogTitle>
 
-            <DialogContent sx={{ px: 3, py: 3 }}>
+            <DialogContent
+                sx={{
+                    px: 3,
+                    py: 2.5,
+                    maxHeight: '75vh',
+                    overflowY: 'auto',
+                    mt: -2,
+                    '&::-webkit-scrollbar': { width: '6px' },
+                    '&::-webkit-scrollbar-track': { backgroundColor: '#e3f2fd' },
+                    '&::-webkit-scrollbar-thumb': { backgroundColor: '#0964a1a4', borderRadius: '4px' },
+                    '&::-webkit-scrollbar-thumb:hover': { backgroundColor: '#0071BC' },
+                    '& .MuiOutlinedInput-root': {
+                        borderRadius: 1.5,
+                        '&:hover fieldset': { borderColor: '#667eea' },
+                        '&.Mui-focused fieldset': { borderColor: '#667eea', borderWidth: 2 },
+                    },
+                    '& label.Mui-focused': { color: '#667eea' },
+                }}
+            >
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
                     {/* Context Info */}
                     <Box
                         sx={{
                             p: 2,
+                            mt: 2,
                             bgcolor: '#e3f2fd',
                             borderRadius: 1.5,
                             border: '1px solid #90caf9',
                         }}
                     >
                         <Typography variant="subtitle2" color="primary" gutterBottom>
-                            <strong>📚 Lớp:</strong> {data.className}
-                        </Typography>
-
-                        <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                            <strong>📅 Tuần {data.weekNumber}:</strong> {data.dayName} ({data.date})
-                        </Typography>
-
-                        <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                            <strong>⏰ Mốc hoạt động:</strong> {data.startTime} - {data.endTime}
+                            <strong>📚 Tên Lớp:</strong> {data.className}
                         </Typography>
 
                         <Typography variant="body2" color="text.primary" sx={{ mt: 1, fontWeight: 500 }}>
-                            <strong>📌 Mô tả:</strong> {data.description}
+                            <strong>Tuần {data.weekNumber}:</strong> {data.dayName} ({data.date})
+                        </Typography>
+
+                        <Typography variant="body2" color="text.primary" sx={{ mt: 1, fontWeight: 500 }}>
+                            <strong>Mốc hoạt động:</strong> {data.startTime} - {data.endTime}
+                        </Typography>
+
+                        <Typography variant="body2" color="text.primary" sx={{ mt: 1, fontWeight: 500 }}>
+                            <strong>Mô tả:</strong> {data.description}
                         </Typography>
                     </Box>
 
@@ -194,11 +214,12 @@ function WeeklyPlanDialog({ open, data, onClose, onSuccess }) {
                             rows={12}
                             value={detailedContent}
                             onChange={(e) => setDetailedContent(e.target.value)}
+                            inputProps={{ spellCheck: false }} // ⬅️ Tắt gạch đỏ
                             placeholder={`Nhập nội dung kế hoạch giáo dục chi tiết cho mốc hoạt động này...\n\nVí dụ:\n- Mục tiêu: Giúp trẻ làm quen với các động tác cơ bản\n- Nội dung:\n  + Khởi động: Giơ cao tay, đưa ra phía trước (5 phút)\n  + Thực hành: Bắt chước động tác theo nhạc (10 phút)\n  + Kết thúc: Thả lỏng cơ thể (5 phút)\n- Đồ dùng: Nhạc, không gian thoáng\n- Lưu ý: Quan sát trẻ, điều chỉnh động tác phù hợp`}
                             sx={{
                                 '& .MuiOutlinedInput-root': {
                                     borderRadius: 1.5,
-                                    fontFamily: 'monospace',
+                                    // fontFamily: 'monospace',
                                 },
                             }}
                         />
@@ -237,9 +258,11 @@ function WeeklyPlanDialog({ open, data, onClose, onSuccess }) {
                         px: 3,
                         textTransform: 'none',
                         fontWeight: 600,
-                        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                        boxShadow: 2,
+                        background: 'linear-gradient(135deg, #0071bc 100%, #aee2ff 100%)',
                         '&:hover': {
-                            background: 'linear-gradient(135deg, #4d5bc9 0%, #5a3680 100%)',
+                            boxShadow: 3,
+                            background: 'linear-gradient(135deg, #1180caff 100%, #aee2ff 100%)',
                         },
                     }}
                 >

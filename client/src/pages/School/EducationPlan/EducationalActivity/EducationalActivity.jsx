@@ -394,7 +394,7 @@ function EducationalActivity() {
                                         textTransform: 'none',
                                         fontWeight: 600,
                                         borderRadius: 1.5,
-                                        px: 2,
+                                        py: 1,
                                         '&:hover': {
                                             borderColor: '#5a3680',
                                             bgcolor: 'rgba(118, 75, 162, 0.04)',

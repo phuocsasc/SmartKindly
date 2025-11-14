@@ -411,8 +411,16 @@ function WeeklyPlan() {
                             sx={{
                                 border: '1px solid #e0e0e0',
                                 borderRadius: 2,
-                                maxHeight: 700,
-                                overflow: 'auto',
+                                maxHeight: '75vh',
+                                overflowY: 'auto',
+                                overflowX: 'auto', // để bảng vẫn scroll ngang nếu bị tràn
+                                '&::-webkit-scrollbar': { width: '6px' },
+                                '&::-webkit-scrollbar-track': { backgroundColor: '#e3f2fd' },
+                                '&::-webkit-scrollbar-thumb': {
+                                    backgroundColor: '#0964a1a4',
+                                    borderRadius: '4px',
+                                },
+                                '&::-webkit-scrollbar-thumb:hover': { backgroundColor: '#0071BC' },
                             }}
                         >
                             <Table stickyHeader sx={{ minWidth: 1000 }}>

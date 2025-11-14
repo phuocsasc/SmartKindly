@@ -132,8 +132,9 @@ function EducationalActivityDialog({ open, data, onClose, onSuccess }) {
             <DialogTitle
                 sx={{
                     background: 'linear-gradient(135deg, #0071bc 0%, #aee2ff 100%)',
-                    color: '#fff',
-                    py: 1.5,
+                    color: 'white',
+                    py: 1,
+                    mb: 2,
                     position: 'relative',
                 }}
             >
@@ -149,16 +150,35 @@ function EducationalActivityDialog({ open, data, onClose, onSuccess }) {
                         color: '#fff',
                     }}
                 >
-                    <CloseIcon />
+                    <CloseIcon sx={{ color: 'red' }} />
                 </IconButton>
             </DialogTitle>
 
-            <DialogContent sx={{ py: 3 }}>
+            <DialogContent
+                sx={{
+                    px: 3,
+                    py: 2.5,
+                    maxHeight: '75vh',
+                    overflowY: 'auto',
+                    mt: -2,
+                    '&::-webkit-scrollbar': { width: '6px' },
+                    '&::-webkit-scrollbar-track': { backgroundColor: '#e3f2fd' },
+                    '&::-webkit-scrollbar-thumb': { backgroundColor: '#0964a1a4', borderRadius: '4px' },
+                    '&::-webkit-scrollbar-thumb:hover': { backgroundColor: '#0071BC' },
+                    '& .MuiOutlinedInput-root': {
+                        borderRadius: 1.5,
+                        '&:hover fieldset': { borderColor: '#667eea' },
+                        '&.Mui-focused fieldset': { borderColor: '#667eea', borderWidth: 2 },
+                    },
+                    '& label.Mui-focused': { color: '#667eea' },
+                }}
+            >
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                     {/* Context Info */}
                     <Box
                         sx={{
                             p: 2,
+                            mt: 2,
                             bgcolor: '#e3f2fd',
                             borderRadius: 1,
                             border: '1px solid #90caf9',
@@ -169,7 +189,7 @@ function EducationalActivityDialog({ open, data, onClose, onSuccess }) {
                         </Typography>
 
                         <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                            <strong>🎯 Lĩnh vực phát triển:</strong>
+                            <strong>Lĩnh vực phát triển:</strong>
                         </Typography>
                         <Typography variant="body2" color="text.primary" sx={{ pl: 2, fontWeight: 500 }}>
                             {data.mainFieldCode}. {contextInfo.mainFieldName}
@@ -178,7 +198,7 @@ function EducationalActivityDialog({ open, data, onClose, onSuccess }) {
                         {contextInfo.subFieldName && (
                             <>
                                 <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                                    <strong>📌 Lĩnh vực con:</strong>
+                                    <strong>Lĩnh vực con:</strong>
                                 </Typography>
                                 <Typography variant="body2" color="text.primary" sx={{ pl: 2, fontWeight: 500 }}>
                                     {data.subFieldCode} {contextInfo.subFieldName}
@@ -187,14 +207,14 @@ function EducationalActivityDialog({ open, data, onClose, onSuccess }) {
                         )}
 
                         <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                            <strong>✅ Kết quả mong đợi:</strong>
+                            <strong>Kết quả mong đợi:</strong>
                         </Typography>
                         <Typography variant="body2" color="text.primary" sx={{ pl: 2, fontWeight: 500 }}>
                             {data.expectedResultCode}. {contextInfo.expectedResultDescription}
                         </Typography>
 
                         <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                            <strong>🎯 Mục tiêu:</strong>
+                            <strong>Mục tiêu:</strong>
                         </Typography>
                         <Typography variant="body2" color="text.primary" sx={{ pl: 2, fontWeight: 500 }}>
                             {data.targetCode}. {contextInfo.targetContent}
@@ -253,9 +273,11 @@ function EducationalActivityDialog({ open, data, onClose, onSuccess }) {
                         px: 3,
                         textTransform: 'none',
                         fontWeight: 600,
-                        background: 'linear-gradient(135deg, #0071bc 0%, #aee2ff 100%)',
+                        boxShadow: 2,
+                        background: 'linear-gradient(135deg, #0071bc 100%, #aee2ff 100%)',
                         '&:hover': {
-                            background: 'linear-gradient(135deg, #005a94 0%, #8cd4f5 100%)',
+                            boxShadow: 3,
+                            background: 'linear-gradient(135deg, #1180caff 100%, #aee2ff 100%)',
                         },
                     }}
                 >

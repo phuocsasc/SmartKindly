@@ -226,7 +226,8 @@ function YearTargetDialog({ open, data, onClose, onSuccess }) {
                 sx={{
                     background: 'linear-gradient(135deg, #0071bc 0%, #aee2ff 100%)',
                     color: '#fff',
-                    py: 1.5,
+                    py: 1,
+                    mb: 2,
                     position: 'relative',
                 }}
             >
@@ -239,10 +240,13 @@ function YearTargetDialog({ open, data, onClose, onSuccess }) {
                         position: 'absolute',
                         right: 8,
                         top: 8,
-                        color: '#fff',
+                        color: 'white',
+                        '&:hover': {
+                            bgcolor: 'rgba(255, 255, 255, 0.1)',
+                        },
                     }}
                 >
-                    <CloseIcon />
+                    <CloseIcon sx={{ color: 'red' }} />
                 </IconButton>
             </DialogTitle>
 
@@ -262,7 +266,7 @@ function YearTargetDialog({ open, data, onClose, onSuccess }) {
                         </Typography>
 
                         <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                            <strong>🎯 Lĩnh vực phát triển:</strong>
+                            <strong>Lĩnh vực phát triển:</strong>
                         </Typography>
                         <Typography variant="body2" color="text.primary" sx={{ pl: 2, fontWeight: 500 }}>
                             {data.mainFieldCode}. {contextInfo.mainFieldName}
@@ -271,7 +275,7 @@ function YearTargetDialog({ open, data, onClose, onSuccess }) {
                         {contextInfo.subFieldName && (
                             <>
                                 <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                                    <strong>📌 Lĩnh vực con:</strong>
+                                    <strong>Lĩnh vực con:</strong>
                                 </Typography>
                                 <Typography variant="body2" color="text.primary" sx={{ pl: 2, fontWeight: 500 }}>
                                     {data.subFieldCode} {contextInfo.subFieldName}
@@ -280,7 +284,7 @@ function YearTargetDialog({ open, data, onClose, onSuccess }) {
                         )}
 
                         <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                            <strong>✅ Kết quả mong đợi:</strong>
+                            <strong>Kết quả mong đợi:</strong>
                         </Typography>
                         <Typography variant="body2" color="text.primary" sx={{ pl: 2, fontWeight: 500 }}>
                             {data.expectedResultCode}. {contextInfo.expectedResultDescription}

@@ -368,8 +368,196 @@ const updateDailyPlan = async (data, userId) => {
     }
 };
 
+/**
+ * ✅ Copy kế hoạch từ tuần hiện tại sang các tuần phía sau
+ */
+const copyWeekToFollowingWeeks = async (data, userId) => {
+    try {
+        console.log('📋 [WeeklyPlan copyWeekToFollowingWeeks] Starting with data:', data);
+        const { classId, weekNumber } = data;
+
+        const user = await UserModel.findById(userId).select('schoolId role _id');
+        if (!user || !user.schoolId) {
+            throw new ApiError(StatusCodes.FORBIDDEN, 'Bạn không thuộc trường học nào');
+        }
+
+        // ✅ Lấy năm học active
+        const activeYear = await AcademicYearModel.findOne({
+            schoolId: user.schoolId,
+            status: 'active',
+            _destroy: false,
+        });
+
+        if (!activeYear) {
+            throw new ApiError(StatusCodes.FORBIDDEN, 'Không có năm học đang hoạt động');
+        }
+
+        // ✅ Kiểm tra quyền truy cập lớp
+        const classData = await ClassModel.findOne({
+            _id: classId,
+            schoolId: user.schoolId,
+            academicYearId: activeYear._id,
+            _destroy: false,
+        });
+
+        if (!classData) {
+            throw new ApiError(StatusCodes.NOT_FOUND, 'Không tìm thấy lớp học');
+        }
+
+        const accessibleClassIds = await getAccessibleClasses(user, activeYear._id);
+        if (!accessibleClassIds.includes(classId)) {
+            throw new ApiError(StatusCodes.FORBIDDEN, 'Bạn không có quyền thao tác với lớp học này');
+        }
+
+        // ✅ Lấy thời khóa biểu của năm học
+        const schedule = await ScheduleModel.findOne({
+            schoolId: user.schoolId,
+            academicYearId: activeYear._id,
+            _destroy: false,
+        }).lean();
+
+        if (!schedule) {
+            throw new ApiError(StatusCodes.NOT_FOUND, 'Không tìm thấy thời khóa biểu');
+        }
+
+        const totalWeeks = schedule.weeks.length;
+
+        // ✅ Kiểm tra tuần hiện tại có hợp lệ không
+        if (weekNumber >= totalWeeks) {
+            throw new ApiError(StatusCodes.BAD_REQUEST, 'Đây là tuần cuối cùng, không thể copy sang các tuần sau');
+        }
+
+        // ✅ Lấy kế hoạch tuần nguồn (tuần hiện tại)
+        const sourceWeeklyPlan = await WeeklyPlanModel.findOne({
+            schoolId: user.schoolId,
+            academicYearId: activeYear._id,
+            classId,
+            weekNumber: parseInt(weekNumber),
+            _destroy: false,
+        }).lean();
+
+        if (!sourceWeeklyPlan) {
+            throw new ApiError(StatusCodes.NOT_FOUND, 'Không tìm thấy kế hoạch tuần nguồn');
+        }
+
+        // ✅ Kiểm tra xem tuần nguồn có dữ liệu không
+        const hasContent = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'].some((day) => {
+            const activities = sourceWeeklyPlan[day] || [];
+            return activities.some(
+                (activity) => activity.detailedContent && activity.detailedContent.trim().length > 0,
+            );
+        });
+
+        if (!hasContent) {
+            throw new ApiError(
+                StatusCodes.BAD_REQUEST,
+                'Tuần hiện tại chưa có nội dung kế hoạch nào để copy. Vui lòng thêm nội dung trước khi copy.',
+            );
+        }
+
+        // ✅ Lấy danh sách tuần cần copy (từ tuần sau đến tuần cuối)
+        const targetWeeks = schedule.weeks.filter((week) => week.weekNumber > weekNumber);
+
+        console.log(`📋 [WeeklyPlan copyWeekToFollowingWeeks] Will copy to ${targetWeeks.length} weeks`);
+
+        let copiedCount = 0;
+        let createdCount = 0;
+
+        // ✅ Copy sang từng tuần
+        for (const targetWeek of targetWeeks) {
+            // Kiểm tra xem tuần đích đã có weekly plan chưa
+            let targetWeeklyPlan = await WeeklyPlanModel.findOne({
+                schoolId: user.schoolId,
+                academicYearId: activeYear._id,
+                classId,
+                weekNumber: targetWeek.weekNumber,
+                _destroy: false,
+            });
+
+            // ✅ Copy dữ liệu từng ngày
+            const copiedData = {
+                monday: sourceWeeklyPlan.monday.map((activity) => ({
+                    activityPeriodId: activity.activityPeriodId,
+                    startTime: activity.startTime,
+                    endTime: activity.endTime,
+                    description: activity.description,
+                    detailedContent: activity.detailedContent || '',
+                })),
+                tuesday: sourceWeeklyPlan.tuesday.map((activity) => ({
+                    activityPeriodId: activity.activityPeriodId,
+                    startTime: activity.startTime,
+                    endTime: activity.endTime,
+                    description: activity.description,
+                    detailedContent: activity.detailedContent || '',
+                })),
+                wednesday: sourceWeeklyPlan.wednesday.map((activity) => ({
+                    activityPeriodId: activity.activityPeriodId,
+                    startTime: activity.startTime,
+                    endTime: activity.endTime,
+                    description: activity.description,
+                    detailedContent: activity.detailedContent || '',
+                })),
+                thursday: sourceWeeklyPlan.thursday.map((activity) => ({
+                    activityPeriodId: activity.activityPeriodId,
+                    startTime: activity.startTime,
+                    endTime: activity.endTime,
+                    description: activity.description,
+                    detailedContent: activity.detailedContent || '',
+                })),
+                friday: sourceWeeklyPlan.friday.map((activity) => ({
+                    activityPeriodId: activity.activityPeriodId,
+                    startTime: activity.startTime,
+                    endTime: activity.endTime,
+                    description: activity.description,
+                    detailedContent: activity.detailedContent || '',
+                })),
+                lastUpdatedBy: userId,
+            };
+
+            if (targetWeeklyPlan) {
+                // ✅ Update weekly plan hiện có
+                Object.assign(targetWeeklyPlan, copiedData);
+                await targetWeeklyPlan.save();
+                copiedCount++;
+            } else {
+                // ✅ Tạo mới weekly plan
+                const newPlan = new WeeklyPlanModel({
+                    schoolId: user.schoolId,
+                    academicYearId: activeYear._id,
+                    classId,
+                    scheduleId: schedule._id,
+                    weekNumber: targetWeek.weekNumber,
+                    weekStartDate: targetWeek.startDate,
+                    weekEndDate: targetWeek.endDate,
+                    ...copiedData,
+                    createdBy: userId,
+                });
+
+                await newPlan.save();
+                createdCount++;
+            }
+        }
+
+        console.log(
+            `✅ [WeeklyPlan copyWeekToFollowingWeeks] Copied successfully: ${copiedCount} updated, ${createdCount} created`,
+        );
+
+        return {
+            message: `Đã copy kế hoạch tuần ${weekNumber} sang ${targetWeeks.length} tuần tiếp theo (${copiedCount} tuần đã cập nhật, ${createdCount} tuần mới tạo)`,
+            copiedWeeks: targetWeeks.length,
+            updatedCount: copiedCount,
+            createdCount: createdCount,
+        };
+    } catch (error) {
+        console.error('❌ [WeeklyPlan copyWeekToFollowingWeeks] Error:', error);
+        if (error instanceof ApiError) throw error;
+        throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, 'Lỗi khi copy kế hoạch tuần: ' + error.message);
+    }
+};
+
 export const weeklyPlanServices = {
     getAccessibleClassListByYear,
     getWeeklyPlanByClassAndWeek,
     updateDailyPlan,
+    copyWeekToFollowingWeeks,
 };

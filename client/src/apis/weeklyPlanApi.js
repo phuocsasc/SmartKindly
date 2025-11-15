@@ -22,4 +22,9 @@ export const weeklyPlanApi = {
     updateDailyPlan: async (data) => {
         return await authorizedAxiosInstance.put(`${API_ROOT}/v1/weekly-plans/daily`, data);
     },
+
+    // ✅ Copy kế hoạch tuần hiện tại sang các tuần phía sau
+    copyToFollowingWeeks: async (data) => {
+        return await authorizedAxiosInstance.post(`${API_ROOT}/v1/weekly-plans/copy-to-following-weeks`, data);
+    },
 };

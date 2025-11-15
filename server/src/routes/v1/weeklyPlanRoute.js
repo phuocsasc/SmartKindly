@@ -29,4 +29,11 @@ Router.route('/daily').put(
     weeklyPlanController.updateDailyPlan,
 );
 
+// ✅ API mới: Copy kế hoạch tuần hiện tại sang các tuần phía sau
+Router.route('/copy-to-following-weeks').post(
+    authMiddleware.isAuthorized,
+    rbacMiddleware.isValidPermission([PERMISSIONS.UPDATE_MONTHLY_PLAN]),
+    weeklyPlanController.copyWeekToFollowingWeeks,
+);
+
 export const weeklyPlanRoute = Router;

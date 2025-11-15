@@ -25,9 +25,11 @@ import HistoryEduOutlinedIcon from '@mui/icons-material/HistoryEduOutlined';
 import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
 import DoneOutlinedIcon from '@mui/icons-material/DoneOutlined';
+import FileCopyOutlinedIcon from '@mui/icons-material/FileCopyOutlined';
 import MainLayout from '~/layouts/SchoolLayout';
 import PageContainer from '~/components/common/PageContainer';
 import PageBreadcrumb from '~/components/common/PageBreadcrumb';
+import WeeklyPlanCopyDialog from './WeeklyPlanCopyDialog';
 import { useUser } from '~/contexts/UserContext';
 import { usePermission } from '~/hooks/usePermission';
 import { weeklyPlanApi, academicYearApi, scheduleApi } from '~/apis';
@@ -41,6 +43,8 @@ const WEEKDAYS = ['Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6'];
 function WeeklyPlan() {
     const { user } = useUser();
     const { hasPermission } = usePermission(user?.role);
+    const [openCopyPopup, setOpenCopyPopup] = useState(false);
+    const [copyInfo, setCopyInfo] = useState(null);
 
     const [loading, setLoading] = useState(false);
     const [classes, setClasses] = useState([]);
@@ -222,6 +226,41 @@ function WeeklyPlan() {
         setOpenDialog(true);
     };
 
+    // ✅ Handler copy tuần với ConfirmDialog
+    const handleCopyWeek = async () => {
+        if (!selectedClass || !selectedWeek) {
+            toast.warning('Vui lòng chọn lớp học và tuần!');
+            return;
+        }
+
+        if (!isActiveYear) {
+            toast.warning('Chỉ có thể copy kế hoạch trong năm học đang hoạt động!');
+            return;
+        }
+
+        if (!canUpdate) {
+            toast.warning('Bạn không có quyền copy kế hoạch!');
+            return;
+        }
+
+        const classData = classes.find((c) => c._id === selectedClass);
+        const totalWeeks = weeks.length;
+        const remainingWeeks = totalWeeks - parseInt(selectedWeek);
+
+        if (remainingWeeks <= 0) {
+            toast.warning('Đây là tuần cuối cùng, không thể copy sang các tuần sau!');
+            return;
+        }
+        // 👉 Mở popup mới
+        setCopyInfo({
+            className: classData?.name,
+            selectedWeek,
+            remainingWeeks,
+            totalWeeks,
+        });
+        setOpenCopyPopup(true);
+    };
+
     const formatWeekDisplay = (week) => {
         if (!week.startDate || !week.endDate) {
             return `Tuần ${week.weekNumber}`;
@@ -333,6 +372,28 @@ function WeeklyPlan() {
                                     </Select>
                                 </FormControl>
                             )}
+
+                            {/* ✅ Nút Copy tuần */}
+                            {canUpdate &&
+                                isActiveYear &&
+                                selectedWeek &&
+                                weeklyPlan &&
+                                weeklyPlan.monday.length > 0 && (
+                                    <Tooltip title={`Copy tuần ${selectedWeek} sang các tuần sau`}>
+                                        <IconButton
+                                            onClick={handleCopyWeek}
+                                            sx={{
+                                                color: '#667eea',
+                                                bgcolor: 'rgba(102, 126, 234, 0.08)',
+                                                '&:hover': {
+                                                    bgcolor: 'rgba(102, 126, 234, 0.15)',
+                                                },
+                                            }}
+                                        >
+                                            <FileCopyOutlinedIcon />
+                                        </IconButton>
+                                    </Tooltip>
+                                )}
                         </Box>
                     </Box>
 
@@ -643,6 +704,16 @@ function WeeklyPlan() {
                                 color="primary"
                                 variant="outlined"
                             />
+                            <Chip
+                                icon={<FileCopyOutlinedIcon fontSize="small" sx={{ color: '#667eea' }} />}
+                                label="Copy tuần này sang các tuần sau"
+                                size="small"
+                                sx={{
+                                    borderColor: '#667eea',
+                                    color: '#667eea',
+                                }}
+                                variant="outlined"
+                            />
                         </Box>
                     )}
                 </Paper>
@@ -656,6 +727,27 @@ function WeeklyPlan() {
                 onSuccess={() => {
                     setOpenDialog(false);
                     fetchWeeklyPlan();
+                }}
+            />
+
+            {/* Dialog */}
+            <WeeklyPlanCopyDialog
+                open={openCopyPopup}
+                onClose={() => setOpenCopyPopup(false)}
+                copyInfo={copyInfo}
+                onConfirm={async () => {
+                    try {
+                        const res = await weeklyPlanApi.copyToFollowingWeeks({
+                            classId: selectedClass,
+                            weekNumber: parseInt(selectedWeek),
+                        });
+
+                        toast.success(res.data.data.message || 'Copy kế hoạch thành công!');
+                        fetchWeeklyPlan();
+                        setOpenCopyPopup(false);
+                    } catch (error) {
+                        toast.error('Lỗi khi copy kế hoạch!');
+                    }
                 }}
             />
         </MainLayout>

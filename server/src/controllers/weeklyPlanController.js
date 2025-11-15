@@ -59,8 +59,22 @@ const updateDailyPlan = async (req, res, next) => {
     }
 };
 
+const copyWeekToFollowingWeeks = async (req, res, next) => {
+    try {
+        const userId = req.jwtDecoded.id;
+        const result = await weeklyPlanServices.copyWeekToFollowingWeeks(req.body, userId);
+        res.status(StatusCodes.OK).json({
+            message: result.message,
+            data: result,
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
 export const weeklyPlanController = {
     getAccessibleClassListByYear,
     getWeeklyPlanByClassAndWeek,
     updateDailyPlan,
+    copyWeekToFollowingWeeks,
 };

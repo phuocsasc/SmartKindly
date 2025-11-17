@@ -27,4 +27,14 @@ export const weeklyPlanApi = {
     copyToFollowingWeeks: async (data) => {
         return await authorizedAxiosInstance.post(`${API_ROOT}/v1/weekly-plans/copy-to-following-weeks`, data);
     },
+
+    // ✅ Xóa kế hoạch chi tiết của 1 tuần
+    deleteWeek: async (data) => {
+        return await authorizedAxiosInstance.delete(`${API_ROOT}/v1/weekly-plans/delete-week`, { data });
+    },
+
+    // ✅ Xóa kế hoạch chi tiết của TẤT CẢ các tuần
+    deleteAllWeeks: async (data) => {
+        return await authorizedAxiosInstance.delete(`${API_ROOT}/v1/weekly-plans/delete-all-weeks`, { data });
+    },
 };

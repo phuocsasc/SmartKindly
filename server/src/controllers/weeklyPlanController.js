@@ -72,9 +72,37 @@ const copyWeekToFollowingWeeks = async (req, res, next) => {
     }
 };
 
+const deleteWeekPlan = async (req, res, next) => {
+    try {
+        const userId = req.jwtDecoded.id;
+        const result = await weeklyPlanServices.deleteWeekPlan(req.body, userId);
+        res.status(StatusCodes.OK).json({
+            message: result.message,
+            data: result,
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+const deleteAllWeekPlans = async (req, res, next) => {
+    try {
+        const userId = req.jwtDecoded.id;
+        const result = await weeklyPlanServices.deleteAllWeekPlans(req.body, userId);
+        res.status(StatusCodes.OK).json({
+            message: result.message,
+            data: result,
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
 export const weeklyPlanController = {
     getAccessibleClassListByYear,
     getWeeklyPlanByClassAndWeek,
     updateDailyPlan,
     copyWeekToFollowingWeeks,
+    deleteWeekPlan, // ✅ Export controller mới
+    deleteAllWeekPlans, // ✅ Export controller mới
 };

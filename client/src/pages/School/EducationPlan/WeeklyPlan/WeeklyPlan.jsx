@@ -38,6 +38,11 @@ import { toast } from 'react-toastify';
 import WeeklyPlanDialog from './WeeklyPlanDialog';
 import dayjs from '~/config/dayjsConfig';
 
+import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
+import DeleteSweepIcon from '@mui/icons-material/DeleteSweep';
+import { useConfirmDialog } from '~/hooks/useConfirmDialog';
+import ConfirmDialog from '~/components/common/ConfirmDialog';
+
 const WEEKDAYS = ['Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6'];
 
 function WeeklyPlan() {
@@ -45,6 +50,7 @@ function WeeklyPlan() {
     const { hasPermission } = usePermission(user?.role);
     const [openCopyPopup, setOpenCopyPopup] = useState(false);
     const [copyInfo, setCopyInfo] = useState(null);
+    const { dialogState, showConfirm, handleCancel } = useConfirmDialog();
 
     const [loading, setLoading] = useState(false);
     const [classes, setClasses] = useState([]);
@@ -60,6 +66,7 @@ function WeeklyPlan() {
 
     const isActiveYear = selectedYear === activeYearId;
     const canUpdate = hasPermission(PERMISSIONS.UPDATE_MONTHLY_PLAN) && isActiveYear;
+    const canDelete = hasPermission(PERMISSIONS.DELETE_MONTHLY_PLAN) && isActiveYear;
 
     useEffect(() => {
         fetchAcademicYears();
@@ -261,6 +268,208 @@ function WeeklyPlan() {
         setOpenCopyPopup(true);
     };
 
+    // ✅ Handler xóa kế hoạch 1 tuần
+    const handleDeleteWeek = async () => {
+        if (!selectedClass || !selectedWeek) {
+            toast.warning('Vui lòng chọn lớp học và tuần!');
+            return;
+        }
+
+        if (!isActiveYear) {
+            toast.warning('Chỉ có thể xóa kế hoạch trong năm học đang hoạt động!');
+            return;
+        }
+
+        if (!canDelete) {
+            toast.warning('Bạn không có quyền xóa kế hoạch!');
+            return;
+        }
+
+        const classData = classes.find((c) => c._id === selectedClass);
+
+        const confirmed = await showConfirm({
+            title: 'Xác nhận xóa kế hoạch tuần',
+            message: (
+                <Box>
+                    <Typography variant="body2" sx={{ mb: 1 }}>
+                        <strong>Bạn có chắc chắn muốn xóa Nội dung Kế Hoạch?</strong>
+                    </Typography>
+                    <Box
+                        sx={{
+                            minWidth: 386,
+                            mt: 4,
+                            ml: -7,
+                            p: 1.5,
+                            bgcolor: '#fff3e0',
+                            borderRadius: 1,
+                            border: '1px solid #ff9800',
+                            mb: 1,
+                        }}
+                    >
+                        <Box sx={{ display: 'flex', mb: 0.5 }}>
+                            <Typography variant="body2" sx={{ fontWeight: 600, minWidth: 50 }}>
+                                Lớp:
+                            </Typography>
+                            <Typography variant="body2">{classData?.name}</Typography>
+                        </Box>
+                        {/* <Typography variant="body2">
+                            <strong>Lớp: </strong> {classData?.name}
+                        </Typography> */}
+                        {/* <Typography variant="body2">
+                            <strong>Tuần: </strong> {selectedWeek}
+                        </Typography> */}
+
+                        <Box sx={{ display: 'flex', mb: 0.5 }}>
+                            <Typography variant="body2" sx={{ fontWeight: 600, minWidth: 50 }}>
+                                Tuần:
+                            </Typography>
+                            <Typography variant="body2">{selectedWeek}</Typography>
+                        </Box>
+                    </Box>
+                    {/* <Alert severity="error" sx={{ mt: 1, borderRadius: 1 }}>
+                        <Typography variant="caption">
+                            ⚠️ <strong>Cảnh báo:</strong> Hành động này sẽ xóa toàn bộ nội dung kế hoạch của tuần này
+                            (Thứ 2 - Thứ 6) và <strong>không thể hoàn tác</strong>!
+                        </Typography>
+                    </Alert> */}
+                </Box>
+            ),
+            severity: 'error',
+            confirmText: 'Xác nhận xóa',
+            cancelText: 'Hủy',
+            onConfirm: async () => {
+                try {
+                    const res = await weeklyPlanApi.deleteWeek({
+                        classId: selectedClass,
+                        weekNumber: parseInt(selectedWeek),
+                    });
+
+                    toast.success(res.data.message || 'Xóa kế hoạch tuần thành công!');
+                    fetchWeeklyPlan();
+                } catch (error) {
+                    console.error('Error deleting week plan:', error);
+                    toast.error(error.response?.data?.message || 'Lỗi khi xóa kế hoạch tuần!');
+                    throw error;
+                }
+            },
+        });
+
+        if (!confirmed) {
+            console.log('User cancelled delete');
+        }
+    };
+
+    // ✅ Handler xóa kế hoạch tất cả các tuần
+    const handleDeleteAllWeeks = async () => {
+        if (!selectedClass) {
+            toast.warning('Vui lòng chọn lớp học!');
+            return;
+        }
+
+        if (!isActiveYear) {
+            toast.warning('Chỉ có thể xóa kế hoạch trong năm học đang hoạt động!');
+            return;
+        }
+
+        if (!canDelete) {
+            toast.warning('Bạn không có quyền xóa kế hoạch!');
+            return;
+        }
+
+        const classData = classes.find((c) => c._id === selectedClass);
+        const totalWeeks = weeks.length;
+
+        const confirmed = await showConfirm({
+            title: 'Xác nhận xóa tất cả kế hoạch',
+            message: (
+                <Box>
+                    <Typography variant="body2" sx={{ mb: 1 }}>
+                        <strong>Bạn có chắc chắn muốn xóa TẤT CẢ nội dung kế hoạch?</strong>
+                    </Typography>
+                    <Box
+                        sx={{
+                            minWidth: 386,
+                            mt: 4,
+                            ml: -7,
+                            p: 1.5,
+                            bgcolor: '#ffebee',
+                            borderRadius: 1,
+                            border: '1px solid #f44336',
+                            mb: 1,
+                        }}
+                    >
+                        <Box sx={{ display: 'flex', mb: 0.5 }}>
+                            <Typography variant="body2" sx={{ fontWeight: 600, minWidth: 70 }}>
+                                Lớp:
+                            </Typography>
+                            <Typography variant="body2">{classData?.name}</Typography>
+                        </Box>
+                        <Box sx={{ display: 'flex', mb: 0.5 }}>
+                            <Typography variant="body2" sx={{ fontWeight: 600, minWidth: 70 }}>
+                                Số Tuần:
+                            </Typography>
+                            <Typography variant="body2">{totalWeeks}</Typography>
+                        </Box>
+                        <Box sx={{ display: 'flex', mb: 0.5 }}>
+                            <Typography variant="body2" sx={{ fontWeight: 600, minWidth: 70 }}>
+                                Năm học:
+                            </Typography>
+                            <Typography variant="body2">
+                                {academicYears.find((y) => y._id === selectedYear)?.fromYear}-
+                                {academicYears.find((y) => y._id === selectedYear)?.toYear}
+                            </Typography>
+                        </Box>
+                        {/* <Typography variant="body2">
+                            <strong>Lớp: </strong> {classData?.name}
+                        </Typography>
+                        <Typography variant="body2">
+                            <strong>Năm học: </strong> {academicYears.find((y) => y._id === selectedYear)?.fromYear}-
+                            {academicYears.find((y) => y._id === selectedYear)?.toYear}
+                        </Typography> */}
+                        {/* <Typography variant="body2">
+                            <strong>Số tuần: </strong> {totalWeeks} tuần
+                        </Typography> */}
+                    </Box>
+                    {/* <Alert severity="error" sx={{ mt: 1, borderRadius: 1 }}>
+                        <Typography variant="caption" sx={{ display: 'block', mb: 0.5 }}>
+                            ⚠️ <strong>CẢNH BÁO NGHIÊM TRỌNG:</strong>
+                        </Typography>
+                        <Typography variant="caption" sx={{ display: 'block' }}>
+                            • Hành động này sẽ xóa toàn bộ nội dung kế hoạch của <strong>{totalWeeks} tuần</strong>
+                        </Typography>
+                        <Typography variant="caption" sx={{ display: 'block' }}>
+                            • Tất cả dữ liệu đã nhập sẽ bị <strong>mất vĩnh viễn</strong>
+                        </Typography>
+                        <Typography variant="caption" sx={{ display: 'block' }}>
+                            • Hành động này <strong>KHÔNG THỂ HOÀN TÁC</strong>
+                        </Typography>
+                    </Alert> */}
+                </Box>
+            ),
+            severity: 'error',
+            confirmText: 'Xác nhận xóa',
+            cancelText: 'Hủy',
+            onConfirm: async () => {
+                try {
+                    const res = await weeklyPlanApi.deleteAllWeeks({
+                        classId: selectedClass,
+                    });
+
+                    toast.success(res.data.message || 'Xóa toàn bộ kế hoạch thành công!');
+                    fetchWeeklyPlan();
+                } catch (error) {
+                    console.error('Error deleting all week plans:', error);
+                    toast.error(error.response?.data?.message || 'Lỗi khi xóa toàn bộ kế hoạch!');
+                    throw error;
+                }
+            },
+        });
+
+        if (!confirmed) {
+            console.log('User cancelled delete all');
+        }
+    };
+
     const formatWeekDisplay = (week) => {
         if (!week.startDate || !week.endDate) {
             return `Tuần ${week.weekNumber}`;
@@ -308,7 +517,7 @@ function WeeklyPlan() {
 
                         <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
                             {/* ✅ Select năm học - ĐẶT TRƯỚC */}
-                            <FormControl size="small" sx={{ minWidth: 200 }}>
+                            <FormControl size="small" sx={{ minWidth: 120 }}>
                                 <InputLabel>Năm học</InputLabel>
                                 <Select
                                     value={selectedYear}
@@ -357,7 +566,7 @@ function WeeklyPlan() {
 
                             {/* Select tuần */}
                             {weeks.length > 0 && (
-                                <FormControl size="small" sx={{ minWidth: 250 }}>
+                                <FormControl size="small" sx={{ minWidth: 210 }}>
                                     <InputLabel>Tuần</InputLabel>
                                     <Select
                                         value={selectedWeek}
@@ -391,6 +600,50 @@ function WeeklyPlan() {
                                             }}
                                         >
                                             <FileCopyOutlinedIcon />
+                                        </IconButton>
+                                    </Tooltip>
+                                )}
+
+                            {/* ✅ Nút Xóa kế hoạch tuần hiện tại */}
+                            {canDelete &&
+                                isActiveYear &&
+                                selectedWeek &&
+                                weeklyPlan &&
+                                weeklyPlan.monday.length > 0 && (
+                                    <Tooltip title={`Xóa kế hoạch tuần ${selectedWeek}`}>
+                                        <IconButton
+                                            onClick={handleDeleteWeek}
+                                            sx={{
+                                                color: '#f44336',
+                                                bgcolor: 'rgba(244, 67, 54, 0.08)',
+                                                '&:hover': {
+                                                    bgcolor: 'rgba(244, 67, 54, 0.15)',
+                                                },
+                                            }}
+                                        >
+                                            <DeleteOutlineIcon />
+                                        </IconButton>
+                                    </Tooltip>
+                                )}
+
+                            {/* ✅ Nút Xóa kế hoạch tất cả các tuần */}
+                            {canDelete &&
+                                isActiveYear &&
+                                selectedClass &&
+                                weeklyPlan &&
+                                weeklyPlan.monday.length > 0 && (
+                                    <Tooltip title="Xóa kế hoạch tất cả các tuần">
+                                        <IconButton
+                                            onClick={handleDeleteAllWeeks}
+                                            sx={{
+                                                color: '#d32f2f',
+                                                bgcolor: 'rgba(211, 47, 47, 0.08)',
+                                                '&:hover': {
+                                                    bgcolor: 'rgba(211, 47, 47, 0.15)',
+                                                },
+                                            }}
+                                        >
+                                            <DeleteSweepIcon />
                                         </IconButton>
                                     </Tooltip>
                                 )}
@@ -714,6 +967,26 @@ function WeeklyPlan() {
                                 }}
                                 variant="outlined"
                             />
+                            <Chip
+                                icon={<DeleteOutlineIcon fontSize="small" sx={{ color: '#f44336' }} />}
+                                label="Xóa kế hoạch tuần hiện tại"
+                                size="small"
+                                sx={{
+                                    borderColor: '#f44336',
+                                    color: '#f44336',
+                                }}
+                                variant="outlined"
+                            />
+                            <Chip
+                                icon={<DeleteSweepIcon fontSize="small" sx={{ color: '#d32f2f' }} />}
+                                label="Xóa kế hoạch tất cả các tuần"
+                                size="small"
+                                sx={{
+                                    borderColor: '#d32f2f',
+                                    color: '#d32f2f',
+                                }}
+                                variant="outlined"
+                            />
                         </Box>
                     )}
                 </Paper>
@@ -750,6 +1023,8 @@ function WeeklyPlan() {
                     }
                 }}
             />
+            {/* ✅ Confirm Dialog */}
+            <ConfirmDialog {...dialogState} onCancel={handleCancel} />
         </MainLayout>
     );
 }

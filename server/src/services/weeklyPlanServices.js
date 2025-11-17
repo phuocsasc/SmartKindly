@@ -555,9 +555,188 @@ const copyWeekToFollowingWeeks = async (data, userId) => {
     }
 };
 
+/**
+ * ✅ Xóa kế hoạch chi tiết của 1 tuần cụ thể
+ */
+const deleteWeekPlan = async (data, userId) => {
+    try {
+        console.log('📋 [WeeklyPlan deleteWeekPlan] Starting with data:', data);
+        const { classId, weekNumber } = data;
+
+        const user = await UserModel.findById(userId).select('schoolId role _id');
+        if (!user || !user.schoolId) {
+            throw new ApiError(StatusCodes.FORBIDDEN, 'Bạn không thuộc trường học nào');
+        }
+
+        // ✅ Lấy năm học active
+        const activeYear = await AcademicYearModel.findOne({
+            schoolId: user.schoolId,
+            status: 'active',
+            _destroy: false,
+        });
+
+        if (!activeYear) {
+            throw new ApiError(StatusCodes.FORBIDDEN, 'Không có năm học đang hoạt động');
+        }
+
+        // ✅ Kiểm tra quyền truy cập lớp
+        const classData = await ClassModel.findOne({
+            _id: classId,
+            schoolId: user.schoolId,
+            academicYearId: activeYear._id,
+            _destroy: false,
+        });
+
+        if (!classData) {
+            throw new ApiError(StatusCodes.NOT_FOUND, 'Không tìm thấy lớp học');
+        }
+
+        const accessibleClassIds = await getAccessibleClasses(user, activeYear._id);
+        if (!accessibleClassIds.includes(classId)) {
+            throw new ApiError(StatusCodes.FORBIDDEN, 'Bạn không có quyền thao tác với lớp học này');
+        }
+
+        // ✅ Tìm weekly plan
+        const weeklyPlan = await WeeklyPlanModel.findOne({
+            schoolId: user.schoolId,
+            academicYearId: activeYear._id,
+            classId,
+            weekNumber: parseInt(weekNumber),
+            _destroy: false,
+        });
+
+        if (!weeklyPlan) {
+            throw new ApiError(StatusCodes.NOT_FOUND, 'Không tìm thấy kế hoạch tuần để xóa');
+        }
+
+        // ✅ Xóa nội dung của tất cả các ngày trong tuần
+        const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'];
+        days.forEach((day) => {
+            weeklyPlan[day].forEach((activity) => {
+                activity.detailedContent = '';
+            });
+        });
+
+        weeklyPlan.lastUpdatedBy = userId;
+        await weeklyPlan.save();
+
+        console.log('✅ [WeeklyPlan deleteWeekPlan] Deleted successfully');
+        return {
+            message: `Đã xóa kế hoạch chi tiết của tuần ${weekNumber}`,
+        };
+    } catch (error) {
+        console.error('❌ [WeeklyPlan deleteWeekPlan] Error:', error);
+        if (error instanceof ApiError) throw error;
+        throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, 'Lỗi khi xóa kế hoạch tuần: ' + error.message);
+    }
+};
+
+/**
+ * ✅ Xóa kế hoạch chi tiết của TẤT CẢ các tuần trong năm học
+ */
+const deleteAllWeekPlans = async (data, userId) => {
+    try {
+        console.log('📋 [WeeklyPlan deleteAllWeekPlans] Starting with data:', data);
+        const { classId } = data;
+
+        const user = await UserModel.findById(userId).select('schoolId role _id');
+        if (!user || !user.schoolId) {
+            throw new ApiError(StatusCodes.FORBIDDEN, 'Bạn không thuộc trường học nào');
+        }
+
+        // ✅ Lấy năm học active
+        const activeYear = await AcademicYearModel.findOne({
+            schoolId: user.schoolId,
+            status: 'active',
+            _destroy: false,
+        });
+
+        if (!activeYear) {
+            throw new ApiError(StatusCodes.FORBIDDEN, 'Không có năm học đang hoạt động');
+        }
+
+        // ✅ Kiểm tra quyền truy cập lớp
+        const classData = await ClassModel.findOne({
+            _id: classId,
+            schoolId: user.schoolId,
+            academicYearId: activeYear._id,
+            _destroy: false,
+        });
+
+        if (!classData) {
+            throw new ApiError(StatusCodes.NOT_FOUND, 'Không tìm thấy lớp học');
+        }
+
+        const accessibleClassIds = await getAccessibleClasses(user, activeYear._id);
+        if (!accessibleClassIds.includes(classId)) {
+            throw new ApiError(StatusCodes.FORBIDDEN, 'Bạn không có quyền thao tác với lớp học này');
+        }
+
+        // ✅ Tìm tất cả weekly plans của lớp trong năm học active
+        const weeklyPlans = await WeeklyPlanModel.find({
+            schoolId: user.schoolId,
+            academicYearId: activeYear._id,
+            classId,
+            _destroy: false,
+        });
+
+        if (weeklyPlans.length === 0) {
+            throw new ApiError(StatusCodes.NOT_FOUND, 'Không tìm thấy kế hoạch tuần nào để xóa');
+        }
+
+        console.log(`📋 [WeeklyPlan deleteAllWeekPlans] Found ${weeklyPlans.length} weekly plans`);
+
+        // ✅ Xóa nội dung của tất cả các ngày trong từng tuần
+        const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'];
+        let deletedCount = 0;
+
+        for (const plan of weeklyPlans) {
+            let hasContent = false;
+
+            // Kiểm tra xem plan này có nội dung không
+            for (const day of days) {
+                const activities = plan[day] || [];
+                if (
+                    activities.some(
+                        (activity) => activity.detailedContent && activity.detailedContent.trim().length > 0,
+                    )
+                ) {
+                    hasContent = true;
+                    break;
+                }
+            }
+
+            // Nếu có nội dung thì xóa
+            if (hasContent) {
+                days.forEach((day) => {
+                    plan[day].forEach((activity) => {
+                        activity.detailedContent = '';
+                    });
+                });
+
+                plan.lastUpdatedBy = userId;
+                await plan.save();
+                deletedCount++;
+            }
+        }
+
+        console.log(`✅ [WeeklyPlan deleteAllWeekPlans] Deleted ${deletedCount} weeks`);
+        return {
+            message: `Đã xóa kế hoạch chi tiết của ${deletedCount} tuần trong năm học`,
+            deletedCount,
+        };
+    } catch (error) {
+        console.error('❌ [WeeklyPlan deleteAllWeekPlans] Error:', error);
+        if (error instanceof ApiError) throw error;
+        throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, 'Lỗi khi xóa kế hoạch tất cả các tuần: ' + error.message);
+    }
+};
+
 export const weeklyPlanServices = {
     getAccessibleClassListByYear,
     getWeeklyPlanByClassAndWeek,
     updateDailyPlan,
     copyWeekToFollowingWeeks,
+    deleteWeekPlan, // ✅ Export hàm mới
+    deleteAllWeekPlans, // ✅ Export hàm mới
 };

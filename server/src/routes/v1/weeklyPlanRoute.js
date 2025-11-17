@@ -36,4 +36,18 @@ Router.route('/copy-to-following-weeks').post(
     weeklyPlanController.copyWeekToFollowingWeeks,
 );
 
+// ✅ API mới: Xóa kế hoạch chi tiết của 1 tuần
+Router.route('/delete-week').delete(
+    authMiddleware.isAuthorized,
+    rbacMiddleware.isValidPermission([PERMISSIONS.DELETE_MONTHLY_PLAN]),
+    weeklyPlanController.deleteWeekPlan,
+);
+
+// ✅ API mới: Xóa kế hoạch chi tiết của TẤT CẢ các tuần
+Router.route('/delete-all-weeks').delete(
+    authMiddleware.isAuthorized,
+    rbacMiddleware.isValidPermission([PERMISSIONS.DELETE_MONTHLY_PLAN]),
+    weeklyPlanController.deleteAllWeekPlans,
+);
+
 export const weeklyPlanRoute = Router;

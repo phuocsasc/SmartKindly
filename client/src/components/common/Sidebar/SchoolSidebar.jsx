@@ -72,14 +72,14 @@ const menuItems = [
         ],
     },
     {
-        text: 'Quản lý trẻ',
+        text: 'Quản lý trẻ em',
         icon: <ChildCareOutlinedIcon />,
         children: [
-            { text: 'Hồ sơ trẻ', path: '/children/profile' },
-            { text: 'Điểm danh', path: '/children/attendance' },
-            { text: 'Đánh giá trẻ', path: '/children/assessment' },
-            { text: 'Phiếu bé ngoan', path: '/children/good-kid' },
-            { text: 'Đánh giá hoàn thành chương trình', path: '/children/program-complete' },
+            { text: 'Hồ sơ trẻ em', path: '/children/profile' },
+            { text: 'Điểm danh trẻ em', path: '/children/attendance' },
+            { text: 'Đánh giá trẻ em', path: '/children/assessment' },
+            { text: 'Phiếu bé ngoan', path: '/children/certificate' },
+            // { text: 'Đánh giá hoàn thành chương trình', path: '/children/program-complete' },
         ],
     },
 

@@ -37,10 +37,10 @@ import Schedule from '~/pages/School/EducationPlan/Schedule/Schedule';
 import WeeklyPlan from './pages/School/EducationPlan/WeeklyPlan/WeeklyPlan';
 
 // Quản lý trẻ em
-import ProfileChildren from '~/pages/School/Children/ProfileChildren/ProfileChildren';
+import ChildrenProfile from '~/pages/School/Children/ChildrenProfile/ChildrenProfile';
 import AttendanceChildren from '~/pages/School/Children/AttendanceChildren/AttendanceChildren';
 import AssessmentChildren from '~/pages/School/Children/AssessmentChildren/AssessmentChildren';
-import CertificateChildren from './pages/School/Children/CertificateChildren/CertificateChildren';
+import CertificateChildren from '~/pages/School/Children/CertificateChildren/CertificateChildren';
 
 /**
  * Protected Routes với UserContext
@@ -138,7 +138,7 @@ function AppContent() {
 
                 {/* Quản lý trẻ em */}
                 <Route element={<RbacRoute requiredPermission={PERMISSIONS.VIEW_CHILDREN_PROFILE} />}>
-                    <Route path="/children/profile" element={<ProfileChildren />} />
+                    <Route path="/children/profile" element={<ChildrenProfile />} />
                 </Route>
                 <Route element={<RbacRoute requiredPermission={PERMISSIONS.VIEW_CHILDREN_ATTENDANCE} />}>
                     <Route path="/children/attendance" element={<AttendanceChildren />} />

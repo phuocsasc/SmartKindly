@@ -4,7 +4,7 @@ import MainLayout from '~/layouts/SchoolLayout';
 import PageContainer from '~/components/common/PageContainer';
 import PageBreadcrumb from '~/components/common/PageBreadcrumb';
 import { useUser } from '~/contexts/UserContext';
-function ProfileChildren() {
+function ChildrenProfile() {
     const { user } = useUser();
     return (
         <MainLayout user={user}>
@@ -23,4 +23,4 @@ function ProfileChildren() {
         </MainLayout>
     );
 }
-export default ProfileChildren;
+export default ChildrenProfile;

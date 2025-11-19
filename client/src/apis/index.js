@@ -31,6 +31,8 @@ export * from './adminUserApi';
 // Export classApi
 export * from './classApi';
 
+export * from './departmentApi';
+
 // Export personnelRecordApi
 export * from './personnelRecordApi';
 

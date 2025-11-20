@@ -159,28 +159,41 @@ const getClassesByAgeGroup = async (academicYearId, ageGroup, userId) => {
 const generateStudentCode = async (schoolId) => {
     const prefix = `${schoolId}-HS`;
 
-    // Tìm hồ sơ có studentCode lớn nhất của trường này
-    const lastProfile = await ChildrenProfileModel.findOne({
-        schoolId,
-        studentCode: { $regex: `^${prefix}\\d{6}$` },
-        _destroy: false,
-    })
-        .sort({ studentCode: -1 }) // sort giảm dần theo studentCode
-        .select('studentCode')
-        .lean();
+    try {
+        // ✅ Tìm tất cả studentCode có format đúng (kể cả đã xóa)
+        // Sử dụng regex để match: schoolId-HS + 6 chữ số
+        const lastProfile = await ChildrenProfileModel.findOne({
+            schoolId,
+            studentCode: { $regex: `^${prefix}\\d{6}$` },
+        })
+            .sort({ studentCode: -1 }) // Sort DESC để lấy mã lớn nhất
+            .select('studentCode')
+            .lean();
 
-    let nextNumber = 1;
+        let nextNumber = 1;
 
-    if (lastProfile?.studentCode) {
-        const numericPart = lastProfile.studentCode.slice(-6); // lấy 6 số cuối
-        const parsed = parseInt(numericPart, 10);
-        if (!Number.isNaN(parsed)) {
-            nextNumber = parsed + 1;
+        if (lastProfile) {
+            // Extract số từ studentCode (VD: "79242894-HS000005" → 5)
+            const currentNumber = parseInt(lastProfile.studentCode.slice(-6), 10);
+            if (!isNaN(currentNumber)) {
+                nextNumber = currentNumber + 1;
+            }
         }
-    }
 
-    const padded = String(nextNumber).padStart(6, '0'); // luôn đủ 6 số
-    return `${prefix}${padded}`; // VD: 51060334-HS000001
+        const paddedNumber = String(nextNumber).padStart(6, '0');
+        const newCode = `${prefix}${paddedNumber}`;
+
+        console.log('🔢 [generateStudentCode] Generated:', {
+            lastCode: lastProfile?.studentCode || 'none',
+            newCode,
+            nextNumber,
+        });
+
+        return newCode;
+    } catch (error) {
+        console.error('❌ [generateStudentCode] Error:', error);
+        throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, 'Không thể tạo mã học sinh');
+    }
 };
 
 /**
@@ -583,8 +596,8 @@ const deleteProfile = async (id, userId) => {
         }
 
         // ✅ Soft delete
-        profile._destroy = true;
-        await profile.save();
+        // ✅ Sau: Hard delete
+        await ChildrenProfileModel.findByIdAndDelete(id);
 
         return { message: 'Xóa hồ sơ thành công!' };
     } catch (error) {

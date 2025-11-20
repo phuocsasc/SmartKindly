@@ -2,8 +2,20 @@ import { ClassModel } from '~/models/classModel';
 import { AcademicYearModel } from '~/models/academicYearModel';
 import { DepartmentModel } from '~/models/departmentModel';
 import { UserModel } from '~/models/userModel';
+import { ChildrenProfileModel } from '~/models/childrenProfileModel'; // ✅ Import model
 import ApiError from '~/utils/ApiError';
 import { StatusCodes } from 'http-status-codes';
+
+/**
+ * ✅ Helper: Kiểm tra lớp có hồ sơ trẻ không
+ */
+const hasChildrenProfiles = async (classId) => {
+    const count = await ChildrenProfileModel.countDocuments({
+        classId,
+        _destroy: false,
+    });
+    return count > 0;
+};
 
 const createNew = async (data, userId) => {
     try {
@@ -154,43 +166,61 @@ const createNew = async (data, userId) => {
 
 const getAll = async (query, userId) => {
     try {
-        const user = await UserModel.findById(userId).select('schoolId role').lean();
+        const user = await UserModel.findById(userId).select('schoolId');
         if (!user || !user.schoolId) {
             throw new ApiError(StatusCodes.FORBIDDEN, 'Bạn không thuộc trường học nào');
         }
 
         const { page = 1, limit = 10, academicYearId = '', grade = '', search = '' } = query;
-        const skip = (page - 1) * limit;
 
-        const filter = { _destroy: false, schoolId: user.schoolId };
+        let filter = {
+            schoolId: user.schoolId,
+            _destroy: false,
+        };
 
         if (academicYearId) filter.academicYearId = academicYearId;
         if (grade) filter.grade = grade;
-        if (search) filter.name = { $regex: search, $options: 'i' };
+        if (search) {
+            filter.$or = [
+                { name: { $regex: search, $options: 'i' } },
+                { description: { $regex: search, $options: 'i' } },
+            ];
+        }
 
-        // ✅ Parallel query: data + count
-        const [classes, total] = await Promise.all([
+        const skip = (parseInt(page) - 1) * parseInt(limit);
+
+        const [classes, totalItems] = await Promise.all([
             ClassModel.find(filter)
-                .select(
-                    'classId name grade ageGroup description sessions homeRoomTeacher academicYearId createdBy createdAt',
-                ) // ✅ Select only needed fields
                 .populate('academicYearId', 'fromYear toYear status')
                 .populate('homeRoomTeacher', 'fullName username email phone')
-                .populate('createdBy', 'fullName username')
                 .skip(skip)
                 .limit(parseInt(limit))
-                .sort({ createdAt: -1 })
-                .lean(), // ✅ lean() để tăng tốc
-
+                .sort({ name: 1 })
+                .lean(),
             ClassModel.countDocuments(filter),
         ]);
 
+        // ✅ Thêm thông tin số lượng hồ sơ trẻ cho mỗi lớp
+        const classesWithChildrenCount = await Promise.all(
+            classes.map(async (cls) => {
+                const childrenCount = await ChildrenProfileModel.countDocuments({
+                    classId: cls._id,
+                    _destroy: false,
+                });
+                return {
+                    ...cls,
+                    childrenCount,
+                    hasChildren: childrenCount > 0,
+                };
+            }),
+        );
+
         return {
-            classes,
+            classes: classesWithChildrenCount,
             pagination: {
                 currentPage: parseInt(page),
-                totalPages: Math.ceil(total / limit),
-                totalItems: total,
+                totalPages: Math.ceil(totalItems / parseInt(limit)),
+                totalItems,
                 itemsPerPage: parseInt(limit),
             },
         };
@@ -257,6 +287,15 @@ const update = async (id, data, userId) => {
             throw new ApiError(StatusCodes.FORBIDDEN, 'Chỉ có thể cập nhật lớp trong năm học đang hoạt động');
         }
 
+        // ✅ KIỂM TRA: Lớp có hồ sơ trẻ không
+        const hasChildren = await hasChildrenProfiles(id);
+        if (hasChildren) {
+            throw new ApiError(
+                StatusCodes.FORBIDDEN,
+                'Không thể chỉnh sửa lớp đã có hồ sơ trẻ em. Vui lòng xóa tất cả hồ sơ trước.',
+            );
+        }
+
         // ✅ Nếu thay đổi tên lớp, kiểm tra trùng lặp
         if (data.name && data.name !== classData.name) {
             const existingClass = await ClassModel.findOne({
@@ -283,39 +322,27 @@ const update = async (id, data, userId) => {
             }
         }
 
-        // ✅ Nếu cập nhật giáo viên chủ nhiệm
+        // ✅ Validate sessions
+        if (data.sessions) {
+            if (!data.sessions.morning && !data.sessions.afternoon && !data.sessions.evening) {
+                throw new ApiError(StatusCodes.BAD_REQUEST, 'Phải chọn ít nhất một buổi học');
+            }
+        }
+
+        // ✅ Nếu thay đổi giáo viên chủ nhiệm
         if (data.homeRoomTeacher && data.homeRoomTeacher !== classData.homeRoomTeacher.toString()) {
             const newTeacher = await UserModel.findOne({
                 _id: data.homeRoomTeacher,
                 schoolId: user.schoolId,
                 role: 'giao_vien',
-                status: true,
                 _destroy: false,
             });
 
             if (!newTeacher) {
-                throw new ApiError(StatusCodes.NOT_FOUND, 'Không tìm thấy giáo viên hoặc giáo viên không hợp lệ');
+                throw new ApiError(StatusCodes.NOT_FOUND, 'Không tìm thấy giáo viên');
             }
 
-            // ✅ FIX: Kiểm tra giáo viên mới đã được gán lớp khác TRONG NĂM HỌC HIỆN TẠI chưa
-            const existingClassInCurrentYear = await ClassModel.findOne({
-                schoolId: user.schoolId,
-                academicYearId: classData.academicYearId._id, // ✅ Chỉ kiểm tra trong năm học hiện tại
-                homeRoomTeacher: newTeacher._id,
-                _id: { $ne: id }, // ✅ Loại trừ lớp đang update
-                _destroy: false,
-            });
-
-            if (existingClassInCurrentYear) {
-                throw new ApiError(
-                    StatusCodes.CONFLICT,
-                    `Giáo viên "${newTeacher.fullName}" đã là chủ nhiệm lớp "${existingClassInCurrentYear.name}" trong năm học này`,
-                );
-            }
-
-            console.log('✅ [Class update] New teacher is available for current year');
-
-            // ✅ Kiểm tra giáo viên có trong Tổ cấp dưỡng không
+            // Kiểm tra giáo viên có trong Tổ cấp dưỡng không
             const careTeamDept = await DepartmentModel.findOne({
                 schoolId: user.schoolId,
                 academicYearId: classData.academicYearId._id,
@@ -331,24 +358,35 @@ const update = async (id, data, userId) => {
                 );
             }
 
-            // ✅ Xóa classId của giáo viên cũ
+            // Kiểm tra giáo viên mới đã được gán lớp khác TRONG NĂM HỌC HIỆN TẠI chưa
+            const existingClassInCurrentYear = await ClassModel.findOne({
+                schoolId: user.schoolId,
+                academicYearId: classData.academicYearId._id,
+                homeRoomTeacher: newTeacher._id,
+                _id: { $ne: id },
+                _destroy: false,
+            });
+
+            if (existingClassInCurrentYear) {
+                throw new ApiError(
+                    StatusCodes.CONFLICT,
+                    `Giáo viên "${newTeacher.fullName}" đã là chủ nhiệm lớp "${existingClassInCurrentYear.name}" trong năm học này`,
+                );
+            }
+
+            console.log('✅ [Class update] New teacher is available for current year');
+
+            // Xóa classId của giáo viên cũ
             await UserModel.findByIdAndUpdate(classData.homeRoomTeacher, {
                 $unset: { classId: 1 },
             });
 
-            // ✅ Gán classId cho giáo viên mới
+            // Gán classId cho giáo viên mới
             await UserModel.findByIdAndUpdate(data.homeRoomTeacher, {
                 classId: id,
             });
 
             console.log('✅ [Class update] Teacher reassigned');
-        }
-
-        // ✅ Validate sessions nếu có cập nhật
-        if (data.sessions) {
-            if (!data.sessions.morning && !data.sessions.afternoon && !data.sessions.evening) {
-                throw new ApiError(StatusCodes.BAD_REQUEST, 'Phải chọn ít nhất một buổi học');
-            }
         }
 
         // ✅ Cập nhật
@@ -390,6 +428,15 @@ const deleteClass = async (id, userId) => {
         // ✅ Chỉ cho phép xóa lớp trong năm học đang "active"
         if (classData.academicYearId.status !== 'active') {
             throw new ApiError(StatusCodes.FORBIDDEN, 'Chỉ có thể xóa lớp trong năm học đang hoạt động');
+        }
+
+        // ✅ KIỂM TRA: Lớp có hồ sơ trẻ không
+        const hasChildren = await hasChildrenProfiles(id);
+        if (hasChildren) {
+            throw new ApiError(
+                StatusCodes.FORBIDDEN,
+                'Không thể xóa lớp đã có hồ sơ trẻ em. Vui lòng xóa tất cả hồ sơ trước.',
+            );
         }
 
         // ✅ Xóa classId của giáo viên chủ nhiệm

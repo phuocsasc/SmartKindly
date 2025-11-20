@@ -32,7 +32,7 @@ import { toast } from 'react-toastify';
 import ClassDialog from './ClassesDialog';
 import ConfirmDialog from '~/components/common/ConfirmDialog';
 import { useConfirmDialog } from '~/hooks/useConfirmDialog';
-import ClassesCopyDialog from './ClassesCopyDialog'; // ✅ Import
+import ClassesCopyDialog from './ClassesCopyDialog';
 
 function Classes() {
     const { user } = useUser();
@@ -51,7 +51,10 @@ function Classes() {
     const [openDialog, setOpenDialog] = useState(false);
     const [dialogMode, setDialogMode] = useState('create');
     const [currentClass, setCurrentClass] = useState(null);
-    const [openCopyDialog, setOpenCopyDialog] = useState(false); // ✅ Thêm state
+    const [openCopyDialog, setOpenCopyDialog] = useState(false);
+
+    const canUpdate = hasPermission(PERMISSIONS.UPDATE_CLASSROOM);
+    const canDelete = hasPermission(PERMISSIONS.DELETE_CLASSROOM);
 
     const isActiveYear = selectedYear === activeYearId;
 
@@ -87,21 +90,31 @@ function Classes() {
                 search: searchText,
             });
 
-            const classesWithStt = res.data.data.classes.map((cls, index) => ({
-                ...cls,
-                id: cls._id,
-                stt: paginationModel.page * paginationModel.pageSize + index + 1,
-                teacherName: cls.homeRoomTeacher?.fullName || 'Chưa có',
-                sessionsDisplay: [
-                    cls.sessions?.morning && 'Sáng',
-                    cls.sessions?.afternoon && 'Chiều',
-                    cls.sessions?.evening && 'Tối',
-                ]
-                    .filter(Boolean)
-                    .join(', '),
-            }));
+            const classes = res.data.data.classes.map((cls, index) => {
+                // ✅ Tạo sessionsDisplay từ sessions object
+                const sessions = cls.sessions || {};
+                const activeSession = [];
+                if (sessions.morning) activeSession.push('Sáng');
+                if (sessions.afternoon) activeSession.push('Chiều');
+                if (sessions.evening) activeSession.push('Tối');
+                const sessionsDisplay = activeSession.length > 0 ? activeSession.join(', ') : '---';
 
-            setRows(classesWithStt);
+                return {
+                    stt: paginationModel.page * paginationModel.pageSize + index + 1,
+                    id: cls._id,
+                    name: cls.name,
+                    grade: cls.grade,
+                    ageGroup: cls.ageGroup,
+                    homeRoomTeacher: cls.homeRoomTeacher?.fullName || '---',
+                    description: cls.description,
+                    sessions: cls.sessions,
+                    sessionsDisplay, // ✅ Thêm field này
+                    childrenCount: cls.childrenCount || 0,
+                    hasChildren: cls.hasChildren || false,
+                };
+            });
+
+            setRows(classes);
             setTotalRows(res.data.data.pagination.totalItems);
         } catch (error) {
             console.error('Error fetching classes:', error);
@@ -139,14 +152,25 @@ function Classes() {
             toast.warning('Chỉ có thể chỉnh sửa lớp học trong năm học đang hoạt động!');
             return;
         }
+
+        if (classData.hasChildren) {
+            toast.error('Không thể chỉnh sửa lớp đã có hồ sơ trẻ em. Vui lòng xóa tất cả hồ sơ trước.');
+            return;
+        }
+
         setDialogMode('edit');
         setCurrentClass(classData);
         setOpenDialog(true);
     };
 
-    const handleDelete = async (id, className) => {
+    const handleDelete = async (id, className, hasChildren) => {
         if (selectedYear !== activeYearId) {
             toast.warning('Chỉ có thể xóa lớp học trong năm học đang hoạt động!');
+            return;
+        }
+
+        if (hasChildren) {
+            toast.error('Không thể xóa lớp đã có hồ sơ trẻ em. Vui lòng xóa tất cả hồ sơ trước.');
             return;
         }
 
@@ -164,6 +188,7 @@ function Classes() {
                 },
             });
         } catch (error) {
+            console.error('Error deleting class:', error);
             toast.error(error.response?.data?.message || 'Lỗi khi xóa lớp học!');
         }
     };
@@ -217,7 +242,7 @@ function Classes() {
             sortable: false,
         },
         {
-            field: 'teacherName',
+            field: 'homeRoomTeacher',
             headerName: 'Giáo viên chủ nhiệm',
             flex: 1,
             minWidth: 180,
@@ -234,29 +259,60 @@ function Classes() {
             flex: 0.8,
             minWidth: 100,
             sortable: false,
+            renderCell: (params) => {
+                // ✅ Kiểm tra null/undefined trước khi split
+                const value = params.value || '---';
+
+                if (value === '---') {
+                    return (
+                        <Typography variant="body2" color="text.secondary">
+                            ---
+                        </Typography>
+                    );
+                }
+
+                return (
+                    <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
+                        {value.split(', ').map((session, index) => (
+                            <Chip
+                                key={index}
+                                label={session}
+                                size="small"
+                                sx={{
+                                    bgcolor: '#e0e0e0',
+                                    color: '#000',
+                                    fontSize: '0.75rem',
+                                    fontWeight: 500,
+                                }}
+                            />
+                        ))}
+                    </Box>
+                );
+            },
+        },
+        {
+            field: 'childrenCount',
+            headerName: 'Số học sinh',
+            flex: 0.4,
+            minWidth: 120,
+            sortable: false,
+            align: 'center',
+            headerAlign: 'center',
             renderCell: (params) => (
-                <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
-                    {params.value.split(', ').map((session, index) => (
-                        <Chip
-                            key={index}
-                            label={session}
-                            size="small"
-                            sx={{
-                                bgcolor: '#e0e0e0',
-                                color: '#000',
-                                fontSize: '0.75rem',
-                                fontWeight: 500,
-                            }}
-                        />
-                    ))}
-                </Box>
+                <Chip
+                    label={params.value}
+                    size="medium"
+                    variant="filled"
+                    color={params.value > 0 ? 'info' : 'default'}
+                    sx={{ fontWeight: 600 }}
+                />
             ),
         },
         {
             field: 'description',
             headerName: 'Ghi chú',
-            flex: 1.5,
-            minWidth: 150,
+            flex: 1,
+            minWidth: 100,
             sortable: false,
             renderCell: (params) => (
                 <Typography variant="body2" color="text.secondary" noWrap>
@@ -272,30 +328,51 @@ function Classes() {
             sortable: false,
             disableColumnMenu: true,
             renderCell: (params) => {
-                const canUpdate = hasPermission(PERMISSIONS.UPDATE_CLASSROOM);
-                const canDelete = hasPermission(PERMISSIONS.DELETE_CLASSROOM);
                 const isActiveYear = selectedYear === activeYearId;
+                const hasChildren = params.row.hasChildren;
 
                 return (
                     <Box sx={{ display: 'flex', justifyContent: 'center', gap: 0.5 }}>
                         {canUpdate && (
-                            <Tooltip title={isActiveYear ? 'Sửa thông tin' : 'Chỉ xem'}>
-                                <IconButton color="primary" size="small" onClick={() => handleEdit(params.row)}>
-                                    <EditOutlinedIcon />
-                                </IconButton>
+                            <Tooltip
+                                title={
+                                    !isActiveYear
+                                        ? 'Chỉ xem'
+                                        : hasChildren
+                                          ? 'Không thể sửa - Lớp đã có hồ sơ trẻ'
+                                          : 'Sửa thông tin'
+                                }
+                            >
+                                <span>
+                                    <IconButton
+                                        color="primary"
+                                        size="small"
+                                        disabled={!isActiveYear || hasChildren}
+                                        onClick={() => handleEdit(params.row)}
+                                        sx={{ opacity: !isActiveYear || hasChildren ? 0.5 : 1 }}
+                                    >
+                                        <EditOutlinedIcon />
+                                    </IconButton>
+                                </span>
                             </Tooltip>
                         )}
                         {canDelete && (
-                            <Tooltip title={isActiveYear ? 'Xóa lớp học' : 'Không thể xóa'}>
+                            <Tooltip
+                                title={
+                                    !isActiveYear
+                                        ? 'Không thể xóa'
+                                        : hasChildren
+                                          ? 'Không thể xóa - Lớp đã có hồ sơ trẻ'
+                                          : 'Xóa lớp học'
+                                }
+                            >
                                 <span>
                                     <IconButton
                                         color="error"
                                         size="small"
-                                        disabled={!isActiveYear}
-                                        onClick={() => handleDelete(params.row.id, params.row.name)}
-                                        sx={{
-                                            opacity: isActiveYear ? 1 : 0.5,
-                                        }}
+                                        disabled={!isActiveYear || hasChildren}
+                                        onClick={() => handleDelete(params.row.id, params.row.name, hasChildren)}
+                                        sx={{ opacity: !isActiveYear || hasChildren ? 0.5 : 1 }}
                                     >
                                         <DeleteOutlineOutlinedIcon />
                                     </IconButton>

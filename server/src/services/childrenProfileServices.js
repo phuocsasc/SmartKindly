@@ -1,0 +1,605 @@
+import { StatusCodes } from 'http-status-codes';
+import ApiError from '~/utils/ApiError';
+import { ChildrenProfileModel } from '~/models/childrenProfileModel';
+import { ClassModel } from '~/models/classModel';
+import { AcademicYearModel } from '~/models/academicYearModel';
+import { DepartmentModel } from '~/models/departmentModel';
+import { UserModel } from '~/models/userModel';
+
+// ✅ Constants nhóm tuổi
+const AGE_GROUPS = ['3-12 tháng', '12-24 tháng', '24-36 tháng', '3-4 tuổi', '4-5 tuổi', '5-6 tuổi'];
+
+// ✅ Mapping Department name → Class ageGroups
+const DEPARTMENT_TO_AGE_GROUPS = {
+    'Khối Nhà Trẻ': ['3-12 tháng', '12-24 tháng', '24-36 tháng'],
+    'Khối Mầm': ['3-4 tuổi'],
+    'Khối Chồi': ['4-5 tuổi'],
+    'Khối Lá': ['5-6 tuổi'],
+};
+
+// ✅ Helper: Normalize department name to grade (giữ nguyên format từ DB)
+const normalizeDepartmentToGrade = (departmentName) => {
+    // "Khối Nhà Trẻ" → "Nhà trẻ" (lowercase "trẻ")
+    // "Khối Mầm" → "Mầm"
+    // "Khối Chồi" → "Chồi"
+    // "Khối Lá" → "Lá"
+    const mapping = {
+        'Khối Nhà Trẻ': 'Nhà trẻ',
+        'Khối Mầm': 'Mầm',
+        'Khối Chồi': 'Chồi',
+        'Khối Lá': 'Lá',
+    };
+    return mapping[departmentName] || departmentName.replace(/^Khối\s+/i, '').trim();
+};
+
+/**
+ * ✅ Lấy danh sách nhóm tuổi theo quyền hạn
+ */
+const getAccessibleAgeGroups = async (academicYearId, userId) => {
+    try {
+        console.log('📋 [getAccessibleAgeGroups] Starting with:', { academicYearId, userId });
+
+        const user = await UserModel.findById(userId).select('schoolId role _id');
+        if (!user || !user.schoolId) {
+            throw new ApiError(StatusCodes.FORBIDDEN, 'Bạn không thuộc trường học nào');
+        }
+
+        const academicYear = await AcademicYearModel.findOne({
+            _id: academicYearId,
+            schoolId: user.schoolId,
+            _destroy: false,
+        });
+
+        if (!academicYear) {
+            throw new ApiError(StatusCodes.NOT_FOUND, 'Không tìm thấy năm học');
+        }
+
+        let accessibleAgeGroups = [];
+
+        if (user.role === 'ban_giam_hieu') {
+            accessibleAgeGroups = AGE_GROUPS;
+            console.log('✅ BGH: Full access to all age groups');
+        } else if (user.role === 'to_truong') {
+            const departments = await DepartmentModel.find({
+                schoolId: user.schoolId,
+                academicYearId: academicYearId,
+                managers: user._id,
+                _destroy: false,
+            }).select('name');
+
+            console.log('📚 Tổ trưởng departments:', departments);
+
+            const ageGroupsSet = new Set();
+            departments.forEach((dept) => {
+                const mappedGroups = DEPARTMENT_TO_AGE_GROUPS[dept.name];
+                if (mappedGroups) {
+                    mappedGroups.forEach((group) => ageGroupsSet.add(group));
+                    console.log(`  ✅ Mapped "${dept.name}" → [${mappedGroups.join(', ')}]`);
+                }
+            });
+
+            accessibleAgeGroups = Array.from(ageGroupsSet);
+            console.log('✅ Tổ trưởng accessible age groups:', accessibleAgeGroups);
+        } else if (user.role === 'giao_vien') {
+            const assignedClass = await ClassModel.findOne({
+                schoolId: user.schoolId,
+                academicYearId: academicYearId,
+                homeRoomTeacher: user._id,
+                _destroy: false,
+            }).select('ageGroup');
+
+            if (assignedClass) {
+                accessibleAgeGroups = [assignedClass.ageGroup];
+                console.log('✅ Giáo viên accessible age group:', accessibleAgeGroups);
+            }
+        }
+
+        return { ageGroups: accessibleAgeGroups };
+    } catch (error) {
+        console.error('❌ [getAccessibleAgeGroups] Error:', error);
+        if (error instanceof ApiError) throw error;
+        throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, 'Lỗi khi lấy thông tin nhóm tuổi: ' + error.message);
+    }
+};
+
+/**
+ * ✅ Lấy danh sách lớp theo age group và quyền hạn
+ */
+const getClassesByAgeGroup = async (academicYearId, ageGroup, userId) => {
+    try {
+        console.log('📋 [getClassesByAgeGroup] Starting with:', { academicYearId, ageGroup, userId });
+
+        const user = await UserModel.findById(userId).select('schoolId role _id');
+        if (!user || !user.schoolId) {
+            throw new ApiError(StatusCodes.FORBIDDEN, 'Bạn không thuộc trường học nào');
+        }
+
+        let query = {
+            schoolId: user.schoolId,
+            academicYearId: academicYearId,
+            ageGroup: ageGroup,
+            _destroy: false,
+        };
+
+        if (user.role === 'ban_giam_hieu') {
+            // No filter
+        } else if (user.role === 'to_truong') {
+            const departments = await DepartmentModel.find({
+                schoolId: user.schoolId,
+                academicYearId: academicYearId,
+                managers: user._id,
+                _destroy: false,
+            }).select('name');
+
+            // ✅ Normalize department names to grades (chính xác từ mapping)
+            const grades = departments.map((dept) => normalizeDepartmentToGrade(dept.name));
+            console.log('📚 Tổ trưởng normalized grades:', grades);
+
+            // ✅ Sử dụng regex để so sánh case-insensitive
+            query.grade = { $in: grades.map((g) => new RegExp(`^${g}$`, 'i')) };
+        } else if (user.role === 'giao_vien') {
+            query.homeRoomTeacher = user._id;
+        }
+
+        const classes = await ClassModel.find(query).select('_id name grade ageGroup').sort({ name: 1 }).lean();
+
+        console.log('✅ Classes found:', classes.length);
+        if (classes.length > 0) {
+            console.log('📋 Sample class:', classes[0]);
+        }
+
+        return { classes };
+    } catch (error) {
+        console.error('❌ [getClassesByAgeGroup] Error:', error);
+        if (error instanceof ApiError) throw error;
+        throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, 'Lỗi khi lấy danh sách lớp: ' + error.message);
+    }
+};
+// ✅ Helper: Tạo mã học sinh dạng schoolId-HS000001, tăng dần
+const generateStudentCode = async (schoolId) => {
+    const prefix = `${schoolId}-HS`;
+
+    // Tìm hồ sơ có studentCode lớn nhất của trường này
+    const lastProfile = await ChildrenProfileModel.findOne({
+        schoolId,
+        studentCode: { $regex: `^${prefix}\\d{6}$` },
+        _destroy: false,
+    })
+        .sort({ studentCode: -1 }) // sort giảm dần theo studentCode
+        .select('studentCode')
+        .lean();
+
+    let nextNumber = 1;
+
+    if (lastProfile?.studentCode) {
+        const numericPart = lastProfile.studentCode.slice(-6); // lấy 6 số cuối
+        const parsed = parseInt(numericPart, 10);
+        if (!Number.isNaN(parsed)) {
+            nextNumber = parsed + 1;
+        }
+    }
+
+    const padded = String(nextNumber).padStart(6, '0'); // luôn đủ 6 số
+    return `${prefix}${padded}`; // VD: 51060334-HS000001
+};
+
+/**
+ * ✅ Tạo hồ sơ trẻ mới
+ */
+const createNew = async (data, userId) => {
+    try {
+        console.log('📋 [ChildrenProfile createNew] Starting with data:', data);
+
+        const user = await UserModel.findById(userId).select('schoolId role _id');
+        if (!user || !user.schoolId) {
+            throw new ApiError(StatusCodes.FORBIDDEN, 'Bạn không thuộc trường học nào');
+        }
+
+        // ✅ Verify academic year active
+        const academicYear = await AcademicYearModel.findOne({
+            _id: data.academicYearId,
+            schoolId: user.schoolId,
+            status: 'active',
+            _destroy: false,
+        });
+
+        if (!academicYear) {
+            throw new ApiError(StatusCodes.BAD_REQUEST, 'Chỉ được thêm hồ sơ cho năm học đang hoạt động');
+        }
+
+        // ✅ Verify class exists
+        const classData = await ClassModel.findOne({
+            _id: data.classId,
+            schoolId: user.schoolId,
+            academicYearId: data.academicYearId,
+            _destroy: false,
+        });
+
+        if (!classData) {
+            throw new ApiError(StatusCodes.NOT_FOUND, 'Không tìm thấy lớp học');
+        }
+
+        console.log('🏫 [createNew] Class data:', {
+            name: classData.name,
+            grade: classData.grade,
+            ageGroup: classData.ageGroup,
+        });
+
+        // ✅ Check permission based on role
+        if (user.role === 'to_truong') {
+            const departments = await DepartmentModel.find({
+                schoolId: user.schoolId,
+                academicYearId: data.academicYearId,
+                managers: user._id,
+                _destroy: false,
+            }).select('name');
+
+            console.log(
+                '📚 [createNew] Tổ trưởng departments:',
+                departments.map((d) => d.name),
+            );
+
+            // ✅ Normalize department names and check if class.grade is in managed grades
+            const managedGrades = departments.map((dept) => normalizeDepartmentToGrade(dept.name));
+            console.log('✅ [createNew] Managed grades:', managedGrades);
+            console.log('✅ [createNew] Class grade:', classData.grade);
+
+            const hasPermission = managedGrades.some((grade) => grade.toLowerCase() === classData.grade.toLowerCase());
+
+            if (!hasPermission) {
+                throw new ApiError(
+                    StatusCodes.FORBIDDEN,
+                    `Bạn không có quyền thêm hồ sơ cho lớp "${classData.name}" (Khối ${classData.grade})`,
+                );
+            }
+        } else if (user.role === 'giao_vien') {
+            if (classData.homeRoomTeacher.toString() !== user._id.toString()) {
+                throw new ApiError(StatusCodes.FORBIDDEN, 'Bạn chỉ được thêm hồ sơ cho lớp của mình');
+            }
+        }
+
+        // ✅ Generate unique studentCode
+        // ✅ Generate studentCode dạng schoolId-HS000001, HS000002,...
+        const studentCode = await generateStudentCode(user.schoolId);
+
+        // ✅ Create profile
+        const newProfile = await ChildrenProfileModel.create({
+            ...data,
+            schoolId: user.schoolId,
+            studentCode,
+            createdBy: user._id,
+        });
+
+        const populated = await ChildrenProfileModel.findById(newProfile._id)
+            .populate('classId', 'name grade ageGroup')
+            .lean();
+
+        console.log('✅ Profile created successfully with studentCode:', studentCode);
+        return populated;
+    } catch (error) {
+        console.error('❌ [ChildrenProfile createNew] Error:', error);
+        if (error instanceof ApiError) throw error;
+        throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, 'Lỗi khi tạo hồ sơ trẻ: ' + error.message);
+    }
+};
+
+/**
+ * ✅ Lấy danh sách hồ sơ trẻ
+ */
+const getAll = async (query, userId) => {
+    try {
+        const user = await UserModel.findById(userId).select('schoolId role _id');
+        if (!user || !user.schoolId) {
+            throw new ApiError(StatusCodes.FORBIDDEN, 'Bạn không thuộc trường học nào');
+        }
+
+        const { page = 1, limit = 10, academicYearId = '', classId = '', search = '' } = query;
+
+        let filter = {
+            schoolId: user.schoolId,
+            _destroy: false,
+        };
+
+        if (academicYearId) filter.academicYearId = academicYearId;
+        if (search) {
+            filter.$or = [
+                { fullName: { $regex: search, $options: 'i' } },
+                { studentCode: { $regex: search, $options: 'i' } },
+            ];
+        }
+
+        // ✅ Ban giám hiệu: Xem tất cả
+        if (user.role === 'ban_giam_hieu') {
+            // Nếu có classId trong query, áp dụng filter
+            if (classId) {
+                filter.classId = classId;
+            }
+        }
+        // ✅ Tổ trưởng: Chỉ xem lớp trong khối được quản lý
+        else if (user.role === 'to_truong') {
+            const departments = await DepartmentModel.find({
+                schoolId: user.schoolId,
+                academicYearId: academicYearId || undefined,
+                managers: user._id,
+                _destroy: false,
+            }).select('name');
+
+            const grades = departments.map((dept) => normalizeDepartmentToGrade(dept.name));
+            const accessibleClasses = await ClassModel.find({
+                schoolId: user.schoolId,
+                academicYearId: academicYearId || undefined,
+                grade: { $in: grades.map((g) => new RegExp(`^${g}$`, 'i')) },
+                _destroy: false,
+            }).select('_id');
+
+            const accessibleClassIds = accessibleClasses.map((c) => c._id);
+
+            // ✅ FIX: Nếu user chọn classId từ dropdown
+            if (classId) {
+                // Kiểm tra classId có nằm trong danh sách accessible không
+                if (accessibleClassIds.some((id) => id.toString() === classId)) {
+                    filter.classId = classId; // ✅ Chỉ filter theo classId đã chọn
+                } else {
+                    // Nếu classId không thuộc quyền hạn, trả về empty
+                    return {
+                        profiles: [],
+                        pagination: {
+                            currentPage: parseInt(page),
+                            totalPages: 0,
+                            totalItems: 0,
+                            itemsPerPage: parseInt(limit),
+                        },
+                    };
+                }
+            } else {
+                // Nếu không chọn classId, hiển thị tất cả lớp thuộc quyền
+                filter.classId = { $in: accessibleClassIds };
+            }
+        }
+        // ✅ Giáo viên: Chỉ xem lớp của mình
+        else if (user.role === 'giao_vien') {
+            const assignedClass = await ClassModel.findOne({
+                schoolId: user.schoolId,
+                academicYearId: academicYearId || undefined,
+                homeRoomTeacher: user._id,
+                _destroy: false,
+            }).select('_id');
+
+            if (assignedClass) {
+                filter.classId = assignedClass._id;
+            } else {
+                return {
+                    profiles: [],
+                    pagination: {
+                        currentPage: parseInt(page),
+                        totalPages: 0,
+                        totalItems: 0,
+                        itemsPerPage: parseInt(limit),
+                    },
+                };
+            }
+        }
+
+        const skip = (parseInt(page) - 1) * parseInt(limit);
+
+        const [profiles, totalItems] = await Promise.all([
+            ChildrenProfileModel.find(filter)
+                .populate('classId', 'name grade ageGroup')
+                .skip(skip)
+                .limit(parseInt(limit))
+                .sort({ createdAt: -1 })
+                .lean(),
+            ChildrenProfileModel.countDocuments(filter),
+        ]);
+
+        console.log('✅ [getAll] Profiles found:', profiles.length);
+
+        return {
+            profiles,
+            pagination: {
+                currentPage: parseInt(page),
+                totalPages: Math.ceil(totalItems / parseInt(limit)),
+                totalItems,
+                itemsPerPage: parseInt(limit),
+            },
+        };
+    } catch (error) {
+        console.error('❌ [getAll] Error:', error);
+        if (error instanceof ApiError) throw error;
+        throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, 'Lỗi khi lấy danh sách hồ sơ: ' + error.message);
+    }
+};
+
+/**
+ * ✅ Lấy chi tiết hồ sơ
+ */
+const getDetails = async (id, userId) => {
+    try {
+        const user = await UserModel.findById(userId).select('schoolId role _id');
+        if (!user || !user.schoolId) {
+            throw new ApiError(StatusCodes.FORBIDDEN, 'Bạn không thuộc trường học nào');
+        }
+
+        const profile = await ChildrenProfileModel.findOne({
+            _id: id,
+            schoolId: user.schoolId,
+            _destroy: false,
+        })
+            .populate('classId', 'name grade ageGroup')
+            .lean();
+
+        if (!profile) {
+            throw new ApiError(StatusCodes.NOT_FOUND, 'Không tìm thấy hồ sơ');
+        }
+
+        // ✅ Check permission
+        if (user.role === 'to_truong') {
+            const classData = await ClassModel.findById(profile.classId);
+            const departments = await DepartmentModel.find({
+                schoolId: user.schoolId,
+                managers: user._id,
+                _destroy: false,
+            }).select('name');
+
+            const managedGrades = departments.map((dept) => normalizeDepartmentToGrade(dept.name));
+            const hasPermission = managedGrades.some((grade) => grade.toLowerCase() === classData.grade.toLowerCase());
+
+            if (!hasPermission) {
+                throw new ApiError(StatusCodes.FORBIDDEN, 'Bạn không có quyền xem hồ sơ này');
+            }
+        } else if (user.role === 'giao_vien') {
+            const classData = await ClassModel.findById(profile.classId);
+            if (classData.homeRoomTeacher.toString() !== user._id.toString()) {
+                throw new ApiError(StatusCodes.FORBIDDEN, 'Bạn không có quyền xem hồ sơ này');
+            }
+        }
+
+        return profile;
+    } catch (error) {
+        console.error('❌ [getDetails] Error:', error);
+        if (error instanceof ApiError) throw error;
+        throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, 'Lỗi khi lấy thông tin hồ sơ: ' + error.message);
+    }
+};
+
+/**
+ * ✅ Cập nhật hồ sơ
+ */
+const update = async (id, data, userId) => {
+    try {
+        const user = await UserModel.findById(userId).select('schoolId role _id');
+        if (!user || !user.schoolId) {
+            throw new ApiError(StatusCodes.FORBIDDEN, 'Bạn không thuộc trường học nào');
+        }
+
+        const profile = await ChildrenProfileModel.findOne({
+            _id: id,
+            schoolId: user.schoolId,
+            _destroy: false,
+        });
+
+        if (!profile) {
+            throw new ApiError(StatusCodes.NOT_FOUND, 'Không tìm thấy hồ sơ');
+        }
+
+        // ✅ Verify active year
+        const academicYear = await AcademicYearModel.findOne({
+            _id: profile.academicYearId,
+            status: 'active',
+            _destroy: false,
+        });
+
+        if (!academicYear) {
+            throw new ApiError(StatusCodes.BAD_REQUEST, 'Chỉ được sửa hồ sơ trong năm học đang hoạt động');
+        }
+
+        // ✅ Check permission
+        if (user.role === 'to_truong') {
+            const classData = await ClassModel.findById(profile.classId);
+            const departments = await DepartmentModel.find({
+                schoolId: user.schoolId,
+                managers: user._id,
+                _destroy: false,
+            }).select('name');
+
+            const managedGrades = departments.map((dept) => normalizeDepartmentToGrade(dept.name));
+            const hasPermission = managedGrades.some((grade) => grade.toLowerCase() === classData.grade.toLowerCase());
+
+            if (!hasPermission) {
+                throw new ApiError(StatusCodes.FORBIDDEN, 'Bạn không có quyền sửa hồ sơ này');
+            }
+        } else if (user.role === 'giao_vien') {
+            const classData = await ClassModel.findById(profile.classId);
+            if (classData.homeRoomTeacher.toString() !== user._id.toString()) {
+                throw new ApiError(StatusCodes.FORBIDDEN, 'Bạn không có quyền sửa hồ sơ này');
+            }
+        }
+
+        // ✅ Update
+        Object.assign(profile, data);
+        await profile.save();
+
+        const updated = await ChildrenProfileModel.findById(id).populate('classId', 'name grade ageGroup').lean();
+
+        return updated;
+    } catch (error) {
+        console.error('❌ [update] Error:', error);
+        if (error instanceof ApiError) throw error;
+        throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, 'Lỗi khi cập nhật hồ sơ: ' + error.message);
+    }
+};
+
+/**
+ * ✅ Xóa hồ sơ
+ */
+const deleteProfile = async (id, userId) => {
+    try {
+        const user = await UserModel.findById(userId).select('schoolId role _id');
+        if (!user || !user.schoolId) {
+            throw new ApiError(StatusCodes.FORBIDDEN, 'Bạn không thuộc trường học nào');
+        }
+
+        const profile = await ChildrenProfileModel.findOne({
+            _id: id,
+            schoolId: user.schoolId,
+            _destroy: false,
+        });
+
+        if (!profile) {
+            throw new ApiError(StatusCodes.NOT_FOUND, 'Không tìm thấy hồ sơ');
+        }
+
+        // ✅ Verify active year
+        const academicYear = await AcademicYearModel.findOne({
+            _id: profile.academicYearId,
+            status: 'active',
+            _destroy: false,
+        });
+
+        if (!academicYear) {
+            throw new ApiError(StatusCodes.BAD_REQUEST, 'Chỉ được xóa hồ sơ trong năm học đang hoạt động');
+        }
+
+        // ✅ Check permission
+        if (user.role === 'to_truong') {
+            const classData = await ClassModel.findById(profile.classId);
+            const departments = await DepartmentModel.find({
+                schoolId: user.schoolId,
+                managers: user._id,
+                _destroy: false,
+            }).select('name');
+
+            const managedGrades = departments.map((dept) => normalizeDepartmentToGrade(dept.name));
+            const hasPermission = managedGrades.some((grade) => grade.toLowerCase() === classData.grade.toLowerCase());
+
+            if (!hasPermission) {
+                throw new ApiError(StatusCodes.FORBIDDEN, 'Bạn không có quyền xóa hồ sơ này');
+            }
+        } else if (user.role === 'giao_vien') {
+            const classData = await ClassModel.findById(profile.classId);
+            if (classData.homeRoomTeacher.toString() !== user._id.toString()) {
+                throw new ApiError(StatusCodes.FORBIDDEN, 'Bạn không có quyền xóa hồ sơ này');
+            }
+        }
+
+        // ✅ Soft delete
+        profile._destroy = true;
+        await profile.save();
+
+        return { message: 'Xóa hồ sơ thành công!' };
+    } catch (error) {
+        console.error('❌ [deleteProfile] Error:', error);
+        if (error instanceof ApiError) throw error;
+        throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, 'Lỗi khi xóa hồ sơ: ' + error.message);
+    }
+};
+
+export const childrenProfileServices = {
+    createNew,
+    getAll,
+    getDetails,
+    update,
+    deleteProfile,
+    getAccessibleAgeGroups,
+    getClassesByAgeGroup,
+};

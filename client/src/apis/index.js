@@ -48,3 +48,5 @@ export * from './schoolEducationalActivityApi';
 export * from './scheduleApi';
 
 export * from './weeklyPlanApi';
+
+export * from './childrenProfileApi';

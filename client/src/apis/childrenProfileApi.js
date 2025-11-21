@@ -51,4 +51,9 @@ export const childrenProfileApi = {
             params: { academicYearId, ageGroup },
         });
     },
+
+    // ✅ Import bulk from Excel
+    importBulk: async (data) => {
+        return await authorizedAxiosInstance.post(`${API_ROOT}/v1/children-profiles/import-bulk`, data);
+    },
 };

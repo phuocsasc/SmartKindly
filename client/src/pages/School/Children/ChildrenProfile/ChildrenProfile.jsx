@@ -18,6 +18,9 @@ import PeopleIcon from '@mui/icons-material/People';
 import AddCircleOutlineOutlinedIcon from '@mui/icons-material/AddCircleOutlineOutlined';
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
 import DeleteOutlineOutlinedIcon from '@mui/icons-material/DeleteOutlineOutlined';
+import FileUploadOutlinedIcon from '@mui/icons-material/FileUploadOutlined';
+import FileDownloadOutlinedIcon from '@mui/icons-material/FileDownloadOutlined'; // ✅ Add
+import { schoolApi } from '~/apis/schoolApi'; // ✅ Add
 import DoneOutlinedIcon from '@mui/icons-material/DoneOutlined';
 import MainLayout from '~/layouts/SchoolLayout';
 import PageContainer from '~/components/common/PageContainer';
@@ -30,6 +33,8 @@ import { toast } from 'react-toastify';
 import { useConfirmDialog } from '~/hooks/useConfirmDialog';
 import ConfirmDialog from '~/components/common/ConfirmDialog';
 import ChildrenProfileDialog from './ChildrenProfileDialog';
+import ImportChildrenProfileDialog from './ImportChildrenProfileDialog';
+import { exportChildrenProfilesToExcelWithData } from '~/utils/childrenProfileExcelExport'; // ✅ Add
 import dayjs from '~/config/dayjsConfig';
 
 function ChildrenProfile() {
@@ -42,6 +47,7 @@ function ChildrenProfile() {
     const [academicYears, setAcademicYears] = useState([]);
     const [classes, setClasses] = useState([]);
     const [loading, setLoading] = useState(false);
+    const [exportLoading, setExportLoading] = useState(false); // ✅ Add
     const [searchText, setSearchText] = useState('');
     const [selectedYear, setSelectedYear] = useState('');
     const [selectedClass, setSelectedClass] = useState('');
@@ -51,6 +57,7 @@ function ChildrenProfile() {
     const [openDialog, setOpenDialog] = useState(false);
     const [dialogMode, setDialogMode] = useState('create');
     const [currentProfile, setCurrentProfile] = useState(null);
+    const [openImportDialog, setOpenImportDialog] = useState(false);
 
     const isActiveYear = selectedYear === activeYearId;
 
@@ -194,6 +201,47 @@ function ChildrenProfile() {
         } catch (error) {
             console.error('Error deleting profile:', error);
             toast.error(error.response?.data?.message || 'Lỗi khi xóa hồ sơ!');
+        }
+    };
+
+    // ✅ Handler xuất Excel
+    const handleExportExcel = async () => {
+        if (!selectedYear) {
+            toast.warning('Vui lòng chọn năm học trước khi xuất file!');
+            return;
+        }
+
+        try {
+            setExportLoading(true);
+
+            // Lấy tất cả records (không phân trang)
+            const res = await childrenProfileApi.getAll({
+                page: 1,
+                limit: 9999,
+                academicYearId: selectedYear,
+                search: '',
+                classId: '',
+                ageGroup: '',
+                status: '',
+            });
+
+            // Lấy thông tin trường
+            const schoolRes = await schoolApi.getSchoolInfo();
+            const schoolName = schoolRes.data.data.name;
+
+            // Lấy tên năm học
+            const selectedYearData = academicYears.find((year) => year._id === selectedYear);
+            const academicYearName = selectedYearData ? `${selectedYearData.fromYear}-${selectedYearData.toYear}` : '';
+
+            // Xuất Excel
+            await exportChildrenProfilesToExcelWithData(res.data.data.profiles, schoolName, academicYearName);
+
+            toast.success('Xuất file Excel thành công!');
+        } catch (error) {
+            console.error('Error exporting Excel:', error);
+            toast.error('Lỗi khi xuất file Excel!');
+        } finally {
+            setExportLoading(false);
         }
     };
 
@@ -423,7 +471,6 @@ function ChildrenProfile() {
                                 size="small"
                                 sx={{ minWidth: 220 }}
                             />
-
                             {/* Select Năm học */}
                             <FormControl size="small" sx={{ minWidth: 180 }}>
                                 <InputLabel>Năm học</InputLabel>
@@ -453,7 +500,6 @@ function ChildrenProfile() {
                                     ))}
                                 </Select>
                             </FormControl>
-
                             {/* Select Lớp học */}
                             <FormControl size="small" sx={{ minWidth: 150 }}>
                                 <InputLabel>Lớp học</InputLabel>
@@ -470,7 +516,6 @@ function ChildrenProfile() {
                                     ))}
                                 </Select>
                             </FormControl>
-
                             {/* Nút thêm mới */}
                             {canCreate && (
                                 <Tooltip
@@ -494,6 +539,32 @@ function ChildrenProfile() {
                                     </span>
                                 </Tooltip>
                             )}
+                            {canCreate && (
+                                <Tooltip title="Nhập dữ liệu từ Excel">
+                                    <IconButton
+                                        sx={{ color: '#f57c00' }}
+                                        onClick={() => setOpenImportDialog(true)}
+                                        disabled={!isActiveYear}
+                                    >
+                                        <FileUploadOutlinedIcon />
+                                    </IconButton>
+                                </Tooltip>
+                            )}
+
+                            {/* ✅ Export Excel */}
+                            <Tooltip title="Xuất file Excel">
+                                <IconButton
+                                    sx={{ color: '#2e7d32' }}
+                                    onClick={handleExportExcel}
+                                    disabled={exportLoading || !selectedYear}
+                                >
+                                    {exportLoading ? (
+                                        <CircularProgress size={24} sx={{ color: '#2e7d32' }} />
+                                    ) : (
+                                        <FileDownloadOutlinedIcon />
+                                    )}
+                                </IconButton>
+                            </Tooltip>
                         </Box>
                     </Box>
 
@@ -733,6 +804,16 @@ function ChildrenProfile() {
                     setOpenDialog(false);
                     fetchProfiles();
                 }}
+            />
+
+            <ImportChildrenProfileDialog
+                open={openImportDialog}
+                onClose={() => setOpenImportDialog(false)}
+                onSuccess={() => {
+                    setOpenImportDialog(false);
+                    fetchProfiles();
+                }}
+                academicYearId={selectedYear}
             />
 
             {/* Confirm Dialog */}

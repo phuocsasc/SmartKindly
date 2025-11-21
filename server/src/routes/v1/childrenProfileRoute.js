@@ -20,6 +20,12 @@ Router.route('/classes-by-age-group').get(
     rbacMiddleware.isValidPermission([PERMISSIONS.VIEW_CHILDREN_PROFILE]),
     childrenProfileController.getClassesByAgeGroup,
 );
+// ✅ Import bulk
+Router.route('/import-bulk').post(
+    authMiddleware.isAuthorized,
+    rbacMiddleware.isValidPermission([PERMISSIONS.VIEW_CHILDREN_PROFILE]),
+    childrenProfileController.importBulk,
+);
 
 // Route lấy danh sách
 Router.route('/').get(

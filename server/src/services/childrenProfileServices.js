@@ -607,6 +607,193 @@ const deleteProfile = async (id, userId) => {
     }
 };
 
+/**
+ * ✅ Import bulk children profiles from Excel
+ */
+const importBulk = async (data, userId) => {
+    try {
+        console.log('📋 [importBulk] Starting with', data.length, 'profiles');
+
+        const user = await UserModel.findById(userId).select('schoolId role _id');
+        if (!user || !user.schoolId) {
+            throw new ApiError(StatusCodes.FORBIDDEN, 'Bạn không thuộc trường học nào');
+        }
+
+        // ✅ Get active academic year
+        const academicYear = await AcademicYearModel.findOne({
+            schoolId: user.schoolId,
+            status: 'active',
+            _destroy: false,
+        });
+
+        if (!academicYear) {
+            throw new ApiError(StatusCodes.BAD_REQUEST, 'Không tìm thấy năm học đang hoạt động');
+        }
+
+        const results = {
+            created: [],
+            updated: [],
+            errors: [],
+        };
+
+        for (const [index, item] of data.entries()) {
+            try {
+                const rowNumber = index + 6; // Excel row number
+
+                // ✅ Find class by name
+                const classData = await ClassModel.findOne({
+                    schoolId: user.schoolId,
+                    academicYearId: academicYear._id,
+                    name: item.className,
+                    ageGroup: item.ageGroup,
+                    _destroy: false,
+                });
+
+                if (!classData) {
+                    results.errors.push({
+                        row: rowNumber,
+                        studentCode: item.studentCode,
+                        fullName: item.fullName,
+                        error: `Không tìm thấy lớp "${item.className}" trong khối "${item.ageGroup}"`,
+                    });
+                    continue;
+                }
+
+                // ✅ Check permission
+                if (user.role === 'to_truong') {
+                    const departments = await DepartmentModel.find({
+                        schoolId: user.schoolId,
+                        academicYearId: academicYear._id,
+                        managers: user._id,
+                        _destroy: false,
+                    }).select('name');
+
+                    const managedGrades = departments.map((dept) => normalizeDepartmentToGrade(dept.name));
+                    const hasPermission = managedGrades.some(
+                        (grade) => grade.toLowerCase() === classData.grade.toLowerCase(),
+                    );
+
+                    if (!hasPermission) {
+                        results.errors.push({
+                            row: rowNumber,
+                            studentCode: item.studentCode,
+                            fullName: item.fullName,
+                            error: `Bạn không có quyền import vào lớp "${classData.name}" (Khối ${classData.grade})`,
+                        });
+                        continue;
+                    }
+                } else if (user.role === 'giao_vien') {
+                    if (classData.homeRoomTeacher.toString() !== user._id.toString()) {
+                        results.errors.push({
+                            row: rowNumber,
+                            studentCode: item.studentCode,
+                            fullName: item.fullName,
+                            error: 'Bạn chỉ được import vào lớp của mình',
+                        });
+                        continue;
+                    }
+                }
+
+                // ✅ Prepare data
+                const profileData = {
+                    fullName: item.fullName,
+                    birthDate: item.birthDate,
+                    gender: item.gender,
+                    ageGroup: item.ageGroup,
+                    classId: classData._id,
+                    status: item.status || 'Đang học',
+                    enrollmentDate: item.enrollmentDate,
+                    enrollmentForm: item.enrollmentForm || '',
+                    birthPlace: item.birthPlace || '',
+                    hometown: item.hometown || '',
+                    permanentAddress: item.permanentAddress,
+                    temporaryAddress: item.temporaryAddress,
+                    ethnicity: item.ethnicity,
+                    religion: item.religion || '',
+                    swimmingLevel: item.swimmingLevel || '',
+                    bloodType: item.bloodType || '',
+                    hasComputer: item.hasComputer || '',
+                    hasSmartphone: item.hasSmartphone || '',
+                    familyComponent: item.familyComponent || '',
+                    fatherName: item.fatherName || '',
+                    fatherBirthYear: item.fatherBirthYear || '',
+                    fatherOccupation: item.fatherOccupation || '',
+                    fatherPhone: item.fatherPhone || '',
+                    fatherEmail: item.fatherEmail || '',
+                    motherName: item.motherName || '',
+                    motherBirthYear: item.motherBirthYear || '',
+                    motherOccupation: item.motherOccupation || '',
+                    motherPhone: item.motherPhone || '',
+                    motherEmail: item.motherEmail || '',
+                    guardianName: item.guardianName || '',
+                    guardianBirthYear: item.guardianBirthYear || '',
+                    guardianOccupation: item.guardianOccupation || '',
+                    guardianPhone: item.guardianPhone || '',
+                    guardianEmail: item.guardianEmail || '',
+                    schoolId: user.schoolId,
+                    academicYearId: academicYear._id,
+                };
+
+                // ✅ Update or Create
+                if (item.studentCode) {
+                    // Update existing
+                    const existing = await ChildrenProfileModel.findOne({
+                        schoolId: user.schoolId,
+                        studentCode: item.studentCode,
+                        _destroy: false,
+                    });
+
+                    if (existing) {
+                        Object.assign(existing, profileData);
+                        await existing.save();
+                        results.updated.push({
+                            studentCode: item.studentCode,
+                            fullName: item.fullName,
+                        });
+                    } else {
+                        results.errors.push({
+                            row: rowNumber,
+                            studentCode: item.studentCode,
+                            fullName: item.fullName,
+                            error: `Không tìm thấy học sinh với mã "${item.studentCode}"`,
+                        });
+                    }
+                } else {
+                    // Create new
+                    const studentCode = await generateStudentCode(user.schoolId);
+                    profileData.studentCode = studentCode;
+                    profileData.createdBy = user._id;
+
+                    const newProfile = await ChildrenProfileModel.create(profileData);
+                    results.created.push({
+                        studentCode: newProfile.studentCode,
+                        fullName: newProfile.fullName,
+                    });
+                }
+            } catch (error) {
+                results.errors.push({
+                    row: index + 6,
+                    studentCode: item.studentCode || '',
+                    fullName: item.fullName || '',
+                    error: error.message,
+                });
+            }
+        }
+
+        console.log('✅ [importBulk] Results:', {
+            created: results.created.length,
+            updated: results.updated.length,
+            errors: results.errors.length,
+        });
+
+        return results;
+    } catch (error) {
+        console.error('❌ [importBulk] Error:', error);
+        if (error instanceof ApiError) throw error;
+        throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, 'Lỗi khi import hồ sơ: ' + error.message);
+    }
+};
+
 export const childrenProfileServices = {
     createNew,
     getAll,
@@ -615,4 +802,5 @@ export const childrenProfileServices = {
     deleteProfile,
     getAccessibleAgeGroups,
     getClassesByAgeGroup,
+    importBulk, // ✅ Add this
 };

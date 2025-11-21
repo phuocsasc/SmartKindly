@@ -94,6 +94,20 @@ const getClassesByAgeGroup = async (req, res, next) => {
         next(error);
     }
 };
+const importBulk = async (req, res, next) => {
+    try {
+        const userId = req.jwtDecoded.id;
+        const results = await childrenProfileServices.importBulk(req.body, userId);
+
+        res.status(StatusCodes.OK).json({
+            success: true,
+            message: 'Import hồ sơ trẻ thành công',
+            data: results,
+        });
+    } catch (error) {
+        next(error);
+    }
+};
 
 export const childrenProfileController = {
     createNew,
@@ -103,4 +117,5 @@ export const childrenProfileController = {
     deleteProfile,
     getAccessibleAgeGroups,
     getClassesByAgeGroup,
+    importBulk, // ✅ Add this
 };

@@ -38,9 +38,9 @@ import WeeklyPlan from './pages/School/EducationPlan/WeeklyPlan/WeeklyPlan';
 
 // Quản lý trẻ em
 import ChildrenProfile from '~/pages/School/Children/ChildrenProfile/ChildrenProfile';
-import AttendanceChildren from '~/pages/School/Children/AttendanceChildren/AttendanceChildren';
-import AssessmentChildren from '~/pages/School/Children/AssessmentChildren/AssessmentChildren';
-import CertificateChildren from '~/pages/School/Children/CertificateChildren/CertificateChildren';
+import ChildrenAttendance from '~/pages/School/Children/ChildrenAttendance/ChildrenAttendance';
+import ChildrenAssessment from '~/pages/School/Children/ChildrenAssessment/ChildrenAssessment';
+import ChildrenCertificate from '~/pages/School/Children/ChildrenCertificate/ChildrenCertificate';
 
 /**
  * Protected Routes với UserContext
@@ -141,13 +141,13 @@ function AppContent() {
                     <Route path="/children/profile" element={<ChildrenProfile />} />
                 </Route>
                 <Route element={<RbacRoute requiredPermission={PERMISSIONS.VIEW_CHILDREN_ATTENDANCE} />}>
-                    <Route path="/children/attendance" element={<AttendanceChildren />} />
+                    <Route path="/children/attendance" element={<ChildrenAttendance />} />
                 </Route>
                 <Route element={<RbacRoute requiredPermission={PERMISSIONS.VIEW_CHILDREN_ASSESSMENT} />}>
-                    <Route path="/children/assessment" element={<AssessmentChildren />} />
+                    <Route path="/children/assessment" element={<ChildrenAssessment />} />
                 </Route>
                 <Route element={<RbacRoute requiredPermission={PERMISSIONS.VIEW_CHILDREN_CERTIFICATE} />}>
-                    <Route path="/children/certificate" element={<CertificateChildren />} />
+                    <Route path="/children/certificate" element={<ChildrenCertificate />} />
                 </Route>
             </Route>
 

@@ -4,7 +4,7 @@ import MainLayout from '~/layouts/SchoolLayout';
 import PageContainer from '~/components/common/PageContainer';
 import PageBreadcrumb from '~/components/common/PageBreadcrumb';
 import { useUser } from '~/contexts/UserContext';
-function AttendanceChildren() {
+function ChildrenAttendance() {
     const { user } = useUser();
     return (
         <MainLayout user={user}>
@@ -23,4 +23,4 @@ function AttendanceChildren() {
         </MainLayout>
     );
 }
-export default AttendanceChildren;
+export default ChildrenAttendance;

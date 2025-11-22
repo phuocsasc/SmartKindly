@@ -83,6 +83,7 @@ function Classes() {
 
         try {
             setLoading(true);
+
             const res = await classApi.getAll({
                 page: paginationModel.page + 1,
                 limit: paginationModel.pageSize,
@@ -90,25 +91,28 @@ function Classes() {
                 search: searchText,
             });
 
+            console.log('📋 Sample class:', res.data.data.classes[0]); // Debug
+
             const classes = res.data.data.classes.map((cls, index) => {
-                // ✅ Tạo sessionsDisplay từ sessions object
-                const sessions = cls.sessions || {};
-                const activeSession = [];
-                if (sessions.morning) activeSession.push('Sáng');
-                if (sessions.afternoon) activeSession.push('Chiều');
-                if (sessions.evening) activeSession.push('Tối');
-                const sessionsDisplay = activeSession.length > 0 ? activeSession.join(', ') : '---';
+                const sessionsDisplay = [
+                    cls.sessions?.morning && 'Sáng',
+                    cls.sessions?.afternoon && 'Chiều',
+                    cls.sessions?.evening && 'Tối',
+                ]
+                    .filter(Boolean)
+                    .join(', ');
 
                 return {
-                    stt: paginationModel.page * paginationModel.pageSize + index + 1,
+                    // ✅ FIX: Thêm homeRoomTeacherId để dùng trong edit dialog
                     id: cls._id,
+                    stt: paginationModel.page * paginationModel.pageSize + index + 1,
                     name: cls.name,
                     grade: cls.grade,
                     ageGroup: cls.ageGroup,
                     homeRoomTeacher: cls.homeRoomTeacher?.fullName || '---',
                     description: cls.description,
                     sessions: cls.sessions,
-                    sessionsDisplay, // ✅ Thêm field này
+                    sessionsDisplay,
                     childrenCount: cls.childrenCount || 0,
                     hasChildren: cls.hasChildren || false,
                 };

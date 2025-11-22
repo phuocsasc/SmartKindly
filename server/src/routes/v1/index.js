@@ -16,6 +16,8 @@ import { schoolEducationalActivityRoute } from './schoolEducationalActivityRoute
 import { scheduleRoute } from './scheduleRoute.js';
 import { weeklyPlanRoute } from './weeklyPlanRoute.js';
 import { childrenProfileRoute } from '~/routes/v1/childrenProfileRoute';
+import { childrenAttendanceRoute } from './childrenAttendanceRoute.js';
+
 
 const Router = express.Router();
 
@@ -64,5 +66,8 @@ Router.use('/schedules', scheduleRoute);
 Router.use('/weekly-plans', weeklyPlanRoute);
 
 Router.use('/children-profiles', childrenProfileRoute);
+
+Router.use('/children-attendances', childrenAttendanceRoute); // ✅ Add this
+
 
 export const APIs_V1 = Router;

@@ -166,12 +166,13 @@ const createNew = async (data, userId) => {
 
 const getAll = async (query, userId) => {
     try {
-        const user = await UserModel.findById(userId).select('schoolId');
+        const user = await UserModel.findById(userId).select('schoolId role').lean();
         if (!user || !user.schoolId) {
             throw new ApiError(StatusCodes.FORBIDDEN, 'Bạn không thuộc trường học nào');
         }
 
         const { page = 1, limit = 10, academicYearId = '', grade = '', search = '' } = query;
+        const skip = (page - 1) * limit;
 
         let filter = {
             schoolId: user.schoolId,
@@ -180,23 +181,22 @@ const getAll = async (query, userId) => {
 
         if (academicYearId) filter.academicYearId = academicYearId;
         if (grade) filter.grade = grade;
-        if (search) {
-            filter.$or = [
-                { name: { $regex: search, $options: 'i' } },
-                { description: { $regex: search, $options: 'i' } },
-            ];
-        }
+        if (search) filter.name = { $regex: search, $options: 'i' };
 
-        const skip = (parseInt(page) - 1) * parseInt(limit);
+        // const skip = (parseInt(page) - 1) * parseInt(limit);
 
         const [classes, totalItems] = await Promise.all([
             ClassModel.find(filter)
+                .select(
+                    'classId name grade ageGroup description sessions homeRoomTeacher academicYearId createdBy createdAt',
+                ) // ✅ Select only needed fields
                 .populate('academicYearId', 'fromYear toYear status')
                 .populate('homeRoomTeacher', 'fullName username email phone')
+                .populate('createdBy', 'fullName username')
                 .skip(skip)
                 .limit(parseInt(limit))
-                .sort({ name: 1 })
-                .lean(),
+                .sort({ createdAt: -1 })
+                .lean(), // ✅ lean() để tăng tốc
             ClassModel.countDocuments(filter),
         ]);
 

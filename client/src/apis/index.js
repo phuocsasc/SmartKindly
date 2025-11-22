@@ -50,3 +50,5 @@ export * from './scheduleApi';
 export * from './weeklyPlanApi';
 
 export * from './childrenProfileApi';
+
+export * from './childrenAttendanceApi'

@@ -59,7 +59,7 @@ function ClassDialog({ open, mode, classData, academicYearId, onClose, onSuccess
                 grade: classData.grade || '',
                 ageGroup: classData.ageGroup || '',
                 name: classData.name || '',
-                homeRoomTeacher: classData.homeRoomTeacher?._id || '',
+                homeRoomTeacher: classData.homeRoomTeacher || '',
                 description: classData.description || '',
                 sessions: {
                     morning: classData.sessions?.morning || false,
@@ -168,9 +168,23 @@ function ClassDialog({ open, mode, classData, academicYearId, onClose, onSuccess
                 await classApi.create(dataToSubmit);
                 toast.success('Tạo lớp học thành công!');
             } else {
-                await classApi.update(classData._id, dataToSubmit);
+                // ✅ FIX: Sử dụng classData.id (đã được map từ _id)
+                const classId = classData?.id;
+
+                if (!classId) {
+                    console.error('❌ [ClassDialog] Missing class ID:', classData);
+                    toast.error('Không tìm thấy ID lớp học!');
+                    return;
+                }
+
+                console.log('📝 [ClassDialog] Updating class with ID:', classId);
+
+                await classApi.update(classId, dataToSubmit);
                 toast.success('Cập nhật lớp học thành công!');
             }
+
+            onSuccess();
+            onClose();
 
             onSuccess();
         } catch (error) {

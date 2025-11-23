@@ -8,6 +8,7 @@ import {
     Box,
     Typography,
     IconButton,
+    Chip,
     Alert,
     Avatar,
     CircularProgress,
@@ -138,7 +139,7 @@ function ImportChildrenProfileDialog({ open, onClose, onSuccess, academicYearId 
 
                 // ✅ Parse from row 6 (index 5) - header ở row 6, data từ row 7
                 const jsonData = XLSX.utils.sheet_to_json(worksheet, {
-                    range: 5, // ✅ Bắt đầu từ row 6 (index 5 - header)
+                    range: 5,
                     header: 1,
                     defval: '',
                 });
@@ -152,46 +153,49 @@ function ImportChildrenProfileDialog({ open, onClose, onSuccess, academicYearId 
 
                 // ✅ Map data từ row 7 (bỏ qua header row 6)
                 const mappedData = jsonData
-                    .slice(1) // Bỏ header row
-                    .map((row, index) => ({
-                        rowNumber: index + 7, // ✅ Row thực tế trong Excel (data bắt đầu từ row 7)
-                        studentCode: String(row[1] || '').trim(),
-                        fullName: String(row[2] || '').trim(),
-                        birthDate: parseExcelDate(row[3]),
-                        gender: String(row[4] || '').trim(),
-                        ageGroup: String(row[5] || '').trim(),
-                        className: String(row[6] || '').trim(),
-                        status: String(row[7] || 'Đang học').trim(),
-                        enrollmentDate: parseExcelDate(row[8]),
-                        enrollmentForm: String(row[9] || '').trim(),
-                        birthPlace: String(row[10] || '').trim(),
-                        hometown: String(row[11] || '').trim(),
-                        permanentAddress: String(row[12] || '').trim(),
-                        temporaryAddress: String(row[13] || '').trim(),
-                        ethnicity: String(row[14] || '').trim(),
-                        religion: String(row[15] || '').trim(),
-                        swimmingLevel: String(row[16] || '').trim(),
-                        bloodType: String(row[17] || '').trim(),
-                        hasComputer: String(row[18] || '').trim(),
-                        hasSmartphone: String(row[19] || '').trim(),
-                        familyComponent: String(row[20] || '').trim(),
-                        fatherName: String(row[21] || '').trim(),
-                        fatherBirthYear: String(row[22] || '').trim(),
-                        fatherOccupation: String(row[23] || '').trim(),
-                        fatherPhone: String(row[24] || '').trim(),
-                        fatherEmail: String(row[25] || '').trim(),
-                        motherName: String(row[26] || '').trim(),
-                        motherBirthYear: String(row[27] || '').trim(),
-                        motherOccupation: String(row[28] || '').trim(),
-                        motherPhone: String(row[29] || '').trim(),
-                        motherEmail: String(row[30] || '').trim(),
-                        guardianName: String(row[31] || '').trim(),
-                        guardianBirthYear: String(row[32] || '').trim(),
-                        guardianOccupation: String(row[33] || '').trim(),
-                        guardianPhone: String(row[34] || '').trim(),
-                        guardianEmail: String(row[35] || '').trim(),
-                    }))
-                    // ✅ Chỉ lấy các dòng có dữ liệu (ít nhất phải có họ tên)
+                    .slice(1)
+                    .map((row, index) => {
+                        const excelRowNumber = index + 7;
+
+                        return {
+                            rowNumber: excelRowNumber,
+                            studentCode: String(row[1] || '').trim(),
+                            fullName: String(row[2] || '').trim(),
+                            birthDate: parseExcelDate(row[3]),
+                            gender: String(row[4] || '').trim(),
+                            ageGroup: String(row[5] || '').trim(),
+                            className: String(row[6] || '').trim(),
+                            status: String(row[7] || 'Đang học').trim(),
+                            enrollmentDate: parseExcelDate(row[8]),
+                            enrollmentForm: String(row[9] || '').trim(),
+                            birthPlace: String(row[10] || '').trim(),
+                            hometown: String(row[11] || '').trim(),
+                            permanentAddress: String(row[12] || '').trim(),
+                            temporaryAddress: String(row[13] || '').trim(),
+                            ethnicity: String(row[14] || '').trim(),
+                            religion: String(row[15] || '').trim(),
+                            swimmingLevel: String(row[16] || '').trim(),
+                            bloodType: String(row[17] || '').trim(),
+                            hasComputer: String(row[18] || '').trim(),
+                            hasSmartphone: String(row[19] || '').trim(),
+                            familyComponent: String(row[20] || '').trim(),
+                            fatherName: String(row[21] || '').trim(),
+                            fatherBirthYear: String(row[22] || '').trim(),
+                            fatherOccupation: String(row[23] || '').trim(),
+                            fatherPhone: String(row[24] || '').trim(),
+                            fatherEmail: String(row[25] || '').trim(),
+                            motherName: String(row[26] || '').trim(),
+                            motherBirthYear: String(row[27] || '').trim(),
+                            motherOccupation: String(row[28] || '').trim(),
+                            motherPhone: String(row[29] || '').trim(),
+                            motherEmail: String(row[30] || '').trim(),
+                            guardianName: String(row[31] || '').trim(),
+                            guardianBirthYear: String(row[32] || '').trim(),
+                            guardianOccupation: String(row[33] || '').trim(),
+                            guardianPhone: String(row[34] || '').trim(),
+                            guardianEmail: String(row[35] || '').trim(),
+                        };
+                    })
                     .filter((row) => {
                         const hasData = row.fullName !== '' || row.studentCode !== '';
 
@@ -199,6 +203,8 @@ function ImportChildrenProfileDialog({ open, onClose, onSuccess, academicYearId 
                             console.log(`✅ Row ${row.rowNumber} HAS DATA:`, {
                                 fullName: row.fullName,
                                 studentCode: row.studentCode,
+                                className: row.className,
+                                ageGroup: row.ageGroup,
                             });
                         }
 
@@ -207,26 +213,51 @@ function ImportChildrenProfileDialog({ open, onClose, onSuccess, academicYearId 
 
                 console.log('✅ Final Filtered Data:', mappedData);
 
-                // ✅ Validate
+                // ✅ Validate TỪNG DÒNG (bao gồm cả validate tên lớp)
                 const errors = [];
                 mappedData.forEach((row) => {
                     const rowErrors = [];
 
-                    if (!row.fullName) rowErrors.push('Thiếu họ tên');
-                    if (!row.birthDate) rowErrors.push('Thiếu ngày sinh');
-                    if (!row.gender) rowErrors.push('Thiếu giới tính');
-                    if (!row.ageGroup) rowErrors.push('Thiếu khối');
-                    if (!row.className) rowErrors.push('Thiếu tên lớp');
-                    if (!row.enrollmentDate) rowErrors.push('Thiếu ngày nhập học');
-                    if (!row.permanentAddress) rowErrors.push('Thiếu địa chỉ thường trú');
-                    if (!row.temporaryAddress) rowErrors.push('Thiếu địa chỉ tạm trú');
-                    if (!row.ethnicity) rowErrors.push('Thiếu dân tộc');
+                    // Required fields validation
+                    if (!row.fullName || row.fullName.trim() === '') {
+                        rowErrors.push('Thiếu họ tên');
+                    }
+                    if (!row.birthDate) {
+                        rowErrors.push('Thiếu ngày sinh');
+                    }
+                    if (!row.gender || row.gender.trim() === '') {
+                        rowErrors.push('Thiếu giới tính');
+                    }
+                    if (!row.ageGroup || row.ageGroup.trim() === '') {
+                        rowErrors.push('Thiếu khối');
+                    }
+                    if (!row.className || row.className.trim() === '') {
+                        rowErrors.push('Thiếu tên lớp');
+                    } else {
+                        // ✅ FIX: Validate tên lớp có tồn tại trong khối không
+                        const ageGroupClasses = classesData[row.ageGroup] || [];
+                        if (!ageGroupClasses.includes(row.className)) {
+                            rowErrors.push(`Không tìm thấy lớp "${row.className}" trong khối "${row.ageGroup}".`);
+                        }
+                    }
+                    if (!row.enrollmentDate) {
+                        rowErrors.push('Thiếu ngày nhập học');
+                    }
+                    if (!row.permanentAddress || row.permanentAddress.trim() === '') {
+                        rowErrors.push('Thiếu địa chỉ thường trú');
+                    }
+                    if (!row.temporaryAddress || row.temporaryAddress.trim() === '') {
+                        rowErrors.push('Thiếu địa chỉ tạm trú');
+                    }
+                    if (!row.ethnicity || row.ethnicity.trim() === '') {
+                        rowErrors.push('Thiếu dân tộc');
+                    }
 
+                    // ✅ Nếu có lỗi, thêm vào danh sách errors
                     if (rowErrors.length > 0) {
                         errors.push({
                             row: row.rowNumber,
-                            studentCode: row.studentCode,
-                            fullName: row.fullName,
+                            fullName: row.fullName || '(Chưa có tên)',
                             errors: rowErrors,
                         });
                     }
@@ -235,14 +266,20 @@ function ImportChildrenProfileDialog({ open, onClose, onSuccess, academicYearId 
                 setValidationErrors(errors);
                 setPreviewData(mappedData);
 
-                if (mappedData.length === 0) {
+                // ✅ Hiển thị thông báo
+                if (errors.length > 0) {
+                    toast.error(`Phát hiện ${errors.length} dòng dữ liệu không hợp lệ! Vui lòng kiểm tra lại.`);
+                } else if (mappedData.length === 0) {
                     toast.warning('File Excel không có dữ liệu hợp lệ!');
+                } else {
+                    toast.success(`✅ Phát hiện ${mappedData.length} hồ sơ hợp lệ!`);
                 }
             } catch (error) {
-                console.error('Error parsing Excel:', error);
-                toast.error('Lỗi khi đọc file Excel!');
+                console.error('❌ Error parsing Excel:', error);
+                toast.error('Lỗi khi đọc file Excel! Vui lòng kiểm tra định dạng file.');
             }
         };
+
         reader.readAsArrayBuffer(file);
     };
 
@@ -390,11 +427,12 @@ function ImportChildrenProfileDialog({ open, onClose, onSuccess, academicYearId 
                         >
                             {validationErrors.length === 0 ? (
                                 <Typography variant="body2">
-                                    ✅ Phát hiện <strong>{previewData.length}</strong> hồ sơ hợp lệ
+                                    ✅ Phát hiện <strong>{previewData.length}</strong> hồ sơ hợp lệ, sẵn sàng tải lên!
                                 </Typography>
                             ) : (
                                 <Typography variant="body2">
-                                    ❌ Có <strong>{validationErrors.length}</strong> hàng dữ liệu không hợp lệ
+                                    ❌ Có <strong>{validationErrors.length}</strong> dòng dữ liệu không hợp lệ. Vui lòng
+                                    sửa các lỗi bên dưới trước khi tải lên.
                                 </Typography>
                             )}
                         </Alert>
@@ -403,28 +441,44 @@ function ImportChildrenProfileDialog({ open, onClose, onSuccess, academicYearId 
                         {validationErrors.length > 0 && (
                             <Box
                                 sx={{
-                                    maxHeight: 200,
+                                    maxHeight: 300,
                                     overflowY: 'auto',
                                     border: '1px solid #f44336',
                                     borderRadius: 1,
-                                    p: 1,
+                                    p: 2,
                                     bgcolor: '#ffebee',
                                 }}
                             >
                                 {validationErrors.map((error, idx) => (
-                                    <Box key={idx} sx={{ mb: 1 }}>
-                                        <Typography variant="body2" fontWeight={600}>
-                                            ❌ Dòng {error.row}: {error.fullName || error.studentCode}
+                                    <Box key={idx} sx={{ mb: 2 }}>
+                                        <Typography variant="body2" fontWeight={600} color="error">
+                                            ❌ Dòng {error.row}: {error.fullName}
                                         </Typography>
-                                        <Box sx={{ pl: 2 }}>
+                                        <Box sx={{ pl: 2, mt: 0.5 }}>
                                             {error.errors.map((err, i) => (
-                                                <Typography key={i} variant="caption" color="error">
+                                                <Typography key={i} variant="caption" color="error" display="block">
                                                     • {err}
                                                 </Typography>
                                             ))}
                                         </Box>
                                     </Box>
                                 ))}
+                            </Box>
+                        )}
+
+                        {/* Show success preview */}
+                        {validationErrors.length === 0 && (
+                            <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+                                <Chip
+                                    label={`${previewData.filter((r) => !r.studentCode).length} hồ sơ mới`}
+                                    color="success"
+                                    size="small"
+                                />
+                                <Chip
+                                    label={`${previewData.filter((r) => r.studentCode).length} hồ sơ cập nhật`}
+                                    color="info"
+                                    size="small"
+                                />
                             </Box>
                         )}
                     </Box>

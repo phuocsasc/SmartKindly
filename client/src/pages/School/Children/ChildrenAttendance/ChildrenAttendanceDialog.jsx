@@ -87,7 +87,7 @@ function ChildrenAttendanceDialog({ open, studentInfo, classId, date, existingAt
     const handleDelete = async () => {
         if (!existingAttendance || !existingAttendance._id) return;
 
-        if (!window.confirm('Bạn có chắc muốn xóa điểm danh này?')) return;
+        // if (!window.confirm('Bạn có chắc muốn xóa điểm danh này?')) return;
 
         try {
             setLoading(true);

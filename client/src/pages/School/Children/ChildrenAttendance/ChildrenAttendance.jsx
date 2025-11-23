@@ -342,7 +342,7 @@ function ChildrenAttendance() {
                     ) : weekDays.length === 0 ? (
                         <Alert severity="warning">Tuần này chưa có lịch học (Thứ 2-6).</Alert>
                     ) : (
-                        <TableContainer sx={{ maxHeight: 600, overflowX: 'auto' }}>
+                        <TableContainer sx={{ maxHeight: 400, overflowX: 'auto' }}>
                             <Table stickyHeader size="small">
                                 <TableHead>
                                     <TableRow>
@@ -350,10 +350,11 @@ function ChildrenAttendance() {
                                             sx={{
                                                 fontWeight: 700,
                                                 bgcolor: '#e3f2fd',
+                                                color: '#1976d2',
                                                 position: 'sticky',
                                                 left: 0,
                                                 zIndex: 3,
-                                                minWidth: 60,
+                                                minWidth: 40,
                                             }}
                                         >
                                             STT
@@ -362,6 +363,7 @@ function ChildrenAttendance() {
                                             sx={{
                                                 fontWeight: 700,
                                                 bgcolor: '#e3f2fd',
+                                                color: '#1976d2',
                                                 position: 'sticky',
                                                 left: 60,
                                                 zIndex: 3,
@@ -374,13 +376,14 @@ function ChildrenAttendance() {
                                             sx={{
                                                 fontWeight: 700,
                                                 bgcolor: '#e3f2fd',
+                                                color: '#1976d2',
                                                 position: 'sticky',
                                                 left: 260,
                                                 zIndex: 3,
-                                                minWidth: 120,
+                                                minWidth: 80,
                                             }}
                                         >
-                                            Mã HS
+                                            Mã học sinh
                                         </TableCell>
 
                                         {weekDays.map((day) => (
@@ -390,16 +393,27 @@ function ChildrenAttendance() {
                                                 sx={{
                                                     fontWeight: 700,
                                                     bgcolor: '#e3f2fd',
+                                                    color: '#1976d2',
                                                     minWidth: 140,
                                                 }}
                                             >
-                                                <Box>
-                                                    <Typography variant="caption" fontWeight={700}>
-                                                        {day.dayOfWeek}
-                                                    </Typography>
-                                                    <Typography variant="caption" display="block">
-                                                        {dayjs(day.date).format('DD/MM')}
-                                                    </Typography>
+                                                <Box
+                                                    sx={{
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        justifyContent: 'center',
+                                                        gap: 1, // giảm hoặc bỏ nếu muốn sát hơn
+                                                    }}
+                                                >
+                                                    {/* Text thứ + ngày */}
+                                                    <Box>
+                                                        <Typography variant="caption" fontWeight={700}>
+                                                            {day.dayOfWeek}
+                                                        </Typography>
+                                                        <Typography variant="caption" display="block">
+                                                            {dayjs(day.date).format('DD/MM')}
+                                                        </Typography>
+                                                    </Box>
 
                                                     {/* Bulk attendance icon */}
                                                     {canCreate && isActiveYear && (
@@ -408,7 +422,6 @@ function ChildrenAttendance() {
                                                                 size="small"
                                                                 color="primary"
                                                                 onClick={() => handleBulkAttendance(day)}
-                                                                sx={{ mt: 0.5 }}
                                                             >
                                                                 <GroupAddIcon fontSize="small" />
                                                             </IconButton>

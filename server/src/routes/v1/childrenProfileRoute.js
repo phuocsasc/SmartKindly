@@ -7,6 +7,13 @@ import { childrenProfileValidation } from '~/validations/childrenProfileValidati
 
 const Router = express.Router();
 
+// ✅ Thêm route xóa nhiều
+Router.route('/delete-many').post(
+    authMiddleware.isAuthorized,
+    rbacMiddleware.isValidPermission([PERMISSIONS.DELETE_CHILDREN_PROFILE]),
+    childrenProfileController.deleteManyProfiles,
+);
+
 // ✅ Route lấy nhóm tuổi accessible - ĐẶT TRƯỚC route có :id
 Router.route('/accessible-age-groups').get(
     authMiddleware.isAuthorized,

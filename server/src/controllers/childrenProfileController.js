@@ -109,13 +109,24 @@ const importBulk = async (req, res, next) => {
     }
 };
 
+const deleteManyProfiles = async (req, res, next) => {
+    try {
+        const userId = req.jwtDecoded.id;
+        const result = await childrenProfileServices.deleteManyProfiles(req.body.ids, userId);
+        res.status(StatusCodes.OK).json(result);
+    } catch (error) {
+        next(error);
+    }
+};
+
 export const childrenProfileController = {
     createNew,
     getAll,
     getDetails,
     update,
     deleteProfile,
+    deleteManyProfiles, // ✅ Add this
     getAccessibleAgeGroups,
     getClassesByAgeGroup,
-    importBulk, // ✅ Add this
+    importBulk,
 };

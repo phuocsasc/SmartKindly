@@ -794,13 +794,100 @@ const importBulk = async (data, userId) => {
     }
 };
 
+/**
+ * ✅ Xóa nhiều hồ sơ trẻ cùng lúc
+ */
+const deleteManyProfiles = async (ids, userId) => {
+    try {
+        console.log('📋 [deleteManyProfiles] Starting with ids:', ids);
+
+        if (!ids || !Array.isArray(ids) || ids.length === 0) {
+            throw new ApiError(StatusCodes.BAD_REQUEST, 'Danh sách ID không hợp lệ');
+        }
+
+        const user = await UserModel.findById(userId).select('schoolId role _id');
+        if (!user || !user.schoolId) {
+            throw new ApiError(StatusCodes.FORBIDDEN, 'Bạn không thuộc trường học nào');
+        }
+
+        // ✅ Lấy danh sách profiles
+        const profiles = await ChildrenProfileModel.find({
+            _id: { $in: ids },
+            schoolId: user.schoolId,
+            _destroy: false,
+        }).populate('classId academicYearId');
+
+        if (profiles.length === 0) {
+            throw new ApiError(StatusCodes.NOT_FOUND, 'Không tìm thấy hồ sơ nào để xóa');
+        }
+
+        // ✅ Kiểm tra tất cả profiles phải trong năm học đang hoạt động
+        for (const profile of profiles) {
+            const academicYear = await AcademicYearModel.findOne({
+                _id: profile.academicYearId,
+                status: 'active',
+                _destroy: false,
+            });
+
+            if (!academicYear) {
+                throw new ApiError(
+                    StatusCodes.BAD_REQUEST,
+                    `Chỉ được xóa hồ sơ trong năm học đang hoạt động. Hồ sơ "${profile.fullName}" không thuộc năm học đang hoạt động.`,
+                );
+            }
+
+            // ✅ Check permission theo role
+            if (user.role === 'to_truong') {
+                const classData = await ClassModel.findById(profile.classId);
+                const departments = await DepartmentModel.find({
+                    schoolId: user.schoolId,
+                    managers: user._id,
+                    _destroy: false,
+                }).select('name');
+
+                const managedGrades = departments.map((dept) => normalizeDepartmentToGrade(dept.name));
+                const hasPermission = managedGrades.some(
+                    (grade) => grade.toLowerCase() === classData.grade.toLowerCase(),
+                );
+
+                if (!hasPermission) {
+                    throw new ApiError(StatusCodes.FORBIDDEN, `Bạn không có quyền xóa hồ sơ "${profile.fullName}"`);
+                }
+            } else if (user.role === 'giao_vien') {
+                const classData = await ClassModel.findById(profile.classId);
+                if (classData.homeRoomTeacher.toString() !== user._id.toString()) {
+                    throw new ApiError(StatusCodes.FORBIDDEN, `Bạn không có quyền xóa hồ sơ "${profile.fullName}"`);
+                }
+            }
+        }
+
+        // ✅ Hard delete tất cả profiles
+        const result = await ChildrenProfileModel.deleteMany({
+            _id: { $in: ids },
+        });
+
+        console.log(`✅ [deleteManyProfiles] Deleted ${result.deletedCount} profiles`);
+
+        return {
+            message: `Đã xóa thành công ${result.deletedCount} hồ sơ trẻ em`,
+            deletedCount: result.deletedCount,
+        };
+    } catch (error) {
+        console.error('❌ [deleteManyProfiles] Error:', error);
+        if (error instanceof ApiError) throw error;
+        throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, 'Lỗi khi xóa nhiều hồ sơ: ' + error.message);
+    }
+};
+
+// ✅ Export thêm function mới
 export const childrenProfileServices = {
     createNew,
     getAll,
     getDetails,
     update,
     deleteProfile,
+    deleteManyProfiles, // ✅ Add this
     getAccessibleAgeGroups,
     getClassesByAgeGroup,
-    importBulk, // ✅ Add this
+    importBulk,
 };

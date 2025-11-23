@@ -585,17 +585,35 @@ function PersonnelRecord() {
                                     '& .MuiDataGrid-columnHeaderTitle': {
                                         fontWeight: 'bold',
                                         fontSize: '0.95rem',
-                                        whiteSpace: 'normal',
-                                        lineHeight: '1.2rem',
+                                    },
+                                    '& .MuiDataGrid-columnHeader': {
+                                        borderRight: '1px solid #bbdefb',
+                                        textAlign: 'center',
                                     },
                                     '& .MuiDataGrid-cell': {
-                                        borderBottom: '1px solid #e0e0e0',
                                         borderRight: '1px solid #e0e0e0',
-                                        color: '#000',
+                                        borderBottom: '1px solid #f0f0f0',
+                                        alignItems: 'center',
                                         whiteSpace: 'normal',
                                         wordBreak: 'break-word',
+                                        color: '#000',
                                     },
-                                    '& .MuiDataGrid-row:hover': { backgroundColor: '#f5faff' },
+                                    '& .MuiDataGrid-cell:focus, & .MuiDataGrid-cell:focus-within': {
+                                        outline: 'none',
+                                    },
+                                    '& .MuiDataGrid-row:hover': {
+                                        backgroundColor: '#f5faff',
+                                    },
+                                    // ✅ Style cho checkbox column
+                                    '& .MuiDataGrid-cellCheckbox': {
+                                        justifyContent: 'center',
+                                    },
+                                    '& .MuiDataGrid-columnHeaderCheckbox': {
+                                        justifyContent: 'center',
+                                    },
+                                    borderRadius: 0,
+                                    border: 'none',
+                                    borderRight: '1px solid #e0e0e0', // ✅ Border phân cách với bảng phải
                                 }}
                                 slots={{
                                     noRowsOverlay: () => (
@@ -658,39 +676,36 @@ function PersonnelRecord() {
                                 disableColumnMenu
                                 autoHeight
                                 sx={{
-                                    borderLeft: 'none',
-                                    borderBottom: 'none',
-                                    borderRight: 'none',
-                                    '& .MuiDataGrid-virtualScroller': {
-                                        overflowX: 'auto',
-                                    },
                                     '& .MuiDataGrid-columnHeaders': {
                                         backgroundColor: '#e3f2fd',
                                         color: '#1976d2',
                                         fontWeight: 900,
-                                        borderRight: '2px solid #bbdefb',
                                         borderBottom: '2px solid #bbdefb',
                                     },
                                     '& .MuiDataGrid-columnHeaderTitle': {
                                         fontWeight: 'bold',
                                         fontSize: '0.95rem',
-                                        whiteSpace: 'normal',
-                                        lineHeight: '1.2rem',
+                                    },
+                                    '& .MuiDataGrid-columnHeader': {
+                                        borderRight: '1px solid #bbdefb',
+                                        textAlign: 'center',
                                     },
                                     '& .MuiDataGrid-cell': {
                                         borderRight: '1px solid #e0e0e0',
                                         borderBottom: '1px solid #f0f0f0',
                                         alignItems: 'center',
                                         whiteSpace: 'normal',
-                                        // wordBreak: 'break-word',
+                                        wordBreak: 'break-word',
                                         color: '#000',
                                     },
                                     '& .MuiDataGrid-cell:focus, & .MuiDataGrid-cell:focus-within': {
                                         outline: 'none',
                                     },
-                                    '& .MuiDataGrid-row:hover': { backgroundColor: '#f5faff' },
-                                    // borderRadius: 2,
-                                    boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+                                    '& .MuiDataGrid-row:hover': {
+                                        backgroundColor: '#f5faff',
+                                    },
+                                    borderRadius: 0,
+                                    border: 'none',
                                 }}
                                 localeText={{
                                     MuiTablePagination: {

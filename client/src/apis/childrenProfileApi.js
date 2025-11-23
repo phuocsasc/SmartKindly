@@ -38,6 +38,11 @@ export const childrenProfileApi = {
         return await authorizedAxiosInstance.delete(`${API_ROOT}/v1/children-profiles/${id}`);
     },
 
+    // ✅ Xóa nhiều hồ sơ trẻ
+    deleteManyProfiles: async (ids) => {
+        return await authorizedAxiosInstance.post(`${API_ROOT}/v1/children-profiles/delete-many`, { ids });
+    },
+
     // ✅ Lấy danh sách nhóm tuổi user được phép thao tác trong năm học
     getAccessibleAgeGroups: async (academicYearId) => {
         return await authorizedAxiosInstance.get(`${API_ROOT}/v1/children-profiles/accessible-age-groups`, {

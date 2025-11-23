@@ -9,6 +9,7 @@ import {
     FormControl,
     InputLabel,
     Select,
+    Alert,
     MenuItem,
     CircularProgress,
     Chip,
@@ -58,6 +59,7 @@ function ChildrenProfile() {
     const [dialogMode, setDialogMode] = useState('create');
     const [currentProfile, setCurrentProfile] = useState(null);
     const [openImportDialog, setOpenImportDialog] = useState(false);
+    const [selectedRows, setSelectedRows] = useState([]); // ✅ Add this
 
     const isActiveYear = selectedYear === activeYearId;
 
@@ -201,6 +203,37 @@ function ChildrenProfile() {
         } catch (error) {
             console.error('Error deleting profile:', error);
             toast.error(error.response?.data?.message || 'Lỗi khi xóa hồ sơ!');
+        }
+    };
+
+    // ✅ Handler xóa nhiều hồ sơ
+    const handleDeleteMany = async () => {
+        if (!isActiveYear) {
+            toast.warning('Chỉ có thể xóa hồ sơ trong năm học đang hoạt động!');
+            return;
+        }
+
+        try {
+            await showConfirm({
+                title: 'Xác nhận xóa nhiều hồ sơ',
+                message: `Bạn có chắc chắn muốn xóa ${selectedRows.length} hồ sơ đã chọn? Hành động này không thể hoàn tác.`,
+                severity: 'error',
+                confirmText: 'Xóa tất cả',
+                onConfirm: async () => {
+                    try {
+                        await childrenProfileApi.deleteManyProfiles(selectedRows);
+                        toast.success(`Xóa ${selectedRows.length} hồ sơ thành công!`);
+                        setSelectedRows([]);
+                        fetchProfiles();
+                    } catch (deleteError) {
+                        const errorMessage = deleteError?.response?.data?.message || 'Lỗi khi xóa hồ sơ!';
+                        toast.error(errorMessage);
+                    }
+                },
+            });
+        } catch (error) {
+            if (error?.isCancel) return;
+            toast.error('Đã xảy ra lỗi!');
         }
     };
 
@@ -407,24 +440,46 @@ function ChildrenProfile() {
             sortable: false,
             disableColumnMenu: true,
             renderCell: (params) => {
+                const isDisabled = selectedRows.length >= 2; // ✅ Add this
+
                 return (
                     <Box sx={{ display: 'flex', justifyContent: 'center', gap: 0.5 }}>
                         {canUpdate && (
-                            <Tooltip title={isActiveYear ? 'Sửa thông tin' : 'Chỉ xem'}>
-                                <IconButton color="primary" size="small" onClick={() => handleEdit(params.row)}>
-                                    <EditOutlinedIcon />
-                                </IconButton>
+                            <Tooltip
+                                title={
+                                    isDisabled ? 'Vui lòng bỏ chọn để sửa' : isActiveYear ? 'Sửa thông tin' : 'Chỉ xem'
+                                }
+                            >
+                                <span>
+                                    <IconButton
+                                        color="primary"
+                                        size="small"
+                                        disabled={isDisabled} // ✅ Add this
+                                        onClick={() => handleEdit(params.row)}
+                                        sx={{ opacity: isDisabled ? 0.5 : 1 }} // ✅ Add this
+                                    >
+                                        <EditOutlinedIcon />
+                                    </IconButton>
+                                </span>
                             </Tooltip>
                         )}
                         {canDelete && (
-                            <Tooltip title={isActiveYear ? 'Xóa hồ sơ' : 'Không thể xóa'}>
+                            <Tooltip
+                                title={
+                                    isDisabled
+                                        ? 'Vui lòng bỏ chọn để xóa'
+                                        : isActiveYear
+                                          ? 'Xóa hồ sơ'
+                                          : 'Không thể xóa'
+                                }
+                            >
                                 <span>
                                     <IconButton
                                         color="error"
                                         size="small"
-                                        disabled={!isActiveYear}
+                                        disabled={!isActiveYear || isDisabled} // ✅ Update this
                                         onClick={() => handleDelete(params.row.id, params.row.fullName)}
-                                        sx={{ opacity: isActiveYear ? 1 : 0.5 }}
+                                        sx={{ opacity: !isActiveYear || isDisabled ? 0.5 : 1 }} // ✅ Update this
                                     >
                                         <DeleteOutlineOutlinedIcon />
                                     </IconButton>
@@ -565,15 +620,35 @@ function ChildrenProfile() {
                                     )}
                                 </IconButton>
                             </Tooltip>
+
+                            {/* ✅ Nút xóa nhiều - Chỉ hiện khi có chọn */}
+                            {canDelete && isActiveYear && selectedRows.length > 0 && (
+                                <Tooltip title={`Xóa ${selectedRows.length} hồ sơ đã chọn`}>
+                                    <IconButton color="error" onClick={handleDeleteMany}>
+                                        <DeleteOutlineOutlinedIcon />
+                                    </IconButton>
+                                </Tooltip>
+                            )}
                         </Box>
                     </Box>
 
+                    {/* Warning */}
+                    {selectedYear && (
+                        <Alert severity={isActiveYear ? 'success' : 'warning'} sx={{ mb: 2, borderRadius: 1 }}>
+                            {isActiveYear ? (
+                                <strong>Năm học đang hoạt động - Có thể thêm/sửa/xóa hồ sơ</strong>
+                            ) : (
+                                <strong>Năm học đã kết thúc - Chỉ xem dữ liệu</strong>
+                            )}
+                        </Alert>
+                    )}
+
                     {/* Data Grid */}
                     <Box sx={{ display: 'flex', width: '100%', overflow: 'hidden' }}>
-                        {/* Bảng bên trái: 3 cột cố định */}
+                        {/* Bảng bên trái: 4 cột cố định (Checkbox + STT + Họ tên + Mã HS) */}
                         <Box
                             sx={{
-                                flex: '0 0 400px', // tổng chiều rộng ~ STT (40) + Họ tên (160) + Mã cán bộ (140) + padding
+                                flex: '0 0 460px', // ✅ Tăng width: Checkbox (60) + STT (40) + Họ tên (180) + Mã HS (180)
                                 backgroundColor: '#fff',
                             }}
                         >
@@ -581,11 +656,14 @@ function ChildrenProfile() {
                                 rows={rows}
                                 columns={columns.filter((c) => ['stt', 'fullName', 'studentCode'].includes(c.field))}
                                 loading={loading}
+                                checkboxSelection={canDelete && isActiveYear} // ✅ Hiển thị checkbox
                                 disableColumnMenu
                                 disableRowSelectionOnClick
                                 hideFooter
                                 autoHeight
                                 rowHeight={52}
+                                rowSelectionModel={selectedRows}
+                                onRowSelectionModelChange={(newSelection) => setSelectedRows(newSelection)}
                                 sx={{
                                     '& .MuiDataGrid-columnHeaders': {
                                         backgroundColor: '#e3f2fd',
@@ -596,17 +674,35 @@ function ChildrenProfile() {
                                     '& .MuiDataGrid-columnHeaderTitle': {
                                         fontWeight: 'bold',
                                         fontSize: '0.95rem',
-                                        whiteSpace: 'normal',
-                                        lineHeight: '1.2rem',
+                                    },
+                                    '& .MuiDataGrid-columnHeader': {
+                                        borderRight: '1px solid #bbdefb',
+                                        textAlign: 'center',
                                     },
                                     '& .MuiDataGrid-cell': {
-                                        borderBottom: '1px solid #e0e0e0',
                                         borderRight: '1px solid #e0e0e0',
-                                        color: '#000',
+                                        borderBottom: '1px solid #f0f0f0',
+                                        alignItems: 'center',
                                         whiteSpace: 'normal',
                                         wordBreak: 'break-word',
+                                        color: '#000',
                                     },
-                                    '& .MuiDataGrid-row:hover': { backgroundColor: '#f5faff' },
+                                    '& .MuiDataGrid-cell:focus, & .MuiDataGrid-cell:focus-within': {
+                                        outline: 'none',
+                                    },
+                                    '& .MuiDataGrid-row:hover': {
+                                        backgroundColor: '#f5faff',
+                                    },
+                                    // ✅ Style cho checkbox column
+                                    '& .MuiDataGrid-cellCheckbox': {
+                                        justifyContent: 'center',
+                                    },
+                                    '& .MuiDataGrid-columnHeaderCheckbox': {
+                                        justifyContent: 'center',
+                                    },
+                                    borderRadius: 0,
+                                    border: 'none',
+                                    borderRight: '1px solid #e0e0e0', // ✅ Border phân cách với bảng phải
                                 }}
                                 slots={{
                                     noRowsOverlay: () => (
@@ -639,7 +735,7 @@ function ChildrenProfile() {
                             />
                         </Box>
 
-                        {/* Bảng bên phải: bắt đầu từ “Ngày sinh”, có thanh scroll ngang */}
+                        {/* Bảng bên phải: Các cột còn lại với thanh scroll ngang */}
                         <Box
                             sx={{
                                 flex: 1,
@@ -650,9 +746,7 @@ function ChildrenProfile() {
                                     '&::-webkit-scrollbar-track': { backgroundColor: '#e3f2fd' },
                                     '&::-webkit-scrollbar-thumb': {
                                         backgroundColor: '#0964a1a4',
-                                        // borderRadius: '4px',
                                     },
-                                    '&::-webkit-scrollbar-thumb:hover': { backgroundColor: '#0071BC' },
                                 },
                             }}
                         >
@@ -669,39 +763,36 @@ function ChildrenProfile() {
                                 disableColumnMenu
                                 autoHeight
                                 sx={{
-                                    borderLeft: 'none',
-                                    borderBottom: 'none',
-                                    borderRight: 'none',
-                                    '& .MuiDataGrid-virtualScroller': {
-                                        overflowX: 'auto',
-                                    },
                                     '& .MuiDataGrid-columnHeaders': {
                                         backgroundColor: '#e3f2fd',
                                         color: '#1976d2',
                                         fontWeight: 900,
-                                        borderRight: '2px solid #bbdefb',
                                         borderBottom: '2px solid #bbdefb',
                                     },
                                     '& .MuiDataGrid-columnHeaderTitle': {
                                         fontWeight: 'bold',
                                         fontSize: '0.95rem',
-                                        whiteSpace: 'normal',
-                                        lineHeight: '1.2rem',
+                                    },
+                                    '& .MuiDataGrid-columnHeader': {
+                                        borderRight: '1px solid #bbdefb',
+                                        textAlign: 'center',
                                     },
                                     '& .MuiDataGrid-cell': {
                                         borderRight: '1px solid #e0e0e0',
                                         borderBottom: '1px solid #f0f0f0',
                                         alignItems: 'center',
                                         whiteSpace: 'normal',
-                                        // wordBreak: 'break-word',
+                                        wordBreak: 'break-word',
                                         color: '#000',
                                     },
                                     '& .MuiDataGrid-cell:focus, & .MuiDataGrid-cell:focus-within': {
                                         outline: 'none',
                                     },
-                                    '& .MuiDataGrid-row:hover': { backgroundColor: '#f5faff' },
-                                    // borderRadius: 2,
-                                    boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+                                    '& .MuiDataGrid-row:hover': {
+                                        backgroundColor: '#f5faff',
+                                    },
+                                    borderRadius: 0,
+                                    border: 'none',
                                 }}
                                 localeText={{
                                     MuiTablePagination: {
@@ -741,55 +832,6 @@ function ChildrenProfile() {
                             />
                         </Box>
                     </Box>
-                    {/* <DataGrid
-                        rows={rows}
-                        columns={columns}
-                        loading={loading}
-                        disableColumnMenu
-                        disableColumnSort
-                        paginationMode="server"
-                        rowCount={totalRows}
-                        paginationModel={paginationModel}
-                        onPaginationModelChange={setPaginationModel}
-                        pageSizeOptions={[5, 10, 25, 50]}
-                        sx={{
-                            border: 'none',
-                            '& .MuiDataGrid-cell:focus': { outline: 'none' },
-                            '& .MuiDataGrid-row:hover': { backgroundColor: '#f5f5f5' },
-                            '& .MuiDataGrid-columnHeaders': {
-                                backgroundColor: '#f0f0f0',
-                                fontWeight: 600,
-                            },
-                        }}
-                        slots={{
-                            noRowsOverlay: () => (
-                                <Box sx={{ textAlign: 'center', py: 4 }}>
-                                    <Typography variant="body2" color="text.secondary">
-                                        Không có dữ liệu
-                                    </Typography>
-                                </Box>
-                            ),
-                            loadingOverlay: () => (
-                                <Box
-                                    sx={{
-                                        display: 'flex',
-                                        justifyContent: 'center',
-                                        alignItems: 'center',
-                                        height: '100%',
-                                    }}
-                                >
-                                    <CircularProgress />
-                                </Box>
-                            ),
-                        }}
-                        slotProps={{
-                            pagination: {
-                                labelRowsPerPage: 'Số dòng mỗi trang:',
-                                labelDisplayedRows: ({ from, to, count }) =>
-                                    `${from} - ${to} của ${count !== -1 ? count : `hơn ${to}`}`,
-                            },
-                        }}
-                    /> */}
                 </Paper>
             </PageContainer>
 

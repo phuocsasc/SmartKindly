@@ -36,6 +36,7 @@ function DepartmentCopyDialog({ open, currentYearId, onClose, onSuccess }) {
         if (open) {
             fetchConfiguredYears();
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [open]);
 
     // Fetch departments khi chọn năm

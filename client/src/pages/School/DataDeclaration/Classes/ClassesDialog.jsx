@@ -54,68 +54,105 @@ function ClassDialog({ open, mode, classData, academicYearId, onClose, onSuccess
     const isCreateMode = mode === 'create';
 
     useEffect(() => {
-        if (mode === 'edit' && classData) {
-            setFormData({
-                grade: classData.grade || '',
-                ageGroup: classData.ageGroup || '',
-                name: classData.name || '',
-                homeRoomTeacher: classData.homeRoomTeacher || '',
-                description: classData.description || '',
-                sessions: {
-                    morning: classData.sessions?.morning || false,
-                    afternoon: classData.sessions?.afternoon || false,
-                    evening: classData.sessions?.evening || false,
-                },
-            });
+        const initializeForm = async () => {
+            if (mode === 'edit' && classData) {
+                console.log('📋 [ClassDialog] Edit mode - classData:', classData);
 
-            // Fetch age groups và teachers cho grade hiện tại
-            if (classData.grade) {
-                fetchAgeGroupsByGrade(classData.grade);
-                fetchAvailableTeachers();
+                // ✅ Fetch dữ liệu TRƯỚC
+                if (classData.grade) {
+                    await fetchAgeGroupsByGrade(classData.grade);
+                    await fetchAvailableTeachers();
+                }
+
+                // ✅ SAU ĐÓ mới set formData
+                setFormData({
+                    grade: classData.grade || '',
+                    ageGroup: classData.ageGroup || '',
+                    name: classData.name || '',
+                    homeRoomTeacher: classData.homeRoomTeacherId || '', // ✅ Sử dụng ID
+                    description: classData.description || '',
+                    sessions: {
+                        morning: classData.sessions?.morning || false,
+                        afternoon: classData.sessions?.afternoon || false,
+                        evening: classData.sessions?.evening || false,
+                    },
+                });
+
+                console.log('✅ [ClassDialog] Form initialized with teacher ID:', classData.homeRoomTeacherId);
+            } else {
+                setFormData({
+                    grade: '',
+                    ageGroup: '',
+                    name: '',
+                    homeRoomTeacher: '',
+                    description: '',
+                    sessions: {
+                        morning: false,
+                        afternoon: false,
+                        evening: false,
+                    },
+                });
+                setAgeGroups([]);
+                setAvailableTeachers([]);
             }
-        } else {
-            setFormData({
-                grade: '',
-                ageGroup: '',
-                name: '',
-                homeRoomTeacher: '',
-                description: '',
-                sessions: {
-                    morning: false,
-                    afternoon: false,
-                    evening: false,
-                },
-            });
-            setAgeGroups([]);
-            setAvailableTeachers([]);
+        };
+
+        if (open) {
+            initializeForm();
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [mode, classData, open]);
 
-    // Fetch age groups khi chọn grade
+    // ✅ Fetch age groups by grade
     const fetchAgeGroupsByGrade = async (grade) => {
+        if (!grade) return;
+
         try {
             setLoadingAgeGroups(true);
             const res = await classApi.getAgeGroupsByGrade(grade);
-            setAgeGroups(res.data.data);
+
+            // ✅ FIX: Kiểm tra response structure
+            const ageGroups = res.data?.data?.ageGroups || [];
+            setAgeGroups(ageGroups);
+
+            console.log('✅ [fetchAgeGroupsByGrade] Loaded:', ageGroups);
         } catch (error) {
             console.error('Error fetching age groups:', error);
             toast.error('Lỗi khi tải danh sách nhóm lớp!');
+            setAgeGroups([]); // ✅ Set empty array on error
         } finally {
             setLoadingAgeGroups(false);
         }
     };
 
-    // Fetch available teachers
+    // ✅ Fetch available teachers
     const fetchAvailableTeachers = async () => {
+        if (!academicYearId) return;
+
         try {
             setLoadingTeachers(true);
-            const currentClassId = mode === 'edit' && classData ? classData._id : null;
+
+            const currentClassId = mode === 'edit' ? classData?.id : null;
+
+            console.log('🔍 [fetchAvailableTeachers] Params:', {
+                academicYearId,
+                currentClassId,
+            });
+
             const res = await classApi.getAvailableTeachers(academicYearId, currentClassId);
-            setAvailableTeachers(res.data.data);
+
+            // ✅ FIX: Kiểm tra response structure
+            const teachers = res.data?.data?.teachers || res.data?.data || [];
+            setAvailableTeachers(teachers);
+
+            console.log('✅ [fetchAvailableTeachers] Loaded:', {
+                count: teachers.length,
+                teacherIds: teachers.map((t) => t._id),
+            });
         } catch (error) {
             console.error('Error fetching teachers:', error);
             toast.error('Lỗi khi tải danh sách giáo viên!');
+            setAvailableTeachers([]); // ✅ Set empty array on error
         } finally {
             setLoadingTeachers(false);
         }

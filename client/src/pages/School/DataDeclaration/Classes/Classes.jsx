@@ -110,6 +110,7 @@ function Classes() {
                     grade: cls.grade,
                     ageGroup: cls.ageGroup,
                     homeRoomTeacher: cls.homeRoomTeacher?.fullName || '---',
+                    homeRoomTeacherId: cls.homeRoomTeacher?._id || '', // ✅ Thêm ID
                     description: cls.description,
                     sessions: cls.sessions,
                     sessionsDisplay,

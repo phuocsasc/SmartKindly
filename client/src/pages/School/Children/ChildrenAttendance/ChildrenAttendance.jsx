@@ -214,6 +214,15 @@ function ChildrenAttendance() {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [selectedClass, selectedWeek]);
 
+    const formatWeekDisplay = (week) => {
+        if (!week.startDate || !week.endDate) {
+            return `Tuần ${week.weekNumber}`;
+        }
+        const start = dayjs(week.startDate).format('DD/MM');
+        const end = dayjs(week.endDate).format('DD/MM');
+        return `Tuần ${week.weekNumber} (${start} - ${end})`;
+    };
+
     // ✅ Handle cell click - Open dialog
     const handleCellClick = (student, day) => {
         if (!isActiveYear && !canUpdate) return;
@@ -274,7 +283,7 @@ function ChildrenAttendance() {
                             />
 
                             {/* Academic Year */}
-                            <FormControl size="small" sx={{ minWidth: 200 }}>
+                            <FormControl size="small" sx={{ minWidth: 100 }}>
                                 <InputLabel>Năm học</InputLabel>
                                 <Select
                                     value={selectedYear}
@@ -297,7 +306,7 @@ function ChildrenAttendance() {
                             </FormControl>
 
                             {/* Class */}
-                            <FormControl size="small" sx={{ minWidth: 180 }}>
+                            <FormControl size="small" sx={{ minWidth: 150 }}>
                                 <InputLabel>Lớp học</InputLabel>
                                 <Select
                                     value={selectedClass}
@@ -324,7 +333,7 @@ function ChildrenAttendance() {
                                 >
                                     {weeks.map((week) => (
                                         <MenuItem key={week.weekNumber} value={week.weekNumber.toString()}>
-                                            Tuần {week.weekNumber}
+                                            {formatWeekDisplay(week)}
                                         </MenuItem>
                                     ))}
                                 </Select>
@@ -407,7 +416,8 @@ function ChildrenAttendance() {
                                         whiteSpace: 'normal',
                                         wordBreak: 'break-word',
                                         color: '#000',
-                                        padding: '8px 12px',
+                                        padding: '6px 8px',
+                                        fontSize: '0.9rem',
                                     },
 
                                     // 💠 ROW HOVER
@@ -478,11 +488,11 @@ function ChildrenAttendance() {
                                                     {/* Text thứ + ngày */}
                                                     <Box>
                                                         <Typography variant="caption" fontWeight={700}>
-                                                            {day.dayOfWeek}
+                                                            {day.dayOfWeek} ({dayjs(day.date).format('DD/MM')})
                                                         </Typography>
-                                                        <Typography variant="caption" display="block">
+                                                        {/* <Typography variant="caption" display="block">
                                                             {dayjs(day.date).format('DD/MM')}
-                                                        </Typography>
+                                                        </Typography> */}
                                                     </Box>
 
                                                     {/* Bulk attendance icon */}
@@ -490,7 +500,7 @@ function ChildrenAttendance() {
                                                         <Tooltip title="Điểm danh hàng loạt">
                                                             <IconButton
                                                                 size="small"
-                                                                color="primary"
+                                                                color="info"
                                                                 onClick={() => handleBulkAttendance(day)}
                                                             >
                                                                 <GroupAddIcon fontSize="small" />
@@ -525,8 +535,9 @@ function ChildrenAttendance() {
                                                         align="center"
                                                         sx={{
                                                             cursor: isActiveYear ? 'pointer' : 'not-allowed',
-                                                            verticalAlign: 'top',
-                                                            py: 1,
+                                                            verticalAlign: 'middle',
+                                                            py: 0.5,
+                                                            px: 1,
                                                             opacity: !isActiveYear && !attendance ? 0.5 : 1,
                                                             pointerEvents: !isActiveYear ? 'none' : 'auto',
                                                         }}

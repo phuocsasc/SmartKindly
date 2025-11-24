@@ -106,14 +106,24 @@ function ChildrenAttendance() {
 
         try {
             const res = await childrenAttendanceApi.getAccessibleClasses(selectedYear);
-            setClasses(res.data.data.classes);
+            const classesData = res.data.data.classes;
 
-            if (res.data.data.classes.length > 0 && !selectedClass) {
-                setSelectedClass(res.data.data.classes[0]._id);
+            setClasses(classesData);
+
+            // ✅ FIX: Auto-select lớp đầu tiên của năm học được chọn
+            if (classesData.length > 0) {
+                setSelectedClass(classesData[0]._id);
+            } else {
+                setSelectedClass('');
+                setStudents([]);
+                setAttendanceData({});
+                setWeekDays([]);
             }
         } catch (error) {
             console.error('Error fetching classes:', error);
             toast.error('Lỗi khi tải danh sách lớp học!');
+            setClasses([]);
+            setSelectedClass('');
         }
     };
 
@@ -123,14 +133,22 @@ function ChildrenAttendance() {
 
         try {
             const res = await childrenAttendanceApi.getWeeks(selectedYear);
-            setWeeks(res.data.data.weeks);
+            const weeksData = res.data.data.weeks;
 
-            if (res.data.data.weeks.length > 0 && !selectedWeek) {
-                setSelectedWeek(res.data.data.weeks[0].weekNumber.toString());
+            setWeeks(weeksData);
+
+            // ✅ FIX: Auto-select tuần 1 của năm học được chọn
+            if (weeksData.length > 0) {
+                setSelectedWeek(weeksData[0].weekNumber.toString());
+            } else {
+                setSelectedWeek('');
+                setWeekDays([]);
             }
         } catch (error) {
             console.error('Error fetching weeks:', error);
             toast.error('Lỗi khi tải danh sách tuần!');
+            setWeeks([]);
+            setSelectedWeek('');
         }
     };
 
@@ -166,7 +184,11 @@ function ChildrenAttendance() {
             });
         } catch (error) {
             console.error('Error fetching attendance:', error);
-            toast.error('Lỗi khi tải dữ liệu điểm danh!');
+            // ✅ Chỉ show toast nếu KHÔNG phải lỗi "Không tìm thấy lớp học"
+            // (lỗi này xảy ra khi đang chuyển năm và params chưa sync)
+            if (error?.response?.status !== 404) {
+                toast.error('Lỗi khi tải dữ liệu điểm danh!');
+            }
         } finally {
             setLoading(false);
         }
@@ -187,10 +209,10 @@ function ChildrenAttendance() {
 
     useEffect(() => {
         if (selectedYear && selectedClass && selectedWeek && weeks.length > 0) {
-            fetchAttendanceData();
+            fetchAttendanceData(selectedYear, selectedClass, selectedWeek, weeks);
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [selectedYear, selectedClass, selectedWeek]);
+    }, [selectedClass, selectedWeek]);
 
     // ✅ Handle cell click - Open dialog
     const handleCellClick = (student, day) => {
@@ -342,67 +364,115 @@ function ChildrenAttendance() {
                     ) : weekDays.length === 0 ? (
                         <Alert severity="warning">Tuần này chưa có lịch học (Thứ 2-6).</Alert>
                     ) : (
-                        <TableContainer sx={{ maxHeight: 400, overflowX: 'auto' }}>
-                            <Table stickyHeader size="small">
+                        <TableContainer
+                            sx={{
+                                maxHeight: 450,
+                                overflowY: 'auto',
+                                overflowX: 'auto',
+                                position: 'relative', // ✅ KEY: Để sticky header hoạt động
+                                // Optional: style scrollbar dọc + ngang cho đẹp
+                                '&::-webkit-scrollbar': { width: '6px', height: '8px' },
+                                '&::-webkit-scrollbar-track': { backgroundColor: '#e3f2fd' },
+                                '&::-webkit-scrollbar-thumb': {
+                                    backgroundColor: '#0964a1a4',
+                                    borderRadius: '4px',
+                                },
+                                '&::-webkit-scrollbar-thumb:hover': { backgroundColor: '#0071BC' },
+                                borderRadius: 2,
+                                boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+                            }}
+                        >
+                            <Table
+                                stickyHeader
+                                size="small"
+                                sx={{
+                                    // 💠 HEADER STYLE - Giống UserManagement
+                                    '& .MuiTableHead-root .MuiTableCell-head': {
+                                        backgroundColor: '#e3f2fd',
+                                        color: '#1976d2',
+                                        fontWeight: 900,
+                                        borderBottom: '2px solid #bbdefb',
+                                        borderRight: '1px solid #bbdefb',
+                                        fontSize: '0.95rem',
+                                        textAlign: 'center',
+                                        // position: 'sticky', // ✅ Sticky
+                                        // top: 0, // ✅ Dính ở top
+                                        zIndex: 2,
+                                    },
+
+                                    // 💠 BODY STYLE - Giống UserManagement
+                                    '& .MuiTableBody-root .MuiTableCell-body': {
+                                        borderRight: '1px solid #e0e0e0',
+                                        borderBottom: '1px solid #f0f0f0',
+                                        whiteSpace: 'normal',
+                                        wordBreak: 'break-word',
+                                        color: '#000',
+                                        padding: '8px 12px',
+                                    },
+
+                                    // 💠 ROW HOVER
+                                    '& .MuiTableRow-root:hover': {
+                                        backgroundColor: '#f5faff',
+                                    },
+
+                                    // 💠 FIXED COLUMNS (STT, Họ tên, Mã HS)
+                                    '& .MuiTableCell-root': {
+                                        '&.sticky-col-stt': {
+                                            position: 'sticky',
+                                            left: 0,
+                                            zIndex: 3,
+                                            backgroundColor: '#e3f2fd',
+                                            minWidth: 40,
+                                        },
+                                        '&.sticky-col-stt.body-cell': {
+                                            backgroundColor: '#fff',
+                                            zIndex: 2,
+                                        },
+                                        '&.sticky-col-name': {
+                                            position: 'sticky',
+                                            left: 60,
+                                            zIndex: 3,
+                                            backgroundColor: '#e3f2fd',
+                                            minWidth: 200,
+                                        },
+                                        '&.sticky-col-name.body-cell': {
+                                            backgroundColor: '#fff',
+                                            zIndex: 2,
+                                            fontWeight: 600,
+                                        },
+                                        '&.sticky-col-code': {
+                                            position: 'sticky',
+                                            left: 260,
+                                            zIndex: 3,
+                                            backgroundColor: '#e3f2fd',
+                                            minWidth: 120,
+                                        },
+                                        '&.sticky-col-code.body-cell': {
+                                            backgroundColor: '#fff',
+                                            zIndex: 2,
+                                        },
+                                    },
+
+                                    // 💠 BO GÓC VÀ SHADOW
+                                    borderRadius: 2,
+                                    boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+                                    overflow: 'hidden',
+                                }}
+                            >
                                 <TableHead>
                                     <TableRow>
-                                        <TableCell
-                                            sx={{
-                                                fontWeight: 700,
-                                                bgcolor: '#e3f2fd',
-                                                color: '#1976d2',
-                                                position: 'sticky',
-                                                left: 0,
-                                                zIndex: 3,
-                                                minWidth: 40,
-                                            }}
-                                        >
-                                            STT
-                                        </TableCell>
-                                        <TableCell
-                                            sx={{
-                                                fontWeight: 700,
-                                                bgcolor: '#e3f2fd',
-                                                color: '#1976d2',
-                                                position: 'sticky',
-                                                left: 60,
-                                                zIndex: 3,
-                                                minWidth: 200,
-                                            }}
-                                        >
-                                            Họ tên
-                                        </TableCell>
-                                        <TableCell
-                                            sx={{
-                                                fontWeight: 700,
-                                                bgcolor: '#e3f2fd',
-                                                color: '#1976d2',
-                                                position: 'sticky',
-                                                left: 260,
-                                                zIndex: 3,
-                                                minWidth: 80,
-                                            }}
-                                        >
-                                            Mã học sinh
-                                        </TableCell>
+                                        <TableCell className="sticky-col-stt">STT</TableCell>
+                                        <TableCell className="sticky-col-name">Họ tên</TableCell>
+                                        <TableCell className="sticky-col-code">Mã học sinh</TableCell>
 
                                         {weekDays.map((day) => (
-                                            <TableCell
-                                                key={day.date}
-                                                align="center"
-                                                sx={{
-                                                    fontWeight: 700,
-                                                    bgcolor: '#e3f2fd',
-                                                    color: '#1976d2',
-                                                    minWidth: 140,
-                                                }}
-                                            >
+                                            <TableCell key={day.date} align="center" sx={{ minWidth: 140 }}>
                                                 <Box
                                                     sx={{
                                                         display: 'flex',
                                                         alignItems: 'center',
                                                         justifyContent: 'center',
-                                                        gap: 1, // giảm hoặc bỏ nếu muốn sát hơn
+                                                        gap: 1,
                                                     }}
                                                 >
                                                     {/* Text thứ + ngày */}
@@ -436,72 +506,29 @@ function ChildrenAttendance() {
                                 <TableBody>
                                     {filteredStudents.map((student, index) => (
                                         <TableRow key={student._id} hover>
-                                            <TableCell
-                                                sx={{
-                                                    position: 'sticky',
-                                                    left: 0,
-                                                    bgcolor: '#fff',
-                                                    zIndex: 2,
-                                                }}
-                                            >
-                                                {index + 1}
-                                            </TableCell>
-                                            <TableCell
-                                                sx={{
-                                                    position: 'sticky',
-                                                    left: 60,
-                                                    bgcolor: '#fff',
-                                                    zIndex: 2,
-                                                    fontWeight: 600,
-                                                }}
-                                            >
+                                            <TableCell className="sticky-col-stt body-cell">{index + 1}</TableCell>
+                                            <TableCell className="sticky-col-name body-cell">
                                                 {student.fullName}
                                             </TableCell>
-                                            <TableCell
-                                                sx={{
-                                                    position: 'sticky',
-                                                    left: 260,
-                                                    bgcolor: '#fff',
-                                                    zIndex: 2,
-                                                }}
-                                            >
+                                            <TableCell className="sticky-col-code body-cell">
                                                 {student.studentCode}
                                             </TableCell>
 
                                             {weekDays.map((day) => {
-                                                // ✅ FIX: Đảm bảo format date chính xác
-                                                const studentIdStr = student._id.toString();
-
-                                                // ✅ Parse day.date đúng cách
-                                                const dayDate = dayjs(day.date);
-                                                const dateStr = dayDate.format('YYYY-MM-DD');
-
-                                                const key = `${studentIdStr}-${dateStr}`;
-                                                const attendance = attendanceData[key];
-
-                                                console.log(`🔍 [${student.fullName}] Key: ${key}`, {
-                                                    exists: !!attendance,
-                                                    status: attendance?.status,
-                                                    dayDate: dayDate.format('DD/MM/YYYY'),
-                                                    rawDate: day.date,
-                                                });
-
-                                                const chipProps = attendance
-                                                    ? getStatusChipProps(attendance.status)
-                                                    : null;
+                                                const key = `${student._id}-${dayjs(day.date).format('YYYY-MM-DD')}`;
+                                                const attendance = attendanceData[key] || null;
+                                                const chipProps = getStatusChipProps(attendance?.status);
 
                                                 return (
                                                     <TableCell
                                                         key={day.date}
                                                         align="center"
                                                         sx={{
-                                                            cursor: isActiveYear || attendance ? 'pointer' : 'default',
-                                                            '&:hover': {
-                                                                bgcolor:
-                                                                    isActiveYear || attendance ? '#f5f5f5' : 'inherit',
-                                                            },
+                                                            cursor: isActiveYear ? 'pointer' : 'not-allowed',
                                                             verticalAlign: 'top',
                                                             py: 1,
+                                                            opacity: !isActiveYear && !attendance ? 0.5 : 1,
+                                                            pointerEvents: !isActiveYear ? 'none' : 'auto',
                                                         }}
                                                         onClick={() => handleCellClick(student, day)}
                                                     >
@@ -553,16 +580,18 @@ function ChildrenAttendance() {
                                                                 title={
                                                                     isActiveYear
                                                                         ? 'Click để điểm danh'
-                                                                        : 'Chưa điểm danh'
+                                                                        : 'Năm học đã kết thúc'
                                                                 }
                                                             >
-                                                                <IconButton
-                                                                    size="small"
-                                                                    color="default"
-                                                                    disabled={!isActiveYear}
-                                                                >
-                                                                    <CheckCircleIcon fontSize="small" />
-                                                                </IconButton>
+                                                                <span>
+                                                                    <IconButton
+                                                                        size="small"
+                                                                        color="default"
+                                                                        disabled={!isActiveYear}
+                                                                    >
+                                                                        <CheckCircleIcon fontSize="small" />
+                                                                    </IconButton>
+                                                                </span>
                                                             </Tooltip>
                                                         )}
                                                     </TableCell>

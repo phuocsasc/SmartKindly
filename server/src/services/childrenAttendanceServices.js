@@ -508,10 +508,24 @@ const getAccessibleClassesList = async (academicYearId, userId) => {
             throw new ApiError(StatusCodes.FORBIDDEN, 'Bạn không thuộc trường học nào');
         }
 
+        // ✅ Verify academic year exists
+        const academicYear = await AcademicYearModel.findOne({
+            _id: academicYearId,
+            schoolId: user.schoolId,
+            _destroy: false,
+        });
+
+        if (!academicYear) {
+            console.log('❌ Academic year not found');
+            return { classes: [] };
+        }
+
+        // ✅ Get accessible classes for this academic year
         const classIds = await getAccessibleClasses(user, academicYearId);
 
         const classes = await ClassModel.find({
             _id: { $in: classIds },
+            academicYearId: academicYearId, // ✅ Filter by selected academic year
             _destroy: false,
         })
             .select('name grade ageGroup')

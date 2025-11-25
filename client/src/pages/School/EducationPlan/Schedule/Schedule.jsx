@@ -18,6 +18,7 @@ import {
     CircularProgress,
     IconButton,
     Tooltip,
+    Chip,
     Alert,
 } from '@mui/material';
 import HistoryEduOutlinedIcon from '@mui/icons-material/HistoryEduOutlined';
@@ -35,6 +36,8 @@ import { toast } from 'react-toastify';
 import ScheduleDialog from './ScheduleDialog';
 import ScheduleCopyDialog from './ScheduleCopyDialog';
 import dayjs from '~/config/dayjsConfig';
+import EventBusyIcon from '@mui/icons-material/EventBusy';
+import HolidaysConfigDialog from './HolidaysConfigDialog';
 
 const WEEKDAYS = ['Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6'];
 
@@ -52,6 +55,8 @@ function Schedule() {
     const [currentWeekData, setCurrentWeekData] = useState(null);
     const [openDialog, setOpenDialog] = useState(false);
     const [openCopyDialog, setOpenCopyDialog] = useState(false);
+    const [openHolidaysDialog, setOpenHolidaysDialog] = useState(false);
+    const [holidays, setHolidays] = useState([]);
 
     const canCreate = hasPermission(PERMISSIONS.CREATE_SCHEDULE);
     const isActiveYear = selectedYear === activeYearId;
@@ -156,6 +161,27 @@ function Schedule() {
         return `${weekday} (${d.format('DD/MM')})`;
     };
 
+    // Fetch holidays khi có schedule
+    useEffect(() => {
+        if (schedule) {
+            fetchHolidays();
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [schedule]);
+
+    const fetchHolidays = async () => {
+        try {
+            const res = await scheduleApi.getHolidays(schedule._id);
+            setHolidays(res.data.data.holidays || []);
+        } catch (error) {
+            console.error('Error fetching holidays:', error);
+        }
+    };
+
+    const isHoliday = (date) => {
+        const dateStr = dayjs(date).format('YYYY-MM-DD');
+        return holidays.some((holiday) => dayjs(holiday).format('YYYY-MM-DD') === dateStr);
+    };
     return (
         <MainLayout user={user}>
             <PageContainer>
@@ -238,9 +264,26 @@ function Schedule() {
                                 </Tooltip>
                             )}
 
+                            {/* ✅ Nút cấu hình ngày nghỉ */}
+                            {canCreate && isActiveYear && schedule && (
+                                <Tooltip title="Cấu hình ngày nghỉ">
+                                    <IconButton
+                                        onClick={() => setOpenHolidaysDialog(true)}
+                                        sx={{
+                                            color: '#f44336',
+                                            '&:hover': {
+                                                bgcolor: 'rgba(244, 67, 54, 0.08)',
+                                            },
+                                        }}
+                                    >
+                                        <EventBusyIcon />
+                                    </IconButton>
+                                </Tooltip>
+                            )}
+
                             {/* Nút Copy từ năm học cũ */}
                             {canCreate && isActiveYear && schedule && (
-                                <Tooltip title="Copy từ năm học cũ">
+                                <Tooltip title="Copy mốc hoạt động từ năm học cũ">
                                     <IconButton
                                         onClick={() => setOpenCopyDialog(true)}
                                         sx={{
@@ -355,46 +398,36 @@ function Schedule() {
                                                     </Typography>
                                                 </Box>
                                             </TableCell>
-                                            {WEEKDAYS.map((day) => (
-                                                <TableCell
-                                                    key={day}
-                                                    align="center"
-                                                    sx={{
-                                                        bgcolor: '#fafafa',
-                                                        height: 80,
-                                                    }}
-                                                >
-                                                    {/* Placeholder cho nội dung hoạt động cụ thể */}
-                                                    <Typography variant="body2" color="text.secondary">
-                                                        —
-                                                    </Typography>
-                                                </TableCell>
-                                            ))}
+                                            {WEEKDAYS.map((day, index) => {
+                                                const date = dayjs(currentWeekData.startDate).add(index, 'day');
+                                                const holiday = isHoliday(date);
+
+                                                return (
+                                                    <TableCell
+                                                        key={day}
+                                                        align="center"
+                                                        sx={{
+                                                            bgcolor: holiday ? '#ffebee' : '#fafafa',
+                                                            height: 80,
+                                                            position: 'relative',
+                                                        }}
+                                                    >
+                                                        {holiday ? (
+                                                            <Chip label="Ngày Nghỉ" color="error" size="small" />
+                                                        ) : (
+                                                            <Typography variant="body2" color="text.secondary">
+                                                                —
+                                                            </Typography>
+                                                        )}
+                                                    </TableCell>
+                                                );
+                                            })}
                                         </TableRow>
                                     ))}
                                 </TableBody>
                             </Table>
                         </TableContainer>
                     )}
-
-                    {/* Action Button for Edit
-                    {canUpdate && isActiveYear && currentWeekData && currentWeekData.activityPeriods.length > 0 && (
-                        <Box sx={{ mt: 2, display: 'flex', justifyContent: 'flex-end' }}>
-                            <Tooltip title="Chỉnh sửa mốc hoạt động">
-                                <IconButton
-                                    onClick={() => setOpenDialog(true)}
-                                    sx={{
-                                        color: '#667eea',
-                                        '&:hover': {
-                                            bgcolor: 'rgba(102, 126, 234, 0.08)',
-                                        },
-                                    }}
-                                >
-                                    <EditOutlinedIcon />
-                                </IconButton>
-                            </Tooltip>
-                        </Box>
-                    )} */}
                 </Paper>
             </PageContainer>
 
@@ -420,6 +453,19 @@ function Schedule() {
                 onClose={() => setOpenCopyDialog(false)}
                 onSuccess={() => {
                     setOpenCopyDialog(false);
+                    fetchSchedule();
+                }}
+            />
+
+            {/* Dialog cấu hình ngày nghỉ */}
+            <HolidaysConfigDialog
+                open={openHolidaysDialog}
+                scheduleId={schedule?._id}
+                weeks={weeks}
+                onClose={() => setOpenHolidaysDialog(false)}
+                onSuccess={() => {
+                    setOpenHolidaysDialog(false);
+                    fetchHolidays();
                     fetchSchedule();
                 }}
             />

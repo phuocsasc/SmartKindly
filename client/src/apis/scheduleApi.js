@@ -30,4 +30,13 @@ export const scheduleApi = {
     deleteActivityPeriods: async (scheduleId) => {
         return await authorizedAxiosInstance.delete(`${API_ROOT}/v1/schedules/${scheduleId}/activity-periods`);
     },
+    // ✅ Get holidays
+    getHolidays: async (scheduleId) => {
+        return await authorizedAxiosInstance.get(`${API_ROOT}/v1/schedules/${scheduleId}/holidays`);
+    },
+
+    // ✅ Update holidays
+    updateHolidays: async (scheduleId, data) => {
+        return await authorizedAxiosInstance.put(`${API_ROOT}/v1/schedules/${scheduleId}/holidays`, data);
+    },
 };

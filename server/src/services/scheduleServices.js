@@ -468,10 +468,93 @@ const copyActivityPeriodsFromYear = async (data, userId) => {
     }
 };
 
+/**
+ * ✅ Get holidays configuration
+ */
+const getHolidays = async (scheduleId, userId) => {
+    try {
+        const user = await UserModel.findById(userId).select('schoolId');
+        if (!user || !user.schoolId) {
+            throw new ApiError(StatusCodes.FORBIDDEN, 'Bạn không thuộc trường học nào');
+        }
+
+        const schedule = await ScheduleModel.findOne({
+            _id: scheduleId,
+            schoolId: user.schoolId,
+            _destroy: false,
+        });
+
+        if (!schedule) {
+            throw new ApiError(StatusCodes.NOT_FOUND, 'Không tìm thấy thời khóa biểu');
+        }
+
+        return schedule;
+    } catch (error) {
+        if (error instanceof ApiError) throw error;
+        throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, 'Lỗi khi lấy danh sách ngày nghỉ');
+    }
+};
+
+/**
+ * ✅ Update holidays configuration
+ */
+const updateHolidays = async (scheduleId, holidays, userId) => {
+    try {
+        const user = await UserModel.findById(userId).select('schoolId');
+        if (!user || !user.schoolId) {
+            throw new ApiError(StatusCodes.FORBIDDEN, 'Bạn không thuộc trường học nào');
+        }
+
+        const schedule = await ScheduleModel.findOne({
+            _id: scheduleId,
+            schoolId: user.schoolId,
+            _destroy: false,
+        });
+
+        if (!schedule) {
+            throw new ApiError(StatusCodes.NOT_FOUND, 'Không tìm thấy thời khóa biểu');
+        }
+
+        // ✅ Validate holidays are within academic year
+        const academicYear = await AcademicYearModel.findById(schedule.academicYearId);
+        if (!academicYear) {
+            throw new ApiError(StatusCodes.NOT_FOUND, 'Không tìm thấy năm học');
+        }
+
+        const yearStart = dayjs(academicYear.semesters[0].startDate).startOf('day');
+        const yearEnd = dayjs(academicYear.semesters[1].endDate).endOf('day');
+
+        const invalidDates = holidays.filter((date) => {
+            const d = dayjs(date);
+            return d.isBefore(yearStart) || d.isAfter(yearEnd);
+        });
+
+        if (invalidDates.length > 0) {
+            throw new ApiError(StatusCodes.BAD_REQUEST, 'Có ngày nghỉ nằm ngoài năm học');
+        }
+
+        // ✅ Update holidays
+        schedule.holidays = holidays.map((date) => dayjs(date).startOf('day').toDate());
+        await schedule.save();
+
+        console.log('✅ [updateHolidays] Updated:', {
+            scheduleId,
+            totalHolidays: holidays.length,
+        });
+
+        return schedule;
+    } catch (error) {
+        if (error instanceof ApiError) throw error;
+        throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, 'Lỗi khi cấu hình ngày nghỉ');
+    }
+};
+
 export const scheduleServices = {
     initializeSchedule,
     getByAcademicYear,
     updateActivityPeriods,
     copyActivityPeriodsFromYear,
     deleteActivityPeriods,
+    getHolidays,
+    updateHolidays,
 };

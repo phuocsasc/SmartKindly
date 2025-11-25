@@ -83,6 +83,11 @@ const ScheduleSchema = new mongoose.Schema(
             type: [WeekScheduleSchema],
             default: [],
         },
+        // ✅ NEW: Array of holiday dates
+        holidays: {
+            type: [Date],
+            default: [],
+        },
         createdBy: {
             type: mongoose.Schema.Types.ObjectId,
             ref: 'User',

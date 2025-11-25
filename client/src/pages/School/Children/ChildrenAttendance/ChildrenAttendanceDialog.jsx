@@ -144,6 +144,7 @@ function ChildrenAttendanceDialog({ open, studentInfo, classId, date, existingAt
                 {/* Student Info */}
                 <Box
                     sx={{
+                        mt: 2,
                         mb: 3,
                         p: 2,
                         bgcolor: '#f5f5ff',

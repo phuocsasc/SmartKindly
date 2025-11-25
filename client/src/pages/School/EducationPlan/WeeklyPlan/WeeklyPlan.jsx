@@ -63,6 +63,7 @@ function WeeklyPlan() {
     const [weeklyPlan, setWeeklyPlan] = useState(null);
     const [openDialog, setOpenDialog] = useState(false);
     const [dialogData, setDialogData] = useState(null);
+    const [holidays, setHolidays] = useState([]);
 
     const isActiveYear = selectedYear === activeYearId;
     const canUpdate = hasPermission(PERMISSIONS.UPDATE_MONTHLY_PLAN) && isActiveYear;
@@ -96,6 +97,14 @@ function WeeklyPlan() {
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [selectedClass, selectedWeek, selectedYear]);
+
+    // ✅ Fetch holidays from schedule
+    useEffect(() => {
+        if (selectedClass && selectedYear) {
+            fetchHolidays();
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [selectedClass, selectedYear]);
 
     // ✅ Fetch danh sách lớp THEO NĂM HỌC ĐƯỢC CHỌN
     const fetchAccessibleClassesByYear = async (yearId) => {
@@ -195,6 +204,15 @@ function WeeklyPlan() {
     };
 
     const handleAddPlan = (dayName, dayIndex, period) => {
+        // Kiểm tra ngày nghỉ
+        const weekData = weeks.find((w) => w.weekNumber === parseInt(selectedWeek));
+        const date = weekData?.startDate ? dayjs(weekData.startDate).add(dayIndex, 'day') : null;
+
+        if (isHoliday(date)) {
+            toast.warning('Không thể thêm kế hoạch cho ngày nghỉ!');
+            return;
+        }
+
         if (!isActiveYear) {
             toast.warning('Chỉ có thể cập nhật kế hoạch cho năm học đang hoạt động!');
             return;
@@ -214,14 +232,14 @@ function WeeklyPlan() {
         );
 
         const classData = classes.find((c) => c._id === selectedClass);
-        const weekData = weeks.find((w) => w.weekNumber === parseInt(selectedWeek));
+        const weekData2 = weeks.find((w) => w.weekNumber === parseInt(selectedWeek));
 
         setDialogData({
             classId: selectedClass,
             className: classData?.name || '',
             weekNumber: parseInt(selectedWeek),
             dayName,
-            date: formatDateDisplay(dayjs(weekData?.startDate).add(dayIndex, 'day')),
+            date: formatDateDisplay(dayjs(weekData2?.startDate).add(dayIndex, 'day')),
             activityPeriodId: period.activityPeriodId,
             startTime: period.startTime,
             endTime: period.endTime,
@@ -419,31 +437,7 @@ function WeeklyPlan() {
                                 {academicYears.find((y) => y._id === selectedYear)?.toYear}
                             </Typography>
                         </Box>
-                        {/* <Typography variant="body2">
-                            <strong>Lớp: </strong> {classData?.name}
-                        </Typography>
-                        <Typography variant="body2">
-                            <strong>Năm học: </strong> {academicYears.find((y) => y._id === selectedYear)?.fromYear}-
-                            {academicYears.find((y) => y._id === selectedYear)?.toYear}
-                        </Typography> */}
-                        {/* <Typography variant="body2">
-                            <strong>Số tuần: </strong> {totalWeeks} tuần
-                        </Typography> */}
                     </Box>
-                    {/* <Alert severity="error" sx={{ mt: 1, borderRadius: 1 }}>
-                        <Typography variant="caption" sx={{ display: 'block', mb: 0.5 }}>
-                            ⚠️ <strong>CẢNH BÁO NGHIÊM TRỌNG:</strong>
-                        </Typography>
-                        <Typography variant="caption" sx={{ display: 'block' }}>
-                            • Hành động này sẽ xóa toàn bộ nội dung kế hoạch của <strong>{totalWeeks} tuần</strong>
-                        </Typography>
-                        <Typography variant="caption" sx={{ display: 'block' }}>
-                            • Tất cả dữ liệu đã nhập sẽ bị <strong>mất vĩnh viễn</strong>
-                        </Typography>
-                        <Typography variant="caption" sx={{ display: 'block' }}>
-                            • Hành động này <strong>KHÔNG THỂ HOÀN TÁC</strong>
-                        </Typography>
-                    </Alert> */}
                 </Box>
             ),
             severity: 'error',
@@ -497,6 +491,33 @@ function WeeklyPlan() {
         });
 
         return activity?.detailedContent || '';
+    };
+
+    const fetchHolidays = async () => {
+        try {
+            // ✅ ĐÚNG: Truyền string trực tiếp
+            const scheduleRes = await scheduleApi.getByAcademicYear(selectedYear);
+            const schedule = scheduleRes.data.data;
+
+            if (schedule) {
+                const holidaysRes = await scheduleApi.getHolidays(schedule._id);
+                setHolidays(holidaysRes.data.data.holidays || []);
+                console.log('✅ Holidays loaded:', holidaysRes.data.data.holidays?.length || 0);
+            }
+        } catch (error) {
+            console.error('Error fetching holidays:', error);
+            // ✅ Không show toast nếu lỗi 404 (chưa có schedule)
+            if (error?.response?.status !== 404 && error?.response?.status !== 500) {
+                toast.error('Lỗi khi tải danh sách ngày nghỉ!');
+            }
+        }
+    };
+
+    // ✅ Check if date is holiday
+    const isHoliday = (date) => {
+        if (!date) return false;
+        const dateStr = dayjs(date).format('YYYY-MM-DD');
+        return holidays.some((holiday) => dayjs(holiday).format('YYYY-MM-DD') === dateStr);
     };
 
     return (
@@ -798,6 +819,33 @@ function WeeklyPlan() {
                                             </TableCell>
 
                                             {WEEKDAYS.map((day, dayIndex) => {
+                                                const weekData = weeks.find(
+                                                    (w) => w.weekNumber === parseInt(selectedWeek),
+                                                );
+                                                const date = weekData?.startDate
+                                                    ? dayjs(weekData.startDate).add(dayIndex, 'day')
+                                                    : null;
+                                                const holiday = isHoliday(date);
+
+                                                // ✅ Nếu là ngày nghỉ, hiển thị "Nghỉ"
+                                                if (holiday) {
+                                                    return (
+                                                        <TableCell
+                                                            key={day}
+                                                            sx={{
+                                                                bgcolor: '#ffebee',
+                                                                verticalAlign: 'middle',
+                                                                textAlign: 'center',
+                                                                py: 1,
+                                                                px: 0.5,
+                                                            }}
+                                                        >
+                                                            <Chip label="Ngày Nghỉ" color="error" size="small" />
+                                                        </TableCell>
+                                                    );
+                                                }
+
+                                                // ✅ Ngày thường - hiển thị nội dung kế hoạch
                                                 const content = getDayContent(dayIndex, period.activityPeriodId);
                                                 const hasContent = content && content.trim().length > 0;
 
@@ -809,34 +857,33 @@ function WeeklyPlan() {
                                                             verticalAlign: 'top',
                                                             py: 1,
                                                             px: 0.5,
-                                                            position: 'relative',
                                                         }}
                                                     >
                                                         {hasContent ? (
-                                                            <Box
-                                                                sx={{
-                                                                    maxHeight: 200,
-                                                                    overflowY: 'overlay',
-                                                                    paddingRight: 0,
-                                                                    scrollbarGutter: 'stable both-edges',
-                                                                    '&::-webkit-scrollbar': {
-                                                                        width: '6px',
-                                                                    },
-                                                                    '&::-webkit-scrollbar-track': {
-                                                                        backgroundColor: '#e3f2fd',
-                                                                    },
-                                                                    '&::-webkit-scrollbar-thumb': {
-                                                                        backgroundColor: '#0964a1a4',
-                                                                        borderRadius: '4px',
-                                                                    },
-                                                                    '&::-webkit-scrollbar-thumb:hover': {
-                                                                        backgroundColor: '#0071BC',
-                                                                    },
-                                                                }}
-                                                            >
+                                                            <Box sx={{ position: 'relative', minHeight: 60 }}>
                                                                 <Chip
                                                                     label={
-                                                                        <Box>
+                                                                        <Box
+                                                                            sx={{
+                                                                                maxHeight: 200,
+                                                                                overflowY: 'overlay',
+                                                                                paddingRight: 0,
+                                                                                scrollbarGutter: 'stable both-edges',
+                                                                                '&::-webkit-scrollbar': {
+                                                                                    width: '6px',
+                                                                                },
+                                                                                '&::-webkit-scrollbar-track': {
+                                                                                    backgroundColor: '#e3f2fd',
+                                                                                },
+                                                                                '&::-webkit-scrollbar-thumb': {
+                                                                                    backgroundColor: '#0964a1a4',
+                                                                                    borderRadius: '4px',
+                                                                                },
+                                                                                '&::-webkit-scrollbar-thumb:hover': {
+                                                                                    backgroundColor: '#0071BC',
+                                                                                },
+                                                                            }}
+                                                                        >
                                                                             <Typography
                                                                                 variant="body2"
                                                                                 sx={{

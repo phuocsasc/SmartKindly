@@ -493,10 +493,10 @@ function ImportChildrenProfileDialog({ open, onClose, onSuccess, academicYearId 
             </DialogContent>
 
             {/* Actions */}
-            <DialogActions sx={{ px: 3, py: 2, gap: 1 }}>
+            <DialogActions sx={{ px: 2, py: 1, gap: 1 }}>
                 <Button
                     onClick={handleClose}
-                    variant="outlined"
+                    variant="contained"
                     color="inherit"
                     size="small"
                     disabled={loading}
@@ -507,10 +507,10 @@ function ImportChildrenProfileDialog({ open, onClose, onSuccess, academicYearId 
                 <Button
                     onClick={handleUpload}
                     variant="contained"
+                    size="small"
                     disabled={!previewData || validationErrors.length > 0 || loading}
                     sx={{
                         borderRadius: 1.5,
-                        px: 3,
                         background: 'linear-gradient(135deg, #0071bc 0%, #00b4d8 100%)',
                         '&:hover': {
                             background: 'linear-gradient(135deg, #005a94 0%, #0096c7 100%)',

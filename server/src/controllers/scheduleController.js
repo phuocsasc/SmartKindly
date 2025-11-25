@@ -70,10 +70,50 @@ const deleteActivityPeriods = async (req, res, next) => {
     }
 };
 
+/**
+ * ✅ Get holidays configuration
+ */
+const getHolidays = async (req, res, next) => {
+    try {
+        const { id } = req.params;
+        const userId = req.jwtDecoded.id;
+
+        const schedule = await scheduleServices.getHolidays(id, userId);
+
+        res.status(StatusCodes.OK).json({
+            message: 'Lấy danh sách ngày nghỉ thành công!',
+            data: { holidays: schedule.holidays || [] },
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+/**
+ * ✅ Update holidays configuration
+ */
+const updateHolidays = async (req, res, next) => {
+    try {
+        const { id } = req.params;
+        const { holidays } = req.body;
+        const userId = req.jwtDecoded.id;
+
+        await scheduleServices.updateHolidays(id, holidays, userId);
+
+        res.status(StatusCodes.OK).json({
+            message: 'Cấu hình ngày nghỉ thành công!',
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
 export const scheduleController = {
     initializeSchedule,
     getByAcademicYear,
     updateActivityPeriods,
     copyActivityPeriodsFromYear,
     deleteActivityPeriods,
+    getHolidays,
+    updateHolidays,
 };

@@ -31,6 +31,19 @@ Router.route('/by-academic-year').get(
     scheduleController.getByAcademicYear,
 );
 
+// ✅ API cấu hình ngày nghỉ
+Router.route('/:id/holidays')
+    .get(
+        authMiddleware.isAuthorized,
+        rbacMiddleware.isValidPermission([PERMISSIONS.VIEW_SCHEDULE]),
+        scheduleController.getHolidays,
+    )
+    .put(
+        authMiddleware.isAuthorized,
+        rbacMiddleware.isValidPermission([PERMISSIONS.UPDATE_SCHEDULE]),
+        scheduleController.updateHolidays,
+    );
+
 // ✅ API cập nhật mốc hoạt động cho TẤT CẢ các tuần (không cần weekNumber)
 Router.route('/:id/activity-periods').put(
     authMiddleware.isAuthorized,

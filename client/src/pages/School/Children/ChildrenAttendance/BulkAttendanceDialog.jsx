@@ -121,7 +121,7 @@ function BulkAttendanceDialog({ open, classId, students, date, onClose, onSucces
 
             {/* Content */}
             <DialogContent sx={{ px: 3, py: 3 }}>
-                <TableContainer component={Paper} sx={{ maxHeight: 400 }}>
+                <TableContainer component={Paper} sx={{ maxHeight: 400, mt: 2 }}>
                     <Table stickyHeader size="small">
                         <TableHead>
                             <TableRow>

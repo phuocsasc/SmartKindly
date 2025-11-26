@@ -146,10 +146,10 @@ function EducationalActivity() {
             });
             const activitiesData = activitiesRes.data.data.activities;
 
-            // Group activities by ageGroup + targetCode
+            // Group activities by ageGroup + targetId
             const groupedActivities = {};
             activitiesData.forEach((activity) => {
-                const key = `${activity.ageGroup}-${activity.targetCode}`;
+                const key = `${activity.ageGroup}-${activity.targetId}`;
                 groupedActivities[key] = activity;
             });
             setActivities(groupedActivities);
@@ -190,24 +190,26 @@ function EducationalActivity() {
                         const targetCount = Math.max(targets.length, 1);
 
                         targets.forEach((target, targetIdx) => {
-                            const activityKey = `${currentAgeGroup}-${target.code}`;
+                            const activityKey = `${currentAgeGroup}-${target._id}`;
                             const activity = activities[activityKey];
 
                             rows.push({
-                                id: `${mainField.code}-${subField.code}-${expectedResult.code}-${target.code}`,
+                                id: `${mainField.code}-${subField.code}-${expectedResult.code}-${target._id}`,
                                 mainFieldCode: mainField.code,
                                 mainFieldName: mainField.name,
                                 subFieldCode: subField.code,
                                 subFieldName: subField.name,
                                 expectedResultCode: expectedResult.code,
                                 expectedResultDescription: expectedResult.description,
-                                targetCode: target.code,
+                                targetCode: target.code, // Display code
+                                targetId: target._id, // ✅ Real identifier
                                 targetContent: target.content,
                                 activityContent: activity?.activityContent || null,
                                 activityId: activity?._id || null,
                                 _mainFieldCode: mainField.code,
                                 _subFieldCode: subField.code,
                                 _expectedResultCode: expectedResult.code,
+                                _targetId: target._id, // ✅ Pass targetId
                                 _schoolYearTargetId: currentData._id,
                                 isFirstInExpectedResult: targetIdx === 0,
                                 expectedResultRowSpan: targetCount,
@@ -221,11 +223,11 @@ function EducationalActivity() {
                     const targetCount = Math.max(targets.length, 1);
 
                     targets.forEach((target, targetIdx) => {
-                        const activityKey = `${currentAgeGroup}-${target.code}`;
+                        const activityKey = `${currentAgeGroup}-${target._id}`; // ✅ Use targetId
                         const activity = activities[activityKey];
 
                         rows.push({
-                            id: `${mainField.code}-${expectedResult.code}-${target.code}`,
+                            id: `${mainField.code}-${expectedResult.code}-${target._id}`,
                             mainFieldCode: mainField.code,
                             mainFieldName: mainField.name,
                             subFieldCode: null,
@@ -233,12 +235,14 @@ function EducationalActivity() {
                             expectedResultCode: expectedResult.code,
                             expectedResultDescription: expectedResult.description,
                             targetCode: target.code,
+                            targetId: target._id, // ✅ Real identifier
                             targetContent: target.content,
                             activityContent: activity?.activityContent || null,
                             activityId: activity?._id || null,
                             _mainFieldCode: mainField.code,
                             _subFieldCode: null,
                             _expectedResultCode: expectedResult.code,
+                            _targetId: target._id, // ✅ Pass targetId
                             _schoolYearTargetId: currentData._id,
                             isFirstInExpectedResult: targetIdx === 0,
                             expectedResultRowSpan: targetCount,
@@ -250,6 +254,58 @@ function EducationalActivity() {
 
         setTableRows(rows);
     }, [yearTargets, activities, currentAgeGroup]);
+
+    // ✅ Fetch activities và map theo targetId
+    useEffect(() => {
+        const fetchData = async () => {
+            if (!selectedYear) return;
+
+            try {
+                setLoading(true);
+
+                // 1. Fetch School Year Targets
+                const yearTargetsRes = await schoolYearTargetApi.getAll({
+                    page: 1,
+                    limit: 100,
+                    academicYearId: selectedYear,
+                    ageGroup: '',
+                });
+                const yearTargetsData = yearTargetsRes.data.data.targets;
+
+                const groupedYearTargets = {};
+                yearTargetsData.forEach((item) => {
+                    groupedYearTargets[item.ageGroup] = item;
+                });
+                setYearTargets(groupedYearTargets);
+
+                // 2. Fetch School Educational Activities
+                const activitiesRes = await schoolEducationalActivityApi.getAll({
+                    page: 1,
+                    limit: 1000,
+                    academicYearId: selectedYear,
+                    ageGroup: '',
+                });
+                const activitiesData = activitiesRes.data.data.activities;
+
+                // ✅ Group activities by ageGroup + targetId (instead of targetCode)
+                const groupedActivities = {};
+                activitiesData.forEach((activity) => {
+                    const key = `${activity.ageGroup}-${activity.targetId}`; // ✅ Use targetId
+                    groupedActivities[key] = activity;
+                });
+                setActivities(groupedActivities);
+
+                console.log('✅ Activities grouped by targetId:', Object.keys(groupedActivities).length);
+            } catch (error) {
+                console.error('Error fetching data:', error);
+                toast.error('Lỗi khi tải dữ liệu!');
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchData();
+    }, [selectedYear]);
 
     const handleTabChange = (event, newValue) => {
         setTabValue(newValue);
@@ -267,6 +323,7 @@ function EducationalActivity() {
             mainFieldCode: row._mainFieldCode,
             subFieldCode: row._subFieldCode,
             expectedResultCode: row._expectedResultCode,
+            targetId: row._targetId, // ✅ Pass targetId instead of targetCode
             targetCode: row.targetCode,
             schoolYearTargetId: row._schoolYearTargetId,
             academicYearId: selectedYear,
@@ -287,6 +344,7 @@ function EducationalActivity() {
             mainFieldCode: row._mainFieldCode,
             subFieldCode: row._subFieldCode,
             expectedResultCode: row._expectedResultCode,
+            targetId: row._targetId, // ✅ Pass targetId
             targetCode: row.targetCode,
             schoolYearTargetId: row._schoolYearTargetId,
             academicYearId: selectedYear,

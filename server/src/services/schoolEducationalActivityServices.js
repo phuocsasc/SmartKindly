@@ -112,32 +112,30 @@ const createNew = async (data, userId) => {
 
         // ✅ Kiểm tra mục tiêu có tồn tại trong structure không
         let targetExists = false;
+        let targetCode = null;
 
+        // ✅ Tìm target và lấy code
         for (const mainField of schoolYearTarget.mainFields) {
             if (mainField.code !== data.mainFieldCode) continue;
 
-            if (data.subFieldCode) {
-                const subField = mainField.subFields?.find((sf) => sf.code === data.subFieldCode);
-                const expectedResult = subField?.expectedResults?.find((er) => er.code === data.expectedResultCode);
-                const target = expectedResult?.targets?.find((t) => t.code === data.targetCode);
-                if (target) {
-                    targetExists = true;
-                    break;
-                }
-            } else {
-                const expectedResult = mainField.expectedResults?.find((er) => er.code === data.expectedResultCode);
-                const target = expectedResult?.targets?.find((t) => t.code === data.targetCode);
-                if (target) {
-                    targetExists = true;
-                    break;
-                }
+            const expectedResults = data.subFieldCode
+                ? mainField.subFields?.find((sf) => sf.code === data.subFieldCode)?.expectedResults
+                : mainField.expectedResults;
+
+            const expectedResult = expectedResults?.find((er) => er.code === data.expectedResultCode);
+            const target = expectedResult?.targets?.find((t) => t._id.toString() === data.targetId);
+
+            if (target) {
+                targetExists = true;
+                targetCode = target.code; // ✅ Lấy code từ structure
+                break;
             }
         }
 
         if (!targetExists) {
             throw new ApiError(
                 StatusCodes.NOT_FOUND,
-                `Không tìm thấy mục tiêu "${data.targetCode}" trong cấu trúc mục tiêu năm học`,
+                `Không tìm thấy mục tiêu "${data.targetId}" trong cấu trúc mục tiêu năm học`,
             );
         }
 
@@ -146,12 +144,12 @@ const createNew = async (data, userId) => {
             schoolId,
             academicYearId: data.academicYearId,
             ageGroup: data.ageGroup,
-            targetCode: data.targetCode,
+            targetId: data.targetId, // ✅ Check theo targetId
             _destroy: false,
         });
 
         if (existing) {
-            throw new ApiError(StatusCodes.CONFLICT, `Mục tiêu "${data.targetCode}" đã có hoạt động giáo dục`);
+            throw new ApiError(StatusCodes.CONFLICT, `Mục tiêu "${data.targetId}" đã có hoạt động giáo dục`);
         }
 
         // ✅ Tạo mới
@@ -160,10 +158,11 @@ const createNew = async (data, userId) => {
             academicYearId: data.academicYearId,
             ageGroup: data.ageGroup,
             schoolYearTargetId: data.schoolYearTargetId,
+            targetId: data.targetId, // ✅ Lưu targetId
             mainFieldCode: data.mainFieldCode,
             subFieldCode: data.subFieldCode || null,
             expectedResultCode: data.expectedResultCode,
-            targetCode: data.targetCode,
+            targetCode: targetCode,
             activityContent: data.activityContent,
             createdBy: userId,
         });
@@ -189,74 +188,85 @@ const createNew = async (data, userId) => {
  */
 const getAll = async (query, userId) => {
     try {
-        console.log('📥 [SchoolEducationalActivity getAll] Starting with query:', query);
-
         const user = await UserModel.findById(userId).select('schoolId role _id');
         if (!user || !user.schoolId) {
             throw new ApiError(StatusCodes.FORBIDDEN, 'Bạn không thuộc trường học nào');
         }
 
-        const { page = 1, limit = 50, academicYearId = '', ageGroup = '' } = query;
-        const skip = (page - 1) * limit;
+        const { page = 1, limit = 10, academicYearId, ageGroup } = query;
 
-        // ✅ Xác định năm học
-        let targetAcademicYearId = academicYearId;
-        if (!targetAcademicYearId) {
-            const activeYear = await AcademicYearModel.findOne({
-                schoolId: user.schoolId,
-                status: 'active',
-                _destroy: false,
-            }).select('_id');
-
-            if (!activeYear) {
-                throw new ApiError(StatusCodes.NOT_FOUND, 'Không có năm học đang hoạt động');
-            }
-            targetAcademicYearId = activeYear._id;
-        }
-
-        // ✅ Lấy accessible age groups
-        const accessibleAgeGroups = await getAccessibleAgeGroups(user, targetAcademicYearId);
-
-        // ✅ Build filter
         const filter = {
             schoolId: user.schoolId,
-            academicYearId: targetAcademicYearId,
-            ageGroup: { $in: accessibleAgeGroups },
             _destroy: false,
         };
 
-        if (ageGroup) {
-            if (!accessibleAgeGroups.includes(ageGroup)) {
-                throw new ApiError(StatusCodes.FORBIDDEN, 'Bạn không có quyền xem hoạt động của nhóm tuổi này');
-            }
-            filter.ageGroup = ageGroup;
-        }
+        if (academicYearId) filter.academicYearId = academicYearId;
+        if (ageGroup) filter.ageGroup = ageGroup;
+
+        const skip = (page - 1) * limit;
 
         const [activities, total] = await Promise.all([
             SchoolEducationalActivityModel.find(filter)
+                .populate('schoolYearTargetId', 'ageGroup')
                 .populate('createdBy', 'fullName username')
                 .populate('lastUpdatedBy', 'fullName username')
-                .populate('academicYearId', 'fromYear toYear status')
-                .sort({ ageGroup: 1, targetCode: 1 })
+                .sort({ createdAt: -1 })
                 .skip(skip)
-                .limit(Number(limit))
+                .limit(limit)
                 .lean(),
             SchoolEducationalActivityModel.countDocuments(filter),
         ]);
 
-        console.log('✅ [SchoolEducationalActivity getAll] Found:', activities.length);
+        // ✅ Enrich activities with current target info
+        const enrichedActivities = await Promise.all(
+            activities.map(async (activity) => {
+                const yearTarget = await SchoolYearTargetModel.findById(activity.schoolYearTargetId);
+
+                if (!yearTarget) return activity;
+
+                // Find current target info by targetId
+                let currentTargetInfo = null;
+
+                for (const mainField of yearTarget.mainFields) {
+                    const expectedResults = activity.subFieldCode
+                        ? mainField.subFields?.find((sf) => sf.code === activity.subFieldCode)?.expectedResults
+                        : mainField.expectedResults;
+
+                    for (const expectedResult of expectedResults || []) {
+                        const target = expectedResult.targets?.find(
+                            (t) => t._id.toString() === activity.targetId.toString(),
+                        );
+
+                        if (target) {
+                            currentTargetInfo = {
+                                currentCode: target.code, // MT3 (sau khi renumber)
+                                currentContent: target.content,
+                                originalCode: activity.targetCode, // MT2 (lúc tạo)
+                            };
+                            break;
+                        }
+                    }
+
+                    if (currentTargetInfo) break;
+                }
+
+                return {
+                    ...activity,
+                    currentTargetInfo,
+                };
+            }),
+        );
 
         return {
-            activities,
+            activities: enrichedActivities,
             pagination: {
-                page: Number(page),
-                limit: Number(limit),
-                totalItems: total,
+                page,
+                limit,
+                total,
                 totalPages: Math.ceil(total / limit),
             },
         };
     } catch (error) {
-        console.error('❌ [SchoolEducationalActivity getAll] Error:', error);
         if (error instanceof ApiError) throw error;
         throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, 'Lỗi khi lấy danh sách hoạt động giáo dục');
     }

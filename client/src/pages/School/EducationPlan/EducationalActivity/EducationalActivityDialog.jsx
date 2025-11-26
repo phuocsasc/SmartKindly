@@ -92,27 +92,31 @@ function EducationalActivityDialog({ open, data, onClose, onSuccess }) {
 
     const handleSubmit = async () => {
         if (!formData.activityContent.trim()) {
-            toast.error('Vui lòng nhập nội dung hoạt động giáo dục!');
+            toast.warning('Vui lòng nhập nội dung hoạt động!');
             return;
         }
 
         try {
             setLoading(true);
 
+            const payload = {
+                academicYearId: data.academicYearId,
+                ageGroup: data.ageGroup,
+                schoolYearTargetId: data.schoolYearTargetId,
+                mainFieldCode: data.mainFieldCode,
+                subFieldCode: data.subFieldCode || null,
+                expectedResultCode: data.expectedResultCode,
+                targetId: data.targetId, // ✅ Send targetId instead of targetCode
+                activityContent: formData.activityContent,
+            };
+
             if (isEditMode) {
-                await schoolEducationalActivityApi.update(data.activityId, formData);
-                toast.success('Cập nhật hoạt động giáo dục thành công!');
-            } else {
-                await schoolEducationalActivityApi.create({
-                    academicYearId: data.academicYearId,
-                    ageGroup: data.ageGroup,
-                    schoolYearTargetId: data.schoolYearTargetId,
-                    mainFieldCode: data.mainFieldCode,
-                    subFieldCode: data.subFieldCode,
-                    expectedResultCode: data.expectedResultCode,
-                    targetCode: data.targetCode,
+                await schoolEducationalActivityApi.update(data.activityId, {
                     activityContent: formData.activityContent,
                 });
+                toast.success('Cập nhật hoạt động giáo dục thành công!');
+            } else {
+                await schoolEducationalActivityApi.create(payload);
                 toast.success('Thêm hoạt động giáo dục thành công!');
             }
 

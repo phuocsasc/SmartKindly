@@ -36,8 +36,14 @@ const createNew = async (req, res, next) => {
         expectedResultCode: Joi.string().required().messages({
             'any.required': 'Mã kết quả mong đợi là bắt buộc',
         }),
-        targetCode: Joi.string().required().messages({
-            'any.required': 'Mã mục tiêu là bắt buộc',
+        // ✅ PRIMARY KEY: targetId (required)
+        targetId: Joi.string().pattern(OBJECT_ID_RULE).required().messages({
+            'any.required': 'Target ID là bắt buộc',
+            'string.pattern.base': OBJECT_ID_RULE_MESSAGE,
+        }),
+        // ✅ OPTIONAL: targetCode (backend tự động fill từ targetId)
+        targetCode: Joi.string().optional().messages({
+            'string.empty': 'Mã mục tiêu không được để trống',
         }),
         activityContent: Joi.string().required().messages({
             'any.required': 'Nội dung hoạt động giáo dục là bắt buộc',

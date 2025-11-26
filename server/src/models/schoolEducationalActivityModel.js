@@ -43,6 +43,13 @@ const SchoolEducationalActivitySchema = new mongoose.Schema(
             required: [true, 'Mục tiêu năm học là bắt buộc'],
             index: true,
         },
+        // ✅ THAY ĐỔI CHÍNH: Lưu targetId thay vì targetCode
+        targetId: {
+            type: mongoose.Schema.Types.ObjectId,
+            required: true,
+            index: true,
+        },
+
         mainFieldCode: {
             type: String,
             required: true,

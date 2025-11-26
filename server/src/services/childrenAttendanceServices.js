@@ -230,6 +230,53 @@ const bulkAttendance = async (data, userId) => {
 };
 
 /**
+ * ✅ Tính tổng số ngày vắng của học sinh trong năm học
+ */
+const getAbsentSummaryByStudent = async (studentId, academicYearId, schoolId) => {
+    try {
+        // ✅ Lấy danh sách ngày nghỉ từ schedule
+        const schedule = await ScheduleModel.findOne({
+            schoolId,
+            academicYearId,
+            _destroy: false,
+        }).lean();
+
+        const holidays = schedule?.holidays || [];
+        const holidayDates = holidays.map((date) => dayjs(date).format('YYYY-MM-DD'));
+
+        console.log('📅 [getAbsentSummaryByStudent] Holidays:', holidayDates.length);
+
+        // ✅ Lấy tất cả attendance của học sinh trong năm học
+        const attendances = await ChildrenAttendanceModel.find({
+            schoolId,
+            academicYearId,
+            studentId,
+            status: { $in: ['Vắng có phép', 'Vắng không phép'] },
+            _destroy: false,
+        }).lean();
+
+        // ✅ Lọc bỏ những ngày trùng với ngày nghỉ
+        const validAbsences = attendances.filter((attendance) => {
+            const dateStr = dayjs(attendance.date).format('YYYY-MM-DD');
+            return !holidayDates.includes(dateStr);
+        });
+
+        return {
+            totalAbsent: validAbsences.length,
+            absentWithPermission: validAbsences.filter((a) => a.status === 'Vắng có phép').length,
+            absentWithoutPermission: validAbsences.filter((a) => a.status === 'Vắng không phép').length,
+        };
+    } catch (error) {
+        console.error('❌ [getAbsentSummaryByStudent] Error:', error);
+        return {
+            totalAbsent: 0,
+            absentWithPermission: 0,
+            absentWithoutPermission: 0,
+        };
+    }
+};
+
+/**
  * ✅ Lấy danh sách điểm danh theo lớp và ngày/tuần
  */
 const getAttendanceByClass = async (query, userId) => {
@@ -373,6 +420,18 @@ const getAttendanceByClass = async (query, userId) => {
             attendanceMapKeys: Object.keys(attendanceMap).length,
             sampleKeys: Object.keys(attendanceMap).slice(0, 3),
         });
+        // ✅ NEW: Tính tổng số ngày vắng cho mỗi học sinh, và chi tiết mỗi buổi vắng
+        const studentsWithAbsentSummary = await Promise.all(
+            allStudents.map(async (student) => {
+                const absentSummary = await getAbsentSummaryByStudent(student._id, academicYearId, user.schoolId);
+                return {
+                    ...student,
+                    absentSummary,
+                    absentWithPermission: absentSummary.absentWithPermission,
+                    absentWithoutPermission: absentSummary.absentWithoutPermission,
+                };
+            }),
+        );
 
         return {
             classInfo: {
@@ -381,7 +440,7 @@ const getAttendanceByClass = async (query, userId) => {
                 grade: classData.grade,
                 ageGroup: classData.ageGroup,
             },
-            students: allStudents,
+            students: studentsWithAbsentSummary,
             attendances,
             attendanceMap,
         };

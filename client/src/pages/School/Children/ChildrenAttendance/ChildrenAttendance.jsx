@@ -440,7 +440,7 @@ function ChildrenAttendance() {
                                     '& .MuiTableHead-root .MuiTableCell-head': {
                                         backgroundColor: '#e3f2fd',
                                         color: '#1976d2',
-                                        fontWeight: 900,
+                                        fontWeight: 600,
                                         borderBottom: '2px solid #bbdefb',
                                         borderRight: '1px solid #bbdefb',
                                         fontSize: '0.95rem',
@@ -502,6 +502,17 @@ function ChildrenAttendance() {
                                             backgroundColor: '#fff',
                                             zIndex: 2,
                                         },
+                                        // ✅ NEW: Sticky column cuối (Tổng số ngày vắng)
+                                        '&.sticky-col-absent': {
+                                            position: 'sticky',
+                                            zIndex: 3,
+                                            backgroundColor: '#fff3e0',
+                                            minWidth: 150,
+                                        },
+                                        '&.sticky-col-absent.body-cell': {
+                                            backgroundColor: '#fffde7',
+                                            zIndex: 2,
+                                        },
                                     },
 
                                     // 💠 BO GÓC VÀ SHADOW
@@ -513,7 +524,7 @@ function ChildrenAttendance() {
                                 <TableHead>
                                     <TableRow>
                                         <TableCell className="sticky-col-stt">STT</TableCell>
-                                        <TableCell className="sticky-col-name">Họ tên</TableCell>
+                                        <TableCell className="sticky-col-name">Họ tên học sinh</TableCell>
                                         <TableCell className="sticky-col-code">Mã học sinh</TableCell>
 
                                         {weekDays.map((day) => {
@@ -537,7 +548,7 @@ function ChildrenAttendance() {
                                                         }}
                                                     >
                                                         <Box>
-                                                            <Typography variant="caption" fontWeight={700}>
+                                                            <Typography variant="caption" fontWeight={600}>
                                                                 {day.dayOfWeek} ({dayjs(day.date).format('DD/MM')})
                                                             </Typography>
                                                             {/* ✅ Hiển thị "Nghỉ" nếu là holiday */}
@@ -567,6 +578,14 @@ function ChildrenAttendance() {
                                                 </TableCell>
                                             );
                                         })}
+                                        {/* ✅ NEW: Cột tổng số ngày vắng */}
+                                        <TableCell>
+                                            <Box
+                                                sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}
+                                            >
+                                                <Typography fontWeight={600}>Tổng ngày vắng</Typography>
+                                            </Box>
+                                        </TableCell>
                                     </TableRow>
                                 </TableHead>
 
@@ -635,7 +654,6 @@ function ChildrenAttendance() {
                                                                             color="text.secondary"
                                                                             sx={{
                                                                                 fontSize: '0.7rem',
-                                                                                fontStyle: 'italic',
                                                                                 maxWidth: 120,
                                                                                 overflow: 'hidden',
                                                                                 textOverflow: 'ellipsis',
@@ -679,6 +697,74 @@ function ChildrenAttendance() {
                                                     </TableCell>
                                                 );
                                             })}
+                                            {/* ✅ NEW: Hiển thị tổng số ngày vắng */}
+                                            <TableCell
+                                                align="center"
+                                                sx={{
+                                                    bgcolor: '#fffde7',
+                                                    verticalAlign: 'middle',
+                                                    position: 'sticky',
+                                                    right: 0,
+                                                    zIndex: 2,
+                                                }}
+                                            >
+                                                <Box
+                                                    sx={{
+                                                        display: 'flex',
+                                                        flexDirection: 'column',
+                                                        alignItems: 'center',
+                                                        gap: 0.5,
+                                                    }}
+                                                >
+                                                    {(() => {
+                                                        const totalAbsent = student.absentSummary?.totalAbsent || 0;
+                                                        const withPermission =
+                                                            student.absentSummary?.absentWithPermission || 0; // Vắng có phép
+                                                        const withoutPermission =
+                                                            student.absentSummary?.absentWithoutPermission || 0; // Vắng không phép
+
+                                                        return (
+                                                            <Tooltip
+                                                                arrow
+                                                                title={
+                                                                    totalAbsent === 0 ? (
+                                                                        'Không có ngày vắng trong năm này'
+                                                                    ) : (
+                                                                        <Box>
+                                                                            <Typography
+                                                                                variant="caption"
+                                                                                display="block"
+                                                                            >
+                                                                                Vắng <strong>có phép</strong>:{' '}
+                                                                                {withPermission} ngày
+                                                                            </Typography>
+                                                                            <Typography
+                                                                                variant="caption"
+                                                                                display="block"
+                                                                            >
+                                                                                Vắng <strong>không phép</strong>:{' '}
+                                                                                {withoutPermission} ngày
+                                                                            </Typography>
+                                                                        </Box>
+                                                                    )
+                                                                }
+                                                            >
+                                                                <Chip
+                                                                    label={totalAbsent}
+                                                                    color="default"
+                                                                    size="small"
+                                                                    sx={{
+                                                                        fontWeight: 700,
+                                                                        fontSize: '0.9rem',
+                                                                        minWidth: 40,
+                                                                        cursor: totalAbsent > 0 ? 'pointer' : 'default',
+                                                                    }}
+                                                                />
+                                                            </Tooltip>
+                                                        );
+                                                    })()}
+                                                </Box>
+                                            </TableCell>
                                         </TableRow>
                                     ))}
                                 </TableBody>

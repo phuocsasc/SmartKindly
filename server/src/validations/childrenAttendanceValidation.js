@@ -16,7 +16,9 @@ const bulkAttendance = async (req, res, next) => {
             .items(
                 Joi.object({
                     studentId: Joi.string().required(),
-                    status: Joi.string().valid('Có mặt', 'Vắng có phép', 'Vắng không phép', 'Đi trễ').required(),
+                    status: Joi.string()
+                        .valid('Có mặt', 'Vắng có phép', 'Vắng không phép', 'Đi trễ', 'Chưa điểm danh')
+                        .required(),
                     note: Joi.string().allow('').optional(),
                 }),
             )
@@ -39,7 +41,7 @@ const bulkAttendance = async (req, res, next) => {
 
 const updateAttendance = async (req, res, next) => {
     const schema = Joi.object({
-        status: Joi.string().valid('Có mặt', 'Vắng có phép', 'Vắng không phép', 'Đi trễ').optional(),
+        status: Joi.string().valid('Có mặt', 'Vắng có phép', 'Vắng không phép', 'Đi trễ', 'Chưa điểm danh').optional(),
         note: Joi.string().allow('').optional(),
     });
 

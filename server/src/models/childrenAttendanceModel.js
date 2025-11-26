@@ -44,7 +44,7 @@ const childrenAttendanceSchema = new mongoose.Schema(
         status: {
             type: String,
             required: [true, 'Trạng thái điểm danh là bắt buộc'],
-            enum: ['Có mặt', 'Vắng có phép', 'Vắng không phép', 'Đi trễ'],
+            enum: ['Có mặt', 'Vắng có phép', 'Vắng không phép', 'Đi trễ', 'Chưa điểm danh'],
             default: 'Có mặt',
         },
         note: {

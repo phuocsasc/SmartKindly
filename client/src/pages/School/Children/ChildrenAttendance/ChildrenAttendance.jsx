@@ -21,15 +21,14 @@ import {
     Alert,
 } from '@mui/material';
 import PeopleIcon from '@mui/icons-material/People';
-import CheckCircleIcon from '@mui/icons-material/CheckCircle';
-import GroupAddIcon from '@mui/icons-material/GroupAdd';
+import FactCheckOutlinedIcon from '@mui/icons-material/FactCheckOutlined';
 import DoneOutlinedIcon from '@mui/icons-material/DoneOutlined';
 import MainLayout from '~/layouts/SchoolLayout';
 import PageContainer from '~/components/common/PageContainer';
 import PageBreadcrumb from '~/components/common/PageBreadcrumb';
 import { useUser } from '~/contexts/UserContext';
 import { usePermission } from '~/hooks/usePermission';
-import { childrenAttendanceApi, academicYearApi } from '~/apis';
+import { childrenAttendanceApi, academicYearApi, scheduleApi } from '~/apis'; // ✅ Add scheduleApi
 import { PERMISSIONS } from '~/config/rbacConfig';
 import { toast } from 'react-toastify';
 import dayjs from '~/config/dayjsConfig';
@@ -71,6 +70,7 @@ function ChildrenAttendance() {
     const [students, setStudents] = useState([]);
     const [attendanceData, setAttendanceData] = useState({});
     const [weekDays, setWeekDays] = useState([]);
+    const [holidays, setHolidays] = useState([]); // ✅ NEW: State cho ngày nghỉ
 
     // Dialog state
     const [openDialog, setOpenDialog] = useState(false);
@@ -152,6 +152,34 @@ function ChildrenAttendance() {
         }
     };
 
+    // ✅ NEW: Fetch holidays
+    const fetchHolidays = async () => {
+        if (!selectedYear) return;
+
+        try {
+            const scheduleRes = await scheduleApi.getByAcademicYear(selectedYear);
+            const schedule = scheduleRes.data.data;
+
+            if (schedule) {
+                const holidaysRes = await scheduleApi.getHolidays(schedule._id);
+                setHolidays(holidaysRes.data.data.holidays || []);
+                console.log('✅ [ChildrenAttendance] Holidays loaded:', holidaysRes.data.data.holidays?.length || 0);
+            }
+        } catch (error) {
+            console.error('Error fetching holidays:', error);
+            if (error?.response?.status !== 404 && error?.response?.status !== 500) {
+                toast.error('Lỗi khi tải danh sách ngày nghỉ!');
+            }
+        }
+    };
+
+    // ✅ NEW: Check if date is holiday
+    const isHoliday = (date) => {
+        if (!date) return false;
+        const dateStr = dayjs(date).format('YYYY-MM-DD');
+        return holidays.some((holiday) => dayjs(holiday).format('YYYY-MM-DD') === dateStr);
+    };
+
     // ✅ Fetch attendance data
     const fetchAttendanceData = async () => {
         if (!selectedYear || !selectedClass || !selectedWeek) return;
@@ -203,13 +231,14 @@ function ChildrenAttendance() {
         if (selectedYear) {
             fetchClasses();
             fetchWeeks();
+            fetchHolidays(); // ✅ Fetch holidays khi đổi năm học
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [selectedYear]);
 
     useEffect(() => {
         if (selectedYear && selectedClass && selectedWeek && weeks.length > 0) {
-            fetchAttendanceData(selectedYear, selectedClass, selectedWeek, weeks);
+            fetchAttendanceData();
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [selectedClass, selectedWeek]);
@@ -225,6 +254,12 @@ function ChildrenAttendance() {
 
     // ✅ Handle cell click - Open dialog
     const handleCellClick = (student, day) => {
+        // ✅ FIX: Chặn nếu là ngày nghỉ
+        if (isHoliday(day.date)) {
+            toast.warning('Không thể điểm danh cho ngày nghỉ!');
+            return;
+        }
+
         if (!isActiveYear && !canUpdate) return;
 
         const key = `${student._id}-${dayjs(day.date).format('YYYY-MM-DD')}`;
@@ -241,6 +276,12 @@ function ChildrenAttendance() {
 
     // ✅ Handle bulk attendance
     const handleBulkAttendance = (day) => {
+        // ✅ FIX: Chặn nếu là ngày nghỉ
+        if (isHoliday(day.date)) {
+            toast.warning('Không thể điểm danh hàng loạt cho ngày nghỉ!');
+            return;
+        }
+
         if (!isActiveYear) return;
 
         setBulkDialogData({
@@ -475,41 +516,57 @@ function ChildrenAttendance() {
                                         <TableCell className="sticky-col-name">Họ tên</TableCell>
                                         <TableCell className="sticky-col-code">Mã học sinh</TableCell>
 
-                                        {weekDays.map((day) => (
-                                            <TableCell key={day.date} align="center" sx={{ minWidth: 140 }}>
-                                                <Box
+                                        {weekDays.map((day) => {
+                                            const holiday = isHoliday(day.date); // ✅ Check holiday
+
+                                            return (
+                                                <TableCell
+                                                    key={day.date}
+                                                    align="center"
                                                     sx={{
-                                                        display: 'flex',
-                                                        alignItems: 'center',
-                                                        justifyContent: 'center',
-                                                        gap: 1,
+                                                        minWidth: 140,
+                                                        bgcolor: holiday ? '#ffebee' : 'inherit', // ✅ Đỏ nhạt nếu nghỉ
                                                     }}
                                                 >
-                                                    {/* Text thứ + ngày */}
-                                                    <Box>
-                                                        <Typography variant="caption" fontWeight={700}>
-                                                            {day.dayOfWeek} ({dayjs(day.date).format('DD/MM')})
-                                                        </Typography>
-                                                        {/* <Typography variant="caption" display="block">
-                                                            {dayjs(day.date).format('DD/MM')}
-                                                        </Typography> */}
-                                                    </Box>
+                                                    <Box
+                                                        sx={{
+                                                            display: 'flex',
+                                                            alignItems: 'center',
+                                                            justifyContent: 'center',
+                                                            gap: 1,
+                                                        }}
+                                                    >
+                                                        <Box>
+                                                            <Typography variant="caption" fontWeight={700}>
+                                                                {day.dayOfWeek} ({dayjs(day.date).format('DD/MM')})
+                                                            </Typography>
+                                                            {/* ✅ Hiển thị "Nghỉ" nếu là holiday */}
+                                                            {/* {holiday && (
+                                                                <Chip
+                                                                    label="Ngày Nghỉ"
+                                                                    color="error"
+                                                                    size="small"
+                                                                    sx={{ ml: 0.5 }}
+                                                                />
+                                                            )} */}
+                                                        </Box>
 
-                                                    {/* Bulk attendance icon */}
-                                                    {canCreate && isActiveYear && (
-                                                        <Tooltip title="Điểm danh hàng loạt">
-                                                            <IconButton
-                                                                size="small"
-                                                                color="info"
-                                                                onClick={() => handleBulkAttendance(day)}
-                                                            >
-                                                                <GroupAddIcon fontSize="small" />
-                                                            </IconButton>
-                                                        </Tooltip>
-                                                    )}
-                                                </Box>
-                                            </TableCell>
-                                        ))}
+                                                        {/* ✅ Ẩn nút bulk attendance nếu là ngày nghỉ */}
+                                                        {!holiday && canCreate && isActiveYear && (
+                                                            <Tooltip title="Điểm danh hàng loạt">
+                                                                <IconButton
+                                                                    size="small"
+                                                                    color="info"
+                                                                    onClick={() => handleBulkAttendance(day)}
+                                                                >
+                                                                    <FactCheckOutlinedIcon fontSize="small" />
+                                                                </IconButton>
+                                                            </Tooltip>
+                                                        )}
+                                                    </Box>
+                                                </TableCell>
+                                            );
+                                        })}
                                     </TableRow>
                                 </TableHead>
 
@@ -528,6 +585,7 @@ function ChildrenAttendance() {
                                                 const key = `${student._id}-${dayjs(day.date).format('YYYY-MM-DD')}`;
                                                 const attendance = attendanceData[key] || null;
                                                 const chipProps = getStatusChipProps(attendance?.status);
+                                                const holiday = isHoliday(day.date); // ✅ Check holiday
 
                                                 return (
                                                     <TableCell
@@ -540,19 +598,23 @@ function ChildrenAttendance() {
                                                             px: 1,
                                                             opacity: !isActiveYear && !attendance ? 0.5 : 1,
                                                             pointerEvents: !isActiveYear ? 'none' : 'auto',
+                                                            bgcolor: holiday ? '#ffebee' : 'inherit', // ✅ Nền đỏ nhạt cho ngày nghỉ
                                                         }}
                                                         onClick={() => handleCellClick(student, day)}
                                                     >
-                                                        {attendance ? (
+                                                        {/* ✅ Hiển thị "Ngày Nghỉ" nếu là ngày nghỉ */}
+                                                        {holiday ? (
+                                                            <Chip label="Ngày Nghỉ" color="error" size="small" />
+                                                        ) : attendance ? (
                                                             <Box
                                                                 sx={{
                                                                     display: 'flex',
                                                                     flexDirection: 'column',
                                                                     alignItems: 'center',
                                                                     gap: 0.5,
+                                                                    py: 0.5,
                                                                 }}
                                                             >
-                                                                {/* Status Chip */}
                                                                 <Tooltip title={chipProps.fullLabel}>
                                                                     <Chip
                                                                         label={chipProps.label}
@@ -566,7 +628,6 @@ function ChildrenAttendance() {
                                                                     />
                                                                 </Tooltip>
 
-                                                                {/* Note (if exists) */}
                                                                 {attendance.note && (
                                                                     <Tooltip title={attendance.note} arrow>
                                                                         <Typography
@@ -590,11 +651,11 @@ function ChildrenAttendance() {
                                                             <Tooltip
                                                                 title={
                                                                     isActiveYear
-                                                                        ? 'Click để điểm danh'
+                                                                        ? 'Chưa điểm danh'
                                                                         : 'Năm học đã kết thúc'
                                                                 }
                                                             >
-                                                                <span>
+                                                                {/* <span>
                                                                     <IconButton
                                                                         size="small"
                                                                         color="default"
@@ -602,7 +663,17 @@ function ChildrenAttendance() {
                                                                     >
                                                                         <CheckCircleIcon fontSize="small" />
                                                                     </IconButton>
-                                                                </span>
+                                                                </span> */}
+                                                                <Chip
+                                                                    label={chipProps.label}
+                                                                    color={chipProps.color}
+                                                                    size="small"
+                                                                    sx={{
+                                                                        fontWeight: 700,
+                                                                        minWidth: 50,
+                                                                        fontSize: '0.875rem',
+                                                                    }}
+                                                                />
                                                             </Tooltip>
                                                         )}
                                                     </TableCell>
@@ -619,9 +690,10 @@ function ChildrenAttendance() {
                     {weekDays.length > 0 && (
                         <Box sx={{ mt: 2, display: 'flex', gap: 2, flexWrap: 'wrap', justifyContent: 'center' }}>
                             <Chip label="✓ Có mặt" color="success" size="small" />
+                            <Chip label="T Đi trễ" color="info" size="small" />
+                            <Chip label="- Chưa điểm danh" color="default" size="small" />
                             <Chip label="P Vắng có phép" color="warning" size="small" />
                             <Chip label="K Vắng không phép" color="error" size="small" />
-                            <Chip label="T Đi trễ" color="info" size="small" />
                         </Box>
                     )}
                 </Paper>

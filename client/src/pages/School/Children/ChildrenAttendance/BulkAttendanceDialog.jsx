@@ -32,6 +32,7 @@ const ATTENDANCE_STATUS = [
     { value: 'Vắng có phép', label: 'Vắng có phép', color: 'warning' },
     { value: 'Vắng không phép', label: 'Vắng không phép', color: 'error' },
     { value: 'Đi trễ', label: 'Đi trễ', color: 'info' },
+    { value: 'Chưa điểm danh', label: 'Chưa điểm danh', color: 'default' },
 ];
 
 function BulkAttendanceDialog({ open, classId, students, date, onClose, onSuccess }) {

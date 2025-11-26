@@ -511,9 +511,14 @@ function ImportChildrenProfileDialog({ open, onClose, onSuccess, academicYearId 
                     disabled={!previewData || validationErrors.length > 0 || loading}
                     sx={{
                         borderRadius: 1.5,
-                        background: 'linear-gradient(135deg, #0071bc 0%, #00b4d8 100%)',
+                        px: 3,
+                        textTransform: 'none',
+                        fontWeight: 600,
+                        boxShadow: 2,
+                        background: 'linear-gradient(135deg, #0071bc 100%, #aee2ff 100%)',
                         '&:hover': {
-                            background: 'linear-gradient(135deg, #005a94 0%, #0096c7 100%)',
+                            boxShadow: 3,
+                            background: 'linear-gradient(135deg, #1180caff 100%, #aee2ff 100%)',
                         },
                     }}
                 >

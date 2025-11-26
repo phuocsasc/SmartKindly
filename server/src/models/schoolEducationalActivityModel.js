@@ -96,22 +96,19 @@ const SchoolEducationalActivitySchema = new mongoose.Schema(
 SchoolEducationalActivitySchema.index({ schoolId: 1, academicYearId: 1, ageGroup: 1, _destroy: 1 });
 SchoolEducationalActivitySchema.index({ ageGroup: 1, targetCode: 1, _destroy: 1 });
 SchoolEducationalActivitySchema.index({ schoolYearTargetId: 1, _destroy: 1 });
+SchoolEducationalActivitySchema.index({ targetId: 1, _destroy: 1 }); // ✅ NEW
 
-// ✅ FIX: Unique constraint - CHỈ áp dụng cho bản ghi chưa xóa (_destroy: false)
+// ✅ NEW: Unique constraint based on targetId instead of targetCode
 SchoolEducationalActivitySchema.index(
     {
         schoolId: 1,
         academicYearId: 1,
-        ageGroup: 1,
-        mainFieldCode: 1,
-        subFieldCode: 1,
-        expectedResultCode: 1,
-        targetCode: 1,
+        targetId: 1, // ✅ CHANGE: Use targetId instead of targetCode + other fields
     },
     {
         unique: true,
-        partialFilterExpression: { _destroy: false }, // ✅ Chỉ áp dụng unique cho bản ghi chưa xóa
-        name: 'unique_school_activity_not_deleted', // ✅ Đặt tên index rõ ràng
+        partialFilterExpression: { _destroy: false },
+        name: 'unique_school_activity_by_targetId',
     },
 );
 

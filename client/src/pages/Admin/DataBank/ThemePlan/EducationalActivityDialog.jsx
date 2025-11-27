@@ -104,31 +104,31 @@ function EducationalActivityDialog({ open, data, onClose, onSuccess }) {
         try {
             setLoading(true);
 
+            const payload = {
+                ageGroup: data.ageGroup,
+                yearTargetId: data.yearTargetId,
+                mainFieldCode: data.mainFieldCode,
+                subFieldCode: data.subFieldCode || null,
+                expectedResultCode: data.expectedResultCode,
+                targetId: data.targetId, // ✅ Send targetId
+                // targetCode: data.targetCode, ❌ Don't send (backend auto-fills)
+                activityContent: formData.activityContent,
+            };
+
             if (isEditMode) {
-                // Update
                 await educationalActivityApi.update(data.activityId, {
                     activityContent: formData.activityContent,
                 });
                 toast.success('Cập nhật hoạt động giáo dục thành công!');
             } else {
-                // Create
-                await educationalActivityApi.create({
-                    ageGroup: data.ageGroup,
-                    yearTargetId: data.yearTargetId,
-                    mainFieldCode: data.mainFieldCode,
-                    subFieldCode: data.subFieldCode || null,
-                    expectedResultCode: data.expectedResultCode,
-                    targetCode: data.targetCode,
-                    activityContent: formData.activityContent,
-                });
+                await educationalActivityApi.create(payload);
                 toast.success('Thêm hoạt động giáo dục thành công!');
             }
 
             onSuccess();
         } catch (error) {
             console.error('Error saving activity:', error);
-            const errorMsg = error.response?.data?.message || 'Lỗi khi lưu hoạt động giáo dục!';
-            toast.error(errorMsg);
+            toast.error(error.response?.data?.message || 'Lỗi khi lưu hoạt động!');
         } finally {
             setLoading(false);
         }

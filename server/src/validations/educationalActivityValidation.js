@@ -33,9 +33,14 @@ const createNew = async (req, res, next) => {
             'string.empty': 'Mã kết quả mong đợi không được để trống',
             'any.required': 'Mã kết quả mong đợi là bắt buộc',
         }),
-        targetCode: Joi.string().required().messages({
+        // ✅ NEW: Required targetId
+        targetId: Joi.string().pattern(OBJECT_ID_RULE).required().messages({
+            'any.required': 'Target ID là bắt buộc',
+            'string.pattern.base': OBJECT_ID_RULE_MESSAGE,
+        }),
+        // ✅ Optional targetCode (auto-filled by backend)
+        targetCode: Joi.string().optional().messages({
             'string.empty': 'Mã mục tiêu không được để trống',
-            'any.required': 'Mã mục tiêu là bắt buộc',
         }),
         activityContent: Joi.string().required().trim().messages({
             'string.empty': 'Nội dung hoạt động giáo dục không được để trống',

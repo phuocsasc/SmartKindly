@@ -31,6 +31,7 @@ import { yearTargetApi } from '~/apis/yearTargetApi';
 import { educationalActivityApi } from '~/apis/educationalActivityApi';
 import { toast } from 'react-toastify';
 import EducationalActivityDialog from './EducationalActivityDialog';
+import ConfirmDialog from '~/components/common/ConfirmDialog';
 
 const AGE_GROUPS = [
     { value: 'Nhà trẻ 3-12 tháng', label: 'Nhà trẻ 3-12 tháng' },
@@ -50,6 +51,14 @@ function EducationalActivity() {
     const [openDialog, setOpenDialog] = useState(false);
     const [dialogData, setDialogData] = useState(null);
     const [tableRows, setTableRows] = useState([]);
+    const [dialogState, setDialogState] = useState({
+        open: false,
+        title: '',
+        content: '',
+        severity: 'warning',
+        confirmText: 'Xác nhận',
+        onConfirm: null,
+    });
 
     const currentAgeGroup = AGE_GROUPS[tabValue].value;
 
@@ -75,7 +84,7 @@ function EducationalActivity() {
             // Group activities by ageGroup + targetCode
             const groupedActivities = {};
             activitiesData.forEach((activity) => {
-                const key = `${activity.ageGroup}-${activity.targetCode}`;
+                const key = `${activity.ageGroup}-${activity.targetId}`;
                 groupedActivities[key] = activity;
             });
             setActivities(groupedActivities);
@@ -110,7 +119,7 @@ function EducationalActivity() {
 
                         targets.forEach((target, targetIdx) => {
                             // ✅ Tìm hoạt động giáo dục tương ứng
-                            const activityKey = `${currentAgeGroup}-${target.code}`;
+                            const activityKey = `${currentAgeGroup}-${target._id}`;
                             const activity = activities[activityKey];
 
                             rows.push({
@@ -122,6 +131,7 @@ function EducationalActivity() {
                                 expectedResultCode: expectedResult.code,
                                 expectedResultDescription: expectedResult.description,
                                 targetCode: target.code,
+                                targetId: target._id, // ✅ Real identifier
                                 targetContent: target.content,
                                 activityContent: activity?.activityContent || null,
                                 activityId: activity?._id || null,
@@ -129,6 +139,7 @@ function EducationalActivity() {
                                 _mainFieldCode: mainField.code,
                                 _subFieldCode: subField.code,
                                 _expectedResultCode: expectedResult.code,
+                                _targetId: target._id, // ✅ Pass targetId
                                 _yearTargetId: currentData._id,
                                 isFirstInExpectedResult: targetIdx === 0,
                                 expectedResultRowSpan: targetCount,
@@ -142,11 +153,11 @@ function EducationalActivity() {
                     const targetCount = Math.max(targets.length, 1);
 
                     targets.forEach((target, targetIdx) => {
-                        const activityKey = `${currentAgeGroup}-${target.code}`;
+                        const activityKey = `${currentAgeGroup}-${target._id}`;
                         const activity = activities[activityKey];
 
                         rows.push({
-                            id: `${mainField.code}-${expectedResult.code}-${target.code}`,
+                            id: `${mainField.code}-${expectedResult.code}-${target._id}`,
                             mainFieldCode: mainField.code,
                             mainFieldName: mainField.name,
                             subFieldCode: null,
@@ -154,12 +165,14 @@ function EducationalActivity() {
                             expectedResultCode: expectedResult.code,
                             expectedResultDescription: expectedResult.description,
                             targetCode: target.code,
+                            targetId: target._id, // ✅ Real identifier
                             targetContent: target.content,
                             activityContent: activity?.activityContent || null,
                             activityId: activity?._id || null,
                             _mainFieldCode: mainField.code,
                             _subFieldCode: null,
                             _expectedResultCode: expectedResult.code,
+                            _targetId: target._id, // ✅ Pass targetId
                             _yearTargetId: currentData._id,
                             isFirstInExpectedResult: targetIdx === 0,
                             expectedResultRowSpan: targetCount,
@@ -183,6 +196,7 @@ function EducationalActivity() {
             mainFieldCode: row._mainFieldCode,
             subFieldCode: row._subFieldCode,
             expectedResultCode: row._expectedResultCode,
+            targetId: row._targetId, // ✅ Pass targetId
             targetCode: row.targetCode,
             yearTargetId: row._yearTargetId,
         });
@@ -197,23 +211,46 @@ function EducationalActivity() {
             mainFieldCode: row._mainFieldCode,
             subFieldCode: row._subFieldCode,
             expectedResultCode: row._expectedResultCode,
+            targetId: row._targetId, // ✅ Pass targetId
             targetCode: row.targetCode,
             yearTargetId: row._yearTargetId,
         });
         setOpenDialog(true);
     };
 
-    const handleDeleteActivity = async (row) => {
-        if (!window.confirm('Bạn có chắc chắn muốn xóa hoạt động giáo dục này?')) return;
+    const handleDeleteActivity = (row) => {
+        setDialogState({
+            open: true,
+            title: 'Xác nhận xóa hoạt động',
+            content: `Bạn có chắc chắn muốn xóa hoạt động giáo dục cho mục tiêu "${row.targetCode}"?`,
+            severity: 'error',
+            confirmText: 'Xóa',
+            onConfirm: () => confirmDelete(row),
+        });
+    };
 
+    const confirmDelete = async (row) => {
         try {
             await educationalActivityApi.delete(row.activityId);
             toast.success('Xóa hoạt động giáo dục thành công!');
+            handleCancel();
             fetchData();
         } catch (error) {
             console.error('Error deleting activity:', error);
             toast.error('Lỗi khi xóa hoạt động giáo dục!');
+            handleCancel();
         }
+    };
+
+    const handleCancel = () => {
+        setDialogState({
+            open: false,
+            title: '',
+            content: '',
+            severity: 'warning',
+            confirmText: 'Xác nhận',
+            onConfirm: null,
+        });
     };
 
     return (
@@ -450,6 +487,17 @@ function EducationalActivity() {
                     setDialogData(null);
                     fetchData();
                 }}
+            />
+
+            {/* Confirm Dialog */}
+            <ConfirmDialog
+                open={dialogState.open}
+                title={dialogState.title}
+                message={dialogState.content}
+                severity={dialogState.severity}
+                confirmText={dialogState.confirmText}
+                onConfirm={dialogState.onConfirm}
+                onCancel={handleCancel}
             />
         </MainLayout>
     );

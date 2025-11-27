@@ -30,6 +30,7 @@ import { useUser } from '~/contexts/UserContext';
 import { yearTargetApi } from '~/apis/yearTargetApi';
 import { toast } from 'react-toastify';
 import AdminYearTargetDialog from './AdminYearTargetDialog';
+import ConfirmDialog from '~/components/common/ConfirmDialog';
 
 const AGE_GROUPS = [
     { value: 'Nhà trẻ 3-12 tháng', label: 'Nhà trẻ 3-12 tháng' },
@@ -48,6 +49,12 @@ function AdminYearTarget() {
     const [openDialog, setOpenDialog] = useState(false);
     const [dialogData, setDialogData] = useState(null);
     const [tableRows, setTableRows] = useState([]);
+    const [dialogState, setDialogState] = useState({
+        open: false,
+        title: '',
+        content: '',
+        onConfirm: null,
+    });
 
     const currentAgeGroup = AGE_GROUPS[tabValue].value;
 
@@ -248,10 +255,18 @@ function AdminYearTarget() {
 
         return mainFields;
     };
+    const handleDeleteTarget = (row) => {
+        setDialogState({
+            open: true,
+            title: 'Xác nhận xóa mục tiêu',
+            content: `Bạn có chắc chắn muốn xóa mục tiêu "${row.targetCode}"?`,
+            severity: 'error', // ✅ Thêm severity
+            confirmText: 'Xóa', // ✅ Thêm confirmText
+            onConfirm: () => confirmDelete(row),
+        });
+    };
 
-    const handleDeleteTarget = async (row) => {
-        if (!window.confirm('Bạn có chắc chắn muốn xóa mục tiêu này?')) return;
-
+    const confirmDelete = async (row) => {
         try {
             const currentData = yearTargets[currentAgeGroup];
             if (!currentData) return;
@@ -279,11 +294,24 @@ function AdminYearTarget() {
 
             await yearTargetApi.update(currentData._id, { mainFields: renumberedMainFields });
             toast.success('Xóa mục tiêu thành công!');
+            handleCancel();
             fetchYearTargets();
         } catch (error) {
             console.error('Error deleting target:', error);
             toast.error('Lỗi khi xóa mục tiêu!');
+            handleCancel();
         }
+    };
+
+    const handleCancel = () => {
+        setDialogState({
+            open: false,
+            title: '',
+            content: '',
+            severity: 'warning',
+            confirmText: 'Xác nhận',
+            onConfirm: null,
+        });
     };
 
     return (
@@ -516,6 +544,8 @@ function AdminYearTarget() {
                     fetchYearTargets();
                 }}
             />
+            {/* Confirm Dialog */}
+            <ConfirmDialog {...dialogState} onCancel={handleCancel} />
         </MainLayout>
     );
 }

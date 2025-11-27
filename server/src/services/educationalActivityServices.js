@@ -32,55 +32,56 @@ const createNew = async (data, userId) => {
 
         // ✅ Kiểm tra mục tiêu (targetCode) có tồn tại trong yearTarget không
         let targetExists = false;
+        let targetCode = null;
 
         for (const mainField of yearTarget.mainFields) {
             if (mainField.code !== data.mainFieldCode) continue;
 
-            if (data.subFieldCode) {
-                const subField = mainField.subFields?.find((sf) => sf.code === data.subFieldCode);
-                const expectedResult = subField?.expectedResults?.find((er) => er.code === data.expectedResultCode);
-                const target = expectedResult?.targets?.find((t) => t.code === data.targetCode);
-                if (target) {
-                    targetExists = true;
-                    break;
-                }
-            } else {
-                const expectedResult = mainField.expectedResults?.find((er) => er.code === data.expectedResultCode);
-                const target = expectedResult?.targets?.find((t) => t.code === data.targetCode);
-                if (target) {
-                    targetExists = true;
-                    break;
-                }
+            const expectedResults = data.subFieldCode
+                ? mainField.subFields?.find((sf) => sf.code === data.subFieldCode)?.expectedResults
+                : mainField.expectedResults;
+
+            const expectedResult = expectedResults?.find((er) => er.code === data.expectedResultCode);
+            const target = expectedResult?.targets?.find((t) => t._id.toString() === data.targetId);
+
+            if (target) {
+                targetExists = true;
+                targetCode = target.code; // Get code from structure
+                break;
             }
         }
 
         if (!targetExists) {
             throw new ApiError(
                 StatusCodes.NOT_FOUND,
-                `Không tìm thấy mục tiêu "${data.targetCode}" trong cấu trúc mục tiêu năm học`,
+                `Không tìm thấy mục tiêu với ID "${data.targetId}" trong cấu trúc mục tiêu năm học`,
             );
         }
 
-        // ✅ Kiểm tra đã có hoạt động giáo dục cho mục tiêu này chưa (mỗi MT chỉ có 1 hoạt động)
+        // ✅ Check duplicate by targetId
         const existing = await EducationalActivityModel.findOne({
             ageGroup: data.ageGroup,
-            mainFieldCode: data.mainFieldCode,
-            subFieldCode: data.subFieldCode || null,
-            expectedResultCode: data.expectedResultCode,
-            targetCode: data.targetCode,
+            targetId: data.targetId, // ✅ Check by targetId
             _destroy: false,
         });
 
         if (existing) {
             throw new ApiError(
                 StatusCodes.CONFLICT,
-                `Mục tiêu "${data.targetCode}" đã có hoạt động giáo dục. Mỗi mục tiêu chỉ có 1 hoạt động.`,
+                `Mục tiêu "${targetCode}" đã có hoạt động giáo dục. Mỗi mục tiêu chỉ có 1 hoạt động.`,
             );
         }
 
         // ✅ Tạo mới
         const newActivity = new EducationalActivityModel({
-            ...data,
+            ageGroup: data.ageGroup,
+            yearTargetId: data.yearTargetId,
+            targetId: data.targetId, // ✅ Primary key
+            mainFieldCode: data.mainFieldCode,
+            subFieldCode: data.subFieldCode || null,
+            expectedResultCode: data.expectedResultCode,
+            targetCode: targetCode, // Snapshot
+            activityContent: data.activityContent,
             createdBy: userId,
         });
 
@@ -105,35 +106,74 @@ const createNew = async (data, userId) => {
  */
 const getAll = async (query) => {
     try {
-        const { page = 1, limit = 50, ageGroup = '', targetCode = '' } = query;
-        const skip = (page - 1) * limit;
+        const { page = 1, limit = 10, ageGroup } = query;
 
         const filter = { _destroy: false };
         if (ageGroup) filter.ageGroup = ageGroup;
-        if (targetCode) filter.targetCode = new RegExp(targetCode, 'i');
+
+        const skip = (page - 1) * limit;
 
         const [activities, total] = await Promise.all([
             EducationalActivityModel.find(filter)
                 .populate('createdBy', 'fullName username')
-                .populate('lastUpdatedBy', 'fullName username')
                 .populate('yearTargetId', 'ageGroup')
-                .sort({ ageGroup: 1, targetCode: 1 })
+                .sort({ ageGroup: 1, createdAt: -1 })
                 .skip(skip)
-                .limit(Number(limit))
+                .limit(limit)
                 .lean(),
             EducationalActivityModel.countDocuments(filter),
         ]);
 
+        // ✅ Enrich with current target info
+        const enrichedActivities = await Promise.all(
+            activities.map(async (activity) => {
+                const yearTarget = await YearTargetModel.findById(activity.yearTargetId);
+
+                if (!yearTarget) return activity;
+
+                let currentTargetInfo = null;
+
+                for (const mainField of yearTarget.mainFields) {
+                    const expectedResults = activity.subFieldCode
+                        ? mainField.subFields?.find((sf) => sf.code === activity.subFieldCode)?.expectedResults
+                        : mainField.expectedResults;
+
+                    for (const expectedResult of expectedResults || []) {
+                        const target = expectedResult.targets?.find(
+                            (t) => t._id.toString() === activity.targetId.toString(),
+                        );
+
+                        if (target) {
+                            currentTargetInfo = {
+                                currentCode: target.code, // MT3 (after renumber)
+                                currentContent: target.content,
+                                originalCode: activity.targetCode, // MT2 (at creation)
+                            };
+                            break;
+                        }
+                    }
+
+                    if (currentTargetInfo) break;
+                }
+
+                return {
+                    ...activity,
+                    currentTargetInfo,
+                };
+            }),
+        );
+
         return {
-            activities,
+            activities: enrichedActivities,
             pagination: {
-                page: Number(page),
-                limit: Number(limit),
-                totalItems: total,
+                page,
+                limit,
+                total,
                 totalPages: Math.ceil(total / limit),
             },
         };
     } catch (error) {
+        console.error('❌ [EducationalActivity getAll] Error:', error);
         throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, 'Lỗi khi lấy danh sách hoạt động giáo dục');
     }
 };

@@ -10,7 +10,8 @@ import {
     Box,
     useMediaQuery,
 } from '@mui/material';
-import { Dashboard as DashboardIcon, ExpandLess, ExpandMore } from '@mui/icons-material';
+import { Dashboard as DashboardIcon, ExpandMore } from '@mui/icons-material';
+import KeyboardArrowRightOutlinedIcon from '@mui/icons-material/KeyboardArrowRightOutlined';
 import KeyboardDoubleArrowLeftOutlinedIcon from '@mui/icons-material/KeyboardDoubleArrowLeftOutlined';
 import KeyboardDoubleArrowRightOutlinedIcon from '@mui/icons-material/KeyboardDoubleArrowRightOutlined';
 import StorageOutlinedIcon from '@mui/icons-material/StorageOutlined';
@@ -204,7 +205,15 @@ function AdminSidebar({ collapsed, onToggle, mobileOpen, onCloseMobile }) {
                                     />
                                     {hasChildren &&
                                         !isCollapsed &&
-                                        (openMenus[item.text] ? <ExpandLess /> : <ExpandMore />)}
+                                        (openMenus[item.text] ? (
+                                            <ExpandMore
+                                                sx={{ color: isActive ? '#fff' : '#0068AD', transition: 'color 0.5s' }}
+                                            />
+                                        ) : (
+                                            <KeyboardArrowRightOutlinedIcon
+                                                sx={{ color: isActive ? '#fff' : '#0068AD', transition: 'color 0.5s' }}
+                                            />
+                                        ))}
                                 </ListItemButton>
                             </ListItem>
 

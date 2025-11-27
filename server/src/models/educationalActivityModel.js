@@ -30,6 +30,14 @@ const EducationalActivitySchema = new mongoose.Schema(
             required: [true, 'Mục tiêu năm học là bắt buộc'],
             index: true,
         },
+
+        // ✅ NEW: Primary key - targetId thay vì targetCode
+        targetId: {
+            type: mongoose.Schema.Types.ObjectId,
+            required: true,
+            index: true,
+        },
+
         // ✅ Định danh chính xác vị trí trong cấu trúc Year Target
         mainFieldCode: {
             type: String, // "I", "II", "III", "IV", "V"
@@ -43,6 +51,8 @@ const EducationalActivitySchema = new mongoose.Schema(
             type: String, // "1", "2", "3"...
             required: true,
         },
+
+        // ✅ Keep targetCode as snapshot (for display/debugging)
         targetCode: {
             type: String, // "MT1", "MT2", "MT3"...
             required: true,
@@ -77,20 +87,18 @@ const EducationalActivitySchema = new mongoose.Schema(
 // ✅ Index để tìm kiếm nhanh
 EducationalActivitySchema.index({ ageGroup: 1, targetCode: 1, _destroy: 1 });
 EducationalActivitySchema.index({ yearTargetId: 1, _destroy: 1 });
+EducationalActivitySchema.index({ targetId: 1, _destroy: 1 }); // ✅ NEW
 
-// ✅ Unique constraint: Mỗi mục tiêu chỉ có 1 hoạt động giáo dục
+// ✅ NEW: Unique constraint by targetId
 EducationalActivitySchema.index(
     {
         ageGroup: 1,
-        mainFieldCode: 1,
-        subFieldCode: 1,
-        expectedResultCode: 1,
-        targetCode: 1,
-        _destroy: 1,
+        targetId: 1,
     },
     {
         unique: true,
         partialFilterExpression: { _destroy: false },
+        name: 'unique_admin_activity_by_targetId',
     },
 );
 

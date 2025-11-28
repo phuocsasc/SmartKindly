@@ -51,4 +51,6 @@ export * from './weeklyPlanApi';
 
 export * from './childrenProfileApi';
 
-export * from './childrenAttendanceApi'
+export * from './childrenAttendanceApi';
+
+export * from './childrenDailyAssessmentApi';

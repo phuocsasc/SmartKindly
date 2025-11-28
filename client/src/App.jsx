@@ -41,6 +41,7 @@ import ChildrenProfile from '~/pages/School/Children/ChildrenProfile/ChildrenPro
 import ChildrenAttendance from '~/pages/School/Children/ChildrenAttendance/ChildrenAttendance';
 import ChildrenAssessment from '~/pages/School/Children/ChildrenAssessment/ChildrenAssessment';
 import ChildrenCertificate from '~/pages/School/Children/ChildrenCertificate/ChildrenCertificate';
+import ChildrenProgramComplete from '~/pages/School/Children/ChildrenProgramComplete/ChildrenProgramComplete';
 
 /**
  * Protected Routes với UserContext
@@ -148,6 +149,9 @@ function AppContent() {
                 </Route>
                 <Route element={<RbacRoute requiredPermission={PERMISSIONS.VIEW_CHILDREN_CERTIFICATE} />}>
                     <Route path="/children/certificate" element={<ChildrenCertificate />} />
+                </Route>
+                <Route element={<RbacRoute requiredPermission={PERMISSIONS.VIEW_CHILDREN_PROGRAM_COMPLETE} />}>
+                    <Route path="/children/program-complete" element={<ChildrenProgramComplete />} />
                 </Route>
             </Route>
 

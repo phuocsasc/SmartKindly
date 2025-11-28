@@ -77,9 +77,9 @@ const menuItems = [
         children: [
             { text: 'Hồ sơ trẻ em', path: '/children/profile' },
             { text: 'Điểm danh trẻ em', path: '/children/attendance' },
-            { text: 'Đánh giá trẻ em', path: '/children/assessment' },
+            { text: 'Đánh giá trẻ hằng ngày', path: '/children/assessment' },
             { text: 'Phiếu bé ngoan', path: '/children/certificate' },
-            // { text: 'Đánh giá hoàn thành chương trình', path: '/children/program-complete' },
+            { text: 'Đánh giá trẻ hoàn thành chương trình', path: '/children/program-complete' },
         ],
     },
 

@@ -473,7 +473,10 @@ function ChildrenAttendance() {
                                             left: 0,
                                             zIndex: 3,
                                             backgroundColor: '#e3f2fd',
-                                            minWidth: 40,
+                                            minWidth: 50, // 👈 giảm từ 40 → 30
+                                            maxWidth: 50,
+                                            width: 50,
+                                            textAlign: 'center',
                                         },
                                         '&.sticky-col-stt.body-cell': {
                                             backgroundColor: '#fff',
@@ -481,10 +484,15 @@ function ChildrenAttendance() {
                                         },
                                         '&.sticky-col-name': {
                                             position: 'sticky',
-                                            left: 60,
+                                            left: 50,
                                             zIndex: 3,
                                             backgroundColor: '#e3f2fd',
-                                            minWidth: 200,
+                                            minWidth: 140, // 👈 nhỏ hơn 200
+                                            maxWidth: 160, // 👈 thêm maxWidth để kiểm soát an toàn
+                                            width: 160, // 👈 ép width về đúng giá trị mong muốn
+                                            overflow: 'hidden',
+                                            textOverflow: 'ellipsis',
+                                            whiteSpace: 'nowrap',
                                         },
                                         '&.sticky-col-name.body-cell': {
                                             backgroundColor: '#fff',
@@ -493,7 +501,7 @@ function ChildrenAttendance() {
                                         },
                                         '&.sticky-col-code': {
                                             position: 'sticky',
-                                            left: 260,
+                                            left: 180,
                                             zIndex: 3,
                                             backgroundColor: '#e3f2fd',
                                             minWidth: 120,

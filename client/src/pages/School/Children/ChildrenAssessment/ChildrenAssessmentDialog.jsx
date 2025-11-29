@@ -17,6 +17,7 @@ import {
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import RateReviewIcon from '@mui/icons-material/RateReview';
+import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import { childrenDailyAssessmentApi } from '~/apis';
 import { toast } from 'react-toastify';
 import dayjs from '~/config/dayjsConfig';
@@ -62,7 +63,7 @@ function ChildrenAssessmentDialog({
                 });
             }
         }
-    }, [open, existingAssessment, studentInfo?._id, date]); // ✅ Add dependencies
+    }, [open, existingAssessment, studentInfo?._id, date]);
 
     // ✅ Reset form khi đóng dialog
     useEffect(() => {
@@ -115,6 +116,24 @@ function ChildrenAssessmentDialog({
         } catch (error) {
             console.error('Error saving assessment:', error);
             toast.error(error.response?.data?.message || 'Lỗi khi lưu đánh giá!');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    // ✅ Handle delete
+    const handleDelete = async () => {
+        if (!existingAssessment || !existingAssessment._id) return;
+
+        try {
+            setLoading(true);
+            await childrenDailyAssessmentApi.delete(existingAssessment._id);
+            toast.success('Xóa đánh giá thành công!');
+            onSuccess();
+            onClose();
+        } catch (error) {
+            console.error('Error deleting assessment:', error);
+            toast.error(error.response?.data?.message || 'Lỗi khi xóa đánh giá!');
         } finally {
             setLoading(false);
         }
@@ -273,16 +292,55 @@ function ChildrenAssessmentDialog({
             </DialogContent>
 
             {/* Actions */}
-            <DialogActions sx={{ px: 3, py: 2 }}>
-                <Button onClick={handleClose} variant="outlined" color="inherit">
+            <DialogActions sx={{ px: 3, py: 2, gap: 1, justifyContent: 'space-between' }}>
+                {/* ✅ Delete button - Only show in edit mode */}
+                {isEditMode && existingAssessment?._id && (
+                    <Button
+                        variant="outlined"
+                        color="error"
+                        onClick={handleDelete}
+                        disabled={loading}
+                        startIcon={<DeleteOutlineIcon />}
+                        size="small"
+                        sx={{
+                            borderRadius: 1.5,
+                            px: 2,
+                            textTransform: 'none',
+                        }}
+                    >
+                        Xóa đánh giá
+                    </Button>
+                )}
+
+                <Box sx={{ flex: 1 }} />
+
+                {/* Cancel button */}
+                <Button
+                    onClick={handleClose}
+                    variant="outlined"
+                    color="inherit"
+                    disabled={loading}
+                    size="small"
+                    sx={{
+                        borderRadius: 1.5,
+                        px: 2.5,
+                        textTransform: 'none',
+                    }}
+                >
                     Hủy
                 </Button>
+
+                {/* Save button */}
                 <Button
                     onClick={handleSubmit}
                     variant="contained"
                     disabled={loading}
                     startIcon={loading ? <CircularProgress size={16} /> : null}
+                    size="small"
                     sx={{
+                        borderRadius: 1.5,
+                        px: 3,
+                        textTransform: 'none',
                         background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
                         '&:hover': {
                             background: 'linear-gradient(135deg, #5568d3 0%, #6a3f8f 100%)',

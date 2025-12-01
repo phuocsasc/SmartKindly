@@ -54,3 +54,5 @@ export * from './childrenProfileApi';
 export * from './childrenAttendanceApi';
 
 export * from './childrenDailyAssessmentApi';
+
+export * from './childrenCertificateApi';

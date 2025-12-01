@@ -18,6 +18,7 @@ import { weeklyPlanRoute } from './weeklyPlanRoute.js';
 import { childrenProfileRoute } from '~/routes/v1/childrenProfileRoute';
 import { childrenAttendanceRoute } from './childrenAttendanceRoute.js';
 import { childrenDailyAssessmentRoute } from './childrenDailyAssessmentRoute.js';
+import { childrenCertificateRoute } from './childrenCertificateRoute.js';
 
 const Router = express.Router();
 
@@ -70,5 +71,7 @@ Router.use('/children-profiles', childrenProfileRoute);
 Router.use('/children-attendances', childrenAttendanceRoute); // ✅ Add this
 
 Router.use('/children-daily-assessments', childrenDailyAssessmentRoute);
+
+Router.use('/children-certificates', childrenCertificateRoute);
 
 export const APIs_V1 = Router;

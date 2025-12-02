@@ -243,6 +243,28 @@ function ChildrenAttendance() {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [selectedClass, selectedWeek]);
 
+    // ✅ NEW: Calculate absent days in current week for a student
+    const getAbsentDaysInWeek = (studentId) => {
+        if (!weekDays || weekDays.length === 0) return 0;
+
+        let absentCount = 0;
+
+        weekDays.forEach((day) => {
+            const key = `${studentId}-${dayjs(day.date).format('YYYY-MM-DD')}`;
+            const attendance = attendanceData[key];
+
+            // ✅ Count "Vắng có phép" and "Vắng không phép"
+            // ✅ Skip holidays
+            if (attendance && ['Vắng có phép', 'Vắng không phép'].includes(attendance.status)) {
+                if (!isHoliday(day.date)) {
+                    absentCount++;
+                }
+            }
+        });
+
+        return absentCount;
+    };
+
     const formatWeekDisplay = (week) => {
         if (!week.startDate || !week.endDate) {
             return `Tuần ${week.weekNumber}`;
@@ -475,7 +497,6 @@ function ChildrenAttendance() {
                                             backgroundColor: '#e3f2fd',
                                             minWidth: 50, // 👈 giảm từ 40 → 30
                                             maxWidth: 50,
-                                            width: 50,
                                             textAlign: 'center',
                                         },
                                         '&.sticky-col-stt.body-cell': {
@@ -487,9 +508,8 @@ function ChildrenAttendance() {
                                             left: 50,
                                             zIndex: 3,
                                             backgroundColor: '#e3f2fd',
-                                            minWidth: 140, // 👈 nhỏ hơn 200
+                                            minWidth: 160, // 👈 nhỏ hơn 200
                                             maxWidth: 160, // 👈 thêm maxWidth để kiểm soát an toàn
-                                            width: 160, // 👈 ép width về đúng giá trị mong muốn
                                             overflow: 'hidden',
                                             textOverflow: 'ellipsis',
                                             whiteSpace: 'nowrap',
@@ -510,9 +530,22 @@ function ChildrenAttendance() {
                                             backgroundColor: '#fff',
                                             zIndex: 2,
                                         },
-                                        // ✅ NEW: Sticky column cuối (Tổng số ngày vắng)
+                                        // ✅ NEW: Sticky column "Ngày vắng trong tuần"
+                                        '&.sticky-col-week-absent': {
+                                            position: 'sticky',
+                                            left: 330, // 50 + 160 + 120
+                                            zIndex: 3,
+                                            backgroundColor: '#e3f2fd',
+                                            minWidth: 150,
+                                        },
+                                        '&.sticky-col-week-absent.body-cell': {
+                                            backgroundColor: '#fffde7',
+                                            zIndex: 2,
+                                        },
+                                        // Sticky column cuối (Ngày vắng trong năm)
                                         '&.sticky-col-absent': {
                                             position: 'sticky',
+                                            right: 0, // Keep at right side
                                             zIndex: 3,
                                             backgroundColor: '#fff3e0',
                                             minWidth: 150,
@@ -534,6 +567,17 @@ function ChildrenAttendance() {
                                         <TableCell className="sticky-col-stt">STT</TableCell>
                                         <TableCell className="sticky-col-name">Họ tên học sinh</TableCell>
                                         <TableCell className="sticky-col-code">Mã học sinh</TableCell>
+
+                                        {/* ✅ NEW: Cột Ngày vắng trong tuần */}
+                                        <TableCell className="sticky-col-week-absent">
+                                            <Box
+                                                sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}
+                                            >
+                                                <Typography fontWeight={600} fontSize={13}>
+                                                    Ngày vắng trong tuần
+                                                </Typography>
+                                            </Box>
+                                        </TableCell>
 
                                         {weekDays.map((day) => {
                                             const holiday = isHoliday(day.date); // ✅ Check holiday
@@ -559,15 +603,6 @@ function ChildrenAttendance() {
                                                             <Typography variant="caption" fontWeight={600}>
                                                                 {day.dayOfWeek} ({dayjs(day.date).format('DD/MM')})
                                                             </Typography>
-                                                            {/* ✅ Hiển thị "Nghỉ" nếu là holiday */}
-                                                            {/* {holiday && (
-                                                                <Chip
-                                                                    label="Ngày Nghỉ"
-                                                                    color="error"
-                                                                    size="small"
-                                                                    sx={{ ml: 0.5 }}
-                                                                />
-                                                            )} */}
                                                         </Box>
 
                                                         {/* ✅ Ẩn nút bulk attendance nếu là ngày nghỉ */}
@@ -591,58 +626,114 @@ function ChildrenAttendance() {
                                             <Box
                                                 sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}
                                             >
-                                                <Typography fontWeight={600}>Tổng ngày vắng</Typography>
+                                                <Typography fontWeight={600} fontSize={13}>
+                                                    Ngày vắng trong năm{' '}
+                                                </Typography>
                                             </Box>
                                         </TableCell>
                                     </TableRow>
                                 </TableHead>
 
                                 <TableBody>
-                                    {filteredStudents.map((student, index) => (
-                                        <TableRow key={student._id} hover>
-                                            <TableCell className="sticky-col-stt body-cell">{index + 1}</TableCell>
-                                            <TableCell className="sticky-col-name body-cell">
-                                                {student.fullName}
-                                            </TableCell>
-                                            <TableCell className="sticky-col-code body-cell">
-                                                {student.studentCode}
-                                            </TableCell>
+                                    {filteredStudents.map((student, index) => {
+                                        // ✅ CRITICAL: Calculate weekAbsentDays for THIS student
+                                        const weekAbsentDays = getAbsentDaysInWeek(student._id);
 
-                                            {weekDays.map((day) => {
-                                                const key = `${student._id}-${dayjs(day.date).format('YYYY-MM-DD')}`;
-                                                const attendance = attendanceData[key] || null;
-                                                const chipProps = getStatusChipProps(attendance?.status);
-                                                const holiday = isHoliday(day.date); // ✅ Check holiday
+                                        return (
+                                            <TableRow key={student._id} hover>
+                                                <TableCell className="sticky-col-stt body-cell">{index + 1}</TableCell>
+                                                <TableCell className="sticky-col-name body-cell">
+                                                    {student.fullName}
+                                                </TableCell>
+                                                <TableCell className="sticky-col-code body-cell">
+                                                    {student.studentCode}
+                                                </TableCell>
 
-                                                return (
-                                                    <TableCell
-                                                        key={day.date}
-                                                        align="center"
+                                                {/* ✅ NEW: Ngày vắng trong tuần */}
+                                                <TableCell align="center" className="sticky-col-week-absent body-cell">
+                                                    <Chip
+                                                        label={`${weekAbsentDays} ngày`}
+                                                        size="small"
+                                                        color={weekAbsentDays === 0 ? 'success' : 'warning'}
                                                         sx={{
-                                                            cursor: isActiveYear ? 'pointer' : 'not-allowed',
-                                                            verticalAlign: 'middle',
-                                                            py: 0.5,
-                                                            px: 1,
-                                                            opacity: !isActiveYear && !attendance ? 0.5 : 1,
-                                                            pointerEvents: !isActiveYear ? 'none' : 'auto',
-                                                            bgcolor: holiday ? '#ffebee' : 'inherit', // ✅ Nền đỏ nhạt cho ngày nghỉ
+                                                            fontWeight: 600,
+                                                            minWidth: 70,
                                                         }}
-                                                        onClick={() => handleCellClick(student, day)}
-                                                    >
-                                                        {/* ✅ Hiển thị "Ngày Nghỉ" nếu là ngày nghỉ */}
-                                                        {holiday ? (
-                                                            <Chip label="Ngày Nghỉ" color="error" size="small" />
-                                                        ) : attendance ? (
-                                                            <Box
-                                                                sx={{
-                                                                    display: 'flex',
-                                                                    flexDirection: 'column',
-                                                                    alignItems: 'center',
-                                                                    gap: 0.5,
-                                                                    py: 0.5,
-                                                                }}
-                                                            >
-                                                                <Tooltip title={chipProps.fullLabel}>
+                                                    />
+                                                </TableCell>
+
+                                                {weekDays.map((day) => {
+                                                    const key = `${student._id}-${dayjs(day.date).format('YYYY-MM-DD')}`;
+                                                    const attendance = attendanceData[key] || null;
+                                                    const chipProps = getStatusChipProps(attendance?.status);
+                                                    const holiday = isHoliday(day.date);
+
+                                                    return (
+                                                        <TableCell
+                                                            key={day.date}
+                                                            align="center"
+                                                            sx={{
+                                                                cursor: isActiveYear ? 'pointer' : 'not-allowed',
+                                                                verticalAlign: 'middle',
+                                                                py: 0.5,
+                                                                px: 1,
+                                                                opacity: !isActiveYear && !attendance ? 0.5 : 1,
+                                                                pointerEvents: !isActiveYear ? 'none' : 'auto',
+                                                                bgcolor: holiday ? '#ffebee' : 'inherit',
+                                                            }}
+                                                            onClick={() => handleCellClick(student, day)}
+                                                        >
+                                                            {holiday ? (
+                                                                <Chip label="Ngày Nghỉ" color="error" size="small" />
+                                                            ) : attendance ? (
+                                                                <Box
+                                                                    sx={{
+                                                                        display: 'flex',
+                                                                        flexDirection: 'column',
+                                                                        alignItems: 'center',
+                                                                        gap: 0.5,
+                                                                        py: 0.5,
+                                                                    }}
+                                                                >
+                                                                    <Tooltip title={chipProps.fullLabel}>
+                                                                        <Chip
+                                                                            label={chipProps.label}
+                                                                            color={chipProps.color}
+                                                                            size="small"
+                                                                            sx={{
+                                                                                fontWeight: 700,
+                                                                                minWidth: 50,
+                                                                                fontSize: '0.875rem',
+                                                                            }}
+                                                                        />
+                                                                    </Tooltip>
+
+                                                                    {attendance.note && (
+                                                                        <Tooltip title={attendance.note} arrow>
+                                                                            <Typography
+                                                                                variant="caption"
+                                                                                color="text.secondary"
+                                                                                sx={{
+                                                                                    fontSize: '0.7rem',
+                                                                                    maxWidth: 120,
+                                                                                    overflow: 'hidden',
+                                                                                    textOverflow: 'ellipsis',
+                                                                                    whiteSpace: 'nowrap',
+                                                                                }}
+                                                                            >
+                                                                                📝 {attendance.note}
+                                                                            </Typography>
+                                                                        </Tooltip>
+                                                                    )}
+                                                                </Box>
+                                                            ) : (
+                                                                <Tooltip
+                                                                    title={
+                                                                        isActiveYear
+                                                                            ? 'Chưa điểm danh'
+                                                                            : 'Năm học đã kết thúc'
+                                                                    }
+                                                                >
                                                                     <Chip
                                                                         label={chipProps.label}
                                                                         color={chipProps.color}
@@ -654,127 +745,84 @@ function ChildrenAttendance() {
                                                                         }}
                                                                     />
                                                                 </Tooltip>
+                                                            )}
+                                                        </TableCell>
+                                                    );
+                                                })}
 
-                                                                {attendance.note && (
-                                                                    <Tooltip title={attendance.note} arrow>
-                                                                        <Typography
-                                                                            variant="caption"
-                                                                            color="text.secondary"
-                                                                            sx={{
-                                                                                fontSize: '0.7rem',
-                                                                                maxWidth: 120,
-                                                                                overflow: 'hidden',
-                                                                                textOverflow: 'ellipsis',
-                                                                                whiteSpace: 'nowrap',
-                                                                            }}
-                                                                        >
-                                                                            📝 {attendance.note}
-                                                                        </Typography>
-                                                                    </Tooltip>
-                                                                )}
-                                                            </Box>
-                                                        ) : (
-                                                            <Tooltip
-                                                                title={
-                                                                    isActiveYear
-                                                                        ? 'Chưa điểm danh'
-                                                                        : 'Năm học đã kết thúc'
-                                                                }
-                                                            >
-                                                                {/* <span>
-                                                                    <IconButton
-                                                                        size="small"
-                                                                        color="default"
-                                                                        disabled={!isActiveYear}
-                                                                    >
-                                                                        <CheckCircleIcon fontSize="small" />
-                                                                    </IconButton>
-                                                                </span> */}
-                                                                <Chip
-                                                                    label={chipProps.label}
-                                                                    color={chipProps.color}
-                                                                    size="small"
-                                                                    sx={{
-                                                                        fontWeight: 700,
-                                                                        minWidth: 50,
-                                                                        fontSize: '0.875rem',
-                                                                    }}
-                                                                />
-                                                            </Tooltip>
-                                                        )}
-                                                    </TableCell>
-                                                );
-                                            })}
-                                            {/* ✅ NEW: Hiển thị tổng số ngày vắng */}
-                                            <TableCell
-                                                align="center"
-                                                sx={{
-                                                    bgcolor: '#fffde7',
-                                                    verticalAlign: 'middle',
-                                                    position: 'sticky',
-                                                    right: 0,
-                                                    zIndex: 2,
-                                                }}
-                                            >
-                                                <Box
+                                                {/* ✅ Existing: Tổng số ngày vắng trong năm */}
+                                                <TableCell
+                                                    align="center"
+                                                    className="sticky-col-absent body-cell"
                                                     sx={{
-                                                        display: 'flex',
-                                                        flexDirection: 'column',
-                                                        alignItems: 'center',
-                                                        gap: 0.5,
+                                                        bgcolor: '#fffde7',
+                                                        verticalAlign: 'middle',
+                                                        position: 'sticky',
+                                                        right: 0,
+                                                        zIndex: 2,
                                                     }}
                                                 >
-                                                    {(() => {
-                                                        const totalAbsent = student.absentSummary?.totalAbsent || 0;
-                                                        const withPermission =
-                                                            student.absentSummary?.absentWithPermission || 0; // Vắng có phép
-                                                        const withoutPermission =
-                                                            student.absentSummary?.absentWithoutPermission || 0; // Vắng không phép
+                                                    <Box
+                                                        sx={{
+                                                            display: 'flex',
+                                                            flexDirection: 'column',
+                                                            alignItems: 'center',
+                                                            gap: 0.5,
+                                                        }}
+                                                    >
+                                                        {(() => {
+                                                            const totalAbsent = student.absentSummary?.totalAbsent || 0;
+                                                            const withPermission =
+                                                                student.absentSummary?.absentWithPermission || 0;
+                                                            const withoutPermission =
+                                                                student.absentSummary?.absentWithoutPermission || 0;
 
-                                                        return (
-                                                            <Tooltip
-                                                                arrow
-                                                                title={
-                                                                    totalAbsent === 0 ? (
-                                                                        'Không có ngày vắng trong năm này'
-                                                                    ) : (
-                                                                        <Box>
-                                                                            <Typography
-                                                                                variant="caption"
-                                                                                display="block"
-                                                                            >
-                                                                                Vắng <strong>có phép</strong>:{' '}
-                                                                                {withPermission} ngày
-                                                                            </Typography>
-                                                                            <Typography
-                                                                                variant="caption"
-                                                                                display="block"
-                                                                            >
-                                                                                Vắng <strong>không phép</strong>:{' '}
-                                                                                {withoutPermission} ngày
-                                                                            </Typography>
-                                                                        </Box>
-                                                                    )
-                                                                }
-                                                            >
-                                                                <Chip
-                                                                    label={totalAbsent}
-                                                                    color="default"
-                                                                    size="small"
-                                                                    sx={{
-                                                                        fontWeight: 700,
-                                                                        fontSize: '0.9rem',
-                                                                        minWidth: 40,
-                                                                        cursor: totalAbsent > 0 ? 'pointer' : 'default',
-                                                                    }}
-                                                                />
-                                                            </Tooltip>
-                                                        );
-                                                    })()}
-                                                </Box>
-                                            </TableCell>
-                                        </TableRow>
-                                    ))}
+                                                            return (
+                                                                <Tooltip
+                                                                    arrow
+                                                                    title={
+                                                                        totalAbsent === 0 ? (
+                                                                            'Không có ngày vắng trong năm này'
+                                                                        ) : (
+                                                                            <Box>
+                                                                                <Typography
+                                                                                    variant="caption"
+                                                                                    display="block"
+                                                                                >
+                                                                                    Vắng <strong>có phép</strong>:{' '}
+                                                                                    {withPermission} ngày
+                                                                                </Typography>
+                                                                                <Typography
+                                                                                    variant="caption"
+                                                                                    display="block"
+                                                                                >
+                                                                                    Vắng <strong>không phép</strong>:{' '}
+                                                                                    {withoutPermission} ngày
+                                                                                </Typography>
+                                                                            </Box>
+                                                                        )
+                                                                    }
+                                                                >
+                                                                    <Chip
+                                                                        label={totalAbsent}
+                                                                        color="default"
+                                                                        size="small"
+                                                                        sx={{
+                                                                            fontWeight: 700,
+                                                                            fontSize: '0.9rem',
+                                                                            minWidth: 40,
+                                                                            cursor:
+                                                                                totalAbsent > 0 ? 'pointer' : 'default',
+                                                                        }}
+                                                                    />
+                                                                </Tooltip>
+                                                            );
+                                                        })()}
+                                                    </Box>
+                                                </TableCell>
+                                            </TableRow>
+                                        );
+                                    })}
                                 </TableBody>
                             </Table>
                         </TableContainer>

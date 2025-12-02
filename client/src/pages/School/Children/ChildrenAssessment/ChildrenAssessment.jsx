@@ -76,6 +76,7 @@ function ChildrenAssessment() {
     const [attendanceData, setAttendanceData] = useState({});
     const [weekDays, setWeekDays] = useState([]);
     const [holidays, setHolidays] = useState([]);
+    const [highlightStudents, setHighlightStudents] = useState({}); // { [studentId]: true }
 
     // Dialog state
     const [openDialog, setOpenDialog] = useState(false);
@@ -208,13 +209,13 @@ function ChildrenAssessment() {
             const { assessments } = assessmentRes.data.data;
 
             // 2. Get attendance data
-            const attendanceRes = await childrenAttendanceApi.getAttendanceByClass({
+            const weeksRes = await childrenAttendanceApi.getAttendanceByClass({
                 academicYearId: selectedYear,
                 classId: selectedClass,
                 weekNumber: selectedWeek,
             });
 
-            const { students: studentsData, attendanceMap } = attendanceRes.data.data;
+            const { students: studentsData } = weeksRes.data.data;
 
             // 3. Get week info
             const currentWeek = weeks.find((w) => w.weekNumber === parseInt(selectedWeek));
@@ -229,14 +230,44 @@ function ChildrenAssessment() {
                 assessmentMap[key] = assessment;
             });
 
+            // 5. Get attendance data
+            const attendanceRes = await childrenAttendanceApi.getAttendanceByClass({
+                academicYearId: selectedYear,
+                classId: selectedClass,
+                weekNumber: selectedWeek,
+            });
+
+            const { attendanceMap } = attendanceRes.data.data;
+
+            // ✅ 6. Calculate highlightStudents - FIX: Dùng assessmentMap + weekDays
+            const highlightMap = {};
+
+            if (currentWeek && currentWeek.days) {
+                studentsData.forEach((student) => {
+                    const hasNotes = currentWeek.days.some((day) => {
+                        const key = `${student._id}-${dayjs(day.date).format('YYYY-MM-DD')}`;
+                        const assessment = assessmentMap[key];
+
+                        // ✅ Check if this day has notes
+                        return assessment && assessment.notes && assessment.notes.trim().length > 0;
+                    });
+
+                    if (hasNotes) {
+                        highlightMap[student._id] = true;
+                    }
+                });
+            }
+
             setStudents(studentsData);
             setAssessmentData(assessmentMap);
             setAttendanceData(attendanceMap);
+            setHighlightStudents(highlightMap); // ✅ Set highlight map
 
             console.log('✅ Assessment data loaded:', {
                 studentsCount: studentsData.length,
                 assessmentsCount: assessments.length,
                 weekDays: currentWeek?.days.length || 0,
+                highlightedStudents: Object.keys(highlightMap).length, // ✅ Debug log
             });
         } catch (error) {
             console.error('Error fetching assessment data:', error);
@@ -253,6 +284,7 @@ function ChildrenAssessment() {
             setAssessmentData({});
             setAttendanceData({});
             setWeekDays([]);
+            setHighlightStudents({}); // ✅ Reset highlight
         } finally {
             setLoading(false);
         }
@@ -572,271 +604,320 @@ function ChildrenAssessment() {
                                 </TableHead>
 
                                 <TableBody>
-                                    {filteredStudents.map((student, index) => (
-                                        <TableRow key={student._id} hover>
-                                            <TableCell className="sticky-col-stt body-cell">{index + 1}</TableCell>
-                                            <TableCell className="sticky-col-name body-cell">
-                                                {student.fullName}
-                                            </TableCell>
-                                            <TableCell className="sticky-col-code body-cell">
-                                                {student.studentCode}
-                                            </TableCell>
-
-                                            {weekDays.map((day) => {
-                                                const attendanceKey = `${student._id}-${dayjs(day.date).format('YYYY-MM-DD')}`;
-                                                const assessmentKey = attendanceKey;
-                                                const attendance = attendanceData[attendanceKey];
-                                                const assessment = assessmentData[assessmentKey];
-                                                const holiday = isHoliday(day.date);
-
-                                                const chipProps = getAttendanceChipProps(attendance?.status);
-                                                const canAssess = ['Có mặt', 'Đi trễ'].includes(attendance?.status);
-
-                                                return (
-                                                    <TableCell
-                                                        key={day.date}
-                                                        align="center"
-                                                        sx={{
-                                                            verticalAlign: 'middle',
-                                                            py: 0.5,
-                                                            px: 1,
-                                                            bgcolor: holiday ? '#ffebee' : 'inherit',
-                                                        }}
-                                                    >
-                                                        {holiday ? (
-                                                            <Chip label="Ngày Nghỉ" color="error" size="small" />
-                                                        ) : !attendance || !canAssess ? (
-                                                            <Chip
-                                                                label={chipProps.label}
-                                                                color={chipProps.color}
-                                                                size="small"
-                                                                sx={{ fontSize: '0.7rem' }}
-                                                            />
-                                                        ) : (
-                                                            <Box
-                                                                sx={{
-                                                                    display: 'flex',
-                                                                    flexDirection: 'row', // 👈 để nằm ngang
-                                                                    alignItems: 'center',
-                                                                    gap: 1,
-                                                                    py: 1,
-                                                                    justifyContent: 'center',
-                                                                }}
+                                    {filteredStudents.map((student, index) => {
+                                        const hasNotesThisWeek = !!highlightStudents[student._id]; // ✅ Check from highlightStudents
+                                        return (
+                                            <TableRow key={student._id} hover>
+                                                <TableCell className="sticky-col-stt body-cell">{index + 1}</TableCell>
+                                                {/* ✅ Họ tên học sinh - Đổi màu đỏ nếu có "Lưu ý" */}
+                                                <TableCell
+                                                    className="sticky-col-name body-cell"
+                                                    sx={{
+                                                        color: hasNotesThisWeek ? '#d32f2f' : 'inherit', // ✅ Đỏ nếu có lưu ý
+                                                        fontWeight: hasNotesThisWeek ? 700 : 600,
+                                                        transition: 'color 0.3s',
+                                                    }}
+                                                >
+                                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                                                        <Typography
+                                                            variant="body2"
+                                                            sx={{
+                                                                fontWeight: 'inherit',
+                                                                color: 'inherit',
+                                                            }}
+                                                        >
+                                                            {student.fullName}
+                                                        </Typography>
+                                                        {/* ✅ Icon indicator */}
+                                                        {hasNotesThisWeek && (
+                                                            <Tooltip
+                                                                title="Học sinh có ghi chú lưu ý trong tuần này"
+                                                                arrow
                                                             >
-                                                                {(isActiveYear && canCreate) || canUpdate ? (
-                                                                    <Tooltip title="Đánh giá trẻ">
-                                                                        <IconButton
-                                                                            size="small"
-                                                                            color={assessment ? 'primary' : 'default'}
-                                                                            onClick={() =>
-                                                                                handleOpenAssessment(student, day)
-                                                                            }
-                                                                            sx={{ p: 0.5 }}
-                                                                        >
-                                                                            <RateReviewIcon fontSize="small" />
-                                                                        </IconButton>
-                                                                    </Tooltip>
-                                                                ) : null}
+                                                                <Box
+                                                                    sx={{
+                                                                        display: 'inline-flex',
+                                                                        alignItems: 'center',
+                                                                        justifyContent: 'center',
+                                                                        width: 18,
+                                                                        height: 18,
+                                                                        borderRadius: '50%',
+                                                                        bgcolor: '#d32f2f',
+                                                                        color: 'white',
+                                                                        fontSize: '0.65rem',
+                                                                        fontWeight: 700,
+                                                                    }}
+                                                                >
+                                                                    !
+                                                                </Box>
+                                                            </Tooltip>
+                                                        )}
+                                                    </Box>
+                                                </TableCell>
+                                                <TableCell className="sticky-col-code body-cell">
+                                                    {student.studentCode}
+                                                </TableCell>
 
-                                                                {assessment ? (
-                                                                    <Tooltip
-                                                                        arrow
-                                                                        placement="top"
-                                                                        title={
-                                                                            <Box
-                                                                                sx={{
-                                                                                    display: 'flex',
-                                                                                    flexDirection: 'column',
-                                                                                    // gap: 1,
-                                                                                    p: 0.5,
-                                                                                }}
+                                                {weekDays.map((day) => {
+                                                    const attendanceKey = `${student._id}-${dayjs(day.date).format('YYYY-MM-DD')}`;
+                                                    const assessmentKey = attendanceKey;
+                                                    const attendance = attendanceData[attendanceKey];
+                                                    const assessment = assessmentData[assessmentKey];
+                                                    const holiday = isHoliday(day.date);
+
+                                                    const chipProps = getAttendanceChipProps(attendance?.status);
+                                                    const canAssess = ['Có mặt', 'Đi trễ'].includes(attendance?.status);
+
+                                                    return (
+                                                        <TableCell
+                                                            key={day.date}
+                                                            align="center"
+                                                            sx={{
+                                                                verticalAlign: 'middle',
+                                                                py: 0.5,
+                                                                px: 1,
+                                                                bgcolor: holiday ? '#ffebee' : 'inherit',
+                                                            }}
+                                                        >
+                                                            {holiday ? (
+                                                                <Chip label="Ngày Nghỉ" color="error" size="small" />
+                                                            ) : !attendance || !canAssess ? (
+                                                                <Chip
+                                                                    label={chipProps.label}
+                                                                    color={chipProps.color}
+                                                                    size="small"
+                                                                    sx={{ fontSize: '0.7rem' }}
+                                                                />
+                                                            ) : (
+                                                                <Box
+                                                                    sx={{
+                                                                        display: 'flex',
+                                                                        flexDirection: 'row', // 👈 để nằm ngang
+                                                                        alignItems: 'center',
+                                                                        gap: 1,
+                                                                        py: 1,
+                                                                        justifyContent: 'center',
+                                                                    }}
+                                                                >
+                                                                    {(isActiveYear && canCreate) || canUpdate ? (
+                                                                        <Tooltip title="Đánh giá trẻ">
+                                                                            <IconButton
+                                                                                size="small"
+                                                                                color={
+                                                                                    assessment ? 'primary' : 'default'
+                                                                                }
+                                                                                onClick={() =>
+                                                                                    handleOpenAssessment(student, day)
+                                                                                }
+                                                                                sx={{ p: 0.5 }}
                                                                             >
-                                                                                {/* Tình trạng sức khỏe */}
-                                                                                <Box>
-                                                                                    <Typography
-                                                                                        variant="caption"
-                                                                                        sx={{
-                                                                                            fontWeight: 700,
-                                                                                            color: '#bfdbfe', // xanh nhạt cho label
-                                                                                            display: 'flex',
-                                                                                            alignItems: 'center',
-                                                                                            gap: 0.5,
-                                                                                            mb: 0.25,
-                                                                                        }}
-                                                                                    >
-                                                                                        <HealthAndSafetyOutlinedIcon
-                                                                                            sx={{
-                                                                                                color: '#e43333ff',
-                                                                                                mr: 1,
-                                                                                            }}
-                                                                                        />
-                                                                                        Tình trạng sức khỏe
-                                                                                    </Typography>
-                                                                                    <Typography
-                                                                                        variant="caption"
-                                                                                        sx={{
-                                                                                            color: '#e5e7eb',
-                                                                                            whiteSpace: 'pre-line',
-                                                                                            ml: 0.5,
-                                                                                        }}
-                                                                                    >
-                                                                                        {assessment.healthStatus ||
-                                                                                            'Chưa nhập'}
-                                                                                    </Typography>
-                                                                                </Box>
+                                                                                <RateReviewIcon fontSize="small" />
+                                                                            </IconButton>
+                                                                        </Tooltip>
+                                                                    ) : null}
 
-                                                                                {/* Trạng thái cảm xúc, thái độ hành vi */}
-                                                                                <Box>
-                                                                                    <Typography
-                                                                                        variant="caption"
-                                                                                        sx={{
-                                                                                            fontWeight: 700,
-                                                                                            color: '#bfdbfe',
-                                                                                            display: 'flex',
-                                                                                            alignItems: 'center',
-                                                                                            gap: 0.5,
-                                                                                            mb: 0.25,
-                                                                                        }}
-                                                                                    >
-                                                                                        <AddReactionOutlinedIcon
-                                                                                            sx={{
-                                                                                                color: '#ebde2dff',
-                                                                                                mr: 1,
-                                                                                            }}
-                                                                                        />
-                                                                                        Trạng thái cảm xúc, thái độ hành
-                                                                                        vi
-                                                                                    </Typography>
-                                                                                    <Typography
-                                                                                        variant="caption"
-                                                                                        sx={{
-                                                                                            color: '#e5e7eb',
-                                                                                            whiteSpace: 'pre-line',
-                                                                                            ml: 0.5,
-                                                                                        }}
-                                                                                    >
-                                                                                        {assessment.emotionalBehavior ||
-                                                                                            'Chưa nhập'}
-                                                                                    </Typography>
-                                                                                </Box>
-
-                                                                                {/* Kiến thức kỹ năng */}
-                                                                                <Box>
-                                                                                    <Typography
-                                                                                        variant="caption"
-                                                                                        sx={{
-                                                                                            fontWeight: 700,
-                                                                                            color: '#bfdbfe',
-                                                                                            display: 'flex',
-                                                                                            alignItems: 'center',
-                                                                                            gap: 0.5,
-                                                                                            mb: 0.25,
-                                                                                        }}
-                                                                                    >
-                                                                                        <LightbulbOutlinedIcon
-                                                                                            sx={{
-                                                                                                color: '#7ce4b0ff',
-                                                                                                mr: 1,
-                                                                                            }}
-                                                                                        />
-                                                                                        Kiến thức kỹ năng
-                                                                                    </Typography>
-                                                                                    <Typography
-                                                                                        variant="caption"
-                                                                                        sx={{
-                                                                                            color: '#e5e7eb',
-                                                                                            whiteSpace: 'pre-line',
-                                                                                            ml: 0.5,
-                                                                                        }}
-                                                                                    >
-                                                                                        {assessment.skillsKnowledge ||
-                                                                                            'Chưa nhập'}
-                                                                                    </Typography>
-                                                                                </Box>
-
-                                                                                {/* Lưu ý */}
+                                                                    {assessment ? (
+                                                                        <Tooltip
+                                                                            arrow
+                                                                            placement="top"
+                                                                            title={
                                                                                 <Box
                                                                                     sx={{
-                                                                                        mt: 0.5,
-                                                                                        pt: 0.5,
-                                                                                        borderTop:
-                                                                                            '1px dashed rgba(148, 163, 184, 0.6)',
+                                                                                        display: 'flex',
+                                                                                        flexDirection: 'column',
+                                                                                        // gap: 1,
+                                                                                        p: 0.5,
                                                                                     }}
                                                                                 >
-                                                                                    <Typography
-                                                                                        variant="caption"
+                                                                                    {/* Tình trạng sức khỏe */}
+                                                                                    <Box>
+                                                                                        <Typography
+                                                                                            variant="caption"
+                                                                                            sx={{
+                                                                                                fontWeight: 700,
+                                                                                                color: '#bfdbfe', // xanh nhạt cho label
+                                                                                                display: 'flex',
+                                                                                                alignItems: 'center',
+                                                                                                gap: 0.5,
+                                                                                                mb: 0.25,
+                                                                                            }}
+                                                                                        >
+                                                                                            <HealthAndSafetyOutlinedIcon
+                                                                                                sx={{
+                                                                                                    color: '#e43333ff',
+                                                                                                    mr: 1,
+                                                                                                }}
+                                                                                            />
+                                                                                            Tình trạng sức khỏe
+                                                                                        </Typography>
+                                                                                        <Typography
+                                                                                            variant="caption"
+                                                                                            sx={{
+                                                                                                color: '#e5e7eb',
+                                                                                                whiteSpace: 'pre-line',
+                                                                                                ml: 0.5,
+                                                                                            }}
+                                                                                        >
+                                                                                            {assessment.healthStatus ||
+                                                                                                'Chưa nhập'}
+                                                                                        </Typography>
+                                                                                    </Box>
+
+                                                                                    {/* Trạng thái cảm xúc, thái độ hành vi */}
+                                                                                    <Box>
+                                                                                        <Typography
+                                                                                            variant="caption"
+                                                                                            sx={{
+                                                                                                fontWeight: 700,
+                                                                                                color: '#bfdbfe',
+                                                                                                display: 'flex',
+                                                                                                alignItems: 'center',
+                                                                                                gap: 0.5,
+                                                                                                mb: 0.25,
+                                                                                            }}
+                                                                                        >
+                                                                                            <AddReactionOutlinedIcon
+                                                                                                sx={{
+                                                                                                    color: '#ebde2dff',
+                                                                                                    mr: 1,
+                                                                                                }}
+                                                                                            />
+                                                                                            Trạng thái cảm xúc, thái độ
+                                                                                            hành vi
+                                                                                        </Typography>
+                                                                                        <Typography
+                                                                                            variant="caption"
+                                                                                            sx={{
+                                                                                                color: '#e5e7eb',
+                                                                                                whiteSpace: 'pre-line',
+                                                                                                ml: 0.5,
+                                                                                            }}
+                                                                                        >
+                                                                                            {assessment.emotionalBehavior ||
+                                                                                                'Chưa nhập'}
+                                                                                        </Typography>
+                                                                                    </Box>
+
+                                                                                    {/* Kiến thức kỹ năng */}
+                                                                                    <Box>
+                                                                                        <Typography
+                                                                                            variant="caption"
+                                                                                            sx={{
+                                                                                                fontWeight: 700,
+                                                                                                color: '#bfdbfe',
+                                                                                                display: 'flex',
+                                                                                                alignItems: 'center',
+                                                                                                gap: 0.5,
+                                                                                                mb: 0.25,
+                                                                                            }}
+                                                                                        >
+                                                                                            <LightbulbOutlinedIcon
+                                                                                                sx={{
+                                                                                                    color: '#7ce4b0ff',
+                                                                                                    mr: 1,
+                                                                                                }}
+                                                                                            />
+                                                                                            Kiến thức kỹ năng
+                                                                                        </Typography>
+                                                                                        <Typography
+                                                                                            variant="caption"
+                                                                                            sx={{
+                                                                                                color: '#e5e7eb',
+                                                                                                whiteSpace: 'pre-line',
+                                                                                                ml: 0.5,
+                                                                                            }}
+                                                                                        >
+                                                                                            {assessment.skillsKnowledge ||
+                                                                                                'Chưa nhập'}
+                                                                                        </Typography>
+                                                                                    </Box>
+
+                                                                                    {/* Lưu ý */}
+                                                                                    <Box
                                                                                         sx={{
-                                                                                            fontWeight: 700,
-                                                                                            color: '#fee2e2',
-                                                                                            display: 'flex',
-                                                                                            alignItems: 'center',
-                                                                                            gap: 0.5,
-                                                                                            mb: 0.25,
+                                                                                            mt: 0.5,
+                                                                                            pt: 0.5,
+                                                                                            borderTop:
+                                                                                                '1px dashed rgba(148, 163, 184, 0.6)',
                                                                                         }}
                                                                                     >
-                                                                                        Lưu ý
-                                                                                    </Typography>
-                                                                                    <Typography
-                                                                                        variant="caption"
-                                                                                        sx={{
-                                                                                            color: '#e5e7eb',
-                                                                                            fontStyle: assessment.notes
-                                                                                                ? 'normal'
-                                                                                                : 'italic',
-                                                                                            whiteSpace: 'pre-line',
-                                                                                        }}
-                                                                                    >
-                                                                                        {assessment.notes || 'Không có'}
-                                                                                    </Typography>
+                                                                                        <Typography
+                                                                                            variant="caption"
+                                                                                            sx={{
+                                                                                                fontWeight: 700,
+                                                                                                color: '#fee2e2',
+                                                                                                display: 'flex',
+                                                                                                alignItems: 'center',
+                                                                                                gap: 0.5,
+                                                                                                mb: 0.25,
+                                                                                            }}
+                                                                                        >
+                                                                                            Lưu ý
+                                                                                        </Typography>
+                                                                                        <Typography
+                                                                                            variant="caption"
+                                                                                            sx={{
+                                                                                                color: '#e5e7eb',
+                                                                                                fontStyle:
+                                                                                                    assessment.notes
+                                                                                                        ? 'normal'
+                                                                                                        : 'italic',
+                                                                                                whiteSpace: 'pre-line',
+                                                                                            }}
+                                                                                        >
+                                                                                            {assessment.notes ||
+                                                                                                'Không có'}
+                                                                                        </Typography>
+                                                                                    </Box>
                                                                                 </Box>
-                                                                            </Box>
-                                                                        }
-                                                                        slotProps={{
-                                                                            tooltip: {
-                                                                                sx: {
-                                                                                    maxWidth: 420,
-                                                                                    bgcolor: '#0f172a', // nền xanh đậm
-                                                                                    color: '#e5e7eb',
-                                                                                    borderRadius: 2,
-                                                                                    border: '1px solid #1d4ed8',
-                                                                                    boxShadow:
-                                                                                        '0 8px 24px rgba(15,23,42,0.7)',
-                                                                                    p: 1.5,
-                                                                                    whiteSpace: 'normal',
-                                                                                    '& .MuiTooltip-arrow': {
-                                                                                        color: '#0f172a',
+                                                                            }
+                                                                            slotProps={{
+                                                                                tooltip: {
+                                                                                    sx: {
+                                                                                        maxWidth: 420,
+                                                                                        bgcolor: '#0f172a', // nền xanh đậm
+                                                                                        color: '#e5e7eb',
+                                                                                        borderRadius: 2,
+                                                                                        border: '1px solid #1d4ed8',
+                                                                                        boxShadow:
+                                                                                            '0 8px 24px rgba(15,23,42,0.7)',
+                                                                                        p: 1.5,
+                                                                                        whiteSpace: 'normal',
+                                                                                        '& .MuiTooltip-arrow': {
+                                                                                            color: '#0f172a',
+                                                                                        },
                                                                                     },
                                                                                 },
-                                                                            },
-                                                                        }}
-                                                                    >
-                                                                        <Chip
-                                                                            label="Đã đánh giá"
-                                                                            color="success"
-                                                                            size="small"
-                                                                            variant="outlined"
-                                                                            sx={{
-                                                                                fontSize: '0.7rem',
-                                                                                cursor: 'pointer',
-                                                                                fontWeight: 600,
                                                                             }}
+                                                                        >
+                                                                            <Chip
+                                                                                label="Đã đánh giá"
+                                                                                color="success"
+                                                                                size="small"
+                                                                                variant="outlined"
+                                                                                sx={{
+                                                                                    fontSize: '0.7rem',
+                                                                                    cursor: 'pointer',
+                                                                                    fontWeight: 600,
+                                                                                }}
+                                                                            />
+                                                                        </Tooltip>
+                                                                    ) : (
+                                                                        <Chip
+                                                                            label="Chưa đánh giá"
+                                                                            color="default"
+                                                                            size="small"
+                                                                            sx={{ fontSize: '0.7rem' }}
                                                                         />
-                                                                    </Tooltip>
-                                                                ) : (
-                                                                    <Chip
-                                                                        label="Chưa đánh giá"
-                                                                        color="default"
-                                                                        size="small"
-                                                                        sx={{ fontSize: '0.7rem' }}
-                                                                    />
-                                                                )}
-                                                            </Box>
-                                                        )}
-                                                    </TableCell>
-                                                );
-                                            })}
-                                        </TableRow>
-                                    ))}
+                                                                    )}
+                                                                </Box>
+                                                            )}
+                                                        </TableCell>
+                                                    );
+                                                })}
+                                            </TableRow>
+                                        );
+                                    })}
                                 </TableBody>
                             </Table>
                         </TableContainer>
@@ -847,11 +928,31 @@ function ChildrenAssessment() {
                         <Box sx={{ mt: 2, display: 'flex', gap: 2, flexWrap: 'wrap', justifyContent: 'center' }}>
                             <Chip label="Đã đánh giá" color="success" size="small" variant="outlined" />
                             <Chip label="Chưa đánh giá" color="default" size="small" />
-                            {/* <Chip label="Có mặt" color="success" size="small" /> */}
-                            {/* <Chip label="Đi trễ" color="info" size="small" /> */}
-                            <Chip label="Vắng có phép" color="warning" size="small" />
-                            <Chip label="Vắng không phép" color="error" size="small" />
-                            <Chip label="Chưa điểm danh" color="default" size="small" />
+                            {/* <Chip label="Vắng có phép" color="warning" size="small" /> */}
+                            {/* <Chip label="Vắng không phép" color="error" size="small" /> */}
+                            {/* <Chip label="Chưa điểm danh" color="default" size="small" /> */}
+                            {/* ✅ Legend cho học sinh có "Lưu ý" */}
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                                <Box
+                                    sx={{
+                                        width: 18,
+                                        height: 18,
+                                        borderRadius: '50%',
+                                        bgcolor: '#d32f2f',
+                                        color: 'white',
+                                        fontSize: '0.65rem',
+                                        fontWeight: 700,
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                    }}
+                                >
+                                    !
+                                </Box>
+                                <Typography variant="caption" color="#d32f2f" fontWeight={600}>
+                                    Có ghi chú Lưu ý
+                                </Typography>
+                            </Box>
                         </Box>
                     )}
                 </Paper>

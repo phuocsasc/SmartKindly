@@ -3,6 +3,7 @@ import { AcademicYearModel } from '~/models/academicYearModel';
 import { UserModel } from '~/models/userModel';
 import ApiError from '~/utils/ApiError';
 import { StatusCodes } from 'http-status-codes';
+import { notificationServices } from '~/services/notificationServices';
 
 const createNew = async (data, userId) => {
     try {
@@ -134,6 +135,27 @@ const createNew = async (data, userId) => {
 
         const savedDepartment = await newDepartment.save();
         console.log('✅ [Department createNew] Department created successfully');
+
+        // ✅ Tạo thông báo cho TẤT CẢ Cán bộ quản lý được phân công
+        const creatorUser = await UserModel.findById(userId).select('fullName');
+        const creatorName = creatorUser?.fullName || 'Ban giám hiệu';
+
+        for (const managerId of data.managers) {
+            await notificationServices.createNotification({
+                recipientUserId: managerId,
+                schoolId,
+                title: 'Phân công quản lý tổ bộ môn',
+                message: `Bạn được phân công làm cán bộ quản lý <strong>${data.name}</strong> trong năm học ${academicYear.fromYear}-${academicYear.toYear} bởi <strong>${creatorName}</strong>`,
+                meta: {
+                    departmentId: savedDepartment._id,
+                    departmentName: data.name,
+                    academicYearId: academicYear._id,
+                    academicYearName: `${academicYear.fromYear}-${academicYear.toYear}`,
+                    actionBy: userId,
+                    actionByName: creatorName,
+                },
+            });
+        }
 
         // ✅ Đánh dấu năm học đã cấu hình
         if (!academicYear.isConfig) {
@@ -273,6 +295,9 @@ const update = async (id, data, userId) => {
             }
         }
 
+        // ✅ Lấy thông tin cán bộ cũ TRƯỚC KHI cập nhật
+        const oldManagerIds = department.managers.map((m) => m._id.toString());
+
         // ✅ Nếu cập nhật managers, kiểm tra role phù hợp
         if (data.managers) {
             const departmentName = data.name || department.name;
@@ -361,6 +386,74 @@ const update = async (id, data, userId) => {
 
         console.log('✅ [Department update] Updated successfully');
 
+        // ✅ Tạo thông báo cho Tổ trưởng
+        if (data.managers) {
+            const editorUser = await UserModel.findById(userId).select('fullName');
+            const editorName = editorUser?.fullName || 'Ban giám hiệu';
+
+            const newManagerIds = data.managers.filter((managerId) => !oldManagerIds.includes(managerId));
+            const removedManagerIds = oldManagerIds.filter((managerId) => !data.managers.includes(managerId));
+
+            // ✅ Thông báo cho cán bộ MỚI ĐƯỢC THÊM VÀO
+            for (const managerId of newManagerIds) {
+                await notificationServices.createNotification({
+                    recipientUserId: managerId,
+                    schoolId: user.schoolId,
+                    title: 'Phân công quản lý tổ bộ môn',
+                    message: `Bạn được phân công làm cán bộ quản lý <strong>${updatedDepartment.name}</strong> trong năm học ${updatedDepartment.academicYearId.fromYear}-${updatedDepartment.academicYearId.toYear} bởi <strong>${editorName}</strong>`,
+                    meta: {
+                        departmentId: updatedDepartment._id,
+                        departmentName: updatedDepartment.name,
+                        academicYearId: updatedDepartment.academicYearId._id,
+                        academicYearName: `${updatedDepartment.academicYearId.fromYear}-${updatedDepartment.academicYearId.toYear}`,
+                        actionBy: userId,
+                        actionByName: editorName,
+                    },
+                });
+            }
+
+            // ✅ Thông báo cho cán bộ BỊ GỠ BỎ
+            for (const managerId of removedManagerIds) {
+                await notificationServices.createNotification({
+                    recipientUserId: managerId,
+                    schoolId: user.schoolId,
+                    title: 'Gỡ bỏ quản lý tổ bộ môn',
+                    message: `Bạn đã được gỡ bỏ khỏi quản lý <strong>${updatedDepartment.name}</strong> trong năm học ${updatedDepartment.academicYearId.fromYear}-${updatedDepartment.academicYearId.toYear} bởi <strong>${editorName}</strong>`,
+                    meta: {
+                        departmentId: updatedDepartment._id,
+                        departmentName: updatedDepartment.name,
+                        academicYearId: updatedDepartment.academicYearId._id,
+                        academicYearName: `${updatedDepartment.academicYearId.fromYear}-${updatedDepartment.academicYearId.toYear}`,
+                        actionBy: userId,
+                        actionByName: editorName,
+                    },
+                });
+            }
+
+            // ✅ Thông báo cho cán bộ VẪN GIỮ NGUYÊN (nếu có thay đổi tên tổ)
+            if (data.name && data.name !== department.name) {
+                const unchangedManagerIds = data.managers.filter((managerId) => oldManagerIds.includes(managerId));
+
+                for (const managerId of unchangedManagerIds) {
+                    await notificationServices.createNotification({
+                        recipientUserId: managerId,
+                        schoolId: user.schoolId,
+                        title: 'Cập nhật tổ bộ môn',
+                        message: `Tổ bộ môn bạn đang quản lý đã được đổi tên từ "<strong>${department.name}</strong>" sang "<strong>${data.name}</strong>" bởi <strong>${editorName}</strong>`,
+                        meta: {
+                            departmentId: updatedDepartment._id,
+                            departmentName: data.name,
+                            oldDepartmentName: department.name,
+                            academicYearId: updatedDepartment.academicYearId._id,
+                            academicYearName: `${updatedDepartment.academicYearId.fromYear}-${updatedDepartment.academicYearId.toYear}`,
+                            actionBy: userId,
+                            actionByName: editorName,
+                        },
+                    });
+                }
+            }
+        }
+
         return updatedDepartment;
     } catch (error) {
         console.error('❌ [Department update] Error:', error);
@@ -393,6 +486,27 @@ const deleteDepartment = async (id, userId) => {
 
         // Soft delete
         await DepartmentModel.findByIdAndUpdate(id, { _destroy: true });
+
+        // ✅ Thông báo cho TẤT CẢ cán bộ quản lý
+        const deleterUser = await UserModel.findById(userId).select('fullName');
+        const deleterName = deleterUser?.fullName || 'Ban giám hiệu';
+
+        for (const manager of department.managers) {
+            await notificationServices.createNotification({
+                recipientUserId: manager._id,
+                schoolId: user.schoolId,
+                title: 'Xóa tổ bộ môn',
+                message: `Tổ bộ môn "<strong>${department.name}</strong>" mà bạn đang quản lý đã bị xóa bởi <strong>${deleterName}</strong>`,
+                meta: {
+                    departmentId: department._id,
+                    departmentName: department.name,
+                    academicYearId: department.academicYearId._id,
+                    academicYearName: `${department.academicYearId.fromYear}-${department.academicYearId.toYear}`,
+                    actionBy: userId,
+                    actionByName: deleterName,
+                },
+            });
+        }
 
         return { message: 'Xóa tổ bộ môn thành công' };
     } catch (error) {
@@ -524,6 +638,9 @@ const copyFromYear = async (data, userId) => {
 
         // ✅ Copy từng tổ bộ môn
         const copiedDepartments = [];
+        const copierUser = await UserModel.findById(userId).select('fullName');
+        const copierName = copierUser?.fullName || 'Ban giám hiệu';
+
         for (const sourceDept of sourceDepartments) {
             const departmentId = await DepartmentModel.generateDepartmentId();
 
@@ -539,6 +656,25 @@ const copyFromYear = async (data, userId) => {
 
             const savedDept = await newDepartment.save();
             copiedDepartments.push(savedDept);
+
+            // ✅ Thông báo cho TẤT CẢ cán bộ quản lý được copy
+            for (const manager of sourceDept.managers) {
+                await notificationServices.createNotification({
+                    recipientUserId: manager._id,
+                    schoolId,
+                    title: 'Phân công quản lý tổ bộ môn (Copy)',
+                    message: `Bạn được phân công làm cán bộ quản lý <strong>${sourceDept.name}</strong> trong năm học ${toAcademicYear.fromYear}-${toAcademicYear.toYear} (Copy từ năm học ${fromAcademicYear.fromYear}-${fromAcademicYear.toYear}) bởi <strong>${copierName}</strong>`,
+                    meta: {
+                        departmentId: savedDept._id,
+                        departmentName: sourceDept.name,
+                        academicYearId: toAcademicYear._id,
+                        academicYearName: `${toAcademicYear.fromYear}-${toAcademicYear.toYear}`,
+                        sourceAcademicYearName: `${fromAcademicYear.fromYear}-${fromAcademicYear.toYear}`,
+                        actionBy: userId,
+                        actionByName: copierName,
+                    },
+                });
+            }
         }
 
         // ✅ Đánh dấu năm học đích đã cấu hình

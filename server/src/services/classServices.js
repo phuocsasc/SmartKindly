@@ -146,19 +146,21 @@ const createNew = async (data, userId) => {
 
         // ✅ Tạo thông báo cho giáo viên
         // const teachers = await UserModel.findById(data.homeRoomTeacher).select('fullName');
-        const academicYear = await AcademicYearModel.findById(activeYear._id).select('fromYear toYear');
+        const creatorUser = await UserModel.findById(userId).select('fullName');
+        const creatorName = creatorUser?.fullName || 'Ban giám hiệu';
 
         await notificationServices.createNotification({
             recipientUserId: data.homeRoomTeacher,
             schoolId,
             title: 'Phân công giáo viên chủ nhiệm',
-            message: `Bạn được phân công làm giáo viên chủ nhiệm lớp ${data.name} trong năm học ${academicYear.fromYear}-${academicYear.toYear}`,
+            message: `Bạn được phân công làm giáo viên chủ nhiệm <strong>lớp ${data.name}</strong> trong năm học ${activeYear.fromYear}-${activeYear.toYear} bởi <strong>${creatorName}</strong>`,
             meta: {
                 classId: savedClass._id,
                 className: data.name,
                 academicYearId: activeYear._id,
-                academicYearName: `${academicYear.fromYear}-${academicYear.toYear}`,
+                academicYearName: `${activeYear.fromYear}-${activeYear.toYear}`,
                 actionBy: userId,
+                actionByName: creatorName,
             },
         });
 
@@ -289,7 +291,9 @@ const update = async (id, data, userId) => {
             _id: id,
             schoolId: user.schoolId,
             _destroy: false,
-        }).populate('academicYearId');
+        })
+            .populate('academicYearId', 'status fromYear toYear')
+            .populate('homeRoomTeacher', 'fullName email');
 
         if (!classData) {
             throw new ApiError(StatusCodes.NOT_FOUND, 'Không tìm thấy lớp học');
@@ -330,6 +334,10 @@ const update = async (id, data, userId) => {
             }
         }
 
+        // ✅ Lưu thông tin giáo viên CŨ TRƯỚC KHI cập nhật
+        const oldTeacherId = classData.homeRoomTeacher?._id?.toString();
+        const oldClassName = classData.name;
+
         // ✅ Validate ageGroup phù hợp với grade (nếu có thay đổi)
         if (data.grade || data.ageGroup) {
             const grade = data.grade || classData.grade;
@@ -349,7 +357,7 @@ const update = async (id, data, userId) => {
         }
 
         // ✅ Nếu thay đổi giáo viên chủ nhiệm
-        if (data.homeRoomTeacher && data.homeRoomTeacher !== classData.homeRoomTeacher.toString()) {
+        if (data.homeRoomTeacher && data.homeRoomTeacher !== oldTeacherId) {
             const newTeacher = await UserModel.findOne({
                 _id: data.homeRoomTeacher,
                 schoolId: user.schoolId,
@@ -396,32 +404,15 @@ const update = async (id, data, userId) => {
             console.log('✅ [Class update] New teacher is available for current year');
 
             // Xóa classId của giáo viên cũ
-            await UserModel.findByIdAndUpdate(classData.homeRoomTeacher, {
-                $unset: { classId: 1 },
-            });
+            if (oldTeacherId) {
+                await UserModel.findByIdAndUpdate(oldTeacherId, {
+                    $unset: { classId: 1 },
+                });
+            }
 
             // Gán classId cho giáo viên mới
             await UserModel.findByIdAndUpdate(data.homeRoomTeacher, {
                 classId: id,
-            });
-
-            // ✅ Tạo thông báo cho giáo viên mới
-            const academicYear = await AcademicYearModel.findById(classData.academicYearId._id).select(
-                'fromYear toYear',
-            );
-
-            await notificationServices.createNotification({
-                recipientUserId: data.homeRoomTeacher,
-                schoolId: user.schoolId,
-                title: 'Phân công giáo viên chủ nhiệm',
-                message: `Bạn được phân công làm giáo viên chủ nhiệm lớp ${data.name || classData.name} trong năm học ${academicYear.fromYear}-${academicYear.toYear}`,
-                meta: {
-                    classId: classData._id,
-                    className: data.name || classData.name,
-                    academicYearId: classData.academicYearId._id,
-                    academicYearName: `${academicYear.fromYear}-${academicYear.toYear}`,
-                    actionBy: userId,
-                },
             });
 
             console.log('✅ [Class update] Homeroom teacher updated and notified');
@@ -437,6 +428,65 @@ const update = async (id, data, userId) => {
             .populate('createdBy', 'fullName username');
 
         console.log('✅ [Class update] Updated successfully');
+
+        // ✅ Tạo thông báo cho giáo viên
+        const editorUser = await UserModel.findById(userId).select('fullName');
+        const editorName = editorUser?.fullName || 'Ban giám hiệu';
+
+        // ✅ Trường hợp 1: THAY ĐỔI GIÁO VIÊN CHỦ NHIỆM
+        if (data.homeRoomTeacher && data.homeRoomTeacher !== oldTeacherId) {
+            // ✅ Thông báo cho giáo viên MỚI
+            await notificationServices.createNotification({
+                recipientUserId: data.homeRoomTeacher,
+                schoolId: user.schoolId,
+                title: 'Phân công giáo viên chủ nhiệm',
+                message: `Bạn được phân công làm giáo viên chủ nhiệm <strong>lớp ${updatedClass.name}</strong> trong năm học ${updatedClass.academicYearId.fromYear}-${updatedClass.academicYearId.toYear} bởi <strong>${editorName}</strong>`,
+                meta: {
+                    classId: updatedClass._id,
+                    className: updatedClass.name,
+                    academicYearId: updatedClass.academicYearId._id,
+                    academicYearName: `${updatedClass.academicYearId.fromYear}-${updatedClass.academicYearId.toYear}`,
+                    actionBy: userId,
+                    actionByName: editorName,
+                },
+            });
+
+            // ✅ Thông báo cho giáo viên CŨ (bị gỡ bỏ)
+            if (oldTeacherId) {
+                await notificationServices.createNotification({
+                    recipientUserId: oldTeacherId,
+                    schoolId: user.schoolId,
+                    title: 'Gỡ bỏ giáo viên chủ nhiệm',
+                    message: `Bạn đã được gỡ bỏ khỏi chủ nhiệm <strong>lớp ${oldClassName}</strong> trong năm học ${updatedClass.academicYearId.fromYear}-${updatedClass.academicYearId.toYear} bởi <strong>${editorName}</strong>`,
+                    meta: {
+                        classId: updatedClass._id,
+                        className: oldClassName,
+                        academicYearId: updatedClass.academicYearId._id,
+                        academicYearName: `${updatedClass.academicYearId.fromYear}-${updatedClass.academicYearId.toYear}`,
+                        actionBy: userId,
+                        actionByName: editorName,
+                    },
+                });
+            }
+        }
+        // ✅ Trường hợp 2: GIỮ NGUYÊN GIÁO VIÊN NHƯNG ĐỔI TÊN LỚP
+        else if (data.name && data.name !== oldClassName && oldTeacherId) {
+            await notificationServices.createNotification({
+                recipientUserId: oldTeacherId,
+                schoolId: user.schoolId,
+                title: 'Cập nhật thông tin lớp học',
+                message: `Lớp học bạn đang chủ nhiệm đã được đổi tên từ "<strong>${oldClassName}</strong>" sang "<strong>${data.name}</strong>" bởi <strong>${editorName}</strong>`,
+                meta: {
+                    classId: updatedClass._id,
+                    className: data.name,
+                    oldClassName: oldClassName,
+                    academicYearId: updatedClass.academicYearId._id,
+                    academicYearName: `${updatedClass.academicYearId.fromYear}-${updatedClass.academicYearId.toYear}`,
+                    actionBy: userId,
+                    actionByName: editorName,
+                },
+            });
+        }
 
         return updatedClass;
     } catch (error) {
@@ -457,7 +507,9 @@ const deleteClass = async (id, userId) => {
             _id: id,
             schoolId: user.schoolId,
             _destroy: false,
-        }).populate('academicYearId homeRoomTeacher');
+        })
+            .populate('academicYearId', 'status fromYear toYear')
+            .populate('homeRoomTeacher', 'fullName email');
 
         if (!classData) {
             throw new ApiError(StatusCodes.NOT_FOUND, 'Không tìm thấy lớp học');
@@ -484,6 +536,27 @@ const deleteClass = async (id, userId) => {
 
         // Soft delete
         await ClassModel.findByIdAndUpdate(id, { _destroy: true });
+
+        // ✅ Thông báo cho giáo viên chủ nhiệm
+        if (classData.homeRoomTeacher) {
+            const deleterUser = await UserModel.findById(userId).select('fullName');
+            const deleterName = deleterUser?.fullName || 'Ban giám hiệu';
+
+            await notificationServices.createNotification({
+                recipientUserId: classData.homeRoomTeacher._id,
+                schoolId: user.schoolId,
+                title: 'Xóa lớp học',
+                message: `<strong>Lớp ${classData.name}</strong> mà bạn đang chủ nhiệm đã bị xóa bởi <strong>${deleterName}</strong>`,
+                meta: {
+                    classId: classData._id,
+                    className: classData.name,
+                    academicYearId: classData.academicYearId._id,
+                    academicYearName: `${classData.academicYearId.fromYear}-${classData.academicYearId.toYear}`,
+                    actionBy: userId,
+                    actionByName: deleterName,
+                },
+            });
+        }
 
         return { message: 'Xóa lớp học thành công' };
     } catch (error) {
@@ -654,6 +727,8 @@ const copyFromYear = async (data, userId) => {
         // ✅ Copy từng lớp học
         const copiedClasses = [];
         const teacherAssignments = []; // Lưu assignment để update sau
+        const copierUser = await UserModel.findById(userId).select('fullName');
+        const copierName = copierUser?.fullName || 'Ban giám hiệu';
 
         for (const sourceClass of sourceClasses) {
             const classId = await ClassModel.generateClassId();
@@ -707,21 +782,21 @@ const copyFromYear = async (data, userId) => {
                 classId: savedClass._id,
             });
             // ✅ Tạo thông báo cho giáo viên nếu có
-            if (sourceClass.homeRoomTeacher) {
-                await notificationServices.createNotification({
-                    recipientUserId: sourceClass.homeRoomTeacher,
-                    schoolId: user.schoolId,
-                    title: 'Phân công giáo viên chủ nhiệm',
-                    message: `Bạn được phân công làm giáo viên chủ nhiệm lớp: <strong>${sourceClass.name}</strong> trong năm học ${toAcademicYear.fromYear}-${toAcademicYear.toYear}`,
-                    meta: {
-                        classId: newClass._id,
-                        className: sourceClass.name,
-                        academicYearId: toAcademicYearId,
-                        academicYearName: `${toAcademicYear.fromYear}-${toAcademicYear.toYear}`,
-                        actionBy: userId,
-                    },
-                });
-            }
+            await notificationServices.createNotification({
+                recipientUserId: newTeacherId,
+                schoolId,
+                title: '📋 Phân công giáo viên chủ nhiệm (Copy)',
+                message: `Bạn được phân công làm giáo viên chủ nhiệm <strong>lớp ${sourceClass.name}</strong> trong năm học ${toAcademicYear.fromYear}-${toAcademicYear.toYear} (Copy từ năm học ${fromAcademicYear.fromYear}-${fromAcademicYear.toYear}) bởi <strong>${copierName}</strong>`,
+                meta: {
+                    classId: savedClass._id,
+                    className: sourceClass.name,
+                    academicYearId: toAcademicYear._id,
+                    academicYearName: `${toAcademicYear.fromYear}-${toAcademicYear.toYear}`,
+                    sourceAcademicYearName: `${fromAcademicYear.fromYear}-${fromAcademicYear.toYear}`,
+                    actionBy: userId,
+                    actionByName: copierName,
+                },
+            });
         }
 
         if (copiedClasses.length === 0) {

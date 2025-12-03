@@ -64,7 +64,7 @@ function NotificationBell() {
                 onClose={handleClose}
                 PaperProps={{
                     sx: {
-                        width: 400,
+                        width: 420,
                         maxHeight: 600,
                         mt: 1.5,
                         borderRadius: 2,
@@ -144,11 +144,10 @@ function NotificationBell() {
                                             <>
                                                 <Typography
                                                     variant="body2"
+                                                    dangerouslySetInnerHTML={{ __html: notification.message }}
                                                     color="text.primary"
                                                     sx={{ mb: 0.5, display: 'block' }}
-                                                >
-                                                    {notification.message}
-                                                </Typography>
+                                                />
                                                 <Typography variant="caption" color="text.secondary">
                                                     {dayjs(notification.createdAt).fromNow()}
                                                 </Typography>

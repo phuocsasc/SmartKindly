@@ -6,9 +6,14 @@ import { env } from '~/config/environment';
 import { corsOptions } from '~/config/corsOptions';
 import { APIs_V1 } from '~/routes/v1/';
 import { errorHandlingMiddleware } from '~/middlewares/errorHandlingMiddleware';
+import { createServer } from 'http';
+import { initSocketServer } from '~/sockets';
 
 const START_SERVER = () => {
     const app = express();
+
+    // ✅ Create HTTP server
+    const httpServer = createServer(app);
 
     // Fix Cache from disk from ExpressJS
     app.use((req, res, next) => {
@@ -31,7 +36,10 @@ const START_SERVER = () => {
     // Middleware xử lý lỗi tập trung trong ứng dụng Back-end NodeJS (ExpressJS)
     app.use(errorHandlingMiddleware);
 
-    app.listen(env.PORT, env.HOSTNAME, () => {
+    // ✅ Initialize Socket.IO
+    initSocketServer(httpServer);
+
+    httpServer.listen(env.PORT, env.HOSTNAME, () => {
         console.log(`3. ✅ Local DEV: Back-end Server is running successfully at http://${env.HOSTNAME}:${env.PORT}/`);
     });
 };

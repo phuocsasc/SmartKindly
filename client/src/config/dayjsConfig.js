@@ -1,5 +1,8 @@
 import dayjs from 'dayjs';
+import relativeTime from 'dayjs/plugin/relativeTime'; // ✅ ADD: Import plugin
 import 'dayjs/locale/vi';
+import utc from 'dayjs/plugin/utc';
+import timezone from 'dayjs/plugin/timezone';
 import customParseFormat from 'dayjs/plugin/customParseFormat';
 import updateLocale from 'dayjs/plugin/updateLocale';
 import isBetween from 'dayjs/plugin/isBetween';
@@ -12,9 +15,15 @@ dayjs.extend(updateLocale);
 dayjs.extend(isBetween);
 dayjs.extend(isSameOrAfter);
 dayjs.extend(isSameOrBefore);
+dayjs.extend(utc);
+dayjs.extend(timezone);
+dayjs.extend(relativeTime); // ✅ ADD: Extend relativeTime plugin
 
 // Set locale mặc định là tiếng Việt
 dayjs.locale('vi');
+
+// ✅ Set múi giờ Việt Nam
+dayjs.tz.setDefault('Asia/Ho_Chi_Minh');
 
 // Tùy chỉnh format tiếng Việt
 dayjs.updateLocale('vi', {

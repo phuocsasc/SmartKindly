@@ -21,6 +21,7 @@ import { useNavigate } from 'react-router-dom';
 import { useUser } from '~/contexts/UserContext';
 import { ROLE_CONFIG, ROLE_DISPLAY } from '~/config/roleConfig';
 import { useState } from 'react';
+import NotificationBell from './NotificationBell';
 
 function SchoolHeader({ sidebarCollapsed, onToggleMobileSidebar }) {
     const navigate = useNavigate();
@@ -96,6 +97,7 @@ function SchoolHeader({ sidebarCollapsed, onToggleMobileSidebar }) {
                 </Box>
 
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                    <NotificationBell />
                     {/* Desktop Chip - Clickable */}
                     <Tooltip title={isRoot ? 'Ban giám hiệu Root - Quyền cao nhất trong trường' : ''} arrow>
                         <Box sx={{ position: 'relative', display: { xs: 'none', sm: 'inline-block' } }}>

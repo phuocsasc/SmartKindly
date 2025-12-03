@@ -7,6 +7,7 @@ import AccessDenied from '~/pages/ErrorPage/AccessDenied';
 import RbacRoute from '~/components/core/RbacRoute';
 import { PERMISSIONS } from '~/config/rbacConfig';
 import { UserProvider, useUser } from '~/contexts/UserContext';
+import { NotificationProvider } from '~/contexts/NotificationContext';
 
 // Admin
 import AdminInfo from '~/pages/Admin/AdminInfo';
@@ -65,99 +66,102 @@ const UnauthorizedRoutes = () => {
 };
 
 function AppContent() {
+    const { user } = useUser();
     return (
-        <Routes>
-            <Route path="/" element={<Navigate to="/login" replace={true} />} />
+        <NotificationProvider user={user}>
+            <Routes>
+                <Route path="/" element={<Navigate to="/login" replace={true} />} />
 
-            <Route element={<UnauthorizedRoutes />}>
-                <Route path="/login" element={<Login />} />
-                <Route path="/forgot-password" element={<ForgotPassword />} />
-            </Route>
-
-            <Route element={<ProtectedRoutes />}>
-                {/* Admin Routes - Chỉ cho phép role ADMIN */}
-                <Route element={<RbacRoute requiredPermission={PERMISSIONS.ADMIN_DASHBOARD} />}>
-                    <Route path="/admin/dashboard" element={<AdminDashboard />} />
-                </Route>
-                <Route element={<RbacRoute requiredPermission={PERMISSIONS.ADMIN_MANAGE_SCHOOLS} />}>
-                    <Route path="/admin/school-management" element={<AdminSchoolManagement />} />
-                </Route>
-                <Route element={<RbacRoute requiredPermission={PERMISSIONS.ADMIN_MANAGE_USERS} />}>
-                    <Route path="/admin/users-management" element={<AdminUserManagement />} />
+                <Route element={<UnauthorizedRoutes />}>
+                    <Route path="/login" element={<Login />} />
+                    <Route path="/forgot-password" element={<ForgotPassword />} />
                 </Route>
 
-                <Route element={<RbacRoute requiredPermission={PERMISSIONS.ADMIN_DATA_BANK} />}>
-                    <Route path="/admin/edu-plan/year-target" element={<AdminYearTarget />} />
-                </Route>
-                <Route element={<RbacRoute requiredPermission={PERMISSIONS.ADMIN_DATA_BANK} />}>
-                    <Route path="/admin/edu-plan/theme-plan" element={<EducationalActivity />} />
-                </Route>
-                <Route path="/admin/user-info" element={<AdminInfo />} />
+                <Route element={<ProtectedRoutes />}>
+                    {/* Admin Routes - Chỉ cho phép role ADMIN */}
+                    <Route element={<RbacRoute requiredPermission={PERMISSIONS.ADMIN_DASHBOARD} />}>
+                        <Route path="/admin/dashboard" element={<AdminDashboard />} />
+                    </Route>
+                    <Route element={<RbacRoute requiredPermission={PERMISSIONS.ADMIN_MANAGE_SCHOOLS} />}>
+                        <Route path="/admin/school-management" element={<AdminSchoolManagement />} />
+                    </Route>
+                    <Route element={<RbacRoute requiredPermission={PERMISSIONS.ADMIN_MANAGE_USERS} />}>
+                        <Route path="/admin/users-management" element={<AdminUserManagement />} />
+                    </Route>
 
-                {/* School Routes - Các role trong trường */}
-                <Route element={<RbacRoute requiredPermission={PERMISSIONS.VIEW_DASHBOARD} />}>
-                    <Route path="/dashboard" element={<Dashboard />} />
+                    <Route element={<RbacRoute requiredPermission={PERMISSIONS.ADMIN_DATA_BANK} />}>
+                        <Route path="/admin/edu-plan/year-target" element={<AdminYearTarget />} />
+                    </Route>
+                    <Route element={<RbacRoute requiredPermission={PERMISSIONS.ADMIN_DATA_BANK} />}>
+                        <Route path="/admin/edu-plan/theme-plan" element={<EducationalActivity />} />
+                    </Route>
+                    <Route path="/admin/user-info" element={<AdminInfo />} />
+
+                    {/* School Routes - Các role trong trường */}
+                    <Route element={<RbacRoute requiredPermission={PERMISSIONS.VIEW_DASHBOARD} />}>
+                        <Route path="/dashboard" element={<Dashboard />} />
+                    </Route>
+
+                    {/* Chỉ cho phép xem nếu có quyền VIEW_USERS */}
+                    <Route element={<RbacRoute requiredPermission={PERMISSIONS.VIEW_USERS} />}>
+                        <Route path="/users" element={<UserManagement />} />
+                    </Route>
+                    <Route path="/user-info" element={<UserInfo />} />
+                    {/* Các route khác... */}
+
+                    {/* Data-Declaration */}
+                    <Route element={<RbacRoute requiredPermission={PERMISSIONS.VIEW_SCHOOL_INFO} />}>
+                        <Route path="/data-declaration/school-info" element={<SchoolInfo />} />
+                    </Route>
+                    <Route element={<RbacRoute requiredPermission={PERMISSIONS.VIEW_ACADEMIC_YEAR} />}>
+                        <Route path="/data-declaration/school-year" element={<AcademicYear />} />
+                    </Route>
+                    <Route path="/data-declaration/department" element={<Department />} />
+                    <Route path="/data-declaration/classes" element={<Classes />} />
+                    {/* End - Data-Declaration */}
+
+                    {/* ✅ Personnel Management - Quản lý cán bộ */}
+                    <Route element={<RbacRoute requiredPermission={PERMISSIONS.VIEW_PERSONNEL_RECORDS} />}>
+                        <Route path="/staff/profile" element={<PersonnelRecord />} />
+                        <Route path="/staff/evaluation" element={<PersonnelEvaluation />} />
+                    </Route>
+
+                    {/* ✅ Personnel Management - Quản lý kế hoạch giáo dục */}
+                    <Route element={<RbacRoute requiredPermission={PERMISSIONS.VIEW_YEAR_TARGET} />}>
+                        <Route path="/edu-plan/year-target" element={<YearTarget />} />
+                    </Route>
+                    <Route element={<RbacRoute requiredPermission={PERMISSIONS.VIEW_EDUCATION_ACTIVITY} />}>
+                        <Route path="/edu-plan/activities" element={<SchoolEducationalActivity />} />
+                    </Route>
+                    <Route element={<RbacRoute requiredPermission={PERMISSIONS.VIEW_SCHEDULE} />}>
+                        <Route path="/edu-plan/schedule" element={<Schedule />} />
+                    </Route>
+                    <Route element={<RbacRoute requiredPermission={PERMISSIONS.VIEW_MONTHLY_PLAN} />}>
+                        <Route path="/edu-plan/weekly-plan" element={<WeeklyPlan />} />
+                    </Route>
+
+                    {/* Quản lý trẻ em */}
+                    <Route element={<RbacRoute requiredPermission={PERMISSIONS.VIEW_CHILDREN_PROFILE} />}>
+                        <Route path="/children/profile" element={<ChildrenProfile />} />
+                    </Route>
+                    <Route element={<RbacRoute requiredPermission={PERMISSIONS.VIEW_CHILDREN_ATTENDANCE} />}>
+                        <Route path="/children/attendance" element={<ChildrenAttendance />} />
+                    </Route>
+                    <Route element={<RbacRoute requiredPermission={PERMISSIONS.VIEW_CHILDREN_ASSESSMENT} />}>
+                        <Route path="/children/assessment" element={<ChildrenAssessment />} />
+                    </Route>
+                    <Route element={<RbacRoute requiredPermission={PERMISSIONS.VIEW_CHILDREN_CERTIFICATE} />}>
+                        <Route path="/children/certificate" element={<ChildrenCertificate />} />
+                    </Route>
+                    <Route element={<RbacRoute requiredPermission={PERMISSIONS.VIEW_CHILDREN_PROGRAM_COMPLETE} />}>
+                        <Route path="/children/program-complete" element={<ChildrenProgramComplete />} />
+                    </Route>
                 </Route>
 
-                {/* Chỉ cho phép xem nếu có quyền VIEW_USERS */}
-                <Route element={<RbacRoute requiredPermission={PERMISSIONS.VIEW_USERS} />}>
-                    <Route path="/users" element={<UserManagement />} />
-                </Route>
-                <Route path="/user-info" element={<UserInfo />} />
-                {/* Các route khác... */}
-
-                {/* Data-Declaration */}
-                <Route element={<RbacRoute requiredPermission={PERMISSIONS.VIEW_SCHOOL_INFO} />}>
-                    <Route path="/data-declaration/school-info" element={<SchoolInfo />} />
-                </Route>
-                <Route element={<RbacRoute requiredPermission={PERMISSIONS.VIEW_ACADEMIC_YEAR} />}>
-                    <Route path="/data-declaration/school-year" element={<AcademicYear />} />
-                </Route>
-                <Route path="/data-declaration/department" element={<Department />} />
-                <Route path="/data-declaration/classes" element={<Classes />} />
-                {/* End - Data-Declaration */}
-
-                {/* ✅ Personnel Management - Quản lý cán bộ */}
-                <Route element={<RbacRoute requiredPermission={PERMISSIONS.VIEW_PERSONNEL_RECORDS} />}>
-                    <Route path="/staff/profile" element={<PersonnelRecord />} />
-                    <Route path="/staff/evaluation" element={<PersonnelEvaluation />} />
-                </Route>
-
-                {/* ✅ Personnel Management - Quản lý kế hoạch giáo dục */}
-                <Route element={<RbacRoute requiredPermission={PERMISSIONS.VIEW_YEAR_TARGET} />}>
-                    <Route path="/edu-plan/year-target" element={<YearTarget />} />
-                </Route>
-                <Route element={<RbacRoute requiredPermission={PERMISSIONS.VIEW_EDUCATION_ACTIVITY} />}>
-                    <Route path="/edu-plan/activities" element={<SchoolEducationalActivity />} />
-                </Route>
-                <Route element={<RbacRoute requiredPermission={PERMISSIONS.VIEW_SCHEDULE} />}>
-                    <Route path="/edu-plan/schedule" element={<Schedule />} />
-                </Route>
-                <Route element={<RbacRoute requiredPermission={PERMISSIONS.VIEW_MONTHLY_PLAN} />}>
-                    <Route path="/edu-plan/weekly-plan" element={<WeeklyPlan />} />
-                </Route>
-
-                {/* Quản lý trẻ em */}
-                <Route element={<RbacRoute requiredPermission={PERMISSIONS.VIEW_CHILDREN_PROFILE} />}>
-                    <Route path="/children/profile" element={<ChildrenProfile />} />
-                </Route>
-                <Route element={<RbacRoute requiredPermission={PERMISSIONS.VIEW_CHILDREN_ATTENDANCE} />}>
-                    <Route path="/children/attendance" element={<ChildrenAttendance />} />
-                </Route>
-                <Route element={<RbacRoute requiredPermission={PERMISSIONS.VIEW_CHILDREN_ASSESSMENT} />}>
-                    <Route path="/children/assessment" element={<ChildrenAssessment />} />
-                </Route>
-                <Route element={<RbacRoute requiredPermission={PERMISSIONS.VIEW_CHILDREN_CERTIFICATE} />}>
-                    <Route path="/children/certificate" element={<ChildrenCertificate />} />
-                </Route>
-                <Route element={<RbacRoute requiredPermission={PERMISSIONS.VIEW_CHILDREN_PROGRAM_COMPLETE} />}>
-                    <Route path="/children/program-complete" element={<ChildrenProgramComplete />} />
-                </Route>
-            </Route>
-
-            <Route path="/access-denied" element={<AccessDenied />} />
-            <Route path="*" element={<NotFound />} />
-        </Routes>
+                <Route path="/access-denied" element={<AccessDenied />} />
+                <Route path="*" element={<NotFound />} />
+            </Routes>
+        </NotificationProvider>
     );
 }
 

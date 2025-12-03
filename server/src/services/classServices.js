@@ -5,6 +5,7 @@ import { UserModel } from '~/models/userModel';
 import { ChildrenProfileModel } from '~/models/childrenProfileModel'; // ✅ Import model
 import ApiError from '~/utils/ApiError';
 import { StatusCodes } from 'http-status-codes';
+import { notificationServices } from '~/services/notificationServices';
 
 /**
  * ✅ Helper: Kiểm tra lớp có hồ sơ trẻ không
@@ -142,6 +143,24 @@ const createNew = async (data, userId) => {
             classId: savedClass._id,
         });
         console.log('✅ [Class createNew] Teacher assigned to class');
+
+        // ✅ Tạo thông báo cho giáo viên
+        // const teachers = await UserModel.findById(data.homeRoomTeacher).select('fullName');
+        const academicYear = await AcademicYearModel.findById(activeYear._id).select('fromYear toYear');
+
+        await notificationServices.createNotification({
+            recipientUserId: data.homeRoomTeacher,
+            schoolId,
+            title: 'Phân công giáo viên chủ nhiệm',
+            message: `Bạn được phân công làm giáo viên chủ nhiệm lớp ${data.name} trong năm học ${academicYear.fromYear}-${academicYear.toYear}`,
+            meta: {
+                classId: savedClass._id,
+                className: data.name,
+                academicYearId: activeYear._id,
+                academicYearName: `${academicYear.fromYear}-${academicYear.toYear}`,
+                actionBy: userId,
+            },
+        });
 
         // ✅ Đánh dấu năm học đã cấu hình
         if (!activeYear.isConfig) {
@@ -386,7 +405,26 @@ const update = async (id, data, userId) => {
                 classId: id,
             });
 
-            console.log('✅ [Class update] Teacher reassigned');
+            // ✅ Tạo thông báo cho giáo viên mới
+            const academicYear = await AcademicYearModel.findById(classData.academicYearId._id).select(
+                'fromYear toYear',
+            );
+
+            await notificationServices.createNotification({
+                recipientUserId: data.homeRoomTeacher,
+                schoolId: user.schoolId,
+                title: 'Phân công giáo viên chủ nhiệm',
+                message: `Bạn được phân công làm giáo viên chủ nhiệm lớp ${data.name || classData.name} trong năm học ${academicYear.fromYear}-${academicYear.toYear}`,
+                meta: {
+                    classId: classData._id,
+                    className: data.name || classData.name,
+                    academicYearId: classData.academicYearId._id,
+                    academicYearName: `${academicYear.fromYear}-${academicYear.toYear}`,
+                    actionBy: userId,
+                },
+            });
+
+            console.log('✅ [Class update] Homeroom teacher updated and notified');
         }
 
         // ✅ Cập nhật
@@ -668,6 +706,22 @@ const copyFromYear = async (data, userId) => {
             await UserModel.findByIdAndUpdate(newTeacherId, {
                 classId: savedClass._id,
             });
+            // ✅ Tạo thông báo cho giáo viên nếu có
+            if (sourceClass.homeRoomTeacher) {
+                await notificationServices.createNotification({
+                    recipientUserId: sourceClass.homeRoomTeacher,
+                    schoolId: user.schoolId,
+                    title: 'Phân công giáo viên chủ nhiệm',
+                    message: `Bạn được phân công làm giáo viên chủ nhiệm lớp: <strong>${sourceClass.name}</strong> trong năm học ${toAcademicYear.fromYear}-${toAcademicYear.toYear}`,
+                    meta: {
+                        classId: newClass._id,
+                        className: sourceClass.name,
+                        academicYearId: toAcademicYearId,
+                        academicYearName: `${toAcademicYear.fromYear}-${toAcademicYear.toYear}`,
+                        actionBy: userId,
+                    },
+                });
+            }
         }
 
         if (copiedClasses.length === 0) {

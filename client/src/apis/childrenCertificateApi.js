@@ -45,4 +45,12 @@ export const childrenCertificateApi = {
     getDetails: async (id) => {
         return await authorizedAxiosInstance.get(`${API_ROOT}/v1/children-certificates/${id}`);
     },
+
+    // Lấy preview data cho dialog
+    getPreviewData: async (params) => {
+        const { academicYearId, classId, studentId, weekNumber } = params;
+        return await authorizedAxiosInstance.get(`${API_ROOT}/v1/children-certificates/preview-data`, {
+            params: { academicYearId, classId, studentId, weekNumber },
+        });
+    },
 };

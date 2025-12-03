@@ -16,10 +16,23 @@ import {
     CircularProgress,
     FormControlLabel,
     Checkbox,
+    Table,
+    TableBody,
+    TableCell,
+    TableContainer,
+    TableHead,
+    TableRow,
+    Paper,
+    Chip,
+    Accordion,
+    AccordionSummary,
+    AccordionDetails,
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import LocalFloristRoundedIcon from '@mui/icons-material/LocalFloristRounded';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import AssessmentOutlinedIcon from '@mui/icons-material/AssessmentOutlined';
 import { childrenCertificateApi } from '~/apis';
 import { toast } from 'react-toastify';
 
@@ -34,6 +47,8 @@ function ChildrenCertificateDialog({
     onSuccess,
 }) {
     const [loading, setLoading] = useState(false);
+    const [previewLoading, setPreviewLoading] = useState(false);
+    const [previewData, setPreviewData] = useState(null);
     const [formData, setFormData] = useState({
         isGoodChild: false,
         comment: '',
@@ -58,15 +73,43 @@ function ChildrenCertificateDialog({
         }
     }, [open, existingCertificate]);
 
-    // ✅ Reset form khi đóng dialog
+    // ✅ Fetch preview data when dialog opens
+    useEffect(() => {
+        if (open && studentInfo && academicYearId && classId && weekNumber) {
+            fetchPreviewData();
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [open, studentInfo, academicYearId, classId, weekNumber]);
+
+    // ✅ Reset form when closing
     useEffect(() => {
         if (!open) {
             setFormData({
                 isGoodChild: false,
                 comment: '',
             });
+            setPreviewData(null);
         }
     }, [open]);
+
+    // ✅ Fetch preview data
+    const fetchPreviewData = async () => {
+        try {
+            setPreviewLoading(true);
+            const res = await childrenCertificateApi.getPreviewData({
+                academicYearId,
+                classId,
+                studentId: studentInfo._id,
+                weekNumber,
+            });
+            setPreviewData(res.data.data);
+        } catch (error) {
+            console.error('Error fetching preview data:', error);
+            toast.error('Lỗi khi tải dữ liệu xem trước!');
+        } finally {
+            setPreviewLoading(false);
+        }
+    };
 
     // ✅ Handle submit
     const handleSubmit = async () => {
@@ -128,11 +171,12 @@ function ChildrenCertificateDialog({
             isGoodChild: false,
             comment: '',
         });
+        setPreviewData(null);
         onClose();
     };
 
     return (
-        <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
+        <Dialog open={open} onClose={handleClose} maxWidth="lg" fullWidth>
             {/* Header */}
             <DialogTitle
                 sx={{
@@ -191,6 +235,123 @@ function ChildrenCertificateDialog({
 
                 <Divider sx={{ my: 2 }} />
 
+                {/* ✅ Preview Data Section */}
+                {previewLoading ? (
+                    <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+                        <CircularProgress size={30} />
+                    </Box>
+                ) : previewData ? (
+                    <Accordion defaultExpanded sx={{ mb: 3, boxShadow: 1 }}>
+                        <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                <AssessmentOutlinedIcon color="primary" />
+                                <Typography variant="subtitle1" fontWeight={600}>
+                                    Thông tin tham khảo (Tuần {weekNumber})
+                                </Typography>
+                            </Box>
+                        </AccordionSummary>
+                        <AccordionDetails>
+                            {/* Attendance Summary */}
+                            <Box sx={{ mb: 2 }}>
+                                <Typography variant="subtitle2" fontWeight={600} sx={{ mb: 1, color: '#667eea' }}>
+                                    Tổng hợp điểm danh
+                                </Typography>
+                                <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap' }}>
+                                    <Chip
+                                        label={`Có mặt: ${previewData.attendanceSummary.present}/${previewData.attendanceSummary.totalDays}`}
+                                        color="success"
+                                        size="small"
+                                    />
+                                    <Chip
+                                        label={`Đi trễ: ${previewData.attendanceSummary.late}/${previewData.attendanceSummary.totalDays}`}
+                                        color="info"
+                                        size="small"
+                                    />
+                                    <Chip
+                                        label={`Vắng có phép: ${previewData.attendanceSummary.absentWithPermission}/${previewData.attendanceSummary.totalDays}`}
+                                        color="warning"
+                                        size="small"
+                                    />
+                                    <Chip
+                                        label={`Vắng không phép: ${previewData.attendanceSummary.absentWithoutPermission}/${previewData.attendanceSummary.totalDays}`}
+                                        color="error"
+                                        size="small"
+                                    />
+                                </Box>
+                            </Box>
+
+                            <Divider sx={{ my: 2 }} />
+
+                            {/* Assessment Grid */}
+                            <Box>
+                                <Typography variant="subtitle2" fontWeight={600} sx={{ mb: 1, color: '#667eea' }}>
+                                    Tổng hợp Đánh giá hằng ngày
+                                </Typography>
+                                <TableContainer component={Paper} sx={{ maxHeight: 300, border: '1px solid #e0e0e0' }}>
+                                    <Table stickyHeader size="small">
+                                        <TableHead>
+                                            <TableRow>
+                                                <TableCell
+                                                    sx={{
+                                                        bgcolor: '#e3f2fd',
+                                                        fontWeight: 600,
+                                                        minWidth: 150,
+                                                    }}
+                                                >
+                                                    Tiêu chí
+                                                </TableCell>
+                                                {previewData.weekDays.map((day) => (
+                                                    <TableCell
+                                                        key={day.date}
+                                                        align="center"
+                                                        sx={{
+                                                            bgcolor: '#e3f2fd',
+                                                            fontWeight: 600,
+                                                            minWidth: 120,
+                                                        }}
+                                                    >
+                                                        {day.dayLabel}
+                                                    </TableCell>
+                                                ))}
+                                            </TableRow>
+                                        </TableHead>
+                                        <TableBody>
+                                            {previewData.assessmentGrid.map((row, idx) => (
+                                                <TableRow key={idx} hover>
+                                                    <TableCell sx={{ fontWeight: 500, bgcolor: '#fafafa' }}>
+                                                        {row.criteria}
+                                                    </TableCell>
+                                                    {row.days.map((dayData, dayIdx) => (
+                                                        <TableCell
+                                                            key={dayIdx}
+                                                            sx={{
+                                                                fontSize: '0.75rem',
+                                                                whiteSpace: 'pre-line',
+                                                                maxWidth: 150,
+                                                                minHeight: 60,
+                                                            }}
+                                                        >
+                                                            {dayData.content || (
+                                                                <Typography
+                                                                    variant="caption"
+                                                                    color="text.secondary"
+                                                                    fontStyle="italic"
+                                                                >
+                                                                    Chưa đánh giá
+                                                                </Typography>
+                                                            )}
+                                                        </TableCell>
+                                                    ))}
+                                                </TableRow>
+                                            ))}
+                                        </TableBody>
+                                    </Table>
+                                </TableContainer>
+                            </Box>
+                        </AccordionDetails>
+                    </Accordion>
+                ) : null}
+
                 {/* Hoa bé ngoan */}
                 <Box sx={{ mb: 3 }}>
                     <FormControlLabel
@@ -204,19 +365,23 @@ function ChildrenCertificateDialog({
                         }
                         label={
                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                <Typography variant="body1" fontWeight={600} sx={{
-                                        color: formData.isGoodChild ? '#ff4081' : '#000', // Đen mặc định – Hồng khi chọn
-                                    }}>
+                                <Typography
+                                    variant="body1"
+                                    fontWeight={600}
+                                    sx={{
+                                        color: formData.isGoodChild ? '#ff4081' : '#000',
+                                    }}
+                                >
                                     Hoa bé ngoan
                                 </Typography>
                                 <Typography
                                     variant="body2"
                                     sx={{
                                         fontWeight: 600,
-                                        color: formData.isGoodChild ? '#ff4081' : '#000', // Đen -> Hồng khi chọn
+                                        color: formData.isGoodChild ? '#ff4081' : '#000',
                                     }}
                                 >
-                                    ({formData.isGoodChild ? "Bé ngoan" : "Chưa chọn"})
+                                    ({formData.isGoodChild ? 'Bé ngoan' : 'Chưa chọn'})
                                 </Typography>
                             </Box>
                         }

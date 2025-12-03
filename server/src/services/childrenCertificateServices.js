@@ -558,6 +558,202 @@ const getValidWeeks = async (academicYearId, userId) => {
     }
 };
 
+/**
+ * ✅ Lấy preview data cho dialog phiếu bé ngoan
+ */
+const getPreviewData = async (query, userId) => {
+    try {
+        console.log('📋 [ChildrenCertificate getPreviewData] Starting with query:', query);
+
+        const { academicYearId, classId, studentId, weekNumber } = query;
+
+        // Validate required params
+        if (!academicYearId || !classId || !studentId || !weekNumber) {
+            throw new ApiError(StatusCodes.BAD_REQUEST, 'Thiếu thông tin bắt buộc');
+        }
+
+        const user = await UserModel.findById(userId).select('schoolId role _id');
+        if (!user || !user.schoolId) {
+            throw new ApiError(StatusCodes.FORBIDDEN, 'Bạn không thuộc trường học nào');
+        }
+
+        // ✅ Check permission
+        const accessibleClassIds = await getAccessibleClasses(user, academicYearId);
+        if (!accessibleClassIds.includes(classId)) {
+            throw new ApiError(StatusCodes.FORBIDDEN, 'Bạn không có quyền xem dữ liệu lớp này');
+        }
+
+        // ✅ Get schedule to find week dates
+        const schedule = await ScheduleModel.findOne({
+            schoolId: user.schoolId,
+            academicYearId,
+            _destroy: false,
+        }).lean();
+
+        if (!schedule) {
+            throw new ApiError(StatusCodes.NOT_FOUND, 'Không tìm thấy thời khóa biểu');
+        }
+
+        const weekData = schedule.weeks.find((w) => w.weekNumber === parseInt(weekNumber));
+        if (!weekData) {
+            throw new ApiError(StatusCodes.BAD_REQUEST, 'Tuần không hợp lệ');
+        }
+
+        const holidays = schedule.holidays || [];
+
+        // ✅ Get all weekdays (Mon-Fri) excluding holidays
+        const startDate = dayjs(weekData.startDate);
+        const endDate = dayjs(weekData.endDate);
+        const weekDays = [];
+
+        // ✅ Map Vietnamese day names
+        const dayNames = ['Chủ Nhật', 'Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7'];
+
+        let currentDate = startDate;
+        while (currentDate.isSameOrBefore(endDate)) {
+            const dayOfWeek = currentDate.day();
+            // Monday = 1, Friday = 5
+            if (dayOfWeek >= 1 && dayOfWeek <= 5) {
+                const dateStr = currentDate.format('YYYY-MM-DD');
+                const isHoliday = holidays.some((holiday) => dayjs(holiday).format('YYYY-MM-DD') === dateStr);
+                if (!isHoliday) {
+                    weekDays.push({
+                        date: dateStr,
+                        dayOfWeek: dayNames[dayOfWeek], // ✅ Use Vietnamese name
+                        dayLabel: dayNames[dayOfWeek], // ✅ Use same Vietnamese name
+                    });
+                }
+            }
+            currentDate = currentDate.add(1, 'day');
+        }
+
+        console.log('📅 Week days (Mon-Fri, excluding holidays):', weekDays.length);
+        console.log('📅 Week days detail:', weekDays); // ✅ Debug log
+
+        // ✅ Import models at top if not already imported
+        const { ChildrenAttendanceModel } = await import('~/models/childrenAttendanceModel.js');
+        const { ChildrenDailyAssessmentModel } = await import('~/models/childrenDailyAssessmentModel.js');
+
+        // ✅ Get attendance data for this student in this week
+        const attendanceDates = weekDays.map((day) => day.date);
+        const attendanceRecords = await ChildrenAttendanceModel.find({
+            schoolId: user.schoolId,
+            academicYearId,
+            classId,
+            studentId,
+            date: { $in: attendanceDates },
+            _destroy: false,
+        })
+            .select('date status')
+            .lean();
+
+        // ✅ Get assessment data for this student in this week
+        const assessmentRecords = await ChildrenDailyAssessmentModel.find({
+            schoolId: user.schoolId,
+            academicYearId,
+            classId,
+            studentId,
+            date: { $in: attendanceDates },
+            _destroy: false,
+        })
+            .select('date healthStatus emotionalBehavior skillsKnowledge notes')
+            .lean();
+
+        // ✅ Map attendance by date
+        const attendanceMap = {};
+        attendanceRecords.forEach((record) => {
+            attendanceMap[dayjs(record.date).format('YYYY-MM-DD')] = record.status;
+        });
+
+        // ✅ Map assessment by date
+        const assessmentMap = {};
+        assessmentRecords.forEach((record) => {
+            assessmentMap[dayjs(record.date).format('YYYY-MM-DD')] = {
+                healthStatus: record.healthStatus,
+                emotionalBehavior: record.emotionalBehavior,
+                skillsKnowledge: record.skillsKnowledge,
+                notes: record.notes || '',
+            };
+        });
+
+        // ✅ Calculate attendance summary
+        const totalDays = weekDays.length;
+        let presentCount = 0;
+        let lateCount = 0;
+        let absentWithPermissionCount = 0;
+        let absentWithoutPermissionCount = 0;
+
+        weekDays.forEach((day) => {
+            const status = attendanceMap[day.date];
+            if (status === 'Có mặt') presentCount++;
+            else if (status === 'Đi trễ') lateCount++;
+            else if (status === 'Vắng có phép') absentWithPermissionCount++;
+            else if (status === 'Vắng không phép') absentWithoutPermissionCount++;
+        });
+
+        const attendanceSummary = {
+            totalDays,
+            present: presentCount,
+            late: lateCount,
+            absentWithPermission: absentWithPermissionCount,
+            absentWithoutPermission: absentWithoutPermissionCount,
+        };
+
+        // ✅ Build assessment grid
+        const assessmentGrid = [
+            {
+                criteria: 'Tình trạng sức khỏe',
+                field: 'healthStatus',
+                days: weekDays.map((day) => ({
+                    date: day.date,
+                    dayLabel: day.dayLabel,
+                    content: assessmentMap[day.date]?.healthStatus || '',
+                })),
+            },
+            {
+                criteria: 'Trạng thái cảm xúc, thái độ hành vi',
+                field: 'emotionalBehavior',
+                days: weekDays.map((day) => ({
+                    date: day.date,
+                    dayLabel: day.dayLabel,
+                    content: assessmentMap[day.date]?.emotionalBehavior || '',
+                })),
+            },
+            {
+                criteria: 'Kiến thức kỹ năng',
+                field: 'skillsKnowledge',
+                days: weekDays.map((day) => ({
+                    date: day.date,
+                    dayLabel: day.dayLabel,
+                    content: assessmentMap[day.date]?.skillsKnowledge || '',
+                })),
+            },
+            {
+                criteria: 'Lưu ý',
+                field: 'notes',
+                days: weekDays.map((day) => ({
+                    date: day.date,
+                    dayLabel: day.dayLabel,
+                    content: assessmentMap[day.date]?.notes || '',
+                })),
+            },
+        ];
+
+        console.log('✅ [ChildrenCertificate getPreviewData] Preview data generated');
+
+        return {
+            weekNumber: parseInt(weekNumber),
+            weekDays,
+            attendanceSummary,
+            assessmentGrid,
+        };
+    } catch (error) {
+        console.error('❌ [ChildrenCertificate getPreviewData] Error:', error);
+        if (error instanceof ApiError) throw error;
+        throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, 'Lỗi khi lấy preview data');
+    }
+};
+
 export const childrenCertificateServices = {
     createNew,
     getAll,
@@ -566,4 +762,5 @@ export const childrenCertificateServices = {
     deleteCertificate,
     getAccessibleClassesList,
     getValidWeeks,
+    getPreviewData, // ✅ Add new service
 };

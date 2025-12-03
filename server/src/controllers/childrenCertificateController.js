@@ -95,6 +95,19 @@ const getValidWeeks = async (req, res, next) => {
     }
 };
 
+const getPreviewData = async (req, res, next) => {
+    try {
+        const userId = req.jwtDecoded.id;
+        const result = await childrenCertificateServices.getPreviewData(req.query, userId);
+        res.status(StatusCodes.OK).json({
+            message: 'Lấy preview data thành công!',
+            data: result,
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
 export const childrenCertificateController = {
     createNew,
     getAll,
@@ -103,4 +116,5 @@ export const childrenCertificateController = {
     deleteCertificate,
     getAccessibleClassesList,
     getValidWeeks,
+    getPreviewData, // ✅ Add new controller
 };

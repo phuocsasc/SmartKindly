@@ -23,6 +23,13 @@ Router.route('/valid-weeks').get(
     childrenCertificateController.getValidWeeks,
 );
 
+// ✅ Lấy preview data cho dialog
+Router.route('/preview-data').get(
+    authMiddleware.isAuthorized,
+    rbacMiddleware.isValidPermission([PERMISSIONS.VIEW_CHILDREN_CERTIFICATE]),
+    childrenCertificateController.getPreviewData,
+);
+
 // ✅ CRUD routes
 Router.route('/')
     .get(

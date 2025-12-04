@@ -138,12 +138,20 @@ function YearTargetCopyDialog({ open, currentYearId, onClose, onSuccess }) {
         try {
             setLoading(true);
 
-            await schoolYearTargetApi.copyFromYear({
+            const res = await schoolYearTargetApi.copyFromYear({
                 fromAcademicYearId: selectedFromYear,
                 toAcademicYearId: currentYearId,
             });
 
-            toast.success('Copy mục tiêu từ năm học cũ thành công!');
+            // ✅ Hiển thị thông báo chi tiết từ server
+            const { count, activitiesCount } = res.data.data;
+            const message =
+                res.data.message || `Copy thành công ${count} mục tiêu và ${activitiesCount} hoạt động giáo dục!`;
+
+            toast.success(message, {
+                autoClose: 5000, // Hiển thị lâu hơn để đọc
+            });
+
             onSuccess();
             handleClose();
         } catch (error) {
@@ -334,12 +342,13 @@ function YearTargetCopyDialog({ open, currentYearId, onClose, onSuccess }) {
                     {/* Thông báo */}
                     <Alert severity="info" sx={{ borderRadius: 2, mt: 2 }}>
                         <Typography variant="body2">
-                            Chức năng này sẽ <strong>copy toàn bộ mục tiêu</strong> (bao gồm cả các mục tiêu cụ thể) từ
-                            năm học đã kết thúc sang năm học đang hoạt động.
+                            Chức năng này sẽ <strong>copy toàn bộ mục tiêu</strong> (bao gồm cả các mục tiêu cụ thể) và{' '}
+                            <strong>hoạt động giáo dục tương ứng</strong> từ năm học đã kết thúc sang năm học đang hoạt
+                            động.
                         </Typography>
                         <Typography variant="body2" sx={{ mt: 1 }}>
-                            <strong>Lưu ý:</strong> Dữ liệu hiện tại của năm học đang hoạt động sẽ bị{' '}
-                            <strong>ghi đè hoàn toàn</strong>.
+                            <strong>Lưu ý:</strong> Dữ liệu hiện tại của năm học đang hoạt động (cả mục tiêu và hoạt
+                            động) sẽ bị <strong>ghi đè hoàn toàn</strong>.
                         </Typography>
                     </Alert>
 

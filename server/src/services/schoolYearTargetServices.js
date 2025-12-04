@@ -1,4 +1,6 @@
+import mongoose from 'mongoose';
 import { SchoolYearTargetModel } from '~/models/schoolYearTargetModel.js';
+import { SchoolEducationalActivityModel } from '~/models/schoolEducationalActivityModel';
 import { AcademicYearModel } from '~/models/academicYearModel.js';
 import { UserModel } from '~/models/userModel.js';
 import { DepartmentModel } from '~/models/departmentModel.js';
@@ -463,29 +465,131 @@ const copyFromYear = async (data, userId) => {
 
         console.log(`📋 Found ${sourceTargets.length} targets to copy`);
 
-        // ✅ Xóa CỨNG tất cả mục tiêu hiện tại của năm học đang active
-        const deleteResult = await SchoolYearTargetModel.deleteMany({
+        // ✅ BƯỚC 1: Xóa CỨNG tất cả mục tiêu hiện tại của năm học đang active
+        const deleteTargetsResult = await SchoolYearTargetModel.deleteMany({
             schoolId,
             academicYearId: toAcademicYearId,
             _destroy: false,
         });
 
-        console.log(`🗑️ Hard deleted ${deleteResult.deletedCount} existing targets in destination year`);
+        console.log(`🗑️ Hard deleted ${deleteTargetsResult.deletedCount} existing targets in destination year`);
 
-        // ✅ Copy từng mục tiêu
+        // ✅ BƯỚC 2: Xóa CỨNG tất cả hoạt động giáo dục hiện tại của năm học đang active
+        const deleteActivitiesResult = await SchoolEducationalActivityModel.deleteMany({
+            schoolId,
+            academicYearId: toAcademicYearId,
+            _destroy: false,
+        });
+
+        console.log(`🗑️ Hard deleted ${deleteActivitiesResult.deletedCount} existing activities in destination year`);
+
+        // ✅ BƯỚC 3: Copy từng mục tiêu và tạo mapping cho targetId
         const copiedTargets = [];
+        const oldToNewSchoolYearTargetIdMap = new Map(); // Map: oldSchoolYearTargetId -> newSchoolYearTargetId
+        const oldToNewTargetIdMap = new Map(); // Map: oldTargetId (_id trong targets array) -> newTargetId
+
         for (const sourceTarget of sourceTargets) {
+            // Clone mainFields để tạo ObjectId mới cho tất cả targets
+            const newMainFields = JSON.parse(JSON.stringify(sourceTarget.mainFields));
+
+            // ✅ Duyệt qua structure để tạo mapping targetId cũ -> mới
+            newMainFields.forEach((mainField) => {
+                if (mainField.subFields && mainField.subFields.length > 0) {
+                    mainField.subFields.forEach((subField) => {
+                        subField.expectedResults?.forEach((expectedResult) => {
+                            expectedResult.targets?.forEach((target) => {
+                                const oldTargetId = target._id; // _id cũ (string)
+                                const newTargetId = new mongoose.Types.ObjectId(); // Tạo _id mới
+                                target._id = newTargetId; // Gán _id mới
+
+                                // Lưu mapping
+                                oldToNewTargetIdMap.set(oldTargetId.toString(), newTargetId.toString());
+                            });
+                        });
+                    });
+                } else {
+                    mainField.expectedResults?.forEach((expectedResult) => {
+                        expectedResult.targets?.forEach((target) => {
+                            const oldTargetId = target._id;
+                            const newTargetId = new mongoose.Types.ObjectId();
+                            target._id = newTargetId;
+
+                            oldToNewTargetIdMap.set(oldTargetId.toString(), newTargetId.toString());
+                        });
+                    });
+                }
+            });
+
+            // Tạo SchoolYearTarget mới với mainFields đã có _id mới
             const newTarget = new SchoolYearTargetModel({
                 schoolId,
                 academicYearId: toAcademicYearId,
                 ageGroup: sourceTarget.ageGroup,
-                mainFields: sourceTarget.mainFields, // Copy toàn bộ structure
+                mainFields: newMainFields,
                 createdBy: userId,
             });
 
             await newTarget.save();
             copiedTargets.push(newTarget);
+
+            // Lưu mapping: oldSchoolYearTargetId -> newSchoolYearTargetId
+            oldToNewSchoolYearTargetIdMap.set(sourceTarget._id.toString(), newTarget._id);
         }
+
+        console.log(`✅ Copied ${copiedTargets.length} year targets successfully`);
+        console.log(`📊 Created mapping for ${oldToNewTargetIdMap.size} targets`);
+
+        // ✅ BƯỚC 4: Copy hoạt động giáo dục với targetId mapping chính xác
+        const sourceActivities = await SchoolEducationalActivityModel.find({
+            schoolId,
+            academicYearId: fromAcademicYearId,
+            _destroy: false,
+        });
+
+        console.log(`📋 Found ${sourceActivities.length} activities to copy`);
+
+        const copiedActivities = [];
+
+        for (const sourceActivity of sourceActivities) {
+            // ✅ Map schoolYearTargetId
+            const oldSchoolYearTargetId = sourceActivity.schoolYearTargetId.toString();
+            const newSchoolYearTargetId = oldToNewSchoolYearTargetIdMap.get(oldSchoolYearTargetId);
+
+            if (!newSchoolYearTargetId) {
+                console.log(
+                    `⚠️ Skipping activity: No corresponding schoolYearTarget found for ${oldSchoolYearTargetId}`,
+                );
+                continue;
+            }
+
+            // ✅ Map targetId (từ _id trong targets array)
+            const oldTargetId = sourceActivity.targetId.toString();
+            const newTargetId = oldToNewTargetIdMap.get(oldTargetId);
+
+            if (!newTargetId) {
+                console.log(`⚠️ Skipping activity: No corresponding targetId found for ${oldTargetId}`);
+                continue;
+            }
+
+            const newActivity = new SchoolEducationalActivityModel({
+                schoolId,
+                academicYearId: toAcademicYearId,
+                ageGroup: sourceActivity.ageGroup,
+                schoolYearTargetId: newSchoolYearTargetId, // ✅ Sử dụng ID mới của SchoolYearTarget
+                targetId: newTargetId, // ✅ Sử dụng _id mới của target
+                mainFieldCode: sourceActivity.mainFieldCode,
+                subFieldCode: sourceActivity.subFieldCode,
+                expectedResultCode: sourceActivity.expectedResultCode,
+                targetCode: sourceActivity.targetCode,
+                activityContent: sourceActivity.activityContent,
+                createdBy: userId,
+            });
+
+            await newActivity.save();
+            copiedActivities.push(newActivity);
+        }
+
+        console.log(`✅ Copied ${copiedActivities.length} activities successfully`);
 
         // ✅ Đánh dấu năm học đích đã cấu hình
         if (!toYear.isConfig) {
@@ -501,10 +605,12 @@ const copyFromYear = async (data, userId) => {
             .populate('academicYearId', 'fromYear toYear status')
             .lean();
 
-        console.log('✅ [SchoolYearTarget copyFromYear] Copied successfully');
+        console.log('✅ [SchoolYearTarget copyFromYear] Completed successfully');
+
         return {
             count: populatedTargets.length,
             targets: populatedTargets,
+            activitiesCount: copiedActivities.length,
         };
     } catch (error) {
         console.error('❌ [SchoolYearTarget copyFromYear] Error:', error);

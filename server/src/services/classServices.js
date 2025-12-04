@@ -785,7 +785,7 @@ const copyFromYear = async (data, userId) => {
             await notificationServices.createNotification({
                 recipientUserId: newTeacherId,
                 schoolId,
-                title: '📋 Phân công giáo viên chủ nhiệm (Copy)',
+                title: 'Phân công giáo viên chủ nhiệm (Copy)',
                 message: `Bạn được phân công làm giáo viên chủ nhiệm <strong>lớp ${sourceClass.name}</strong> trong năm học ${toAcademicYear.fromYear}-${toAcademicYear.toYear} (Copy từ năm học ${fromAcademicYear.fromYear}-${fromAcademicYear.toYear}) bởi <strong>${copierName}</strong>`,
                 meta: {
                     classId: savedClass._id,

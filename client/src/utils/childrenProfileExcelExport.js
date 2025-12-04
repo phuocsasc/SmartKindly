@@ -299,7 +299,10 @@ export const exportChildrenProfilesToExcel = async (
         // ========== LƯU Ý ==========
         let noteText = '📌 LƯU Ý:\n';
         noteText += '• Các cột có tiêu đề màu ĐỎ là BẮT BUỘC phải nhập\n';
-        noteText += '• Cột "Mã học sinh": Để trống = Thêm mới, Có mã = Cập nhật\n';
+        noteText += '• Cột "Mã học sinh": Để trống = Thêm mới (Hệ thống tự tạo mã theo công thức schoolId-HS000001)\n';
+        noteText += '• Cột "Mã học sinh": Có mã học sinh giống trong năm học "đang hoạt động" = Cập nhật\n';
+        noteText +=
+            '• Cột "Mã học sinh": Có mã học sinh giống trong năm học "đã qua" = Thêm mới (Với mã học sinh cũ)\n';
         noteText += '• Chọn đúng "Khối" và nhập đúng "Tên lớp" đã khởi tạo trong năm học đang hoạt động\n';
 
         if (classesData && Object.keys(classesData).length > 0) {
@@ -457,7 +460,6 @@ export const exportChildrenProfilesToExcel = async (
         throw error;
     }
 };
-
 
 /**
  * ✅ Export children profiles to Excel with data

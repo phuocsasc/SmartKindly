@@ -415,6 +415,13 @@ function ImportChildrenProfileDialog({ open, onClose, onSuccess, academicYearId 
                             Hoặc kéo thả file vào đây
                         </Typography>
                     </Box>
+                    <br />
+                    <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5 }}>
+                        • Mã học sinh rỗng: Tạo mã mới tự động
+                        <br />
+                        • Có Mã học sinh cũ: Tái sử dụng mã từ năm học trước
+                        <br />• Mã học sinh trùng năm hiện tại: Cập nhật hồ sơ
+                    </Typography>
                 </Box>
 
                 {/* Preview & Validation */}

@@ -211,10 +211,15 @@ const childrenProfileSchema = new mongoose.Schema(
 
 // ✅ Compound indexes
 childrenProfileSchema.index({ schoolId: 1, academicYearId: 1, _destroy: 1 }); // Main query
+// ✅ Mỗi mã học sinh chỉ unique trong phạm vi: 1 trường + 1 năm học + còn hiệu lực (_destroy: false)
 childrenProfileSchema.index(
-    { schoolId: 1, studentCode: 1 },
-    { unique: true, partialFilterExpression: { _destroy: false } },
-); // ✅ Unique studentCode per school
+    { schoolId: 1, academicYearId: 1, studentCode: 1 },
+    {
+        unique: true,
+        partialFilterExpression: { _destroy: false },
+        name: 'unique_studentCode_per_school_year',
+    },
+);
 childrenProfileSchema.index({ classId: 1, _destroy: 1 }); // Filter by class
 childrenProfileSchema.index({ fullName: 'text', studentCode: 'text' }); // Text search
 

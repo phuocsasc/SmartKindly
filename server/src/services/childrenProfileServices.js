@@ -640,7 +640,7 @@ const importBulk = async (data, userId) => {
             try {
                 const rowNumber = index + 6; // Excel row number
 
-                // ✅ Find class by name
+                // ✅ Find class by name and ageGroup
                 const classData = await ClassModel.findOne({
                     schoolId: user.schoolId,
                     academicYearId: academicYear._id,
@@ -652,7 +652,7 @@ const importBulk = async (data, userId) => {
                 if (!classData) {
                     results.errors.push({
                         row: rowNumber,
-                        studentCode: item.studentCode,
+                        studentCode: item.studentCode || '(chưa có)',
                         fullName: item.fullName,
                         error: `Không tìm thấy lớp "${item.className}" trong khối "${item.ageGroup}"`,
                     });
@@ -676,7 +676,7 @@ const importBulk = async (data, userId) => {
                     if (!hasPermission) {
                         results.errors.push({
                             row: rowNumber,
-                            studentCode: item.studentCode,
+                            studentCode: item.studentCode || '(chưa có)',
                             fullName: item.fullName,
                             error: `Bạn không có quyền import vào lớp "${classData.name}" (Khối ${classData.grade})`,
                         });
@@ -686,7 +686,7 @@ const importBulk = async (data, userId) => {
                     if (classData.homeRoomTeacher.toString() !== user._id.toString()) {
                         results.errors.push({
                             row: rowNumber,
-                            studentCode: item.studentCode,
+                            studentCode: item.studentCode || '(chưa có)',
                             fullName: item.fullName,
                             error: 'Bạn chỉ được import vào lớp của mình',
                         });
@@ -694,8 +694,9 @@ const importBulk = async (data, userId) => {
                     }
                 }
 
-                // ✅ Prepare data
+                // ✅ Prepare profile data
                 const profileData = {
+                    schoolId: user.schoolId, // 🔥 THÊM DÒNG NÀY
                     fullName: item.fullName,
                     birthDate: item.birthDate,
                     gender: item.gender,
@@ -710,18 +711,21 @@ const importBulk = async (data, userId) => {
                     temporaryAddress: item.temporaryAddress,
                     ethnicity: item.ethnicity,
                     religion: item.religion || '',
-                    swimmingLevel: item.swimmingLevel || '',
+                    healthStatus: item.healthStatus || '',
                     bloodType: item.bloodType || '',
-                    hasComputer: item.hasComputer || '',
-                    hasSmartphone: item.hasSmartphone || '',
-                    familyComponent: item.familyComponent || '',
+                    hasAllergies: item.hasAllergies || '',
+                    allergyDetails: item.allergyDetails || '',
+                    hasChronicDiseases: item.hasChronicDiseases || '',
+                    chronicDiseaseDetails: item.chronicDiseaseDetails || '',
+                    canSwim: item.canSwim || '',
+                    swimmingLevel: item.swimmingLevel || '',
                     fatherName: item.fatherName || '',
-                    fatherBirthYear: item.fatherBirthYear || '',
+                    fatherBirthYear: item.fatherBirthYear || null,
                     fatherOccupation: item.fatherOccupation || '',
                     fatherPhone: item.fatherPhone || '',
                     fatherEmail: item.fatherEmail || '',
                     motherName: item.motherName || '',
-                    motherBirthYear: item.motherBirthYear || '',
+                    motherBirthYear: item.motherBirthYear || null,
                     motherOccupation: item.motherOccupation || '',
                     motherPhone: item.motherPhone || '',
                     motherEmail: item.motherEmail || '',
@@ -730,38 +734,16 @@ const importBulk = async (data, userId) => {
                     guardianOccupation: item.guardianOccupation || '',
                     guardianPhone: item.guardianPhone || '',
                     guardianEmail: item.guardianEmail || '',
-                    schoolId: user.schoolId,
+                    familyComponent: item.familyComponent || '',
                     academicYearId: academicYear._id,
                 };
 
-                // ✅ Update or Create
-                if (item.studentCode) {
-                    // Update existing
-                    const existing = await ChildrenProfileModel.findOne({
-                        schoolId: user.schoolId,
-                        studentCode: item.studentCode,
-                        _destroy: false,
-                    });
+                // 🔥 XỬ LÝ 3 TRƯỜNG HỢP VỀ STUDENTCODE
 
-                    if (existing) {
-                        Object.assign(existing, profileData);
-                        await existing.save();
-                        results.updated.push({
-                            studentCode: item.studentCode,
-                            fullName: item.fullName,
-                        });
-                    } else {
-                        results.errors.push({
-                            row: rowNumber,
-                            studentCode: item.studentCode,
-                            fullName: item.fullName,
-                            error: `Không tìm thấy học sinh với mã "${item.studentCode}"`,
-                        });
-                    }
-                } else {
-                    // Create new
-                    const studentCode = await generateStudentCode(user.schoolId);
-                    profileData.studentCode = studentCode;
+                // 🔹 TRƯỜNG HỢP 1: Không có mã học sinh trong Excel → Tạo mã mới
+                if (!item.studentCode || item.studentCode.trim() === '') {
+                    const newStudentCode = await generateStudentCode(user.schoolId);
+                    profileData.studentCode = newStudentCode;
                     profileData.createdBy = user._id;
 
                     const newProfile = await ChildrenProfileModel.create(profileData);
@@ -769,18 +751,70 @@ const importBulk = async (data, userId) => {
                         studentCode: newProfile.studentCode,
                         fullName: newProfile.fullName,
                     });
+
+                    console.log(`✅ [CASE 1] Created NEW with auto code: ${newProfile.studentCode}`);
+                    continue;
+                }
+
+                // 🔹 TRƯỜNG HỢP 2 & 3: Có mã học sinh trong Excel
+                const inputStudentCode = item.studentCode.trim();
+
+                // ✅ Tìm học sinh có mã này trong TOÀN BỘ DATABASE (không phân biệt năm học)
+                // ✅ Chỉ tìm theo NĂM HỌC HIỆN TẠI
+                const existingProfile = await ChildrenProfileModel.findOne({
+                    schoolId: user.schoolId,
+                    academicYearId: academicYear._id,
+                    studentCode: inputStudentCode,
+                    _destroy: false,
+                });
+
+                if (existingProfile) {
+                    // 🔁 ĐÃ CÓ trong năm hiện tại → UPDATE
+                    const fieldsToKeep = {
+                        studentCode: existingProfile.studentCode,
+                        createdBy: existingProfile.createdBy,
+                        createdAt: existingProfile.createdAt,
+                    };
+
+                    Object.assign(existingProfile, profileData, fieldsToKeep);
+                    await existingProfile.save();
+
+                    results.updated.push({
+                        studentCode: existingProfile.studentCode,
+                        fullName: existingProfile.fullName,
+                    });
+
+                    console.log(
+                        `✅ [UPDATE] Row ${rowNumber}: Updated EXISTING in current year: ${existingProfile.studentCode}`,
+                    );
+                } else {
+                    // 🆕 CHƯA CÓ trong năm hiện tại → TẠO MỚI
+                    profileData.studentCode = inputStudentCode;
+                    profileData.createdBy = user._id;
+
+                    const newProfile = await ChildrenProfileModel.create(profileData);
+
+                    results.created.push({
+                        studentCode: newProfile.studentCode,
+                        fullName: newProfile.fullName,
+                    });
+
+                    console.log(
+                        `✅ [CREATE] Row ${rowNumber}: Created NEW with code from Excel: ${newProfile.studentCode}`,
+                    );
                 }
             } catch (error) {
+                console.error('❌ [importBulk] Row error:', error);
                 results.errors.push({
                     row: index + 6,
-                    studentCode: item.studentCode || '',
-                    fullName: item.fullName || '',
-                    error: error.message,
+                    studentCode: item.studentCode || '(chưa có)',
+                    fullName: item.fullName,
+                    error: error.message || 'Lỗi không xác định',
                 });
             }
         }
 
-        console.log('✅ [importBulk] Results:', {
+        console.log('✅ [importBulk] Completed:', {
             created: results.created.length,
             updated: results.updated.length,
             errors: results.errors.length,

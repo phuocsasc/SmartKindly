@@ -24,6 +24,7 @@ import {
 import PeopleIcon from '@mui/icons-material/People';
 import EmojiEventsOutlinedIcon from '@mui/icons-material/EmojiEventsOutlined';
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
+import DoneOutlinedIcon from '@mui/icons-material/DoneOutlined';
 import SettingsOutlinedIcon from '@mui/icons-material/SettingsOutlined';
 import MainLayout from '~/layouts/SchoolLayout';
 import PageContainer from '~/components/common/PageContainer';
@@ -331,63 +332,66 @@ function ChildrenProgramComplete() {
                         <Typography variant="h5" fontWeight={600}>
                             Đánh giá trẻ hoàn thành chương trình
                         </Typography>
+                        <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', flexWrap: 'wrap' }}>
+                            <TextField
+                                size="small"
+                                placeholder="Tìm theo tên, mã HS..."
+                                value={searchText}
+                                onChange={(e) => setSearchText(e.target.value)}
+                                sx={{ minWidth: 200 }}
+                            />
 
-                        {canConfigure && (
-                            <Tooltip title="Cấu hình mục tiêu">
-                                <IconButton
-                                    color="primary"
-                                    onClick={handleOpenConfigDialog}
-                                    sx={{
-                                        bgcolor: 'rgba(25, 118, 210, 0.1)',
-                                        '&:hover': { bgcolor: 'rgba(25, 118, 210, 0.2)' },
-                                    }}
+                            <FormControl size="small" sx={{ minWidth: 100 }}>
+                                <InputLabel>Năm học</InputLabel>
+                                <Select
+                                    value={selectedYear}
+                                    onChange={(e) => setSelectedYear(e.target.value)}
+                                    label="Năm học"
                                 >
-                                    <SettingsOutlinedIcon />
-                                </IconButton>
-                            </Tooltip>
-                        )}
-                    </Box>
+                                    {academicYears.map((year) => (
+                                        <MenuItem key={year._id} value={year._id}>
+                                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                                <Typography variant="body2">
+                                                    {year.fromYear}-{year.toYear}
+                                                </Typography>
+                                                {year.status === 'active' && (
+                                                    <DoneOutlinedIcon color="success" fontSize="small" />
+                                                )}
+                                            </Box>
+                                        </MenuItem>
+                                    ))}
+                                </Select>
+                            </FormControl>
 
-                    {/* Filters */}
-                    <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', mb: 2, flexWrap: 'wrap' }}>
-                        <TextField
-                            size="small"
-                            placeholder="Tìm theo tên, mã HS..."
-                            value={searchText}
-                            onChange={(e) => setSearchText(e.target.value)}
-                            sx={{ minWidth: 200 }}
-                        />
-
-                        <FormControl size="small" sx={{ minWidth: 150 }}>
-                            <InputLabel>Năm học</InputLabel>
-                            <Select
-                                value={selectedYear}
-                                onChange={(e) => setSelectedYear(e.target.value)}
-                                label="Năm học"
-                            >
-                                {academicYears.map((year) => (
-                                    <MenuItem key={year._id} value={year._id}>
-                                        {year.fromYear} - {year.toYear}{' '}
-                                        {year.status === 'active' ? '(Đang hoạt động)' : '(Đã kết thúc)'}
-                                    </MenuItem>
-                                ))}
-                            </Select>
-                        </FormControl>
-
-                        <FormControl size="small" sx={{ minWidth: 150 }}>
-                            <InputLabel>Lớp học</InputLabel>
-                            <Select
-                                value={selectedClass}
-                                onChange={(e) => setSelectedClass(e.target.value)}
-                                label="Lớp học"
-                            >
-                                {classes.map((cls) => (
-                                    <MenuItem key={cls._id} value={cls._id}>
-                                        {cls.name}
-                                    </MenuItem>
-                                ))}
-                            </Select>
-                        </FormControl>
+                            <FormControl size="small" sx={{ minWidth: 150 }}>
+                                <InputLabel>Lớp học</InputLabel>
+                                <Select
+                                    value={selectedClass}
+                                    onChange={(e) => setSelectedClass(e.target.value)}
+                                    label="Lớp học"
+                                >
+                                    {classes.map((cls) => (
+                                        <MenuItem key={cls._id} value={cls._id}>
+                                            {cls.name}
+                                        </MenuItem>
+                                    ))}
+                                </Select>
+                            </FormControl>
+                            {canConfigure && (
+                                <Tooltip title="Cấu hình mục tiêu">
+                                    <IconButton
+                                        color="primary"
+                                        onClick={handleOpenConfigDialog}
+                                        sx={{
+                                            bgcolor: 'rgba(25, 118, 210, 0.1)',
+                                            '&:hover': { bgcolor: 'rgba(25, 118, 210, 0.2)' },
+                                        }}
+                                    >
+                                        <SettingsOutlinedIcon />
+                                    </IconButton>
+                                </Tooltip>
+                            )}
+                        </Box>
                     </Box>
 
                     {/* Status Alert */}
@@ -431,15 +435,32 @@ function ChildrenProgramComplete() {
                             <Table stickyHeader size="small">
                                 <TableHead>
                                     <TableRow sx={{ bgcolor: '#e3f2fd' }}>
-                                        <TableCell sx={{ fontWeight: 700, minwidth: 50 }}>STT</TableCell>
-                                        <TableCell sx={{ fontWeight: 700, minwidth: 100 }}>Họ tên học sinh</TableCell>
-                                        <TableCell sx={{ fontWeight: 700, minwidth: 120 }}>Mã học sinh</TableCell>
+                                        <TableCell sx={{ fontWeight: 700, minWidth: 50, whiteSpace: 'nowrap' }}>
+                                            STT
+                                        </TableCell>
+                                        <TableCell sx={{ fontWeight: 700, minWidth: 100, whiteSpace: 'nowrap' }}>
+                                            Họ tên học sinh
+                                        </TableCell>
+                                        <TableCell sx={{ fontWeight: 700, minWidth: 120, whiteSpace: 'nowrap' }}>
+                                            Mã học sinh
+                                        </TableCell>
 
-                                        <TableCell align="center" sx={{ fontWeight: 700, minwidth: 70 }}>
+                                        <TableCell
+                                            align="center"
+                                            sx={{ fontWeight: 700, minWidth: 70, whiteSpace: 'nowrap' }}
+                                        >
                                             Đạt
                                         </TableCell>
-                                        <TableCell align="center" sx={{ fontWeight: 700, minwidth: 70 }}>
+                                        <TableCell
+                                            align="center"
+                                            sx={{ fontWeight: 700, minWidth: 70, whiteSpace: 'nowrap' }}
+                                        >
                                             Chưa đạt
+                                        </TableCell>
+
+                                        {/* ✅ Thêm cột Nhận xét */}
+                                        <TableCell sx={{ fontWeight: 700, minWidth: 100, whiteSpace: 'nowrap' }}>
+                                            Nhận xét tổng kết
                                         </TableCell>
 
                                         {currentTargetIds.length > 0 &&
@@ -461,7 +482,10 @@ function ChildrenProgramComplete() {
                                             })}
 
                                         {isActiveYear && (canCreate || canUpdate) && (
-                                            <TableCell align="center" sx={{ fontWeight: 700, minwidth: 100 }}>
+                                            <TableCell
+                                                align="center"
+                                                sx={{ fontWeight: 700, minwidth: 100, whiteSpace: 'nowrap' }}
+                                            >
                                                 Thao tác
                                             </TableCell>
                                         )}
@@ -476,8 +500,12 @@ function ChildrenProgramComplete() {
                                         return (
                                             <TableRow key={student._id} hover>
                                                 <TableCell>{idx + 1}</TableCell>
-                                                <TableCell sx={{ fontWeight: 600 }}>{student.fullName}</TableCell>
-                                                <TableCell>{student.studentCode}</TableCell>
+                                                <TableCell sx={{ fontWeight: 600, whiteSpace: 'nowrap' }}>
+                                                    {student.fullName}
+                                                </TableCell>
+                                                <TableCell sx={{ whiteSpace: 'nowrap' }}>
+                                                    {student.studentCode}
+                                                </TableCell>
 
                                                 <TableCell align="center">
                                                     <Chip
@@ -494,6 +522,32 @@ function ChildrenProgramComplete() {
                                                         color="warning"
                                                         variant="outlined"
                                                     />
+                                                </TableCell>
+
+                                                {/* ✅ Hiển thị Nhận xét */}
+                                                <TableCell>
+                                                    {evaluation?.note ? (
+                                                        <Typography
+                                                            variant="body2"
+                                                            sx={{
+                                                                whiteSpace: 'pre-line',
+                                                                wordBreak: 'break-word',
+                                                                maxWidth: 250,
+                                                                maxHeight: 100,
+                                                                overflowY: 'auto',
+                                                            }}
+                                                        >
+                                                            {evaluation.note}
+                                                        </Typography>
+                                                    ) : (
+                                                        <Typography
+                                                            variant="body2"
+                                                            color="text.secondary"
+                                                            fontStyle="italic"
+                                                        >
+                                                            Chưa có nhận xét
+                                                        </Typography>
+                                                    )}
                                                 </TableCell>
 
                                                 {currentTargetIds.length > 0 &&

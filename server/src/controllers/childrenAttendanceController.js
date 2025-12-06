@@ -1,5 +1,5 @@
 import { StatusCodes } from 'http-status-codes';
-import { childrenAttendanceServices } from '~/services/childrenAttendanceServices';
+import { childrenAttendanceServices } from '~/services/childrenAttendanceServices.js';
 
 const bulkAttendance = async (req, res, next) => {
     try {

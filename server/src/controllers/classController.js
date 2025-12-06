@@ -1,5 +1,5 @@
 import { StatusCodes } from 'http-status-codes';
-import { classServices } from '~/services/classServices';
+import { classServices } from '~/services/classServices.js';
 
 const createNew = async (req, res, next) => {
     try {

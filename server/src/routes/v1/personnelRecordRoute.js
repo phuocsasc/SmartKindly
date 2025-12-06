@@ -1,9 +1,9 @@
 import express from 'express';
-import { personnelRecordValidation } from '~/validations/personnelRecordValidation';
-import { personnelRecordController } from '~/controllers/personnelRecordController';
-import { authMiddleware } from '~/middlewares/authMiddleware';
-import { rbacMiddleware } from '~/middlewares/rbacMiddleware';
-import { PERMISSIONS } from '~/config/rbacConfig';
+import { personnelRecordValidation } from '~/validations/personnelRecordValidation.js';
+import { personnelRecordController } from '~/controllers/personnelRecordController.js';
+import { authMiddleware } from '~/middlewares/authMiddleware.js';
+import { rbacMiddleware } from '~/middlewares/rbacMiddleware.js';
+import { PERMISSIONS } from '~/config/rbacConfig.js';
 
 const Router = express.Router();
 

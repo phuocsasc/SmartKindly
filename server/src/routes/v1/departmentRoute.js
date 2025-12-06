@@ -1,9 +1,9 @@
 import express from 'express';
-import { departmentValidation } from '~/validations/departmentValidation';
-import { departmentController } from '~/controllers/departmentController';
-import { authMiddleware } from '~/middlewares/authMiddleware';
-import { rbacMiddleware } from '~/middlewares/rbacMiddleware';
-import { PERMISSIONS } from '~/config/rbacConfig';
+import { departmentValidation } from '~/validations/departmentValidation.js';
+import { departmentController } from '~/controllers/departmentController.js';
+import { authMiddleware } from '~/middlewares/authMiddleware.js';
+import { rbacMiddleware } from '~/middlewares/rbacMiddleware.js';
+import { PERMISSIONS } from '~/config/rbacConfig.js';
 
 const Router = express.Router();
 

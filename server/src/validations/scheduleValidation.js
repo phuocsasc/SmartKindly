@@ -2,7 +2,7 @@
 
 import Joi from 'joi';
 import { StatusCodes } from 'http-status-codes';
-import ApiError from '~/utils/ApiError';
+import ApiError from '~/utils/ApiError.js';
 
 const activityPeriodSchema = Joi.object({
     _id: Joi.string().optional(),

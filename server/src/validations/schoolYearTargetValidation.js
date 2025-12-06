@@ -1,6 +1,6 @@
 import Joi from 'joi';
 import { StatusCodes } from 'http-status-codes';
-import ApiError from '~/utils/ApiError';
+import ApiError from '~/utils/ApiError.js';
 
 const targetSchema = Joi.object({
     _id: Joi.alternatives().try(Joi.string(), Joi.object()).optional(), // ✅ Cho phép _id (string hoặc ObjectId)

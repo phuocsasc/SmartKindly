@@ -1,9 +1,9 @@
 import express from 'express';
-import { classValidation } from '~/validations/classValidation';
-import { classController } from '~/controllers/classController';
-import { authMiddleware } from '~/middlewares/authMiddleware';
-import { rbacMiddleware } from '~/middlewares/rbacMiddleware';
-import { PERMISSIONS } from '~/config/rbacConfig';
+import { classValidation } from '~/validations/classValidation.js';
+import { classController } from '~/controllers/classController.js';
+import { authMiddleware } from '~/middlewares/authMiddleware.js';
+import { rbacMiddleware } from '~/middlewares/rbacMiddleware.js';
+import { PERMISSIONS } from '~/config/rbacConfig.js';
 
 const Router = express.Router();
 // localhost:8017/v1/classes/available-teachers/

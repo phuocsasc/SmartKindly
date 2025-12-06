@@ -1,7 +1,7 @@
 import { StatusCodes } from 'http-status-codes';
-import { JwtProvider } from '~/providers/JwtProvider';
+import { JwtProvider } from '~/providers/JwtProvider.js';
 import dotenv from 'dotenv';
-import { UserModel } from '~/models/userModel';
+import { UserModel } from '~/models/userModel.js';
 dotenv.config();
 
 // Middleware này sẽ đảm nhiệm việc quan trọng: Lấy và xác thực cái JWT accessToken nhận được từ phía FE có hơp lệ hay không

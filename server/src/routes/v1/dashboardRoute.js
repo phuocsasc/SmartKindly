@@ -1,8 +1,8 @@
 import express from 'express';
 import { StatusCodes } from 'http-status-codes';
-import { dashboardController } from '~/controllers/dashboardController';
-import { authMiddleware } from '~/middlewares/authMiddleware';
-import { rbacMiddleware } from '~/middlewares/rbacMiddleware';
+import { dashboardController } from '~/controllers/dashboardController.js';
+import { authMiddleware } from '~/middlewares/authMiddleware.js';
+import { rbacMiddleware } from '~/middlewares/rbacMiddleware.js';
 
 const Router = express.Router();
 

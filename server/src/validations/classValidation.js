@@ -1,7 +1,7 @@
 import Joi from 'joi';
 import { StatusCodes } from 'http-status-codes';
-import ApiError from '~/utils/ApiError';
-import { OBJECT_ID_RULE, OBJECT_ID_RULE_MESSAGE } from '~/utils/validators';
+import ApiError from '~/utils/ApiError.js';
+import { OBJECT_ID_RULE, OBJECT_ID_RULE_MESSAGE } from '~/utils/validators.js';
 
 const createNew = async (req, res, next) => {
     const schema = Joi.object({

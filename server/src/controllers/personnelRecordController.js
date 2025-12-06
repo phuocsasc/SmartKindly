@@ -1,6 +1,6 @@
 // server/src/controllers/personnelRecordController.js
 import { StatusCodes } from 'http-status-codes';
-import { personnelRecordServices } from '~/services/personnelRecordServices';
+import { personnelRecordServices } from '~/services/personnelRecordServices.js';
 
 const createNew = async (req, res, next) => {
     try {

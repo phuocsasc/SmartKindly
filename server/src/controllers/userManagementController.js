@@ -1,7 +1,7 @@
 import { StatusCodes } from 'http-status-codes';
-import { userManagementServices } from '~/services/userManagementServices';
-import ApiError from '~/utils/ApiError';
-import { UserModel } from '~/models/userModel';
+import { userManagementServices } from '~/services/userManagementServices.js';
+import ApiError from '~/utils/ApiError.js';
+import { UserModel } from '~/models/userModel.js';
 
 const createNew = async (req, res, next) => {
     try {

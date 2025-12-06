@@ -1,9 +1,9 @@
 import express from 'express';
-import { schoolValidation } from '~/validations/schoolValidation';
-import { schoolController } from '~/controllers/schoolController';
-import { authMiddleware } from '~/middlewares/authMiddleware';
-import { rbacMiddleware } from '~/middlewares/rbacMiddleware';
-import { PERMISSIONS } from '~/config/rbacConfig';
+import { schoolValidation } from '~/validations/schoolValidation.js';
+import { schoolController } from '~/controllers/schoolController.js';
+import { authMiddleware } from '~/middlewares/authMiddleware.js';
+import { rbacMiddleware } from '~/middlewares/rbacMiddleware.js';
+import { PERMISSIONS } from '~/config/rbacConfig.js';
 // import { setCacheHeaders } from '~/middlewares/httpCacheMiddleware';
 
 const Router = express.Router();

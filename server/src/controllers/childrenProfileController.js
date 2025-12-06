@@ -1,5 +1,5 @@
 import { StatusCodes } from 'http-status-codes';
-import { childrenProfileServices } from '~/services/childrenProfileServices';
+import { childrenProfileServices } from '~/services/childrenProfileServices.js';
 
 const createNew = async (req, res, next) => {
     try {

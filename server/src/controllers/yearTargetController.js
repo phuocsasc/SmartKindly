@@ -1,7 +1,7 @@
 // server/src/controllers/yearTargetController.js
 
 import { StatusCodes } from 'http-status-codes';
-import { yearTargetServices } from '~/services/yearTargetServices';
+import { yearTargetServices } from '~/services/yearTargetServices.js';
 
 const createNew = async (req, res, next) => {
     try {

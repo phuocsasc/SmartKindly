@@ -1,9 +1,9 @@
 import express from 'express';
-import { childrenProfileController } from '~/controllers/childrenProfileController';
-import { authMiddleware } from '~/middlewares/authMiddleware';
-import { rbacMiddleware } from '~/middlewares/rbacMiddleware';
-import { PERMISSIONS } from '~/config/rbacConfig';
-import { childrenProfileValidation } from '~/validations/childrenProfileValidation';
+import { childrenProfileController } from '~/controllers/childrenProfileController.js';
+import { authMiddleware } from '~/middlewares/authMiddleware.js';
+import { rbacMiddleware } from '~/middlewares/rbacMiddleware.js';
+import { PERMISSIONS } from '~/config/rbacConfig.js';
+import { childrenProfileValidation } from '~/validations/childrenProfileValidation.js';
 
 const Router = express.Router();
 

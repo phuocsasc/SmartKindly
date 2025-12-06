@@ -1,11 +1,11 @@
 import express from 'express';
 import cors from 'cors';
-import { CONNECT_DB } from '~/config/mongodb';
+import { CONNECT_DB } from '~/config/mongodb.js';
 import cookieParser from 'cookie-parser';
-import { env } from '~/config/environment';
-import { corsOptions } from '~/config/corsOptions';
+import { env } from '~/config/environment.js';
+import { corsOptions } from '~/config/corsOptions.js';
 import { APIs_V1 } from '~/routes/v1/';
-import { errorHandlingMiddleware } from '~/middlewares/errorHandlingMiddleware';
+import { errorHandlingMiddleware } from '~/middlewares/errorHandlingMiddleware.js';
 import { createServer } from 'http';
 import { initSocketServer } from '~/sockets';
 

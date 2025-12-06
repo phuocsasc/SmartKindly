@@ -1,11 +1,11 @@
 // server/src/routes/v1/yearTargetRoute.js
 
 import express from 'express';
-import { yearTargetValidation } from '~/validations/yearTargetValidation';
-import { yearTargetController } from '~/controllers/yearTargetController';
-import { authMiddleware } from '~/middlewares/authMiddleware';
-import { rbacMiddleware } from '~/middlewares/rbacMiddleware';
-import { PERMISSIONS } from '~/config/rbacConfig';
+import { yearTargetValidation } from '~/validations/yearTargetValidation.js';
+import { yearTargetController } from '~/controllers/yearTargetController.js';
+import { authMiddleware } from '~/middlewares/authMiddleware.js';
+import { rbacMiddleware } from '~/middlewares/rbacMiddleware.js';
+import { PERMISSIONS } from '~/config/rbacConfig.js';
 
 const Router = express.Router();
 

@@ -1,6 +1,6 @@
 import { StatusCodes } from 'http-status-codes';
-import ApiError from '~/utils/ApiError';
-import { UserModel } from '~/models/userModel';
+import ApiError from '~/utils/ApiError.js';
+import { UserModel } from '~/models/userModel.js';
 
 /**
  * Middleware kiểm tra user có cùng schoolId với target user không

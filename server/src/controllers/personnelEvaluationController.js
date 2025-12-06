@@ -1,7 +1,7 @@
 // server/src/controllers/personnelEvaluationController.js
 
 import { StatusCodes } from 'http-status-codes';
-import { personnelEvaluationServices } from '~/services/personnelEvaluationServices';
+import { personnelEvaluationServices } from '~/services/personnelEvaluationServices.js';
 
 const getAll = async (req, res, next) => {
     try {

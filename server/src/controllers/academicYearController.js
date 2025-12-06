@@ -1,5 +1,5 @@
 import { StatusCodes } from 'http-status-codes';
-import { academicYearServices } from '~/services/academicYearServices';
+import { academicYearServices } from '~/services/academicYearServices.js';
 
 const createNew = async (req, res, next) => {
     try {

@@ -1,5 +1,5 @@
 import { StatusCodes } from 'http-status-codes';
-import { adminUserManagementServices } from '~/services/adminUserManagementServices';
+import { adminUserManagementServices } from '~/services/adminUserManagementServices.js';
 
 const createNew = async (req, res, next) => {
     try {

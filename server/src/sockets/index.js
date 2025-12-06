@@ -1,6 +1,6 @@
 import { Server } from 'socket.io';
-import { JwtProvider } from '~/providers/JwtProvider';
-import { env } from '~/config/environment';
+import { JwtProvider } from '~/providers/JwtProvider.js';
+import { env } from '~/config/environment.js';
 
 let io = null;
 

@@ -1,6 +1,6 @@
 import { StatusCodes } from 'http-status-codes';
-import { ROLE_PERMISSIONS } from '~/config/rbacConfig';
-import ApiError from '~/utils/ApiError';
+import { ROLE_PERMISSIONS } from '~/config/rbacConfig.js';
+import ApiError from '~/utils/ApiError.js';
 
 /**
  * Middleware kiểm tra xem user có quyền hạn (permission) hay không

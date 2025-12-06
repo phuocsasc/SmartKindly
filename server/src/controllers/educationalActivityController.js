@@ -1,7 +1,7 @@
 // server/src/controllers/educationalActivityController.js
 
 import { StatusCodes } from 'http-status-codes';
-import { educationalActivityServices } from '~/services/educationalActivityServices';
+import { educationalActivityServices } from '~/services/educationalActivityServices.js';
 
 const createNew = async (req, res, next) => {
     try {

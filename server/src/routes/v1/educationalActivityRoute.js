@@ -1,11 +1,11 @@
 // server/src/routes/v1/educationalActivityRoute.js
 
 import express from 'express';
-import { educationalActivityValidation } from '~/validations/educationalActivityValidation';
-import { educationalActivityController } from '~/controllers/educationalActivityController';
-import { authMiddleware } from '~/middlewares/authMiddleware';
-import { rbacMiddleware } from '~/middlewares/rbacMiddleware';
-import { PERMISSIONS } from '~/config/rbacConfig';
+import { educationalActivityValidation } from '~/validations/educationalActivityValidation.js';
+import { educationalActivityController } from '~/controllers/educationalActivityController.js';
+import { authMiddleware } from '~/middlewares/authMiddleware.js';
+import { rbacMiddleware } from '~/middlewares/rbacMiddleware.js';
+import { PERMISSIONS } from '~/config/rbacConfig.js';
 
 const Router = express.Router();
 

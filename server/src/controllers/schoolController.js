@@ -1,6 +1,6 @@
 import { StatusCodes } from 'http-status-codes';
-import { schoolServices } from '~/services/schoolServices';
-import ApiError from '~/utils/ApiError';
+import { schoolServices } from '~/services/schoolServices.js';
+import ApiError from '~/utils/ApiError.js';
 
 const createNew = async (req, res, next) => {
     try {

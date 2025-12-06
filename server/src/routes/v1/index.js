@@ -1,21 +1,21 @@
 import express from 'express';
 import { StatusCodes } from 'http-status-codes';
-import { userRoute } from '~/routes/v1/userRoute';
-import { dashboardRoute } from '~/routes/v1/dashboardRoute';
-import { schoolRoute } from '~/routes/v1/schoolRoute';
-import { academicYearRoute } from '~/routes/v1/academicYearRoute';
-import { adminUserManagementRoute } from '~/routes/v1/adminUserManagementRoute';
-import { departmentRoute } from './departmentRoute'; // ✅ Import
-import { classRoute } from './classRoute';
-import { personnelRecordRoute } from './personnelRecordRoute';
-import { personnelEvaluationRoute } from './personnelEvaluationRoute'; // ✅ Import
-import { yearTargetRoute } from './yearTargetRoute'; // ✅ Import
-import { educationalActivityRoute } from './educationalActivityRoute'; // ✅ Import
+import { userRoute } from '~/routes/v1/userRoute.js';
+import { dashboardRoute } from '~/routes/v1/dashboardRoute.js';
+import { schoolRoute } from '~/routes/v1/schoolRoute.js';
+import { academicYearRoute } from '~/routes/v1/academicYearRoute.js';
+import { adminUserManagementRoute } from '~/routes/v1/adminUserManagementRoute.js';
+import { departmentRoute } from './departmentRoute.js'; // ✅ Import
+import { classRoute } from './classRoute.js';
+import { personnelRecordRoute } from './personnelRecordRoute.js';
+import { personnelEvaluationRoute } from './personnelEvaluationRoute.js'; // ✅ Import
+import { yearTargetRoute } from './yearTargetRoute.js'; // ✅ Import
+import { educationalActivityRoute } from './educationalActivityRoute.js'; // ✅ Import
 import { schoolYearTargetRoute } from '~/routes/v1/schoolYearTargetRoute.js';
 import { schoolEducationalActivityRoute } from './schoolEducationalActivityRoute.js';
 import { scheduleRoute } from './scheduleRoute.js';
 import { weeklyPlanRoute } from './weeklyPlanRoute.js';
-import { childrenProfileRoute } from '~/routes/v1/childrenProfileRoute';
+import { childrenProfileRoute } from '~/routes/v1/childrenProfileRoute.js';
 import { childrenAttendanceRoute } from './childrenAttendanceRoute.js';
 import { childrenDailyAssessmentRoute } from './childrenDailyAssessmentRoute.js';
 import { childrenCertificateRoute } from './childrenCertificateRoute.js';

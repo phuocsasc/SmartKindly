@@ -1,11 +1,11 @@
 import express from 'express';
-import { userController } from '~/controllers/userController';
-import { userManagementController } from '~/controllers/userManagementController';
-import { userValidation } from '~/validations/userValidation';
-import { authMiddleware } from '~/middlewares/authMiddleware';
-import { rbacMiddleware } from '~/middlewares/rbacMiddleware';
-import { schoolScopeMiddleware } from '~/middlewares/schoolScopeMiddleware'; // ✅ Import middleware mới
-import { PERMISSIONS } from '~/config/rbacConfig';
+import { userController } from '~/controllers/userController.js';
+import { userManagementController } from '~/controllers/userManagementController.js';
+import { userValidation } from '~/validations/userValidation.js';
+import { authMiddleware } from '~/middlewares/authMiddleware.js';
+import { rbacMiddleware } from '~/middlewares/rbacMiddleware.js';
+import { schoolScopeMiddleware } from '~/middlewares/schoolScopeMiddleware.js'; // ✅ Import middleware mới
+import { PERMISSIONS } from '~/config/rbacConfig.js';
 
 const Router = express.Router();
 

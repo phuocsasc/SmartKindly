@@ -1,11 +1,11 @@
 // server/src/routes/v1/personnelEvaluationRoute.js
 
 import express from 'express';
-import { authMiddleware } from '~/middlewares/authMiddleware';
-import { rbacMiddleware } from '~/middlewares/rbacMiddleware';
-import { PERMISSIONS } from '~/config/rbacConfig';
-import { personnelEvaluationController } from '~/controllers/personnelEvaluationController';
-import { personnelEvaluationValidation } from '~/validations/personnelEvaluationValidation';
+import { authMiddleware } from '~/middlewares/authMiddleware.js';
+import { rbacMiddleware } from '~/middlewares/rbacMiddleware.js';
+import { PERMISSIONS } from '~/config/rbacConfig.js';
+import { personnelEvaluationController } from '~/controllers/personnelEvaluationController.js';
+import { personnelEvaluationValidation } from '~/validations/personnelEvaluationValidation.js';
 
 const Router = express.Router();
 

@@ -1,6 +1,6 @@
 import mongoose from 'mongoose';
 import { StatusCodes } from 'http-status-codes';
-import ApiError from '~/utils/ApiError';
+import ApiError from '~/utils/ApiError.js';
 import {
     ChildrenProgramCompleteModel,
     ChildrenProgramCompleteConfigModel,

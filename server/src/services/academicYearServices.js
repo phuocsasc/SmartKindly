@@ -1,6 +1,6 @@
-import { AcademicYearModel } from '~/models/academicYearModel';
-import { UserModel } from '~/models/userModel';
-import ApiError from '~/utils/ApiError';
+import { AcademicYearModel } from '~/models/academicYearModel.js';
+import { UserModel } from '~/models/userModel.js';
+import ApiError from '~/utils/ApiError.js';
 import { StatusCodes } from 'http-status-codes';
 
 const createNew = async (data, userId) => {

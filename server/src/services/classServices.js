@@ -1,11 +1,11 @@
-import { ClassModel } from '~/models/classModel';
-import { AcademicYearModel } from '~/models/academicYearModel';
-import { DepartmentModel } from '~/models/departmentModel';
-import { UserModel } from '~/models/userModel';
-import { ChildrenProfileModel } from '~/models/childrenProfileModel'; // ✅ Import model
-import ApiError from '~/utils/ApiError';
+import { ClassModel } from '~/models/classModel.js';
+import { AcademicYearModel } from '~/models/academicYearModel.js';
+import { DepartmentModel } from '~/models/departmentModel.js';
+import { UserModel } from '~/models/userModel.js';
+import { ChildrenProfileModel } from '~/models/childrenProfileModel.js'; // ✅ Import model
+import ApiError from '~/utils/ApiError.js';
 import { StatusCodes } from 'http-status-codes';
-import { notificationServices } from '~/services/notificationServices';
+import { notificationServices } from '~/services/notificationServices.js';
 
 /**
  * ✅ Helper: Kiểm tra lớp có hồ sơ trẻ không

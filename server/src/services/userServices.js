@@ -1,13 +1,13 @@
 /* eslint-disable no-unreachable */
 // server/src/services/userServices.js
-import { UserModel } from '~/models/userModel';
-import { SchoolModel } from '~/models/schoolModel';
-import ApiError from '~/utils/ApiError';
+import { UserModel } from '~/models/userModel.js';
+import { SchoolModel } from '~/models/schoolModel.js';
+import ApiError from '~/utils/ApiError.js';
 import { StatusCodes } from 'http-status-codes';
-import { JwtProvider } from '~/providers/JwtProvider';
-import { env } from '~/config/environment';
-import { OtpModel } from '~/models/otpModel';
-import { ResendProvider } from '~/providers/ResendProvider';
+import { JwtProvider } from '~/providers/JwtProvider.js';
+import { env } from '~/config/environment.js';
+import { OtpModel } from '~/models/otpModel.js';
+import { ResendProvider } from '~/providers/ResendProvider.js';
 
 const login = async (data) => {
     try {

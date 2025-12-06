@@ -1,10 +1,10 @@
 import { StatusCodes } from 'http-status-codes';
-import ApiError from '~/utils/ApiError';
-import { ChildrenProfileModel } from '~/models/childrenProfileModel';
-import { ClassModel } from '~/models/classModel';
-import { AcademicYearModel } from '~/models/academicYearModel';
-import { DepartmentModel } from '~/models/departmentModel';
-import { UserModel } from '~/models/userModel';
+import ApiError from '~/utils/ApiError.js';
+import { ChildrenProfileModel } from '~/models/childrenProfileModel.js';
+import { ClassModel } from '~/models/classModel.js';
+import { AcademicYearModel } from '~/models/academicYearModel.js';
+import { DepartmentModel } from '~/models/departmentModel.js';
+import { UserModel } from '~/models/userModel.js';
 
 // ✅ Constants nhóm tuổi
 const AGE_GROUPS = ['3-12 tháng', '12-24 tháng', '24-36 tháng', '3-4 tuổi', '4-5 tuổi', '5-6 tuổi'];

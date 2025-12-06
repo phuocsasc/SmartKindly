@@ -1,11 +1,11 @@
-import { UserModel } from '~/models/userModel';
-import { SchoolModel } from '~/models/schoolModel';
-import ApiError from '~/utils/ApiError';
+import { UserModel } from '~/models/userModel.js';
+import { SchoolModel } from '~/models/schoolModel.js';
+import ApiError from '~/utils/ApiError.js';
 import { StatusCodes } from 'http-status-codes';
-import { removeVietnameseTones } from '~/utils/formatters';
-import { DepartmentModel } from '~/models/departmentModel';
-import { ClassModel } from '~/models/classModel';
-import { AcademicYearModel } from '~/models/academicYearModel';
+import { removeVietnameseTones } from '~/utils/formatters.js';
+import { DepartmentModel } from '~/models/departmentModel.js';
+import { ClassModel } from '~/models/classModel.js';
+import { AcademicYearModel } from '~/models/academicYearModel.js';
 
 /**
  * ✅ Kiểm tra user có đang được sử dụng trong năm học active không

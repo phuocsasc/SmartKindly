@@ -1,5 +1,5 @@
 import mongoose from 'mongoose';
-import { env } from '~/config/environment';
+import { env } from '~/config/environment.js';
 
 // Tắt warning strictQuery trong mongoose v7
 mongoose.set('strictQuery', false);

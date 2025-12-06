@@ -1,12 +1,12 @@
 import { StatusCodes } from 'http-status-codes';
-import ApiError from '~/utils/ApiError';
-import { ChildrenAttendanceModel } from '~/models/childrenAttendanceModel';
-import { ChildrenProfileModel } from '~/models/childrenProfileModel';
-import { ClassModel } from '~/models/classModel';
-import { AcademicYearModel } from '~/models/academicYearModel';
-import { DepartmentModel } from '~/models/departmentModel';
-import { ScheduleModel } from '~/models/scheduleModel';
-import { UserModel } from '~/models/userModel';
+import ApiError from '~/utils/ApiError.js';
+import { ChildrenAttendanceModel } from '~/models/childrenAttendanceModel.js';
+import { ChildrenProfileModel } from '~/models/childrenProfileModel.js';
+import { ClassModel } from '~/models/classModel.js';
+import { AcademicYearModel } from '~/models/academicYearModel.js';
+import { DepartmentModel } from '~/models/departmentModel.js';
+import { ScheduleModel } from '~/models/scheduleModel.js';
+import { UserModel } from '~/models/userModel.js';
 import dayjs from 'dayjs';
 import isoWeek from 'dayjs/plugin/isoWeek';
 

@@ -1,9 +1,9 @@
-import { DepartmentModel } from '~/models/departmentModel';
-import { AcademicYearModel } from '~/models/academicYearModel';
-import { UserModel } from '~/models/userModel';
-import ApiError from '~/utils/ApiError';
+import { DepartmentModel } from '~/models/departmentModel.js';
+import { AcademicYearModel } from '~/models/academicYearModel.js';
+import { UserModel } from '~/models/userModel.js';
+import ApiError from '~/utils/ApiError.js';
 import { StatusCodes } from 'http-status-codes';
-import { notificationServices } from '~/services/notificationServices';
+import { notificationServices } from '~/services/notificationServices.js';
 
 const createNew = async (data, userId) => {
     try {

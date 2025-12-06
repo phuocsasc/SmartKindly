@@ -6,7 +6,7 @@ import { ClassModel } from '~/models/classModel.js';
 import { AcademicYearModel } from '~/models/academicYearModel.js';
 import { DepartmentModel } from '~/models/departmentModel.js';
 import { UserModel } from '~/models/userModel.js';
-import ApiError from '~/utils/ApiError';
+import ApiError from '~/utils/ApiError.js';
 import { StatusCodes } from 'http-status-codes';
 
 /**

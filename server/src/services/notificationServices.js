@@ -1,7 +1,7 @@
 import { StatusCodes } from 'http-status-codes';
-import ApiError from '~/utils/ApiError';
-import { NotificationModel } from '~/models/notificationModel';
-import { UserModel } from '~/models/userModel';
+import ApiError from '~/utils/ApiError.js';
+import { NotificationModel } from '~/models/notificationModel.js';
+import { UserModel } from '~/models/userModel.js';
 import { emitToUser } from '~/sockets';
 
 /**

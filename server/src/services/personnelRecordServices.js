@@ -1,7 +1,7 @@
 // server/src/services/personnelRecordServices.js
-import { PersonnelRecordModel } from '~/models/personnelRecordModel';
-import { UserModel } from '~/models/userModel';
-import ApiError from '~/utils/ApiError';
+import { PersonnelRecordModel } from '~/models/personnelRecordModel.js';
+import { UserModel } from '~/models/userModel.js';
+import ApiError from '~/utils/ApiError.js';
 import { StatusCodes } from 'http-status-codes';
 
 const createNew = async (data, userId) => {

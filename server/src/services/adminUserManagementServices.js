@@ -1,8 +1,8 @@
-import { UserModel } from '~/models/userModel';
-import { SchoolModel } from '~/models/schoolModel';
-import ApiError from '~/utils/ApiError';
+import { UserModel } from '~/models/userModel.js';
+import { SchoolModel } from '~/models/schoolModel.js';
+import ApiError from '~/utils/ApiError.js';
 import { StatusCodes } from 'http-status-codes';
-import { removeVietnameseTones } from '~/utils/formatters';
+import { removeVietnameseTones } from '~/utils/formatters.js';
 
 const createNew = async (data) => {
     try {

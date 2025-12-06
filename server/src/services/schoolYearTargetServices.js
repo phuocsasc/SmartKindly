@@ -1,11 +1,11 @@
 import mongoose from 'mongoose';
 import { SchoolYearTargetModel } from '~/models/schoolYearTargetModel.js';
-import { SchoolEducationalActivityModel } from '~/models/schoolEducationalActivityModel';
+import { SchoolEducationalActivityModel } from '~/models/schoolEducationalActivityModel.js';
 import { AcademicYearModel } from '~/models/academicYearModel.js';
 import { UserModel } from '~/models/userModel.js';
 import { DepartmentModel } from '~/models/departmentModel.js';
 import { ClassModel } from '~/models/classModel.js';
-import ApiError from '~/utils/ApiError';
+import ApiError from '~/utils/ApiError.js';
 import { StatusCodes } from 'http-status-codes';
 import { getNurseryDefaultData, getKindergartenDefaultData } from '~/utils/schoolYearTargetDefaultData.js';
 

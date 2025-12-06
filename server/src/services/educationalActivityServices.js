@@ -1,9 +1,9 @@
 // server/src/services/educationalActivityServices.js
 
-import { EducationalActivityModel } from '~/models/educationalActivityModel';
-import { YearTargetModel } from '~/models/yearTargetModel';
-import { UserModel } from '~/models/userModel';
-import ApiError from '~/utils/ApiError';
+import { EducationalActivityModel } from '~/models/educationalActivityModel.js';
+import { YearTargetModel } from '~/models/yearTargetModel.js';
+import { UserModel } from '~/models/userModel.js';
+import ApiError from '~/utils/ApiError.js';
 import { StatusCodes } from 'http-status-codes';
 
 /**

@@ -1,8 +1,8 @@
 // server/src/services/yearTargetServices.js
 
-import { YearTargetModel } from '~/models/yearTargetModel';
-import { UserModel } from '~/models/userModel';
-import ApiError from '~/utils/ApiError';
+import { YearTargetModel } from '~/models/yearTargetModel.js';
+import { UserModel } from '~/models/userModel.js';
+import ApiError from '~/utils/ApiError.js';
 import { StatusCodes } from 'http-status-codes';
 
 /**

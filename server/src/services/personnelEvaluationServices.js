@@ -1,10 +1,10 @@
 // server/src/services/personnelEvaluationServices.js
 
-import { PersonnelEvaluationModel } from '~/models/personnelEvaluationModel';
-import { PersonnelRecordModel } from '~/models/personnelRecordModel';
-import { AcademicYearModel } from '~/models/academicYearModel';
-import { UserModel } from '~/models/userModel';
-import ApiError from '~/utils/ApiError';
+import { PersonnelEvaluationModel } from '~/models/personnelEvaluationModel.js';
+import { PersonnelRecordModel } from '~/models/personnelRecordModel.js';
+import { AcademicYearModel } from '~/models/academicYearModel.js';
+import { UserModel } from '~/models/userModel.js';
+import ApiError from '~/utils/ApiError.js';
 import { StatusCodes } from 'http-status-codes';
 
 /**

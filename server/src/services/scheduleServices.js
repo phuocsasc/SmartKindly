@@ -4,7 +4,7 @@ import { WeeklyPlanModel } from '~/models/weeklyPlanModel.js';
 import { ScheduleModel } from '~/models/scheduleModel.js';
 import { AcademicYearModel } from '~/models/academicYearModel.js';
 import { UserModel } from '~/models/userModel.js';
-import ApiError from '~/utils/ApiError';
+import ApiError from '~/utils/ApiError.js';
 import { StatusCodes } from 'http-status-codes';
 import dayjs from 'dayjs';
 

@@ -1,8 +1,8 @@
-import { SchoolModel } from '~/models/schoolModel';
-import { slugify } from '~/utils/formatters';
-import ApiError from '~/utils/ApiError';
+import { SchoolModel } from '~/models/schoolModel.js';
+import { slugify } from '~/utils/formatters.js';
+import ApiError from '~/utils/ApiError.js';
 import { StatusCodes } from 'http-status-codes';
-import { UserModel } from '~/models/userModel';
+import { UserModel } from '~/models/userModel.js';
 
 const createNew = async (data) => {
     try {

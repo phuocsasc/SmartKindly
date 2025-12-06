@@ -512,14 +512,12 @@ function ChildrenCertificate() {
                                                 <TableRow key={student._id} hover>
                                                     <TableCell>{index + 1}</TableCell>
                                                     <TableCell>
-                                                        <Typography variant="body2" fontWeight={500}>
+                                                        <Typography variant="body2" fontWeight={600}>
                                                             {student.fullName}
                                                         </Typography>
                                                     </TableCell>
                                                     <TableCell>
-                                                        <Typography variant="body2" color="text.secondary">
-                                                            {student.studentCode}
-                                                        </Typography>
+                                                        <Typography variant="body2">{student.studentCode}</Typography>
                                                     </TableCell>
 
                                                     {/* Hoa bé ngoan */}

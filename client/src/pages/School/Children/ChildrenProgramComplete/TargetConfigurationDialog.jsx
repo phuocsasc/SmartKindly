@@ -251,17 +251,22 @@ function TargetConfigurationDialog({ open, academicYearId, onClose, onSuccess })
                 </IconButton>
             </DialogTitle>
 
-            <DialogContent sx={{ px: 3, py: 2.5 }}>
+            <DialogContent sx={{ px: 3, py: 3 }}>
                 {/* Info Alert */}
-                <Alert severity="info" icon={<StorageOutlinedIcon />} sx={{ mb: 3, borderRadius: 2 }}>
+                <Alert
+                    severity="info"
+                    icon={<StorageOutlinedIcon />}
+                    sx={{ mt: 2, mb: 3, borderRadius: 2, display: 'flex', alignItems: 'center' }}
+                >
                     <Typography variant="body2" fontWeight={600}>
-                        Chọn tối thiểu 5 mục tiêu để cấu hình đánh giá cho nhóm tuổi. Các lớp học thuộc nhóm tuổi này sẽ
-                        được đánh giá dựa trên các mục tiêu bạn chọn.
+                        Chọn tối thiểu 5 mục tiêu để cấu hình đánh giá trẻ hoàn thành chương trình cho từng nhóm tuổi.{' '}
+                        <br />
+                        Các lớp học thuộc nhóm tuổi này sẽ được đánh giá dựa trên các mục tiêu bạn chọn.
                     </Typography>
                 </Alert>
 
                 {/* Age Group Selection */}
-                <Box sx={{ mb: 3 }}>
+                <Box sx={{ mb: 2 }}>
                     <FormControl fullWidth size="small">
                         <InputLabel>Chọn nhóm tuổi *</InputLabel>
                         <Select
@@ -282,12 +287,12 @@ function TargetConfigurationDialog({ open, academicYearId, onClose, onSuccess })
                 {/* Targets List */}
                 {selectedAgeGroup && (
                     <>
-                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
                             <Typography variant="subtitle2" fontWeight={600} sx={{ color: '#667eea' }}>
-                                📋 Danh sách mục tiêu ({selectedTargets.length}/{availableTargets.length})
+                                Danh sách mục tiêu ({selectedTargets.length}/{availableTargets.length})
                             </Typography>
 
-                            {availableTargets.length > 0 && (
+                            {/* {availableTargets.length > 0 && (
                                 <Button
                                     size="small"
                                     onClick={handleSelectAll}
@@ -297,10 +302,24 @@ function TargetConfigurationDialog({ open, academicYearId, onClose, onSuccess })
                                 >
                                     {allSelected ? 'Bỏ chọn tất cả' : 'Chọn tất cả'}
                                 </Button>
-                            )}
+                            )} */}
                         </Box>
+                        {/* Status Message */}
+                        {availableTargets.length > 0 && (
+                            <Box sx={{ mt: 2 }}>
+                                {selectedTargets.length < 5 ? (
+                                    <Alert severity="warning">
+                                        Phải chọn tối thiểu 5 mục tiêu (Hiện tại: {selectedTargets.length})
+                                    </Alert>
+                                ) : (
+                                    <Alert severity="success" icon={<CheckCircleIcon />}>
+                                        Đã chọn {selectedTargets.length} mục tiêu
+                                    </Alert>
+                                )}
+                            </Box>
+                        )}
 
-                        <Divider sx={{ mb: 2 }} />
+                        <Divider sx={{ mb: 0 }} />
 
                         {loadingTargets ? (
                             <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
@@ -316,7 +335,7 @@ function TargetConfigurationDialog({ open, academicYearId, onClose, onSuccess })
                                 sx={{
                                     border: '1px solid #e0e0e0',
                                     borderRadius: 1,
-                                    maxHeight: 500,
+                                    maxHeight: 450,
                                     overflowY: 'auto',
                                     '&::-webkit-scrollbar': { width: 6 },
                                     '&::-webkit-scrollbar-thumb': { backgroundColor: '#667eea', borderRadius: 4 },
@@ -381,21 +400,6 @@ function TargetConfigurationDialog({ open, academicYearId, onClose, onSuccess })
                                     </TableBody>
                                 </Table>
                             </TableContainer>
-                        )}
-
-                        {/* Status Message */}
-                        {availableTargets.length > 0 && (
-                            <Box sx={{ mt: 2 }}>
-                                {selectedTargets.length < 5 ? (
-                                    <Alert severity="warning">
-                                        ⚠️ Phải chọn tối thiểu 5 mục tiêu (Hiện tại: {selectedTargets.length})
-                                    </Alert>
-                                ) : (
-                                    <Alert severity="success" icon={<CheckCircleIcon />}>
-                                        ✅ Đã chọn {selectedTargets.length} mục tiêu
-                                    </Alert>
-                                )}
-                            </Box>
                         )}
                     </>
                 )}

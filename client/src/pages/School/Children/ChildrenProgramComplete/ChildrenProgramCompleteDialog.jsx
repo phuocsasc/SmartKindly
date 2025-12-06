@@ -234,55 +234,90 @@ function ChildrenProgramCompleteDialog({ open, data, targets, ageGroup, onClose,
             </DialogTitle>
 
             <DialogContent sx={{ px: 3, py: 3 }}>
+                {/* Status Legend */}
+                <Box sx={{ mt: 2, p: 2, bgcolor: '#f9f9f9', borderRadius: 1 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
+                        {/* Hướng dẫn */}
+                        <Typography variant="caption" fontWeight={600}>
+                            Hướng dẫn:
+                        </Typography>
+
+                        {/* Chưa đánh giá */}
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                            <EmojiEventsOutlinedIcon sx={{ fontSize: 16, color: '#9e9e9e' }} />
+                            <Typography variant="caption">Chưa đánh giá</Typography>
+                        </Box>
+
+                        {/* Đạt */}
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                            <EmojiEventsOutlinedIcon sx={{ fontSize: 16, color: '#ffc107' }} />
+                            <Typography variant="caption">Đạt</Typography>
+                        </Box>
+
+                        {/* Chưa đạt */}
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                            <EmojiEventsOutlinedIcon sx={{ fontSize: 16, color: '#4caf50' }} />
+                            <Typography variant="caption">Chưa đạt</Typography>
+                        </Box>
+                    </Box>
+                </Box>
+
                 {/* Assessment Details Table */}
-                <Box sx={{ mb: 3 }}>
+                <Box sx={{ mb: 3, mt: 2 }}>
                     <Typography variant="subtitle2" fontWeight={600} sx={{ mb: 2, color: '#667eea' }}>
-                        📋 Chi tiết đánh giá mục tiêu
+                        Chi tiết đánh giá mục tiêu
                     </Typography>
 
                     <TableContainer component={Paper} sx={{ border: '1px solid #e0e0e0' }}>
-                        <Table size="small">
-                            <TableHead>
-                                <TableRow sx={{ bgcolor: '#ede7f6' }}>
-                                    <TableCell sx={{ fontWeight: 700 }}>Mục tiêu</TableCell>
-                                    <TableCell sx={{ fontWeight: 700 }}>Nội dung mục tiêu</TableCell>
-                                    <TableCell align="center" sx={{ fontWeight: 700, width: 100 }}>
-                                        Đánh giá
-                                    </TableCell>
-                                </TableRow>
-                            </TableHead>
-                            <TableBody>
-                                {formData.assessmentDetails.map((detail) => {
-                                    const targetInfo = targetDetails[String(detail.targetId)];
-                                    const mtCode = targetInfo?.code || 'MT?';
-                                    const content = targetInfo?.content || 'Không có dữ liệu';
+                        <Box
+                            sx={{
+                                maxHeight: 350, // ⭐ Giới hạn chiều cao
+                                overflowY: 'auto', // ⭐ Bật scroll dọc
+                                borderRadius: 1,
+                                border: '1px solid #e0e0e0',
+                            }}
+                        >
+                            <Table stickyHeader size="small">
+                                <TableHead>
+                                    <TableRow sx={{ bgcolor: '#ede7f6' }}>
+                                        <TableCell sx={{ fontWeight: 700 }}>Mục tiêu</TableCell>
+                                        <TableCell sx={{ fontWeight: 700 }}>Nội dung mục tiêu</TableCell>
+                                        <TableCell align="center" sx={{ fontWeight: 700, width: 100 }}>
+                                            Đánh giá
+                                        </TableCell>
+                                    </TableRow>
+                                </TableHead>
 
-                                    return (
-                                        <TableRow key={detail.targetId} hover>
-                                            <TableCell sx={{ fontWeight: 600, minWidth: 60 }}>{mtCode}</TableCell>
-                                            <TableCell sx={{ maxWidth: 400 }}>
-                                                <Typography variant="body2">{content}</Typography>
-                                            </TableCell>
-                                            <TableCell align="center">
-                                                <EmojiEventsOutlinedIcon
-                                                    sx={{
-                                                        fontSize: 28,
-                                                        color: getStatusColor(detail.status),
-                                                        cursor: 'pointer',
-                                                        transition: 'all 0.2s',
-                                                        '&:hover': {
-                                                            transform: 'scale(1.2)',
-                                                        },
-                                                    }}
-                                                    onClick={() => handleStatusChange(detail.targetId)}
-                                                    title={`${detail.status} - Click để thay đổi`}
-                                                />
-                                            </TableCell>
-                                        </TableRow>
-                                    );
-                                })}
-                            </TableBody>
-                        </Table>
+                                <TableBody>
+                                    {formData.assessmentDetails.map((detail) => {
+                                        const targetInfo = targetDetails[String(detail.targetId)];
+                                        const mtCode = targetInfo?.code || 'MT?';
+                                        const content = targetInfo?.content || 'Không có dữ liệu';
+
+                                        return (
+                                            <TableRow key={detail.targetId} hover>
+                                                <TableCell sx={{ fontWeight: 600, minWidth: 60 }}>{mtCode}</TableCell>
+                                                <TableCell sx={{ maxWidth: 400 }}>
+                                                    <Typography variant="body2">{content}</Typography>
+                                                </TableCell>
+                                                <TableCell align="center">
+                                                    <EmojiEventsOutlinedIcon
+                                                        sx={{
+                                                            fontSize: 28,
+                                                            color: getStatusColor(detail.status),
+                                                            cursor: 'pointer',
+                                                            transition: 'all 0.2s',
+                                                            '&:hover': { transform: 'scale(1.2)' },
+                                                        }}
+                                                        onClick={() => handleStatusChange(detail.targetId)}
+                                                    />
+                                                </TableCell>
+                                            </TableRow>
+                                        );
+                                    })}
+                                </TableBody>
+                            </Table>
+                        </Box>
                     </TableContainer>
                 </Box>
 
@@ -301,27 +336,6 @@ function ChildrenProgramCompleteDialog({ open, data, targets, ageGroup, onClose,
                         value={formData.note}
                         onChange={(e) => setFormData({ ...formData, note: e.target.value })}
                     />
-                </Box>
-
-                {/* Status Legend */}
-                <Box sx={{ mt: 3, p: 2, bgcolor: '#f9f9f9', borderRadius: 1 }}>
-                    <Typography variant="caption" fontWeight={600} display="block" sx={{ mb: 1 }}>
-                        Hướng dẫn:
-                    </Typography>
-                    <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                            <EmojiEventsOutlinedIcon sx={{ fontSize: 16, color: '#9e9e9e' }} />
-                            <Typography variant="caption">Chưa đánh giá</Typography>
-                        </Box>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                            <EmojiEventsOutlinedIcon sx={{ fontSize: 16, color: '#ffc107' }} />
-                            <Typography variant="caption">Đạt</Typography>
-                        </Box>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                            <EmojiEventsOutlinedIcon sx={{ fontSize: 16, color: '#4caf50' }} />
-                            <Typography variant="caption">Chưa đạt</Typography>
-                        </Box>
-                    </Box>
                 </Box>
             </DialogContent>
 

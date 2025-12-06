@@ -475,10 +475,8 @@ function ChildrenProgramComplete() {
 
                                         return (
                                             <TableRow key={student._id} hover>
-                                                <TableCell sx={{ fontWeight: 600, textAlign: 'center' }}>
-                                                    {idx + 1}
-                                                </TableCell>
-                                                <TableCell>{student.fullName}</TableCell>
+                                                <TableCell>{idx + 1}</TableCell>
+                                                <TableCell sx={{ fontWeight: 600 }}>{student.fullName}</TableCell>
                                                 <TableCell>{student.studentCode}</TableCell>
 
                                                 <TableCell align="center">

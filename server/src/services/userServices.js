@@ -6,7 +6,7 @@ import ApiError from '~/utils/ApiError';
 import { StatusCodes } from 'http-status-codes';
 import { JwtProvider } from '~/providers/JwtProvider';
 import { env } from '~/config/environment';
-import { OtpModel } from '~/models/otpModel';
+import { OtpModel } from '~/models/notpModel';
 import { ResendProvider } from '~/providers/ResendProvider';
 
 const login = async (data) => {

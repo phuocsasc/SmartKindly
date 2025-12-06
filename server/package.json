@@ -4,7 +4,7 @@
     "version": "1.0.0",
     "author": "phuocdev",
     "engines": {
-        "node": ">=22.x"
+        "node": ">=18.x <=22.x"
     },
     "scripts": {
         "lint": "eslint src --ext js --report-unused-disable-directives --max-warnings 0",

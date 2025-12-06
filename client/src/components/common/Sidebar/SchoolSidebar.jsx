@@ -24,7 +24,7 @@ import SwitchAccountOutlinedIcon from '@mui/icons-material/SwitchAccountOutlined
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { useTheme } from '@mui/material/styles';
-import logo_sidebar from '../../../../public/logo_thanh_menu_tach_nen.png';
+import logo_sidebar from '/logo_thanh_menu_tach_nen.png';
 import { useUser } from '~/contexts/UserContext';
 import { usePermission } from '~/hooks/usePermission';
 import { PERMISSIONS } from '~/config/rbacConfig';
@@ -364,7 +364,7 @@ function SchoolSidebar({ collapsed, onToggle, mobileOpen, onCloseMobile }) {
                     '& .MuiDrawer-paper': {
                         width: 240,
                         boxSizing: 'border-box',
-                        backgroundImage: 'url("../../../../public/anh_thanh_menu.png")',
+                        backgroundImage: 'url("/anh_thanh_menu.png")',
                         backgroundSize: 'cover',
                         backgroundPosition: 'center',
                         backgroundRepeat: 'no-repeat',
@@ -389,7 +389,7 @@ function SchoolSidebar({ collapsed, onToggle, mobileOpen, onCloseMobile }) {
                         transition: 'width 0.3s ease',
                         overflowX: 'hidden',
                         overflowY: 'auto',
-                        backgroundImage: 'url("../../../../public/anh_thanh_menu.png")',
+                        backgroundImage: 'url("/anh_thanh_menu.png")',
                         backgroundSize: 'cover',
                         backgroundPosition: 'center',
                         backgroundRepeat: 'no-repeat',

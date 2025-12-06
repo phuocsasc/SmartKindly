@@ -2,7 +2,7 @@ import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import Button from '@mui/material/Button';
 import HomeIcon from '@mui/icons-material/Home';
-import ParticlesBackground from '../../../public/anhnen404.png';
+import ParticlesBackground from '/anhnen404.png';
 import { useUser } from '~/contexts/UserContext';
 import { useNavigate } from 'react-router-dom';
 

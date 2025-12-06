@@ -7,7 +7,7 @@ import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import Visibility from '@mui/icons-material/Visibility';
 import VisibilityOff from '@mui/icons-material/VisibilityOff';
-import logoSmartKindly from '../../../public/Logo_chinh_tach_nen.png';
+import logoSmartKindly from '/Logo_chinh_tach_nen.png';
 import { toast } from 'react-toastify';
 import { userApi } from '~/apis/userApi';
 
@@ -151,7 +151,7 @@ function ForgotPassword() {
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                backgroundImage: 'url("../../../public/anh_nen_dang_nhap-2.png")',
+                backgroundImage: 'url("/anh_nen_dang_nhap-2.png")',
                 backgroundSize: 'cover',
                 backgroundPosition: 'center',
                 backgroundRepeat: 'no-repeat',
@@ -175,7 +175,7 @@ function ForgotPassword() {
                     sx={{
                         flex: 1,
                         minWidth: 400,
-                        backgroundImage: 'url("../../../public/anh_dang_nhap.png")',
+                        backgroundImage: 'url("/anh_dang_nhap.png")',
                         backgroundSize: 'cover',
                         backgroundPosition: 'center',
                         backgroundRepeat: 'no-repeat',

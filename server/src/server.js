@@ -39,9 +39,18 @@ const START_SERVER = () => {
     // ✅ Initialize Socket.IO
     initSocketServer(httpServer);
 
-    httpServer.listen(env.PORT, env.HOSTNAME, () => {
-        console.log(`3. ✅ Local DEV: Back-end Server is running successfully at http://${env.HOSTNAME}:${env.PORT}/`);
-    });
+    // Môi trường Production (cụ thể là khi deploy trên Render.com)
+    if (env.BUILD_MODE === 'production') {
+        httpServer.listen(process.env.PORT, () => {
+            console.log(`3. ✅ Production: Back-end Server is running successfully at Port ${process.env.PORT}`);
+        });
+    } else {
+        httpServer.listen(env.LOCAL_DEV_APP_PORT, env.LOCAL_DEV_APP_HOST, () => {
+            console.log(
+                `3. ✅ Local DEV: Back-end Server is running successfully at http://${env.LOCAL_DEV_APP_HOST}:${env.LOCAL_DEV_APP_PORT}/`,
+            );
+        });
+    }
 };
 
 // Chỉ khi kết nối Database thành công thì mới Start Server Back-end lên.

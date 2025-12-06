@@ -7,7 +7,7 @@ export const env = {
     ACCESS_TOKEN_SECRET_SIGNATURE: process.env.ACCESS_TOKEN_SECRET_SIGNATURE || 'default_access_token_secret',
     REFRESH_TOKEN_SECRET_SIGNATURE: process.env.REFRESH_TOKEN_SECRET_SIGNATURE || 'default_refresh_token_secret',
 
-    PORT: process.env.PORT || 8017,
-    HOSTNAME: process.env.HOSTNAME || 'localhost',
+    LOCAL_DEV_APP_PORT: process.env.LOCAL_DEV_APP_PORT || 8017,
+    LOCAL_DEV_APP_HOST: process.env.LOCAL_DEV_APP_HOST || 'localhost',
     BUILD_MODE: process.env.BUILD_MODE,
 };

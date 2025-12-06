@@ -115,8 +115,11 @@ function ChildrenProgramComplete() {
             const res = await childrenDailyAssessmentApi.getAccessibleClasses(yearId);
             setClasses(res.data.data.classes || []);
 
+            // ✅ FIX: Reset selectedClass khi đổi năm học
             if (res.data.data.classes?.length > 0) {
                 setSelectedClass(res.data.data.classes[0]._id);
+            } else {
+                setSelectedClass('');
             }
         } catch (error) {
             console.error('Error fetching classes:', error);
@@ -294,6 +297,7 @@ function ChildrenProgramComplete() {
 
     useEffect(() => {
         if (selectedYear) {
+            setSelectedClass(''); // ✅ Reset selectedClass trước
             fetchClasses(selectedYear);
             fetchConfiguredTargets(selectedYear);
         }

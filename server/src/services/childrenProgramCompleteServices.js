@@ -381,25 +381,36 @@ const getAll = async (query, userId) => {
             throw new ApiError(StatusCodes.NOT_FOUND, 'Không tìm thấy năm học');
         }
 
-        // Nếu năm học đã kết thúc → cho phép xem tất cả lớp của trường
-        let accessibleClassIds = [];
+        // ✅ FIX: Luôn lấy accessible classes theo năm học được chọn
+        const accessibleClassIds = await getAccessibleClassesByUser(user, academicYearId);
+        console.log('📋 [getAll] Accessible class IDs:', accessibleClassIds);
 
-        if (academicYear.status === 'active') {
-            // 🔒 Năm học đang hoạt động → kiểm tra quyền như cũ
-            accessibleClassIds = await getAccessibleClassesByUser(user, academicYearId);
-
-            if (classId && !accessibleClassIds.includes(classId)) {
-                throw new ApiError(StatusCodes.FORBIDDEN, 'Bạn không có quyền xem lớp này');
-            }
-        } else {
-            // 📘 Năm học đã kết thúc → ai cũng được xem toàn bộ lớp trong trường
-            const classes = await ClassModel.find({
-                schoolId: user.schoolId,
+        // ✅ FIX: Kiểm tra classId có thuộc năm học được chọn không
+        if (classId) {
+            // Verify class belongs to selected academic year
+            const classData = await ClassModel.findOne({
+                _id: classId,
                 academicYearId,
                 _destroy: false,
-            }).select('_id');
+            });
 
-            accessibleClassIds = classes.map((c) => c._id.toString());
+            if (!classData) {
+                console.log('❌ [getAll] Class not found in selected year');
+                return {
+                    items: [],
+                    pagination: {
+                        currentPage: parseInt(page),
+                        totalPages: 0,
+                        totalItems: 0,
+                        itemsPerPage: parseInt(limit),
+                    },
+                };
+            }
+
+            // Check permission
+            if (!accessibleClassIds.includes(classId)) {
+                throw new ApiError(StatusCodes.FORBIDDEN, 'Bạn không có quyền xem lớp này');
+            }
         }
 
         // ✅ Build filter

@@ -20,6 +20,7 @@ import { childrenAttendanceRoute } from './childrenAttendanceRoute.js';
 import { childrenDailyAssessmentRoute } from './childrenDailyAssessmentRoute.js';
 import { childrenCertificateRoute } from './childrenCertificateRoute.js';
 import { notificationRoute } from './notificationRoute.js';
+import childrenProgramCompleteRoute from './childrenProgramCompleteRoute.js';
 
 const Router = express.Router();
 
@@ -76,5 +77,7 @@ Router.use('/children-daily-assessments', childrenDailyAssessmentRoute);
 Router.use('/children-certificates', childrenCertificateRoute);
 
 Router.use('/notifications', notificationRoute);
+
+Router.use('/children-program-completes', childrenProgramCompleteRoute);
 
 export const APIs_V1 = Router;

@@ -5,9 +5,81 @@ import { AcademicYearModel } from '~/models/academicYearModel.js';
 import { UserModel } from '~/models/userModel.js';
 import { DepartmentModel } from '~/models/departmentModel.js';
 import { ClassModel } from '~/models/classModel.js';
+import {
+    ChildrenProgramCompleteModel,
+    ChildrenProgramCompleteConfigModel,
+} from '~/models/childrenProgramCompleteConfigModel.js';
 import ApiError from '~/utils/ApiError.js';
 import { StatusCodes } from 'http-status-codes';
 import { getNurseryDefaultData, getKindergartenDefaultData } from '~/utils/schoolYearTargetDefaultData.js';
+
+/**
+ * ✅ Helper: Xóa cascade dữ liệu liên quan khi thay đổi mục tiêu
+ */
+const deleteCascadeRelatedData = async (schoolId, academicYearId, ageGroup = null) => {
+    try {
+        console.log('🗑️ [deleteCascadeRelatedData] Starting cleanup:', { schoolId, academicYearId, ageGroup });
+
+        // ✅ BƯỚC 1: Xóa cứng các bản đánh giá học sinh
+        const evaluationFilter = {
+            schoolId,
+            academicYearId,
+            _destroy: false,
+        };
+
+        // Nếu có ageGroup cụ thể, lọc theo classId thuộc ageGroup đó
+        if (ageGroup) {
+            const classes = await ClassModel.find({
+                schoolId,
+                academicYearId,
+                ageGroup: getClassAgeGroupFromTarget(ageGroup),
+                _destroy: false,
+            }).select('_id');
+
+            evaluationFilter.classId = { $in: classes.map((c) => c._id) };
+        }
+
+        const deletedEvaluations = await ChildrenProgramCompleteModel.deleteMany(evaluationFilter);
+        console.log(`✅ Deleted ${deletedEvaluations.deletedCount} evaluations`);
+
+        // ✅ BƯỚC 2: Xóa cứng các cấu hình mục tiêu
+        const configFilter = {
+            schoolId,
+            academicYearId,
+            _destroy: false,
+        };
+
+        if (ageGroup) {
+            configFilter.ageGroup = ageGroup;
+        }
+
+        const deletedConfigs = await ChildrenProgramCompleteConfigModel.deleteMany(configFilter);
+        console.log(`✅ Deleted ${deletedConfigs.deletedCount} configs`);
+
+        return {
+            evaluationsDeleted: deletedEvaluations.deletedCount,
+            configsDeleted: deletedConfigs.deletedCount,
+        };
+    } catch (error) {
+        console.error('❌ [deleteCascadeRelatedData] Error:', error);
+        throw error;
+    }
+};
+
+/**
+ * ✅ Helper: Map target ageGroup sang class ageGroup
+ */
+const getClassAgeGroupFromTarget = (targetAgeGroup) => {
+    const mapping = {
+        'Nhà trẻ 3-12 tháng': '3-12 tháng',
+        'Nhà trẻ 12-24 tháng': '12-24 tháng',
+        'Nhà trẻ 24-36 tháng': '24-36 tháng',
+        'Khối mầm 3-4 tuổi': '3-4 tuổi',
+        'Khối chồi 4-5 tuổi': '4-5 tuổi',
+        'Khối lá 5-6 tuổi': '5-6 tuổi',
+    };
+    return mapping[targetAgeGroup] || null;
+};
 
 /**
  * ✅ Helper: Map department name to age groups
@@ -146,6 +218,9 @@ const createNew = async (data, userId) => {
         if (existing) {
             throw new ApiError(StatusCodes.CONFLICT, `Nhóm tuổi "${data.ageGroup}" đã có mục tiêu trong năm học này`);
         }
+
+        // ✅ Xóa cascade dữ liệu liên quan cho ageGroup này
+        await deleteCascadeRelatedData(schoolId, activeYear._id, data.ageGroup);
 
         // ✅ Tạo mới
         const newTarget = new SchoolYearTargetModel({
@@ -352,6 +427,8 @@ const update = async (id, data, userId) => {
             throw new ApiError(StatusCodes.FORBIDDEN, 'Chỉ có thể cập nhật mục tiêu trong năm học đang hoạt động');
         }
 
+        // ✅ Xóa cascade dữ liệu liên quan cho ageGroup này
+        await deleteCascadeRelatedData(user.schoolId, target.academicYearId._id, target.ageGroup);
         // ✅ Update
         const updateData = { ...data, lastUpdatedBy: userId };
         const updated = await SchoolYearTargetModel.findByIdAndUpdate(id, updateData, { new: true })
@@ -398,6 +475,9 @@ const deleteTarget = async (id, userId) => {
         if (target.academicYearId.status !== 'active') {
             throw new ApiError(StatusCodes.FORBIDDEN, 'Chỉ có thể xóa mục tiêu trong năm học đang hoạt động');
         }
+
+        // ✅ Xóa cascade dữ liệu liên quan cho ageGroup này
+        await deleteCascadeRelatedData(user.schoolId, target.academicYearId._id, target.ageGroup);
 
         // Soft delete
         await SchoolYearTargetModel.findByIdAndUpdate(id, { _destroy: true });
@@ -464,6 +544,9 @@ const copyFromYear = async (data, userId) => {
         }
 
         console.log(`📋 Found ${sourceTargets.length} targets to copy`);
+
+        // ✅ Xóa cascade TẤT CẢ dữ liệu liên quan (tất cả ageGroups)
+        await deleteCascadeRelatedData(schoolId, toAcademicYearId);
 
         // ✅ BƯỚC 1: Xóa CỨNG tất cả mục tiêu hiện tại của năm học đang active
         const deleteTargetsResult = await SchoolYearTargetModel.deleteMany({
@@ -701,6 +784,9 @@ const copyFromSystem = async (academicYearId, userId) => {
         if (systemTargets.length === 0) {
             throw new ApiError(StatusCodes.NOT_FOUND, 'Hệ thống chưa có mục tiêu mẫu nào');
         }
+
+        // ✅ Xóa cascade TẤT CẢ dữ liệu liên quan
+        await deleteCascadeRelatedData(schoolId, academicYearId);
 
         console.log(`📋 Found ${systemTargets.length} system targets to copy`);
 

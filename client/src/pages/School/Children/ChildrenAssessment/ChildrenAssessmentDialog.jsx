@@ -273,7 +273,7 @@ function ChildrenAssessmentDialog({
                 {/* 4. Lưu ý (Optional) */}
                 <Box>
                     <Typography variant="subtitle2" sx={{ mb: 1, color: '#666', fontWeight: 600 }}>
-                        4. Lưu ý (không bắt buộc)
+                        4. Ghi chú lưu ý cần quan tâm hơn (nếu có)
                     </Typography>
                     <TextField
                         fullWidth

@@ -223,11 +223,14 @@ const deleteRecord = async (id, userId) => {
         if (!record) {
             throw new ApiError(StatusCodes.NOT_FOUND, 'Không tìm thấy hồ sơ cán bộ');
         }
-
+        // ✅ Lưu thông tin trước khi xóa
+        const personnelName = record.fullName;
         // Soft delete
         await PersonnelRecordModel.findByIdAndUpdate(id, { _destroy: true });
 
-        return { message: 'Xóa hồ sơ cán bộ thành công' };
+        return { message: 'Xóa hồ sơ cán bộ thành công',
+        personnelName: personnelName // ✅ Thêm tên vào response
+        };
     } catch (error) {
         if (error instanceof ApiError) throw error;
         throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, 'Lỗi khi xóa hồ sơ cán bộ');

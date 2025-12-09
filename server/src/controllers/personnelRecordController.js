@@ -58,7 +58,10 @@ const deleteRecord = async (req, res, next) => {
     try {
         const userId = req.jwtDecoded.id;
         const result = await personnelRecordServices.deleteRecord(req.params.id, userId);
-        res.status(StatusCodes.OK).json(result);
+        res.status(StatusCodes.OK).json({
+            message: result.message,
+            personnelName: result.personnelName, // ✅ Trả về tên cho audit log
+        });
     } catch (error) {
         next(error);
     }

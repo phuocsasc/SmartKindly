@@ -56,9 +56,10 @@ const update = async (req, res, next) => {
 const deleteDepartment = async (req, res, next) => {
     try {
         const userId = req.jwtDecoded.id;
-        await departmentServices.deleteDepartment(req.params.id, userId);
+        const result = await departmentServices.deleteDepartment(req.params.id, userId);
         res.status(StatusCodes.OK).json({
-            message: 'Xóa tổ bộ môn thành công!',
+            message: result.message,
+            departmentName: result.departmentName, // ✅ Trả về tên cho audit log
         });
     } catch (error) {
         next(error);

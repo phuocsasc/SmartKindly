@@ -484,6 +484,9 @@ const deleteDepartment = async (id, userId) => {
             throw new ApiError(StatusCodes.FORBIDDEN, 'Chỉ có thể xóa tổ bộ môn trong năm học đang hoạt động');
         }
 
+        // ✅ Lưu tên tổ bộ môn trước khi xóa
+        const departmentName = department.name;
+
         // Soft delete
         await DepartmentModel.findByIdAndUpdate(id, { _destroy: true });
 
@@ -508,7 +511,7 @@ const deleteDepartment = async (id, userId) => {
             });
         }
 
-        return { message: 'Xóa tổ bộ môn thành công' };
+        return { message: 'Xóa tổ bộ môn thành công', departmentName: departmentName };
     } catch (error) {
         if (error instanceof ApiError) throw error;
         throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, 'Lỗi khi xóa tổ bộ môn');

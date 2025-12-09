@@ -4,6 +4,8 @@ import { departmentController } from '~/controllers/departmentController.js';
 import { authMiddleware } from '~/middlewares/authMiddleware.js';
 import { rbacMiddleware } from '~/middlewares/rbacMiddleware.js';
 import { PERMISSIONS } from '~/config/rbacConfig.js';
+import { auditLog } from '~/middlewares/auditLogMiddleware.js';
+import { AUDIT_LOG_ACTIONS, AUDIT_LOG_RESOURCES } from '~/config/auditLogConfig.js';
 
 const Router = express.Router();
 
@@ -18,6 +20,10 @@ Router.route('/available-managers').get(
 Router.route('/copy-from-year').post(
     authMiddleware.isAuthorized,
     rbacMiddleware.isValidPermission([PERMISSIONS.CREATE_DEPARTMENT]),
+    // ✅ Audit log cho copy
+    auditLog(AUDIT_LOG_ACTIONS.COPY, AUDIT_LOG_RESOURCES.DEPARTMENT, (req, body) => {
+        return `Copy ${body.data?.count || 0} tổ bộ môn từ năm học cũ`;
+    }),
     departmentController.copyFromYear,
 );
 
@@ -32,6 +38,11 @@ Router.route('/')
         authMiddleware.isAuthorized,
         rbacMiddleware.isValidPermission([PERMISSIONS.CREATE_DEPARTMENT]),
         departmentValidation.createNew,
+        // ✅ Audit log cho create
+        // eslint-disable-next-line no-unused-vars
+        auditLog(AUDIT_LOG_ACTIONS.CREATE, AUDIT_LOG_RESOURCES.DEPARTMENT, (req, body) => {
+            return `Tạo mới tổ bộ môn "${req.body.name}"`;
+        }),
         departmentController.createNew,
     );
 
@@ -46,11 +57,19 @@ Router.route('/:id')
         authMiddleware.isAuthorized,
         rbacMiddleware.isValidPermission([PERMISSIONS.UPDATE_DEPARTMENT]),
         departmentValidation.update,
+        // ✅ Audit log cho update
+        auditLog(AUDIT_LOG_ACTIONS.UPDATE, AUDIT_LOG_RESOURCES.DEPARTMENT, (req, body) => {
+            return `Cập nhật tổ bộ môn "${body.data?.name || req.params.id}"`;
+        }),
         departmentController.update,
     )
     .delete(
         authMiddleware.isAuthorized,
         rbacMiddleware.isValidPermission([PERMISSIONS.DELETE_DEPARTMENT]),
+        // ✅ Audit log cho delete
+        auditLog(AUDIT_LOG_ACTIONS.DELETE, AUDIT_LOG_RESOURCES.DEPARTMENT, (req, body) => {
+            return `Xóa tổ bộ môn "${body.departmentName || req.params.id}"`;
+        }),
         departmentController.deleteDepartment,
     );
 

@@ -5,6 +5,8 @@ import { authMiddleware } from '~/middlewares/authMiddleware.js';
 import { rbacMiddleware } from '~/middlewares/rbacMiddleware.js';
 import { PERMISSIONS } from '~/config/rbacConfig.js';
 // import { setCacheHeaders } from '~/middlewares/httpCacheMiddleware';
+import { auditLog } from '~/middlewares/auditLogMiddleware.js';
+import { AUDIT_LOG_ACTIONS, AUDIT_LOG_RESOURCES } from '~/config/auditLogConfig.js';
 
 const Router = express.Router();
 
@@ -20,6 +22,10 @@ Router.route('/my-school')
         authMiddleware.isAuthorized,
         rbacMiddleware.isValidPermission([PERMISSIONS.UPDATE_SCHOOL_INFO]),
         schoolValidation.update,
+        // ✅ Audit log cho update
+        auditLog(AUDIT_LOG_ACTIONS.UPDATE, AUDIT_LOG_RESOURCES.SCHOOL_INFO, (req, body) => {
+            return `Cập nhật thông tin trường: "${body.data?.name || req.params.id}"`;
+        }),
         schoolController.updateSchoolInfo,
     );
 

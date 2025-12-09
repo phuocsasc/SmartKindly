@@ -28,5 +28,5 @@ export const AUDIT_LOG_RESOURCES = {
     SCHEDULE: 'Thời khóa biểu',
     WEEKLY_PLAN: 'Kế hoạch tuần',
     USER: 'Người dùng',
-    SCHOOL_INFO: 'Thông tin trường học',
+    SCHOOL_INFO: 'Thông tin nhà trường',
 };

@@ -48,7 +48,7 @@ const ACTION_COLORS = {
     LOGIN: 'success',
     LOGOUT: 'default',
     VIEW: 'default',
-    COPY: 'warning',
+    COPY: 'success',
     ACTIVATE: 'success',
     DEACTIVATE: 'warning',
 };
@@ -262,11 +262,12 @@ function History() {
                                                     onChange={handleSelectAll}
                                                 />
                                             </TableCell>
+                                            <TableCell sx={{ fontWeight: 700 }}>STT</TableCell>
                                             <TableCell sx={{ fontWeight: 700 }}>Người tác động</TableCell>
                                             <TableCell sx={{ fontWeight: 700 }}>Vai trò</TableCell>
                                             <TableCell sx={{ fontWeight: 700 }}>Hành động</TableCell>
-                                            <TableCell sx={{ fontWeight: 700 }}>Đối tượng</TableCell>
-                                            <TableCell sx={{ fontWeight: 700 }}>Mô tả</TableCell>
+                                            <TableCell sx={{ fontWeight: 700 }}>Đối tượng tác động</TableCell>
+                                            <TableCell sx={{ fontWeight: 700 }}>Mô tả hành động</TableCell>
                                             <TableCell sx={{ fontWeight: 700 }}>Thời gian</TableCell>
                                             <TableCell align="center" sx={{ fontWeight: 700 }}>
                                                 Thao tác
@@ -275,7 +276,7 @@ function History() {
                                     </TableHead>
 
                                     <TableBody>
-                                        {logs.map((log) => (
+                                        {logs.map((log, index) => (
                                             <TableRow key={log._id} hover>
                                                 <TableCell padding="checkbox">
                                                     <Checkbox
@@ -283,6 +284,7 @@ function History() {
                                                         onChange={() => handleSelectOne(log._id)}
                                                     />
                                                 </TableCell>
+                                                <TableCell>{page * rowsPerPage + index + 1}</TableCell>
                                                 <TableCell>{log.userName}</TableCell>
                                                 <TableCell>
                                                     <Chip

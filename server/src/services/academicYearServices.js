@@ -281,10 +281,20 @@ const deleteAcademicYear = async (id, userId) => {
             );
         }
 
-        // Soft delete
-        await AcademicYearModel.findByIdAndUpdate(id, { _destroy: true });
+        // ✅ Lưu thông tin trước khi xóa
+        const yearInfo = {
+            fromYear: academicYear.fromYear,
+            toYear: academicYear.toYear,
+        };
 
-        return { message: 'Xóa năm học thành công' };
+        // Soft delete
+        await AcademicYearModel.findByIdAndDelete(id);
+
+        // ✅ Trả về thông tin năm học để audit log sử dụng
+        return {
+            message: 'Xóa năm học thành công',
+            yearInfo, // ✅ Thêm thông tin năm học
+        };
     } catch (error) {
         if (error instanceof ApiError) throw error;
         throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, 'Lỗi khi xóa năm học');

@@ -56,9 +56,10 @@ const update = async (req, res, next) => {
 const deleteAcademicYear = async (req, res, next) => {
     try {
         const userId = req.jwtDecoded.id; // ✅ Thêm userId
-        await academicYearServices.deleteAcademicYear(req.params.id, userId);
+        const result = await academicYearServices.deleteAcademicYear(req.params.id, userId);
         res.status(StatusCodes.OK).json({
             message: 'Xóa năm học thành công!',
+            yearInfo: result.yearInfo,
         });
     } catch (error) {
         next(error);

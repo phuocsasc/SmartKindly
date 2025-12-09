@@ -42,6 +42,7 @@ Router.route('/')
         rbacMiddleware.isValidPermission([PERMISSIONS.CREATE_CLASSROOM]),
         classValidation.createNew,
         // ✅ Thêm audit log middleware
+        // eslint-disable-next-line no-unused-vars
         auditLog(AUDIT_LOG_ACTIONS.CREATE, AUDIT_LOG_RESOURCES.CLASS, (req, body) => {
             return `Tạo mới lớp học "${req.body.name}"`;
         }),

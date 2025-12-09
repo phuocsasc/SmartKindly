@@ -228,8 +228,9 @@ const deleteRecord = async (id, userId) => {
         // Soft delete
         await PersonnelRecordModel.findByIdAndUpdate(id, { _destroy: true });
 
-        return { message: 'Xóa hồ sơ cán bộ thành công',
-        personnelName: personnelName // ✅ Thêm tên vào response
+        return {
+            message: 'Xóa hồ sơ cán bộ thành công',
+            personnelName: personnelName, // ✅ Thêm tên vào response
         };
     } catch (error) {
         if (error instanceof ApiError) throw error;

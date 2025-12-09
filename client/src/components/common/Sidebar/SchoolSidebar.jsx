@@ -47,6 +47,7 @@ const menuItems = [
             { text: 'Năm học', path: '/data-declaration/school-year' },
             { text: 'Tổ bộ môn', path: '/data-declaration/department' },
             { text: 'Lớp học', path: '/data-declaration/classes' },
+            { text: 'Lịch sử thao tác', path: '/data-declaration/history' },
         ],
     },
     {

@@ -4,6 +4,8 @@ import { classController } from '~/controllers/classController.js';
 import { authMiddleware } from '~/middlewares/authMiddleware.js';
 import { rbacMiddleware } from '~/middlewares/rbacMiddleware.js';
 import { PERMISSIONS } from '~/config/rbacConfig.js';
+import { auditLog } from '~/middlewares/auditLogMiddleware.js';
+import { AUDIT_LOG_ACTIONS, AUDIT_LOG_RESOURCES } from '~/config/auditLogConfig.js';
 
 const Router = express.Router();
 // localhost:8017/v1/classes/available-teachers/
@@ -39,6 +41,10 @@ Router.route('/')
         authMiddleware.isAuthorized,
         rbacMiddleware.isValidPermission([PERMISSIONS.CREATE_CLASSROOM]),
         classValidation.createNew,
+        // ✅ Thêm audit log middleware
+        auditLog(AUDIT_LOG_ACTIONS.CREATE, AUDIT_LOG_RESOURCES.CLASS, (req, body) => {
+            return `Tạo mới lớp học "${req.body.name}"`;
+        }),
         classController.createNew,
     );
 
@@ -53,11 +59,19 @@ Router.route('/:id')
         authMiddleware.isAuthorized,
         rbacMiddleware.isValidPermission([PERMISSIONS.UPDATE_CLASSROOM]),
         classValidation.update,
+        // ✅ Audit log cho update
+        auditLog(AUDIT_LOG_ACTIONS.UPDATE, AUDIT_LOG_RESOURCES.CLASS, (req, body) => {
+            return `Cập nhật lớp học: "${body.data?.name || req.params.id}"`;
+        }),
         classController.update,
     )
     .delete(
         authMiddleware.isAuthorized,
         rbacMiddleware.isValidPermission([PERMISSIONS.DELETE_CLASSROOM]),
+        // ✅ Audit log cho delete
+        auditLog(AUDIT_LOG_ACTIONS.DELETE, AUDIT_LOG_RESOURCES.CLASS, (req, body) => {
+            return `Xóa lớp học: "${body.className || req.params.id}"`;
+        }),
         classController.deleteClass,
     );
 

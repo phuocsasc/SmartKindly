@@ -26,6 +26,7 @@ import SchoolInfo from '~/pages/School/DataDeclaration/SchoolInfo';
 import AcademicYear from '~/pages/School/DataDeclaration/AcademicYear/AcademicYear';
 import Department from '~/pages/School/DataDeclaration/Department/Department';
 import Classes from '~/pages/School/DataDeclaration/Classes/Classes';
+import History from '~/pages/School/DataDeclaration/History';
 
 // ✅ Quản lý cán bộ
 import PersonnelRecord from '~/pages/School/Personnel/PersonnelRecord/PersonnelRecord';
@@ -116,8 +117,15 @@ function AppContent() {
                     <Route element={<RbacRoute requiredPermission={PERMISSIONS.VIEW_ACADEMIC_YEAR} />}>
                         <Route path="/data-declaration/school-year" element={<AcademicYear />} />
                     </Route>
-                    <Route path="/data-declaration/department" element={<Department />} />
-                    <Route path="/data-declaration/classes" element={<Classes />} />
+                    <Route element={<RbacRoute requiredPermission={PERMISSIONS.VIEW_DEPARTMENT} />}>
+                        <Route path="/data-declaration/department" element={<Department />} />
+                    </Route>
+                    <Route element={<RbacRoute requiredPermission={PERMISSIONS.VIEW_CLASSROOM} />}>
+                        <Route path="/data-declaration/classes" element={<Classes />} />
+                    </Route>
+                    <Route element={<RbacRoute requiredPermission={PERMISSIONS.VIEW_HISTORY} />}>
+                        <Route path="/data-declaration/history" element={<History />} />
+                    </Route>
                     {/* End - Data-Declaration */}
 
                     {/* ✅ Personnel Management - Quản lý cán bộ */}

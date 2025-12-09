@@ -21,6 +21,8 @@ import { childrenDailyAssessmentRoute } from './childrenDailyAssessmentRoute.js'
 import { childrenCertificateRoute } from './childrenCertificateRoute.js';
 import { notificationRoute } from './notificationRoute.js';
 import childrenProgramCompleteRoute from './childrenProgramCompleteRoute.js';
+import { auditLogRoute } from './auditLogRoute.js';
+
 
 const Router = express.Router();
 
@@ -79,5 +81,7 @@ Router.use('/children-certificates', childrenCertificateRoute);
 Router.use('/notifications', notificationRoute);
 
 Router.use('/children-program-completes', childrenProgramCompleteRoute);
+
+Router.use('/audit-logs', auditLogRoute);
 
 export const APIs_V1 = Router;

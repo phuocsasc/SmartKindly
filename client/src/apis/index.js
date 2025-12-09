@@ -60,3 +60,5 @@ export * from './childrenCertificateApi';
 export * from './notificationApi';
 
 export * from './childrenProgramCompleteApi';
+
+export * from './auditLogApi';

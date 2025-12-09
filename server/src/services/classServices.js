@@ -6,6 +6,8 @@ import { ChildrenProfileModel } from '~/models/childrenProfileModel.js'; // ✅ 
 import ApiError from '~/utils/ApiError.js';
 import { StatusCodes } from 'http-status-codes';
 import { notificationServices } from '~/services/notificationServices.js';
+import { logAction } from '~/middlewares/auditLogMiddleware.js';
+import { AUDIT_LOG_ACTIONS, AUDIT_LOG_RESOURCES } from '~/config/auditLogConfig.js';
 
 /**
  * ✅ Helper: Kiểm tra lớp có hồ sơ trẻ không
@@ -529,6 +531,9 @@ const deleteClass = async (id, userId) => {
             );
         }
 
+        // ✅ Lưu lại tên lớp trước khi xóa
+        const className = classData.name;
+
         // ✅ Xóa classId của giáo viên chủ nhiệm
         await UserModel.findByIdAndUpdate(classData.homeRoomTeacher._id, {
             $unset: { classId: 1 },
@@ -558,7 +563,7 @@ const deleteClass = async (id, userId) => {
             });
         }
 
-        return { message: 'Xóa lớp học thành công' };
+        return { message: 'Xóa lớp học thành công', className: className };
     } catch (error) {
         if (error instanceof ApiError) throw error;
         throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, 'Lỗi khi xóa lớp học');
@@ -819,6 +824,20 @@ const copyFromYear = async (data, userId) => {
             .populate('academicYearId', 'fromYear toYear status')
             .populate('homeRoomTeacher', 'fullName username email phone')
             .populate('createdBy', 'fullName username');
+
+        // ✅ Log action manually
+        await logAction(
+            userId,
+            user.schoolId,
+            AUDIT_LOG_ACTIONS.COPY,
+            AUDIT_LOG_RESOURCES.CLASS,
+            `Copy ${copiedClasses.length} lớp học từ năm ${fromAcademicYear.fromYear}-${fromAcademicYear.toYear} sang năm ${fromAcademicYear.fromYear}-${fromAcademicYear.toYear}`,
+            {
+                fromAcademicYearId: data.fromAcademicYearId,
+                toAcademicYearId: data.toAcademicYearId,
+                count: copiedClasses.length,
+            },
+        );
 
         return {
             count: populatedClasses.length,

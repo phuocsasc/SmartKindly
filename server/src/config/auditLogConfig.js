@@ -1,0 +1,32 @@
+export const AUDIT_LOG_ACTIONS = {
+    CREATE: 'CREATE',
+    UPDATE: 'UPDATE',
+    DELETE: 'DELETE',
+    IMPORT: 'IMPORT',
+    EXPORT: 'EXPORT',
+    LOGIN: 'LOGIN',
+    LOGOUT: 'LOGOUT',
+    VIEW: 'VIEW',
+    COPY: 'COPY',
+    ACTIVATE: 'ACTIVATE',
+    DEACTIVATE: 'DEACTIVATE',
+};
+
+export const AUDIT_LOG_RESOURCES = {
+    ACADEMIC_YEAR: 'Năm học',
+    DEPARTMENT: 'Tổ bộ môn',
+    CLASS: 'Lớp học',
+    CHILDREN_PROFILE: 'Hồ sơ trẻ',
+    CHILDREN_ATTENDANCE: 'Điểm danh trẻ',
+    CHILDREN_ASSESSMENT: 'Đánh giá trẻ',
+    CHILDREN_CERTIFICATE: 'Phiếu bé ngoan',
+    CHILDREN_PROGRAM_COMPLETE: 'Đánh giá hoàn thành chương trình',
+    PERSONNEL_RECORD: 'Hồ sơ cán bộ',
+    PERSONNEL_EVALUATION: 'Đánh giá cán bộ',
+    YEAR_TARGET: 'Mục tiêu năm học',
+    EDUCATIONAL_ACTIVITY: 'Hoạt động giáo dục',
+    SCHEDULE: 'Thời khóa biểu',
+    WEEKLY_PLAN: 'Kế hoạch tuần',
+    USER: 'Người dùng',
+    SCHOOL_INFO: 'Thông tin trường học',
+};

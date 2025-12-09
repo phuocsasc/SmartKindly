@@ -102,6 +102,7 @@ function SchoolInfo() {
         };
 
         fetchSchoolInfo();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [user?.schoolId]); // ✅ Chỉ chạy lại khi schoolId thay đổi
 
     // ✅ Handle update

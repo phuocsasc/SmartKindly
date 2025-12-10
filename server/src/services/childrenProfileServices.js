@@ -271,8 +271,7 @@ const createNew = async (data, userId) => {
             }
         }
 
-        // ✅ Generate unique studentCode
-        // ✅ Generate studentCode dạng schoolId-HS000001, HS000002,...
+        // ✅ Generate studentCode
         const studentCode = await generateStudentCode(user.schoolId);
 
         // ✅ Create profile
@@ -283,8 +282,16 @@ const createNew = async (data, userId) => {
             createdBy: user._id,
         });
 
+        // ✅ Populate để trả về đầy đủ thông tin cho audit log
         const populated = await ChildrenProfileModel.findById(newProfile._id)
-            .populate('classId', 'name grade ageGroup')
+            .populate({
+                path: 'classId',
+                select: 'name grade ageGroup',
+                populate: {
+                    path: 'academicYearId',
+                    select: 'fromYear toYear',
+                },
+            })
             .lean();
 
         console.log('✅ Profile created successfully with studentCode:', studentCode);
@@ -532,7 +539,17 @@ const update = async (id, data, userId) => {
         Object.assign(profile, data);
         await profile.save();
 
-        const updated = await ChildrenProfileModel.findById(id).populate('classId', 'name grade ageGroup').lean();
+        // ✅ Populate để trả về đầy đủ thông tin cho audit log
+        const updated = await ChildrenProfileModel.findById(id)
+            .populate({
+                path: 'classId',
+                select: 'name grade ageGroup',
+                populate: {
+                    path: 'academicYearId',
+                    select: 'fromYear toYear',
+                },
+            })
+            .lean();
 
         return updated;
     } catch (error) {
@@ -556,6 +573,13 @@ const deleteProfile = async (id, userId) => {
             _id: id,
             schoolId: user.schoolId,
             _destroy: false,
+        }).populate({
+            path: 'classId',
+            select: 'name grade ageGroup homeRoomTeacher',
+            populate: {
+                path: 'academicYearId',
+                select: 'fromYear toYear status',
+            },
         });
 
         if (!profile) {
@@ -563,19 +587,15 @@ const deleteProfile = async (id, userId) => {
         }
 
         // ✅ Verify active year
-        const academicYear = await AcademicYearModel.findOne({
-            _id: profile.academicYearId,
-            status: 'active',
-            _destroy: false,
-        });
+        const academicYear = profile.classId.academicYearId;
 
-        if (!academicYear) {
+        if (academicYear.status !== 'active') {
             throw new ApiError(StatusCodes.BAD_REQUEST, 'Chỉ được xóa hồ sơ trong năm học đang hoạt động');
         }
 
         // ✅ Check permission
         if (user.role === 'to_truong') {
-            const classData = await ClassModel.findById(profile.classId);
+            const classData = profile.classId;
             const departments = await DepartmentModel.find({
                 schoolId: user.schoolId,
                 managers: user._id,
@@ -589,17 +609,26 @@ const deleteProfile = async (id, userId) => {
                 throw new ApiError(StatusCodes.FORBIDDEN, 'Bạn không có quyền xóa hồ sơ này');
             }
         } else if (user.role === 'giao_vien') {
-            const classData = await ClassModel.findById(profile.classId);
+            const classData = profile.classId;
             if (classData.homeRoomTeacher.toString() !== user._id.toString()) {
                 throw new ApiError(StatusCodes.FORBIDDEN, 'Bạn không có quyền xóa hồ sơ này');
             }
         }
 
-        // ✅ Soft delete
-        // ✅ Sau: Hard delete
+        // ✅ Lưu thông tin trước khi xóa
+        const profileInfo = {
+            fullName: profile.fullName,
+            className: profile.classId.name,
+            academicYear: `${academicYear.fromYear}-${academicYear.toYear}`,
+        };
+
+        // ✅ Hard delete
         await ChildrenProfileModel.findByIdAndDelete(id);
 
-        return { message: 'Xóa hồ sơ thành công!' };
+        return {
+            message: 'Xóa hồ sơ thành công!',
+            profileInfo, // ✅ Trả về thông tin cho audit log
+        };
     } catch (error) {
         console.error('❌ [deleteProfile] Error:', error);
         if (error instanceof ApiError) throw error;

@@ -57,7 +57,10 @@ const deleteProfile = async (req, res, next) => {
     try {
         const userId = req.jwtDecoded.id;
         const result = await childrenProfileServices.deleteProfile(req.params.id, userId);
-        res.status(StatusCodes.OK).json(result);
+        res.status(StatusCodes.OK).json({
+            message: result.message,
+            profileInfo: result.profileInfo, // ✅ Trả về để audit log sử dụng
+        });
     } catch (error) {
         next(error);
     }

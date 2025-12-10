@@ -7,6 +7,8 @@ import { UserModel } from '~/models/userModel.js';
 import ApiError from '~/utils/ApiError.js';
 import { StatusCodes } from 'http-status-codes';
 import dayjs from 'dayjs';
+import { logAction } from '~/middlewares/auditLogMiddleware.js';
+import { AUDIT_LOG_ACTIONS, AUDIT_LOG_RESOURCES } from '~/config/auditLogConfig.js';
 
 /**
  * ✅ Helper: Tính toán các tuần trong năm học
@@ -270,7 +272,7 @@ const updateActivityPeriods = async (scheduleId, data, userId) => {
             _id: scheduleId,
             schoolId: user.schoolId,
             _destroy: false,
-        }).populate('academicYearId', 'status');
+        }).populate('academicYearId', 'status fromYear toYear');
 
         if (!schedule) {
             throw new ApiError(StatusCodes.NOT_FOUND, 'Không tìm thấy thời khóa biểu');
@@ -290,6 +292,8 @@ const updateActivityPeriods = async (scheduleId, data, userId) => {
                 'Không thể cập nhật thời khóa biểu vì đã có giáo viên lên kế hoạch chi tiết theo tuần. Vui lòng xóa hết nội dung kế hoạch trước khi thay đổi mốc hoạt động.',
             );
         }
+        // ✅ Lưu thông tin năm học trước khi cập nhật
+        const academicYearInfo = `${schedule.academicYearId.fromYear}-${schedule.academicYearId.toYear}`;
 
         // ✅ Áp dụng mốc hoạt động cho TẤT CẢ các tuần
         schedule.weeks.forEach((week) => {
@@ -316,6 +320,7 @@ const updateActivityPeriods = async (scheduleId, data, userId) => {
         console.log('✅ [Schedule updateActivityPeriods] Updated successfully for all weeks');
         return {
             schedule: updated,
+            academicYearInfo,
             message: `Đã cập nhật mốc hoạt động cho ${schedule.weeks.length} tuần và đồng bộ kế hoạch chi tiết`,
         };
     } catch (error) {
@@ -344,7 +349,7 @@ const deleteActivityPeriods = async (scheduleId, userId) => {
             _id: scheduleId,
             schoolId: user.schoolId,
             _destroy: false,
-        }).populate('academicYearId', 'status');
+        }).populate('academicYearId', 'status fromYear toYear');
 
         if (!schedule) {
             throw new ApiError(StatusCodes.NOT_FOUND, 'Không tìm thấy thời khóa biểu');
@@ -354,6 +359,9 @@ const deleteActivityPeriods = async (scheduleId, userId) => {
             throw new ApiError(StatusCodes.FORBIDDEN, 'Chỉ có thể xóa mốc hoạt động của năm học đang hoạt động');
         }
 
+        // ✅ Lưu thông tin năm học
+        const academicYearInfo = `${schedule.academicYearId.fromYear}-${schedule.academicYearId.toYear}`;
+
         // ✅ Xóa mốc hoạt động của TẤT CẢ các tuần
         schedule.weeks.forEach((week) => {
             week.activityPeriods = [];
@@ -362,7 +370,10 @@ const deleteActivityPeriods = async (scheduleId, userId) => {
         schedule.lastUpdatedBy = userId;
         await schedule.save();
 
-        return { message: `Đã xóa mốc hoạt động của ${schedule.weeks.length} tuần` };
+        return {
+            message: `Đã xóa mốc hoạt động của ${schedule.weeks.length} tuần`,
+            academicYearInfo,
+        };
     } catch (error) {
         console.error('❌ [Schedule deleteActivityPeriods] Error:', error);
         if (error instanceof ApiError) throw error;
@@ -395,7 +406,7 @@ const copyActivityPeriodsFromYear = async (data, userId) => {
             schoolId,
             academicYearId: fromAcademicYearId,
             _destroy: false,
-        });
+        }).populate('academicYearId', 'fromYear toYear status');
 
         if (!sourceSchedule) {
             throw new ApiError(StatusCodes.NOT_FOUND, 'Không tìm thấy thời khóa biểu của năm học nguồn');
@@ -406,7 +417,7 @@ const copyActivityPeriodsFromYear = async (data, userId) => {
             schoolId,
             academicYearId: toAcademicYearId,
             _destroy: false,
-        }).populate('academicYearId', 'status');
+        }).populate('academicYearId', 'status fromYear toYear');
 
         if (!targetSchedule) {
             throw new ApiError(StatusCodes.NOT_FOUND, 'Không tìm thấy thời khóa biểu của năm học đích');
@@ -434,6 +445,10 @@ const copyActivityPeriodsFromYear = async (data, userId) => {
 
         const sourceActivityPeriods = sourceFirstWeek.activityPeriods;
 
+        // ✅ Lưu thông tin năm học
+        const fromYearInfo = `${sourceSchedule.academicYearId.fromYear}-${sourceSchedule.academicYearId.toYear}`;
+        const toYearInfo = `${targetSchedule.academicYearId.fromYear}-${targetSchedule.academicYearId.toYear}`;
+
         // ✅ Áp dụng cho tất cả các tuần trong năm đích
         targetSchedule.weeks.forEach((week) => {
             week.activityPeriods = sourceActivityPeriods.map((period, index) => ({
@@ -457,8 +472,25 @@ const copyActivityPeriodsFromYear = async (data, userId) => {
             .lean();
 
         console.log('✅ [Schedule copyActivityPeriodsFromYear] Copied successfully');
+
+        await logAction(
+            userId,
+            schoolId,
+            AUDIT_LOG_ACTIONS.COPY,
+            AUDIT_LOG_RESOURCES.SCHEDULE,
+            `Copy ${sourceActivityPeriods.length} mốc hoạt động từ năm ${fromYearInfo} sang năm ${toYearInfo}`,
+            {
+                fromAcademicYearId,
+                toAcademicYearId,
+                fromYear: fromYearInfo,
+                toYear: toYearInfo,
+                periodsCount: sourceActivityPeriods.length,
+            },
+        );
         return {
             schedule: updated,
+            fromYearInfo,
+            toYearInfo,
             message: `Đã copy ${sourceActivityPeriods.length} mốc hoạt động cho ${targetSchedule.weeks.length} tuần và đồng bộ kế hoạch chi tiết`,
         };
     } catch (error) {
@@ -509,14 +541,14 @@ const updateHolidays = async (scheduleId, holidays, userId) => {
             _id: scheduleId,
             schoolId: user.schoolId,
             _destroy: false,
-        });
+        }).populate('academicYearId', 'fromYear toYear semesters');
 
         if (!schedule) {
             throw new ApiError(StatusCodes.NOT_FOUND, 'Không tìm thấy thời khóa biểu');
         }
 
         // ✅ Validate holidays are within academic year
-        const academicYear = await AcademicYearModel.findById(schedule.academicYearId);
+        const academicYear = schedule.academicYearId;
         if (!academicYear) {
             throw new ApiError(StatusCodes.NOT_FOUND, 'Không tìm thấy năm học');
         }
@@ -533,6 +565,9 @@ const updateHolidays = async (scheduleId, holidays, userId) => {
             throw new ApiError(StatusCodes.BAD_REQUEST, 'Có ngày nghỉ nằm ngoài năm học');
         }
 
+        // ✅ Lưu thông tin năm học
+        const academicYearInfo = `${academicYear.fromYear}-${academicYear.toYear}`;
+
         // ✅ Update holidays
         schedule.holidays = holidays.map((date) => dayjs(date).startOf('day').toDate());
         await schedule.save();
@@ -542,7 +577,10 @@ const updateHolidays = async (scheduleId, holidays, userId) => {
             totalHolidays: holidays.length,
         });
 
-        return schedule;
+        return {
+            schedule,
+            academicYearInfo, // ✅ Trả về thông tin năm học
+        };
     } catch (error) {
         if (error instanceof ApiError) throw error;
         throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, 'Lỗi khi cấu hình ngày nghỉ');

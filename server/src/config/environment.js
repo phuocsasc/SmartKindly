@@ -10,4 +10,5 @@ export const env = {
     LOCAL_DEV_APP_PORT: process.env.LOCAL_DEV_APP_PORT || 8017,
     LOCAL_DEV_APP_HOST: process.env.LOCAL_DEV_APP_HOST || 'localhost',
     BUILD_MODE: process.env.BUILD_MODE,
+    CLIENT_URL: process.env.CLIENT_URL,
 };

@@ -6,6 +6,8 @@ import { scheduleController } from '~/controllers/scheduleController.js';
 import { authMiddleware } from '~/middlewares/authMiddleware.js';
 import { rbacMiddleware } from '~/middlewares/rbacMiddleware.js';
 import { PERMISSIONS } from '~/config/rbacConfig.js';
+import { auditLog } from '~/middlewares/auditLogMiddleware.js';
+import { AUDIT_LOG_ACTIONS, AUDIT_LOG_RESOURCES } from '~/config/auditLogConfig.js';
 
 const Router = express.Router();
 
@@ -41,6 +43,12 @@ Router.route('/:id/holidays')
     .put(
         authMiddleware.isAuthorized,
         rbacMiddleware.isValidPermission([PERMISSIONS.UPDATE_SCHEDULE]),
+        // ✅ Audit log cho cấu hình ngày nghỉ
+        auditLog(AUDIT_LOG_ACTIONS.UPDATE, AUDIT_LOG_RESOURCES.SCHEDULE, (req, body) => {
+            const yearInfo = body.academicYearInfo;
+            const count = body.totalHolidays || 0;
+            return `Cấu hình ${count} ngày nghỉ cho năm học "${yearInfo}"`;
+        }),
         scheduleController.updateHolidays,
     );
 
@@ -49,6 +57,11 @@ Router.route('/:id/activity-periods').put(
     authMiddleware.isAuthorized,
     rbacMiddleware.isValidPermission([PERMISSIONS.UPDATE_SCHEDULE]),
     scheduleValidation.updateActivityPeriods,
+    // ✅ Audit log cho cập nhật
+    auditLog(AUDIT_LOG_ACTIONS.UPDATE, AUDIT_LOG_RESOURCES.SCHEDULE, (req, body) => {
+        const yearInfo = body.academicYearInfo;
+        return `Cập nhật mốc hoạt động cho năm học "${yearInfo}"`;
+    }),
     scheduleController.updateActivityPeriods,
 );
 
@@ -56,6 +69,11 @@ Router.route('/:id/activity-periods').put(
 Router.route('/:id/activity-periods').delete(
     authMiddleware.isAuthorized,
     rbacMiddleware.isValidPermission([PERMISSIONS.DELETE_SCHEDULE]),
+    // ✅ Audit log cho xóa
+    auditLog(AUDIT_LOG_ACTIONS.DELETE, AUDIT_LOG_RESOURCES.SCHEDULE, (req, body) => {
+        const yearInfo = body.academicYearInfo;
+        return `Xóa mốc hoạt động của năm học "${yearInfo}"`;
+    }),
     scheduleController.deleteActivityPeriods,
 );
 

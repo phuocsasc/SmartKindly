@@ -38,6 +38,7 @@ const updateActivityPeriods = async (req, res, next) => {
         res.status(StatusCodes.OK).json({
             message: result.message || 'Cập nhật mốc hoạt động thành công!',
             data: result.schedule,
+            academicYearInfo: result.academicYearInfo, // ✅ Trả về cho audit log
         });
     } catch (error) {
         next(error);
@@ -50,7 +51,11 @@ const copyActivityPeriodsFromYear = async (req, res, next) => {
         const result = await scheduleServices.copyActivityPeriodsFromYear(req.body, userId);
         res.status(StatusCodes.OK).json({
             message: result.message || 'Copy thời khóa biểu thành công!',
-            data: result.schedule,
+            data: {
+                schedule: result.schedule,
+                fromYear: result.fromYearInfo,
+                toYear: result.toYearInfo,
+            },
         });
     } catch (error) {
         next(error);
@@ -60,10 +65,10 @@ const copyActivityPeriodsFromYear = async (req, res, next) => {
 const deleteActivityPeriods = async (req, res, next) => {
     try {
         const userId = req.jwtDecoded.id;
-        const { id } = req.params;
-        const result = await scheduleServices.deleteActivityPeriods(id, userId);
+        const result = await scheduleServices.deleteActivityPeriods(req.params.id, userId);
         res.status(StatusCodes.OK).json({
             message: result.message,
+            academicYearInfo: result.academicYearInfo, // ✅ Trả về cho audit log
         });
     } catch (error) {
         next(error);
@@ -98,10 +103,12 @@ const updateHolidays = async (req, res, next) => {
         const { holidays } = req.body;
         const userId = req.jwtDecoded.id;
 
-        await scheduleServices.updateHolidays(id, holidays, userId);
+        const result = await scheduleServices.updateHolidays(id, holidays, userId);
 
         res.status(StatusCodes.OK).json({
             message: 'Cấu hình ngày nghỉ thành công!',
+            academicYearInfo: result.academicYearInfo, // ✅ Trả về cho audit log
+            totalHolidays: holidays.length,
         });
     } catch (error) {
         next(error);

@@ -8,6 +8,8 @@ import { DepartmentModel } from '~/models/departmentModel.js';
 import { UserModel } from '~/models/userModel.js';
 import ApiError from '~/utils/ApiError.js';
 import { StatusCodes } from 'http-status-codes';
+import { logAction } from '~/middlewares/auditLogMiddleware.js';
+import { AUDIT_LOG_ACTIONS, AUDIT_LOG_RESOURCES } from '~/config/auditLogConfig.js';
 
 /**
  * ✅ Helper: Get accessible classes for user THEO NĂM HỌC CỤ THỂ
@@ -317,7 +319,7 @@ const updateDailyPlan = async (data, userId) => {
             schoolId: user.schoolId,
             academicYearId: activeYear._id,
             _destroy: false,
-        });
+        }).populate('academicYearId', 'fromYear toYear');
 
         if (!classData) {
             throw new ApiError(StatusCodes.NOT_FOUND, 'Không tìm thấy lớp học');
@@ -360,6 +362,32 @@ const updateDailyPlan = async (data, userId) => {
             .lean();
 
         console.log('✅ [WeeklyPlan updateDailyPlan] Updated successfully');
+
+        const dayNames = {
+            monday: 'Thứ 2',
+            tuesday: 'Thứ 3',
+            wednesday: 'Thứ 4',
+            thursday: 'Thứ 5',
+            friday: 'Thứ 6',
+        };
+
+        await logAction(
+            userId,
+            user.schoolId,
+            AUDIT_LOG_ACTIONS.UPDATE,
+            AUDIT_LOG_RESOURCES.WEEKLY_PLAN,
+            `Cập nhật kế hoạch chi tiết ${dayNames[dayOfWeek]} - Tuần ${weekNumber} - Lớp "${classData.name}" - Năm học ${classData.academicYearId.fromYear}-${classData.academicYearId.toYear}`,
+            {
+                classId,
+                className: classData.name,
+                weekNumber: parseInt(weekNumber),
+                dayOfWeek,
+                dayName: dayNames[dayOfWeek],
+                academicYearId: activeYear._id,
+                academicYear: `${classData.academicYearId.fromYear}-${classData.academicYearId.toYear}`,
+            },
+        );
+
         return updated;
     } catch (error) {
         console.error('❌ [WeeklyPlan updateDailyPlan] Error:', error);
@@ -398,7 +426,7 @@ const copyWeekToFollowingWeeks = async (data, userId) => {
             schoolId: user.schoolId,
             academicYearId: activeYear._id,
             _destroy: false,
-        });
+        }).populate('academicYearId', 'fromYear toYear');
 
         if (!classData) {
             throw new ApiError(StatusCodes.NOT_FOUND, 'Không tìm thấy lớp học');
@@ -538,15 +566,31 @@ const copyWeekToFollowingWeeks = async (data, userId) => {
             }
         }
 
-        console.log(
-            `✅ [WeeklyPlan copyWeekToFollowingWeeks] Copied successfully: ${copiedCount} updated, ${createdCount} created`,
+        console.log('✅ [WeeklyPlan copyWeekToFollowingWeeks] Completed');
+
+        await logAction(
+            userId,
+            user.schoolId,
+            AUDIT_LOG_ACTIONS.COPY,
+            AUDIT_LOG_RESOURCES.WEEKLY_PLAN,
+            `Copy kế hoạch chi tiết Tuần ${weekNumber} sang ${targetWeeks.length} tuần tiếp theo - Lớp "${classData.name}" - Năm học ${classData.academicYearId.fromYear}-${classData.academicYearId.toYear}`,
+            {
+                classId,
+                className: classData.name,
+                weekNumber: parseInt(weekNumber),
+                targetWeeksCount: targetWeeks.length,
+                copiedCount,
+                createdCount,
+                academicYearId: activeYear._id,
+                academicYear: `${classData.academicYearId.fromYear}-${classData.academicYearId.toYear}`,
+            },
         );
 
         return {
-            message: `Đã copy kế hoạch tuần ${weekNumber} sang ${targetWeeks.length} tuần tiếp theo (${copiedCount} tuần đã cập nhật, ${createdCount} tuần mới tạo)`,
-            copiedWeeks: targetWeeks.length,
-            updatedCount: copiedCount,
-            createdCount: createdCount,
+            message: `Đã copy kế hoạch tuần ${weekNumber} sang ${targetWeeks.length} tuần (${copiedCount} cập nhật, ${createdCount} mới)`,
+            copiedCount,
+            createdCount,
+            totalWeeks: targetWeeks.length,
         };
     } catch (error) {
         console.error('❌ [WeeklyPlan copyWeekToFollowingWeeks] Error:', error);
@@ -585,7 +629,7 @@ const deleteWeekPlan = async (data, userId) => {
             schoolId: user.schoolId,
             academicYearId: activeYear._id,
             _destroy: false,
-        });
+        }).populate('academicYearId', 'fromYear toYear');
 
         if (!classData) {
             throw new ApiError(StatusCodes.NOT_FOUND, 'Không tìm thấy lớp học');
@@ -621,6 +665,22 @@ const deleteWeekPlan = async (data, userId) => {
         await weeklyPlan.save();
 
         console.log('✅ [WeeklyPlan deleteWeekPlan] Deleted successfully');
+
+        await logAction(
+            userId,
+            user.schoolId,
+            AUDIT_LOG_ACTIONS.DELETE,
+            AUDIT_LOG_RESOURCES.WEEKLY_PLAN,
+            `Xóa kế hoạch chi tiết Tuần ${weekNumber} - Lớp "${classData.name}" - Năm học ${classData.academicYearId.fromYear}-${classData.academicYearId.toYear}`,
+            {
+                classId,
+                className: classData.name,
+                weekNumber: parseInt(weekNumber),
+                academicYearId: activeYear._id,
+                academicYear: `${classData.academicYearId.fromYear}-${classData.academicYearId.toYear}`,
+            },
+        );
+
         return {
             message: `Đã xóa kế hoạch chi tiết của tuần ${weekNumber}`,
         };
@@ -661,7 +721,7 @@ const deleteAllWeekPlans = async (data, userId) => {
             schoolId: user.schoolId,
             academicYearId: activeYear._id,
             _destroy: false,
-        });
+        }).populate('academicYearId', 'fromYear toYear');
 
         if (!classData) {
             throw new ApiError(StatusCodes.NOT_FOUND, 'Không tìm thấy lớp học');
@@ -721,6 +781,23 @@ const deleteAllWeekPlans = async (data, userId) => {
         }
 
         console.log(`✅ [WeeklyPlan deleteAllWeekPlans] Deleted ${deletedCount} weeks`);
+
+        await logAction(
+            userId,
+            user.schoolId,
+            AUDIT_LOG_ACTIONS.DELETE,
+            AUDIT_LOG_RESOURCES.WEEKLY_PLAN,
+            `Xóa kế hoạch chi tiết TẤT CẢ ${deletedCount} tuần - Lớp "${classData.name}" - Năm học ${classData.academicYearId.fromYear}-${classData.academicYearId.toYear}`,
+            {
+                classId,
+                className: classData.name,
+                deletedCount,
+                totalWeeks: weeklyPlans.length,
+                academicYearId: activeYear._id,
+                academicYear: `${classData.academicYearId.fromYear}-${classData.academicYearId.toYear}`,
+            },
+        );
+
         return {
             message: `Đã xóa kế hoạch chi tiết của ${deletedCount} tuần trong năm học`,
             deletedCount,

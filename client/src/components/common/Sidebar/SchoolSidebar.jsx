@@ -88,9 +88,9 @@ const menuItems = [
         text: 'Dinh dưỡng',
         icon: <RestaurantOutlinedIcon />,
         children: [
-            { text: 'Nhà cung cấp', path: '/nutrition/supplier' },
-            { text: 'Món ăn', path: '/nutrition/meal' },
+            // { text: 'Nhà cung cấp', path: '/nutrition/supplier' },
             { text: 'Thực phẩm', path: '/nutrition/food' },
+            { text: 'Món ăn', path: '/nutrition/meal' },
             { text: 'Thực đơn', path: '/nutrition/menu' },
         ],
     },

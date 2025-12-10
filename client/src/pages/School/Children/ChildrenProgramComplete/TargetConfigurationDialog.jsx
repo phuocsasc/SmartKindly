@@ -35,7 +35,6 @@ import { childrenProgramCompleteApi, schoolYearTargetApi } from '~/apis';
 import { toast } from 'react-toastify';
 
 const AGE_GROUPS = [
-    { value: 'Nhà trẻ 3-12 tháng', label: 'Nhà trẻ 3-12 tháng' },
     { value: 'Nhà trẻ 12-24 tháng', label: 'Nhà trẻ 12-24 tháng' },
     { value: 'Nhà trẻ 24-36 tháng', label: 'Nhà trẻ 24-36 tháng' },
     { value: 'Khối mầm 3-4 tuổi', label: 'Khối mầm 3-4 tuổi' },

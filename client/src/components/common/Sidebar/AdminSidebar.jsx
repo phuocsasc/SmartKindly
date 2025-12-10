@@ -21,7 +21,7 @@ import MapsHomeWorkOutlinedIcon from '@mui/icons-material/MapsHomeWorkOutlined';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { useTheme } from '@mui/material/styles';
-import logo_sidebar from '/anh_thanh_menu.png';
+import logo_sidebar from '/logo_thanh_menu_tach_nen.png';
 
 const menuItems = [
     { text: 'Trang chủ', icon: <DashboardIcon />, path: '/admin/dashboard' },

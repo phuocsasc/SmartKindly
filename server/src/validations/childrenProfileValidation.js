@@ -9,9 +9,7 @@ const create = async (req, res, next) => {
         fullName: Joi.string().required().min(2).max(100).trim(),
         birthDate: Joi.date().required(),
         gender: Joi.string().valid('Nam', 'Nữ').required(),
-        ageGroup: Joi.string()
-            .valid('3-12 tháng', '12-24 tháng', '24-36 tháng', '3-4 tuổi', '4-5 tuổi', '5-6 tuổi')
-            .required(),
+        ageGroup: Joi.string().valid('12-24 tháng', '24-36 tháng', '3-4 tuổi', '4-5 tuổi', '5-6 tuổi').required(),
         classId: Joi.string().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE).required(),
         status: Joi.string().valid('Đang học', 'Nghỉ học').default('Đang học'),
         enrollmentDate: Joi.date().required(),
@@ -59,7 +57,7 @@ const update = async (req, res, next) => {
         fullName: Joi.string().min(2).max(100).trim(),
         birthDate: Joi.date(),
         gender: Joi.string().valid('Nam', 'Nữ'),
-        ageGroup: Joi.string().valid('3-12 tháng', '12-24 tháng', '24-36 tháng', '3-4 tuổi', '4-5 tuổi', '5-6 tuổi'),
+        ageGroup: Joi.string().valid('12-24 tháng', '24-36 tháng', '3-4 tuổi', '4-5 tuổi', '5-6 tuổi'),
         classId: Joi.string().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE),
         status: Joi.string().valid('Đang học', 'Nghỉ học'),
         enrollmentDate: Joi.date(),

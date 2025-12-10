@@ -75,7 +75,6 @@ function ChildrenProgramComplete() {
 
     // ✅ Map ageGroup từ class sang configured targets
     const ageGroupMapping = {
-        '3-12 tháng': 'Nhà trẻ 3-12 tháng',
         '12-24 tháng': 'Nhà trẻ 12-24 tháng',
         '24-36 tháng': 'Nhà trẻ 24-36 tháng',
         '3-4 tuổi': 'Khối mầm 3-4 tuổi',

@@ -69,7 +69,6 @@ const configUpsert = async (req, res, next) => {
             .messages({ 'string.pattern.base': OBJECT_ID_RULE_MESSAGE }),
         ageGroup: Joi.string()
             .valid(
-                'Nhà trẻ 3-12 tháng',
                 'Nhà trẻ 12-24 tháng',
                 'Nhà trẻ 24-36 tháng',
                 'Khối mầm 3-4 tuổi',

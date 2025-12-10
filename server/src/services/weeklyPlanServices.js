@@ -59,7 +59,7 @@ const getAccessibleClasses = async (user, academicYearId) => {
 
         // ✅ Mapping: Tên khối → Nhóm tuổi (KHỚP VỚI DB)
         const ageGroupMapping = {
-            'Khối Nhà Trẻ': ['3-12 tháng', '12-24 tháng', '24-36 tháng'], // ✅ Bỏ "Nhà trẻ"
+            'Khối Nhà Trẻ': ['12-24 tháng', '24-36 tháng'], // ✅ Bỏ "Nhà trẻ"
             'Khối Mầm': ['3-4 tuổi'], // ✅ Bỏ "Khối mầm"
             'Khối Chồi': ['4-5 tuổi'], // ✅ Bỏ "Khối chồi"
             'Khối Lá': ['5-6 tuổi'], // ✅ Bỏ "Khối lá"

@@ -14,7 +14,6 @@ const createNew = async (req, res, next) => {
         ageGroup: Joi.string()
             .required()
             .valid(
-                'Nhà trẻ 3-12 tháng',
                 'Nhà trẻ 12-24 tháng',
                 'Nhà trẻ 24-36 tháng',
                 'Khối mầm 3-4 tuổi',

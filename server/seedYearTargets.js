@@ -5,7 +5,7 @@ import { UserModel } from './src/models/userModel.js';
 import { CONNECT_DB, CLOSE_DB } from './src/config/mongodb.js';
 
 /**
- * ✅ Dữ liệu mặc định cho Nhà trẻ 3-12, 12-24, 24-36 tháng
+ * ✅ Dữ liệu mặc định cho Nhà trẻ 12-24, 24-36 tháng
  */
 const nurseryData = [
     {
@@ -360,7 +360,6 @@ const seedYearTargets = async () => {
         }
 
         const ageGroups = [
-            { name: 'Nhà trẻ 3-12 tháng', data: nurseryData },
             { name: 'Nhà trẻ 12-24 tháng', data: nurseryData },
             { name: 'Nhà trẻ 24-36 tháng', data: nurseryData },
             { name: 'Khối mầm 3-4 tuổi', data: kindergartenData },

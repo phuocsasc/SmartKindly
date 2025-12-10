@@ -32,7 +32,7 @@ const canAccessClass = async (user, classId) => {
         const managedDeptNames = departments.map((d) => d.name);
         // Map department to grade (khối)
         const gradeMapping = {
-            'Khối Nhà Trẻ': ['3-12 tháng', '12-24 tháng', '24-36 tháng'],
+            'Khối Nhà Trẻ': ['12-24 tháng', '24-36 tháng'],
             'Khối Mầm': ['mầm'],
             'Khối Chồi': ['chồi'],
             'Khối Lá': ['lá'],
@@ -77,7 +77,7 @@ const getAccessibleClassesByUser = async (user, academicYearId) => {
         }).select('name');
 
         const DEPARTMENT_TO_AGE_GROUP = {
-            'Khối Nhà Trẻ': ['3-12 tháng', '12-24 tháng', '24-36 tháng'],
+            'Khối Nhà Trẻ': ['12-24 tháng', '24-36 tháng'],
             'Khối Mầm': ['3-4 tuổi'],
             'Khối Chồi': ['4-5 tuổi'],
             'Khối Lá': ['5-6 tuổi'],
@@ -293,7 +293,6 @@ const createNew = async (data, userId) => {
 
         // ✅ FIX: Normalize ageGroup từ class (ví dụ "4-5 tuổi") sang config ageGroup (ví dụ "Khối chồi 4-5 tuổi")
         const ageGroupMapping = {
-            '3-12 tháng': 'Nhà trẻ 3-12 tháng',
             '12-24 tháng': 'Nhà trẻ 12-24 tháng',
             '24-36 tháng': 'Nhà trẻ 24-36 tháng',
             '3-4 tuổi': 'Khối mầm 3-4 tuổi',

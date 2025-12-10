@@ -1,7 +1,7 @@
 // server/src/utils/schoolYearTargetDefaultData.js
 
 /**
- * ✅ Dữ liệu mặc định cho Nhà trẻ 3-12, 12-24, 24-36 tháng
+ * ✅ Dữ liệu mặc định cho Nhà trẻ 12-24, 24-36 tháng
  */
 export const getNurseryDefaultData = () => {
     return [

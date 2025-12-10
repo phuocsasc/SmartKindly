@@ -35,7 +35,7 @@ const childrenProfileSchema = new mongoose.Schema(
         ageGroup: {
             type: String,
             required: [true, 'Khối nhóm tuổi là bắt buộc'],
-            enum: ['3-12 tháng', '12-24 tháng', '24-36 tháng', '3-4 tuổi', '4-5 tuổi', '5-6 tuổi'],
+            enum: ['12-24 tháng', '24-36 tháng', '3-4 tuổi', '4-5 tuổi', '5-6 tuổi'],
         },
         classId: {
             type: mongoose.Schema.Types.ObjectId,

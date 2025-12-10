@@ -26,7 +26,6 @@ const SchoolEducationalActivitySchema = new mongoose.Schema(
             required: [true, 'Nhóm tuổi là bắt buộc'],
             enum: {
                 values: [
-                    'Nhà trẻ 3-12 tháng',
                     'Nhà trẻ 12-24 tháng',
                     'Nhà trẻ 24-36 tháng',
                     'Khối mầm 3-4 tuổi',

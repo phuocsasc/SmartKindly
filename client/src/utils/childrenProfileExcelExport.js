@@ -7,7 +7,7 @@ import dayjs from 'dayjs';
  */
 const DROPDOWN_VALUES = {
     gender: ['Nam', 'Nữ'],
-    ageGroup: ['3-12 tháng', '12-24 tháng', '24-36 tháng', '3-4 tuổi', '4-5 tuổi', '5-6 tuổi'],
+    ageGroup: ['12-24 tháng', '24-36 tháng', '3-4 tuổi', '4-5 tuổi', '5-6 tuổi'],
     status: ['Đang học', 'Nghỉ học'],
     enrollmentForm: ['Xét tuyển', 'Trúng tuyển', 'Chuyển đến từ trường khác'],
     swimmingLevel: ['Chưa biết', 'Biết sơ cấp', 'Biết bơi thành thạo'],

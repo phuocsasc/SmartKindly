@@ -71,7 +71,6 @@ const deleteCascadeRelatedData = async (schoolId, academicYearId, ageGroup = nul
  */
 const getClassAgeGroupFromTarget = (targetAgeGroup) => {
     const mapping = {
-        'Nhà trẻ 3-12 tháng': '3-12 tháng',
         'Nhà trẻ 12-24 tháng': '12-24 tháng',
         'Nhà trẻ 24-36 tháng': '24-36 tháng',
         'Khối mầm 3-4 tuổi': '3-4 tuổi',
@@ -86,7 +85,7 @@ const getClassAgeGroupFromTarget = (targetAgeGroup) => {
  */
 const getDepartmentAgeGroups = (departmentName) => {
     const mapping = {
-        'Khối Nhà Trẻ': ['Nhà trẻ 3-12 tháng', 'Nhà trẻ 12-24 tháng', 'Nhà trẻ 24-36 tháng'],
+        'Khối Nhà Trẻ': ['Nhà trẻ 12-24 tháng', 'Nhà trẻ 24-36 tháng'],
         'Khối Mầm': ['Khối mầm 3-4 tuổi'],
         'Khối Chồi': ['Khối chồi 4-5 tuổi'],
         'Khối Lá': ['Khối lá 5-6 tuổi'],
@@ -96,12 +95,11 @@ const getDepartmentAgeGroups = (departmentName) => {
 
 /**
  * ✅ Helper: Map class ageGroup to corresponding year target groups
- * Class ageGroup format: "3-12 tháng", "12-24 tháng", "24-36 tháng", "3-4 tuổi", "4-5 tuổi", "5-6 tuổi"
- * Year Target format: "Nhà trẻ 3-12 tháng", "Nhà trẻ 12-24 tháng", "Nhà trẻ 24-36 tháng", "Khối mầm 3-4 tuổi", "Khối chồi 4-5 tuổi", "Khối lá 5-6 tuổi"
+ * Class ageGroup format: "12-24 tháng", "24-36 tháng", "3-4 tuổi", "4-5 tuổi", "5-6 tuổi"
+ * Year Target format: "Nhà trẻ 12-24 tháng", "Nhà trẻ 24-36 tháng", "Khối mầm 3-4 tuổi", "Khối chồi 4-5 tuổi", "Khối lá 5-6 tuổi"
  */
 const getClassAgeGroups = (classAgeGroup) => {
     const mapping = {
-        '3-12 tháng': ['Nhà trẻ 3-12 tháng'],
         '12-24 tháng': ['Nhà trẻ 12-24 tháng'],
         '24-36 tháng': ['Nhà trẻ 24-36 tháng'],
         '3-4 tuổi': ['Khối mầm 3-4 tuổi'],
@@ -121,7 +119,6 @@ const getAccessibleAgeGroups = async (user, academicYearId) => {
     if (user.role === 'ban_giam_hieu') {
         console.log('✅ Ban giám hiệu - Full access');
         return [
-            'Nhà trẻ 3-12 tháng',
             'Nhà trẻ 12-24 tháng',
             'Nhà trẻ 24-36 tháng',
             'Khối mầm 3-4 tuổi',
@@ -713,7 +710,6 @@ const initializeDefaultTargets = async (academicYearId, userId) => {
         }
 
         const ageGroups = [
-            'Nhà trẻ 3-12 tháng',
             'Nhà trẻ 12-24 tháng',
             'Nhà trẻ 24-36 tháng',
             'Khối mầm 3-4 tuổi',

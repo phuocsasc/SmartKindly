@@ -7,11 +7,11 @@ import { DepartmentModel } from '~/models/departmentModel.js';
 import { UserModel } from '~/models/userModel.js';
 
 // ✅ Constants nhóm tuổi
-const AGE_GROUPS = ['3-12 tháng', '12-24 tháng', '24-36 tháng', '3-4 tuổi', '4-5 tuổi', '5-6 tuổi'];
+const AGE_GROUPS = ['12-24 tháng', '24-36 tháng', '3-4 tuổi', '4-5 tuổi', '5-6 tuổi'];
 
 // ✅ Mapping Department name → Class ageGroups
 const DEPARTMENT_TO_AGE_GROUPS = {
-    'Khối Nhà Trẻ': ['3-12 tháng', '12-24 tháng', '24-36 tháng'],
+    'Khối Nhà Trẻ': ['12-24 tháng', '24-36 tháng'],
     'Khối Mầm': ['3-4 tuổi'],
     'Khối Chồi': ['4-5 tuổi'],
     'Khối Lá': ['5-6 tuổi'],

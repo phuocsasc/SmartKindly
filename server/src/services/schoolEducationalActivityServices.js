@@ -16,7 +16,6 @@ const getAccessibleAgeGroups = async (user, academicYearId) => {
     // Ban giám hiệu: full access
     if (user.role === 'ban_giam_hieu') {
         return [
-            'Nhà trẻ 3-12 tháng',
             'Nhà trẻ 12-24 tháng',
             'Nhà trẻ 24-36 tháng',
             'Khối mầm 3-4 tuổi',
@@ -36,7 +35,7 @@ const getAccessibleAgeGroups = async (user, academicYearId) => {
 
         const ageGroups = [];
         const mapping = {
-            'Khối Nhà Trẻ': ['Nhà trẻ 3-12 tháng', 'Nhà trẻ 12-24 tháng', 'Nhà trẻ 24-36 tháng'],
+            'Khối Nhà Trẻ': ['Nhà trẻ 12-24 tháng', 'Nhà trẻ 24-36 tháng'],
             'Khối Mầm': ['Khối mầm 3-4 tuổi'],
             'Khối Chồi': ['Khối chồi 4-5 tuổi'],
             'Khối Lá': ['Khối lá 5-6 tuổi'],
@@ -486,7 +485,6 @@ const copyFromYear = async (data, userId) => {
         if (user.role === 'ban_giam_hieu') {
             // Ban giám hiệu: copy tất cả
             allowedAgeGroups = [
-                'Nhà trẻ 3-12 tháng',
                 'Nhà trẻ 12-24 tháng',
                 'Nhà trẻ 24-36 tháng',
                 'Khối mầm 3-4 tuổi',
@@ -503,7 +501,7 @@ const copyFromYear = async (data, userId) => {
             }).select('name');
 
             const mapping = {
-                'Khối Nhà Trẻ': ['Nhà trẻ 3-12 tháng', 'Nhà trẻ 12-24 tháng', 'Nhà trẻ 24-36 tháng'],
+                'Khối Nhà Trẻ': ['Nhà trẻ 12-24 tháng', 'Nhà trẻ 24-36 tháng'],
                 'Khối Mầm': ['Khối mầm 3-4 tuổi'],
                 'Khối Chồi': ['Khối chồi 4-5 tuổi'],
                 'Khối Lá': ['Khối lá 5-6 tuổi'],

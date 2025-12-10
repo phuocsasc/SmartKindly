@@ -173,8 +173,25 @@ const bulkAttendance = async (data, userId) => {
             throw new ApiError(StatusCodes.BAD_REQUEST, 'Chỉ được điểm danh từ thứ 2 đến thứ 6');
         }
 
-        // ✅ Get week number
-        const weekNumber = targetDate.isoWeek();
+        // ✅ Get week number từ Schedule (KHÔNG dùng isoWeek)
+        const schedule = await ScheduleModel.findOne({
+            schoolId: user.schoolId,
+            academicYearId: activeYear._id,
+            _destroy: false,
+        }).lean();
+
+        let weekNumber = null;
+        if (schedule && schedule.weeks) {
+            const targetDateObj = targetDate.toDate();
+            const week = schedule.weeks.find((w) => {
+                return targetDateObj >= w.startDate && targetDateObj <= w.endDate;
+            });
+            weekNumber = week ? week.weekNumber : null;
+        }
+
+        if (!weekNumber) {
+            throw new ApiError(StatusCodes.BAD_REQUEST, 'Không tìm thấy tuần học phù hợp với ngày điểm danh');
+        }
 
         // ✅ Map day of week
         const dayNames = ['Chủ Nhật', 'Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7'];
@@ -584,15 +601,34 @@ const deleteAttendance = async (id, userId) => {
             throw new ApiError(StatusCodes.FORBIDDEN, 'Bạn không có quyền xóa điểm danh lớp này');
         }
 
+        // ✅ Get week number từ Schedule (KHÔNG dùng isoWeek)
+        const targetDate = dayjs(attendance.date);
+        const dayOfWeek = targetDate.day();
+
+        const schedule = await ScheduleModel.findOne({
+            schoolId: user.schoolId,
+            academicYearId: attendance.academicYearId,
+            _destroy: false,
+        }).lean();
+
+        let weekNumber = null;
+        if (schedule && schedule.weeks) {
+            const targetDateObj = targetDate.toDate();
+            const week = schedule.weeks.find((w) => {
+                return targetDateObj >= w.startDate && targetDateObj <= w.endDate;
+            });
+            weekNumber = week ? week.weekNumber : null;
+        }
+
         // ✅ Lưu thông tin trước khi xóa
         const attendanceInfo = {
             studentName: attendance.studentId.fullName,
             studentCode: attendance.studentId.studentCode,
             className: attendance.classId.name,
             academicYear: `${attendance.classId.academicYearId.fromYear}-${attendance.classId.academicYearId.toYear}`,
-            date: dayjs(attendance.date).format('DD/MM/YYYY'),
+            date: targetDate.format('DD/MM/YYYY'),
             dayOfWeek: attendance.dayOfWeek,
-            weekNumber: attendance.weekNumber,
+            weekNumber: weekNumber || null,
         };
 
         // ✅ Soft delete

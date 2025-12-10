@@ -11,6 +11,8 @@ import { ScheduleModel } from '~/models/scheduleModel.js';
 import ApiError from '~/utils/ApiError.js';
 import { StatusCodes } from 'http-status-codes';
 import dayjs from 'dayjs';
+import { logAction } from '~/middlewares/auditLogMiddleware.js';
+import { AUDIT_LOG_ACTIONS, AUDIT_LOG_RESOURCES } from '~/config/auditLogConfig.js';
 
 /**
  * ✅ Helper: Normalize department name to grade
@@ -99,7 +101,7 @@ const createNew = async (data, userId) => {
             schoolId: user.schoolId,
             academicYearId: data.academicYearId,
             _destroy: false,
-        });
+        }).populate('academicYearId', 'fromYear toYear');
 
         if (!classData) {
             throw new ApiError(StatusCodes.NOT_FOUND, 'Không tìm thấy lớp học');
@@ -163,6 +165,26 @@ const createNew = async (data, userId) => {
             throw new ApiError(StatusCodes.CONFLICT, 'Đã có đánh giá cho học sinh này trong ngày hôm nay');
         }
 
+        // ✅ Get week number từ Schedule (KHÔNG dùng isoWeek)
+        const schedule = await ScheduleModel.findOne({
+            schoolId: user.schoolId,
+            academicYearId: data.academicYearId,
+            _destroy: false,
+        }).lean();
+
+        let weekNumber = null;
+        if (schedule && schedule.weeks) {
+            const targetDateObj = targetDate.toDate();
+            const week = schedule.weeks.find((w) => {
+                return targetDateObj >= w.startDate && targetDateObj <= w.endDate;
+            });
+            weekNumber = week ? week.weekNumber : null;
+        }
+
+        if (!weekNumber) {
+            throw new ApiError(StatusCodes.BAD_REQUEST, 'Không tìm thấy tuần học phù hợp với ngày đánh giá');
+        }
+
         // ✅ Create assessment
         const newAssessment = new ChildrenDailyAssessmentModel({
             schoolId: user.schoolId,
@@ -182,10 +204,40 @@ const createNew = async (data, userId) => {
         const populated = await ChildrenDailyAssessmentModel.findById(newAssessment._id)
             .populate('studentId', 'fullName studentCode')
             .populate('classId', 'name grade ageGroup')
+            .populate('academicYearId', 'fromYear toYear')
             .populate('createdBy', 'fullName username')
             .lean();
 
         console.log('✅ [DailyAssessment createNew] Created successfully');
+
+        const dayNames = {
+            1: 'Thứ 2',
+            2: 'Thứ 3',
+            3: 'Thứ 4',
+            4: 'Thứ 5',
+            5: 'Thứ 6',
+        };
+
+        await logAction(
+            userId,
+            user.schoolId,
+            AUDIT_LOG_ACTIONS.CREATE,
+            AUDIT_LOG_RESOURCES.CHILDREN_ASSESSMENT,
+            `Thêm đánh giá học sinh "${student.fullName}" - ${dayNames[dayOfWeek]} - Tuần ${weekNumber} - Lớp "${classData.name}" - Năm học ${classData.academicYearId.fromYear}-${classData.academicYearId.toYear}`,
+            {
+                classId: data.classId,
+                className: classData.name,
+                studentId: data.studentId,
+                studentName: student.fullName,
+                studentCode: student.studentCode,
+                date: targetDate.format('DD/MM/YYYY'),
+                dayName: dayNames[dayOfWeek],
+                weekNumber,
+                academicYearId: data.academicYearId,
+                academicYear: `${classData.academicYearId.fromYear}-${classData.academicYearId.toYear}`,
+            },
+        );
+
         return populated;
     } catch (error) {
         console.error('❌ [DailyAssessment createNew] Error:', error);
@@ -342,7 +394,10 @@ const update = async (id, data, userId) => {
             _id: id,
             schoolId: user.schoolId,
             _destroy: false,
-        }).populate('academicYearId', 'status');
+        })
+            .populate('academicYearId', 'status fromYear toYear')
+            .populate('classId', 'name')
+            .populate('studentId', 'fullName studentCode');
 
         if (!assessment) {
             throw new ApiError(StatusCodes.NOT_FOUND, 'Không tìm thấy đánh giá');
@@ -355,8 +410,27 @@ const update = async (id, data, userId) => {
 
         // ✅ Check permission
         const accessibleClassIds = await getAccessibleClasses(user, assessment.academicYearId._id);
-        if (!accessibleClassIds.includes(assessment.classId.toString())) {
+        if (!accessibleClassIds.includes(assessment.classId._id.toString())) {
             throw new ApiError(StatusCodes.FORBIDDEN, 'Bạn không có quyền cập nhật đánh giá này');
+        }
+
+        // ✅ Get week number từ Schedule (KHÔNG dùng isoWeek)
+        const targetDate = dayjs(assessment.date);
+        const dayOfWeek = targetDate.day();
+
+        const schedule = await ScheduleModel.findOne({
+            schoolId: user.schoolId,
+            academicYearId: assessment.academicYearId._id,
+            _destroy: false,
+        }).lean();
+
+        let weekNumber = null;
+        if (schedule && schedule.weeks) {
+            const targetDateObj = targetDate.toDate();
+            const week = schedule.weeks.find((w) => {
+                return targetDateObj >= w.startDate && targetDateObj <= w.endDate;
+            });
+            weekNumber = week ? week.weekNumber : null;
         }
 
         // ✅ Update fields
@@ -371,11 +445,41 @@ const update = async (id, data, userId) => {
         const updated = await ChildrenDailyAssessmentModel.findById(assessment._id)
             .populate('studentId', 'fullName studentCode')
             .populate('classId', 'name grade ageGroup')
+            .populate('academicYearId', 'fromYear toYear')
             .populate('createdBy', 'fullName username')
             .populate('lastUpdatedBy', 'fullName username')
             .lean();
 
         console.log('✅ [DailyAssessment update] Updated successfully');
+
+        const dayNames = {
+            1: 'Thứ 2',
+            2: 'Thứ 3',
+            3: 'Thứ 4',
+            4: 'Thứ 5',
+            5: 'Thứ 6',
+        };
+
+        await logAction(
+            userId,
+            user.schoolId,
+            AUDIT_LOG_ACTIONS.UPDATE,
+            AUDIT_LOG_RESOURCES.CHILDREN_ASSESSMENT,
+            `Cập nhật đánh giá học sinh "${assessment.studentId.fullName}" - ${dayNames[dayOfWeek]} - Tuần ${weekNumber || 'N/A'} - Lớp "${assessment.classId.name}" - Năm học ${assessment.academicYearId.fromYear}-${assessment.academicYearId.toYear}`,
+            {
+                classId: assessment.classId._id,
+                className: assessment.classId.name,
+                studentId: assessment.studentId._id,
+                studentName: assessment.studentId.fullName,
+                studentCode: assessment.studentId.studentCode,
+                date: targetDate.format('DD/MM/YYYY'),
+                dayName: dayNames[dayOfWeek],
+                weekNumber: weekNumber || null,
+                academicYearId: assessment.academicYearId._id,
+                academicYear: `${assessment.academicYearId.fromYear}-${assessment.academicYearId.toYear}`,
+            },
+        );
+
         return updated;
     } catch (error) {
         console.error('❌ [DailyAssessment update] Error:', error);
@@ -400,7 +504,10 @@ const deleteAssessment = async (id, userId) => {
             _id: id,
             schoolId: user.schoolId,
             _destroy: false,
-        }).populate('academicYearId', 'status');
+        })
+            .populate('academicYearId', 'status fromYear toYear')
+            .populate('classId', 'name')
+            .populate('studentId', 'fullName studentCode');
 
         if (!assessment) {
             throw new ApiError(StatusCodes.NOT_FOUND, 'Không tìm thấy đánh giá');
@@ -413,15 +520,71 @@ const deleteAssessment = async (id, userId) => {
 
         // ✅ Check permission
         const accessibleClassIds = await getAccessibleClasses(user, assessment.academicYearId._id);
-        if (!accessibleClassIds.includes(assessment.classId.toString())) {
+        if (!accessibleClassIds.includes(assessment.classId._id.toString())) {
             throw new ApiError(StatusCodes.FORBIDDEN, 'Bạn không có quyền xóa đánh giá này');
         }
+
+        // ✅ Get week number từ Schedule (KHÔNG dùng isoWeek)
+        const targetDate = dayjs(assessment.date);
+        const dayOfWeek = targetDate.day();
+
+        const schedule = await ScheduleModel.findOne({
+            schoolId: user.schoolId,
+            academicYearId: assessment.academicYearId._id,
+            _destroy: false,
+        }).lean();
+
+        let weekNumber = null;
+        if (schedule && schedule.weeks) {
+            const targetDateObj = targetDate.toDate();
+            const week = schedule.weeks.find((w) => {
+                return targetDateObj >= w.startDate && targetDateObj <= w.endDate;
+            });
+            weekNumber = week ? week.weekNumber : null;
+        }
+
+        // ✅ Lưa thông tin trước khi xóa
+        const assessmentInfo = {
+            studentName: assessment.studentId.fullName,
+            studentCode: assessment.studentId.studentCode,
+            className: assessment.classId.name,
+            academicYear: `${assessment.academicYearId.fromYear}-${assessment.academicYearId.toYear}`,
+            date: targetDate.format('DD/MM/YYYY'),
+            weekNumber: weekNumber || null,
+            dayOfWeek,
+        };
 
         // ✅ Soft delete
         assessment._destroy = true;
         await assessment.save();
 
         console.log('✅ [DailyAssessment delete] Deleted successfully');
+
+        const dayNames = {
+            1: 'Thứ 2',
+            2: 'Thứ 3',
+            3: 'Thứ 4',
+            4: 'Thứ 5',
+            5: 'Thứ 6',
+        };
+
+        await logAction(
+            userId,
+            user.schoolId,
+            AUDIT_LOG_ACTIONS.DELETE,
+            AUDIT_LOG_RESOURCES.CHILDREN_ASSESSMENT,
+            `Xóa đánh giá học sinh "${assessmentInfo.studentName}" - ${dayNames[dayOfWeek]} - Tuần ${weekNumber || 'N/A'} - Lớp "${assessmentInfo.className}" - Năm học ${assessmentInfo.academicYear}`,
+            {
+                studentName: assessmentInfo.studentName,
+                studentCode: assessmentInfo.studentCode,
+                className: assessmentInfo.className,
+                academicYear: assessmentInfo.academicYear,
+                date: assessmentInfo.date,
+                dayName: dayNames[dayOfWeek],
+                weekNumber: assessmentInfo.weekNumber,
+            },
+        );
+
         return { message: 'Xóa đánh giá thành công' };
     } catch (error) {
         console.error('❌ [DailyAssessment delete] Error:', error);

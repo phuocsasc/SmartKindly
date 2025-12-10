@@ -341,25 +341,24 @@ const update = async (id, data, userId) => {
             throw new ApiError(StatusCodes.FORBIDDEN, 'Bạn không có quyền cập nhật hoạt động này');
         }
 
-        // ✅ Giáo viên không được update
-        if (user.role === 'giao_vien') {
-            throw new ApiError(StatusCodes.FORBIDDEN, 'Giáo viên chỉ có quyền xem');
-        }
+        // ✅ CHỈ cho phép update activityContent
+        const updateData = {
+            activityContent: data.activityContent,
+            lastUpdatedBy: userId,
+        };
 
-        // ✅ Update
-        activity.activityContent = data.activityContent;
-        activity.lastUpdatedBy = userId;
-
-        await activity.save();
-
-        const updated = await SchoolEducationalActivityModel.findById(id)
+        const updatedActivity = await SchoolEducationalActivityModel.findByIdAndUpdate(id, updateData, {
+            new: true,
+            runValidators: true,
+        })
             .populate('createdBy', 'fullName username')
             .populate('lastUpdatedBy', 'fullName username')
             .populate('academicYearId', 'fromYear toYear status')
             .lean();
 
         console.log('✅ [SchoolEducationalActivity update] Updated successfully');
-        return updated;
+
+        return updatedActivity;
     } catch (error) {
         console.error('❌ [SchoolEducationalActivity update] Error:', error);
         if (error instanceof ApiError) throw error;
@@ -421,11 +420,16 @@ const deleteActivity = async (id, userId) => {
         if (user.role === 'giao_vien') {
             throw new ApiError(StatusCodes.FORBIDDEN, 'Giáo viên chỉ có quyền xem');
         }
+        // ✅ Lưu thông tin trước khi xóa
+        const activityInfo = {
+            targetCode: activity.targetCode,
+            ageGroup: activity.ageGroup,
+        };
 
         await SchoolEducationalActivityModel.findByIdAndUpdate(id, { _destroy: true });
         console.log('✅ [deleteActivity] Deleted successfully');
 
-        return { message: 'Xóa hoạt động giáo dục thành công' };
+        return { message: 'Xóa hoạt động giáo dục thành công', activityInfo };
     } catch (error) {
         console.error('❌ [SchoolEducationalActivity deleteActivity] Error:', error);
         if (error instanceof ApiError) throw error;

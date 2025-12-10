@@ -8,7 +8,7 @@ import {
     Tabs,
     Tab,
     IconButton,
-    Button,
+    // Button,
     Tooltip,
     CircularProgress,
     Chip,
@@ -28,7 +28,7 @@ import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
 import DeleteOutlineOutlinedIcon from '@mui/icons-material/DeleteOutlineOutlined';
 import HistoryEduOutlinedIcon from '@mui/icons-material/HistoryEduOutlined';
-import ContentCopyIcon from '@mui/icons-material/ContentCopy';
+// import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import DoneOutlinedIcon from '@mui/icons-material/DoneOutlined';
 
 import MainLayout from '~/layouts/SchoolLayout';
@@ -85,7 +85,7 @@ function EducationalActivity() {
     const canView = hasPermission(PERMISSIONS.VIEW_EDUCATION_ACTIVITY);
 
     // ✅ Kiểm tra quyền copy: Ban giám hiệu HOẶC Tổ trưởng
-    const canCopy = user?.role === 'ban_giam_hieu' || user?.role === 'to_truong';
+    // const canCopy = user?.role === 'ban_giam_hieu' || user?.role === 'to_truong';
 
     // ✅ Fetch Academic Years
     const fetchAcademicYears = async () => {
@@ -439,7 +439,7 @@ function EducationalActivity() {
                             </FormControl>
 
                             {/* ✅ Nút Copy từ năm học cũ - Cho cả Ban giám hiệu và Tổ trưởng */}
-                            {canCopy && isActiveYear && (
+                            {/* {canCopy && isActiveYear && (
                                 <Button
                                     variant="outlined"
                                     size="small"
@@ -460,7 +460,7 @@ function EducationalActivity() {
                                 >
                                     Copy từ năm học cũ
                                 </Button>
-                            )}
+                            )} */}
                         </Box>
                     </Box>
 

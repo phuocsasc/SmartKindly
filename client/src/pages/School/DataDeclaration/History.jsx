@@ -299,9 +299,18 @@ function History() {
                                                 </TableCell>
                                                 <TableCell>{log.resource}</TableCell>
                                                 <TableCell sx={{ maxWidth: 300 }}>
-                                                    <Typography variant="body2" noWrap>
-                                                        {log.description}
-                                                    </Typography>
+                                                    <Tooltip title={log.description} placement="top-start">
+                                                        <Typography
+                                                            variant="body2"
+                                                            noWrap
+                                                            sx={{
+                                                                maxWidth: 300,
+                                                                cursor: 'pointer'
+                                                            }}
+                                                        >
+                                                            {log.description}
+                                                        </Typography>
+                                                    </Tooltip>
                                                 </TableCell>
                                                 <TableCell>
                                                     <Typography variant="body2">

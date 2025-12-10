@@ -11,6 +11,8 @@ import ApiError from '~/utils/ApiError.js';
 import { StatusCodes } from 'http-status-codes';
 import dayjs from 'dayjs';
 import isSameOrBefore from 'dayjs/plugin/isSameOrBefore'; // ✅ Import plugin
+import { logAction } from '~/middlewares/auditLogMiddleware.js';
+import { AUDIT_LOG_ACTIONS, AUDIT_LOG_RESOURCES } from '~/config/auditLogConfig.js';
 
 // ✅ Extend dayjs with plugin
 dayjs.extend(isSameOrBefore);
@@ -141,7 +143,7 @@ const createNew = async (data, userId) => {
             schoolId: user.schoolId,
             status: 'active',
             _destroy: false,
-        });
+        }).select('fromYear toYear');
 
         if (!activeYear) {
             throw new ApiError(StatusCodes.BAD_REQUEST, 'Chỉ được tạo phiếu bé ngoan trong năm học đang hoạt động');
@@ -153,7 +155,7 @@ const createNew = async (data, userId) => {
             schoolId: user.schoolId,
             academicYearId: data.academicYearId,
             _destroy: false,
-        });
+        }).select('name grade ageGroup');
 
         if (!classData) {
             throw new ApiError(StatusCodes.NOT_FOUND, 'Không tìm thấy lớp học');
@@ -173,7 +175,7 @@ const createNew = async (data, userId) => {
             academicYearId: data.academicYearId,
             status: 'Đang học',
             _destroy: false,
-        });
+        }).select('fullName studentCode');
 
         if (!student) {
             throw new ApiError(StatusCodes.NOT_FOUND, 'Không tìm thấy học sinh hoặc học sinh không còn đang học');
@@ -238,6 +240,26 @@ const createNew = async (data, userId) => {
             .lean();
 
         console.log('✅ [ChildrenCertificate createNew] Created successfully');
+
+        await logAction(
+            userId,
+            user.schoolId,
+            AUDIT_LOG_ACTIONS.CREATE,
+            AUDIT_LOG_RESOURCES.CHILDREN_CERTIFICATE,
+            `Tạo phiếu bé ngoan cho "${student.fullName}" - Tuần ${data.weekNumber} - Lớp "${classData.name}" - Năm học ${activeYear.fromYear}-${activeYear.toYear}`,
+            {
+                classId: data.classId,
+                className: classData.name,
+                studentId: data.studentId,
+                studentName: student.fullName,
+                studentCode: student.studentCode,
+                weekNumber: parseInt(data.weekNumber),
+                academicYearId: data.academicYearId,
+                academicYear: `${activeYear.fromYear}-${activeYear.toYear}`,
+                isGoodChild: data.isGoodChild || false,
+            },
+        );
+
         return populated;
     } catch (error) {
         console.error('❌ [ChildrenCertificate createNew] Error:', error);
@@ -376,7 +398,10 @@ const update = async (id, data, userId) => {
             _id: id,
             schoolId: user.schoolId,
             _destroy: false,
-        }).populate('academicYearId', 'status');
+        })
+            .populate('academicYearId', 'status fromYear toYear')
+            .populate('classId', 'name')
+            .populate('studentId', 'fullName studentCode');
 
         if (!certificate) {
             throw new ApiError(StatusCodes.NOT_FOUND, 'Không tìm thấy phiếu bé ngoan');
@@ -392,7 +417,7 @@ const update = async (id, data, userId) => {
 
         // ✅ Check permission
         const accessibleClassIds = await getAccessibleClasses(user, certificate.academicYearId._id);
-        if (!accessibleClassIds.includes(certificate.classId.toString())) {
+        if (!accessibleClassIds.includes(certificate.classId._id.toString())) {
             throw new ApiError(StatusCodes.FORBIDDEN, 'Bạn không có quyền cập nhật phiếu bé ngoan này');
         }
 
@@ -411,6 +436,26 @@ const update = async (id, data, userId) => {
             .lean();
 
         console.log('✅ [ChildrenCertificate update] Updated successfully');
+
+        await logAction(
+            userId,
+            user.schoolId,
+            AUDIT_LOG_ACTIONS.UPDATE,
+            AUDIT_LOG_RESOURCES.CHILDREN_CERTIFICATE,
+            `Cập nhật phiếu bé ngoan cho "${certificate.studentId.fullName}" - Tuần ${certificate.weekNumber} - Lớp "${certificate.classId.name}" - Năm học ${certificate.academicYearId.fromYear}-${certificate.academicYearId.toYear}`,
+            {
+                classId: certificate.classId._id,
+                className: certificate.classId.name,
+                studentId: certificate.studentId._id,
+                studentName: certificate.studentId.fullName,
+                studentCode: certificate.studentId.studentCode,
+                weekNumber: certificate.weekNumber,
+                academicYearId: certificate.academicYearId._id,
+                academicYear: `${certificate.academicYearId.fromYear}-${certificate.academicYearId.toYear}`,
+                isGoodChild: certificate.isGoodChild,
+            },
+        );
+
         return updated;
     } catch (error) {
         console.error('❌ [ChildrenCertificate update] Error:', error);
@@ -435,7 +480,10 @@ const deleteCertificate = async (id, userId) => {
             _id: id,
             schoolId: user.schoolId,
             _destroy: false,
-        }).populate('academicYearId', 'status');
+        })
+            .populate('academicYearId', 'status fromYear toYear')
+            .populate('classId', 'name')
+            .populate('studentId', 'fullName studentCode');
 
         if (!certificate) {
             throw new ApiError(StatusCodes.NOT_FOUND, 'Không tìm thấy phiếu bé ngoan');
@@ -448,15 +496,40 @@ const deleteCertificate = async (id, userId) => {
 
         // ✅ Check permission
         const accessibleClassIds = await getAccessibleClasses(user, certificate.academicYearId._id);
-        if (!accessibleClassIds.includes(certificate.classId.toString())) {
+        if (!accessibleClassIds.includes(certificate.classId._id.toString())) {
             throw new ApiError(StatusCodes.FORBIDDEN, 'Bạn không có quyền xóa phiếu bé ngoan này');
         }
+
+        // ✅ Lưu thông tin trước khi xóa
+        const certificateInfo = {
+            studentName: certificate.studentId.fullName,
+            studentCode: certificate.studentId.studentCode,
+            className: certificate.classId.name,
+            weekNumber: certificate.weekNumber,
+            academicYear: `${certificate.academicYearId.fromYear}-${certificate.academicYearId.toYear}`,
+        };
 
         // ✅ Soft delete
         certificate._destroy = true;
         await certificate.save();
 
         console.log('✅ [ChildrenCertificate delete] Deleted successfully');
+
+        await logAction(
+            userId,
+            user.schoolId,
+            AUDIT_LOG_ACTIONS.DELETE,
+            AUDIT_LOG_RESOURCES.CHILDREN_CERTIFICATE,
+            `Xóa phiếu bé ngoan cho "${certificateInfo.studentName}" - Tuần ${certificateInfo.weekNumber} - Lớp "${certificateInfo.className}" - Năm học ${certificateInfo.academicYear}`,
+            {
+                studentName: certificateInfo.studentName,
+                studentCode: certificateInfo.studentCode,
+                className: certificateInfo.className,
+                weekNumber: certificateInfo.weekNumber,
+                academicYear: certificateInfo.academicYear,
+            },
+        );
+
         return { message: 'Xóa phiếu bé ngoan thành công' };
     } catch (error) {
         console.error('❌ [ChildrenCertificate delete] Error:', error);

@@ -44,7 +44,10 @@ const deleteAttendance = async (req, res, next) => {
     try {
         const userId = req.jwtDecoded.id;
         const result = await childrenAttendanceServices.deleteAttendance(req.params.id, userId);
-        res.status(StatusCodes.OK).json(result);
+        res.status(StatusCodes.OK).json({
+            message: result.message,
+            attendanceInfo: result.attendanceInfo, // ✅ Trả về cho audit log
+        });
     } catch (error) {
         next(error);
     }

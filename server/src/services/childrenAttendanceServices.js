@@ -9,6 +9,8 @@ import { ScheduleModel } from '~/models/scheduleModel.js';
 import { UserModel } from '~/models/userModel.js';
 import dayjs from 'dayjs';
 import isoWeek from 'dayjs/plugin/isoWeek';
+import { logAction } from '~/middlewares/auditLogMiddleware.js';
+import { AUDIT_LOG_ACTIONS, AUDIT_LOG_RESOURCES } from '~/config/auditLogConfig.js';
 
 dayjs.extend(isoWeek);
 
@@ -146,13 +148,13 @@ const bulkAttendance = async (data, userId) => {
             throw new ApiError(StatusCodes.BAD_REQUEST, 'Không có năm học đang hoạt động');
         }
 
-        // ✅ Verify class exists
+        // ✅ Verify class exists và lấy thông tin để audit log
         const classData = await ClassModel.findOne({
             _id: classId,
             schoolId: user.schoolId,
             academicYearId: activeYear._id,
             _destroy: false,
-        });
+        }).populate('academicYearId', 'fromYear toYear');
 
         if (!classData) {
             throw new ApiError(StatusCodes.NOT_FOUND, 'Không tìm thấy lớp học');
@@ -216,6 +218,26 @@ const bulkAttendance = async (data, userId) => {
             inserted: result.upsertedCount,
             updated: result.modifiedCount,
         });
+
+        await logAction(
+            userId,
+            user.schoolId,
+            AUDIT_LOG_ACTIONS.CREATE,
+            AUDIT_LOG_RESOURCES.CHILDREN_ATTENDANCE,
+            `Điểm danh hàng loạt ${attendances.length} học sinh - ${dayName} - Tuần ${weekNumber} - Lớp "${classData.name}" - Năm học ${classData.academicYearId.fromYear}-${classData.academicYearId.toYear}`,
+            {
+                classId,
+                className: classData.name,
+                date: targetDate.format('DD/MM/YYYY'),
+                dayName,
+                weekNumber,
+                academicYearId: activeYear._id,
+                academicYear: `${classData.academicYearId.fromYear}-${classData.academicYearId.toYear}`,
+                studentsCount: attendances.length,
+                inserted: result.upsertedCount,
+                updated: result.modifiedCount,
+            },
+        );
 
         return {
             message: 'Điểm danh thành công',
@@ -497,7 +519,14 @@ const updateAttendance = async (id, data, userId) => {
 
         const populated = await ChildrenAttendanceModel.findById(attendance._id)
             .populate('studentId', 'fullName studentCode')
-            .populate('classId', 'name')
+            .populate({
+                path: 'classId',
+                select: 'name',
+                populate: {
+                    path: 'academicYearId',
+                    select: 'fromYear toYear',
+                },
+            })
             .populate('lastUpdatedBy', 'fullName username')
             .lean();
 
@@ -523,7 +552,16 @@ const deleteAttendance = async (id, userId) => {
             _id: id,
             schoolId: user.schoolId,
             _destroy: false,
-        });
+        })
+            .populate('studentId', 'fullName studentCode')
+            .populate({
+                path: 'classId',
+                select: 'name',
+                populate: {
+                    path: 'academicYearId',
+                    select: 'fromYear toYear',
+                },
+            });
 
         if (!attendance) {
             throw new ApiError(StatusCodes.NOT_FOUND, 'Không tìm thấy bản ghi điểm danh');
@@ -542,14 +580,28 @@ const deleteAttendance = async (id, userId) => {
 
         // ✅ Check permission
         const accessibleClassIds = await getAccessibleClasses(user, activeYear._id);
-        if (!accessibleClassIds.includes(attendance.classId.toString())) {
+        if (!accessibleClassIds.includes(attendance.classId._id.toString())) {
             throw new ApiError(StatusCodes.FORBIDDEN, 'Bạn không có quyền xóa điểm danh lớp này');
         }
+
+        // ✅ Lưu thông tin trước khi xóa
+        const attendanceInfo = {
+            studentName: attendance.studentId.fullName,
+            studentCode: attendance.studentId.studentCode,
+            className: attendance.classId.name,
+            academicYear: `${attendance.classId.academicYearId.fromYear}-${attendance.classId.academicYearId.toYear}`,
+            date: dayjs(attendance.date).format('DD/MM/YYYY'),
+            dayOfWeek: attendance.dayOfWeek,
+            weekNumber: attendance.weekNumber,
+        };
 
         // ✅ Soft delete
         await ChildrenAttendanceModel.findByIdAndUpdate(id, { _destroy: true });
 
-        return { message: 'Xóa điểm danh thành công' };
+        return {
+            message: 'Xóa điểm danh thành công',
+            attendanceInfo, // ✅ Trả về thông tin cho audit log
+        };
     } catch (error) {
         console.error('❌ [deleteAttendance] Error:', error);
         if (error instanceof ApiError) throw error;

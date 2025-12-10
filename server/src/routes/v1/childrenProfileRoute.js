@@ -58,7 +58,7 @@ Router.route('/').post(
     auditLog(AUDIT_LOG_ACTIONS.CREATE, AUDIT_LOG_RESOURCES.CHILDREN_PROFILE, (req, body) => {
         const profile = body.data;
         const className = profile.classId?.name || 'N/A';
-        const academicYear = profile.classId?.academicYearId 
+        const academicYear = profile.classId?.academicYearId
             ? `${profile.classId.academicYearId.fromYear}-${profile.classId.academicYearId.toYear}`
             : 'N/A';
         return `Thêm hồ sơ trẻ "${profile.fullName}" - Lớp: ${className} - Năm học: ${academicYear}`;
@@ -82,7 +82,7 @@ Router.route('/:id').put(
     auditLog(AUDIT_LOG_ACTIONS.UPDATE, AUDIT_LOG_RESOURCES.CHILDREN_PROFILE, (req, body) => {
         const profile = body.data;
         const className = profile.classId?.name || 'N/A';
-        const academicYear = profile.classId?.academicYearId 
+        const academicYear = profile.classId?.academicYearId
             ? `${profile.classId.academicYearId.fromYear}-${profile.classId.academicYearId.toYear}`
             : 'N/A';
         return `Cập nhật hồ sơ trẻ "${profile.fullName}" - Lớp: ${className} - Năm học: ${academicYear}`;

@@ -46,7 +46,7 @@ function UserManagement() {
     const [filterRole, setFilterRole] = useState('');
     const [filterStatus, setFilterStatus] = useState('');
     const [selectedRows, setSelectedRows] = useState([]);
-    const [paginationModel, setPaginationModel] = useState({ page: 0, pageSize: 5 });
+    const [paginationModel, setPaginationModel] = useState({ page: 0, pageSize: 10 });
     const [totalRows, setTotalRows] = useState(0);
     const [roleStats, setRoleStats] = useState({});
     const [openDialog, setOpenDialog] = useState(false);

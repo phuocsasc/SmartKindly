@@ -201,9 +201,6 @@ function History() {
                                 <MenuItem value="UPDATE">Cập nhật</MenuItem>
                                 <MenuItem value="DELETE">Xóa</MenuItem>
                                 <MenuItem value="IMPORT">Import</MenuItem>
-                                <MenuItem value="EXPORT">Export</MenuItem>
-                                <MenuItem value="LOGIN">Đăng nhập</MenuItem>
-                                <MenuItem value="LOGOUT">Đăng xuất</MenuItem>
                             </Select>
                         </FormControl>
 

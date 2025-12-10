@@ -473,13 +473,19 @@ const deleteTarget = async (id, userId) => {
             throw new ApiError(StatusCodes.FORBIDDEN, 'Chỉ có thể xóa mục tiêu trong năm học đang hoạt động');
         }
 
+        // ✅ Lưu thông tin trước khi xóa
+        const targetInfo = {
+            ageGroup: target.ageGroup,
+            academicYear: `${target.academicYearId.fromYear}-${target.academicYearId.toYear}`,
+        };
+
         // ✅ Xóa cascade dữ liệu liên quan cho ageGroup này
         await deleteCascadeRelatedData(user.schoolId, target.academicYearId._id, target.ageGroup);
 
         // Soft delete
         await SchoolYearTargetModel.findByIdAndUpdate(id, { _destroy: true });
 
-        return { message: 'Xóa mục tiêu năm học thành công' };
+        return { message: 'Xóa mục tiêu năm học thành công', targetInfo };
     } catch (error) {
         if (error instanceof ApiError) throw error;
         throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, 'Lỗi khi xóa mục tiêu năm học');

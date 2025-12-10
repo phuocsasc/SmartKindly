@@ -94,17 +94,17 @@ const menuItems = [
             { text: 'Thực đơn', path: '/nutrition/menu' },
         ],
     },
-    {
-        text: 'Học phí',
-        icon: <MonetizationOnOutlinedIcon />,
-        children: [
-            { text: 'Thiết lập khoản thu', path: '/fee/setup' },
-            { text: 'Danh mục khoản thu', path: '/fee/list' },
-            { text: 'Thu thanh toán', path: '/fee/payment' },
-            { text: 'Quản lý ngày học/nghỉ', path: '/fee/day-off' },
-            { text: 'Báo cáo thống kê thu chi', path: '/fee/report' },
-        ],
-    },
+    // {
+    //     text: 'Học phí',
+    //     icon: <MonetizationOnOutlinedIcon />,
+    //     children: [
+    //         { text: 'Thiết lập khoản thu', path: '/fee/setup' },
+    //         { text: 'Danh mục khoản thu', path: '/fee/list' },
+    //         { text: 'Thu thanh toán', path: '/fee/payment' },
+    //         { text: 'Quản lý ngày học/nghỉ', path: '/fee/day-off' },
+    //         { text: 'Báo cáo thống kê thu chi', path: '/fee/report' },
+    //     ],
+    // },
     {
         text: 'Y tế',
         icon: <MedicalServicesOutlinedIcon />,

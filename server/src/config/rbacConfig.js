@@ -117,6 +117,24 @@ export const PERMISSIONS = {
     CREATE_CHILDREN_PROGRAM_COMPLETE: 'create_children_program_complete',
     UPDATE_CHILDREN_PROGRAM_COMPLETE: 'update_children_program_complete',
     DELETE_CHILDREN_PROGRAM_COMPLETE: 'delete_children_program_complete',
+
+    // Quản lý thực phẩm
+    VIEW_FOOD: 'view_food',
+    CREATE_FOOD: 'create_food',
+    UPDATE_FOOD: 'update_food',
+    DELETE_FOOD: 'delete_food',
+
+    // Quản lý món ăn
+    VIEW_MEAL: 'view_meal',
+    CREATE_MEAL: 'create_meal',
+    UPDATE_MEAL: 'update_meal',
+    DELETE_MEAL: 'delete_meal',
+
+    // Quản lý thực đơn
+    VIEW_MENU: 'view_menu',
+    CREATE_MENU: 'create_menu',
+    UPDATE_MENU: 'update_menu',
+    DELETE_MENU: 'delete_menu',
 };
 
 export const ROLE_PERMISSIONS = {
@@ -178,6 +196,10 @@ export const ROLE_PERMISSIONS = {
         PERMISSIONS.CREATE_CHILDREN_PROGRAM_COMPLETE,
         PERMISSIONS.UPDATE_CHILDREN_PROGRAM_COMPLETE,
         PERMISSIONS.DELETE_CHILDREN_PROGRAM_COMPLETE,
+
+        PERMISSIONS.VIEW_FOOD,
+        PERMISSIONS.VIEW_MEAL,
+        PERMISSIONS.VIEW_MENU,
     ],
     [ROLES.GIAO_VIEN]: [
         PERMISSIONS.VIEW_SCHOOL_INFO,
@@ -226,6 +248,10 @@ export const ROLE_PERMISSIONS = {
         PERMISSIONS.CREATE_CHILDREN_PROGRAM_COMPLETE,
         PERMISSIONS.UPDATE_CHILDREN_PROGRAM_COMPLETE,
         PERMISSIONS.DELETE_CHILDREN_PROGRAM_COMPLETE,
+
+        PERMISSIONS.VIEW_FOOD,
+        PERMISSIONS.VIEW_MEAL,
+        PERMISSIONS.VIEW_MENU,
     ],
     [ROLES.KE_TOAN]: [PERMISSIONS.VIEW_SCHOOL_INFO, PERMISSIONS.VIEW_CLASSROOM, PERMISSIONS.VIEW_DASHBOARD],
     [ROLES.PHU_HUYNH]: [PERMISSIONS.VIEW_SCHOOL_INFO, PERMISSIONS.VIEW_DASHBOARD],

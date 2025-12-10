@@ -45,6 +45,11 @@ import ChildrenAssessment from '~/pages/School/Children/ChildrenAssessment/Child
 import ChildrenCertificate from '~/pages/School/Children/ChildrenCertificate/ChildrenCertificate';
 import ChildrenProgramComplete from '~/pages/School/Children/ChildrenProgramComplete/ChildrenProgramComplete';
 
+// Dinh dưỡng
+import Food from '~/pages/School/Nutrition/Food/Food';
+import Meal from '~/pages/School/Nutrition/Meal/Meal';
+import Menu from '~/pages/School/Nutrition/Menu/menu';
+
 /**
  * Protected Routes với UserContext
  */
@@ -163,6 +168,17 @@ function AppContent() {
                     </Route>
                     <Route element={<RbacRoute requiredPermission={PERMISSIONS.VIEW_CHILDREN_PROGRAM_COMPLETE} />}>
                         <Route path="/children/program-complete" element={<ChildrenProgramComplete />} />
+                    </Route>
+
+                    {/* Thực phẩm */}
+                    <Route element={<RbacRoute requiredPermission={PERMISSIONS.VIEW_FOOD} />}>
+                        <Route path="/nutrition/food" element={<Food />} />
+                    </Route>
+                    <Route element={<RbacRoute requiredPermission={PERMISSIONS.VIEW_MEAL} />}>
+                        <Route path="/nutrition/meal" element={<Meal />} />
+                    </Route>
+                    <Route element={<RbacRoute requiredPermission={PERMISSIONS.VIEW_MENU} />}>
+                        <Route path="/nutrition/menu" element={<Menu />} />
                     </Route>
                 </Route>
 

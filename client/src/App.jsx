@@ -15,6 +15,9 @@ import AdminSchoolManagement from '~/pages/Admin/SchoolsManagement/AdminSchoolMa
 import AdminUserManagement from '~/pages/Admin/UsersManagement/AdminUserManagement';
 import AdminYearTarget from '~/pages/Admin/DataBank/YearTarget/AdminYearTarget';
 import EducationalActivity from '~/pages/Admin/DataBank/ThemePlan/EducationalActivity';
+import AdminFood from '~/pages/Admin/DataBank/Food/AdminFood';
+import AdminMeal from '~/pages/Admin/DataBank/Meal/AdminMeal';
+import AdminMenu from '~/pages/Admin/DataBank/Menu/AdminMenu';
 
 // Users
 import UserManagement from '~/pages/School/Users/UserManagement';
@@ -97,10 +100,12 @@ function AppContent() {
 
                     <Route element={<RbacRoute requiredPermission={PERMISSIONS.ADMIN_DATA_BANK} />}>
                         <Route path="/admin/edu-plan/year-target" element={<AdminYearTarget />} />
-                    </Route>
-                    <Route element={<RbacRoute requiredPermission={PERMISSIONS.ADMIN_DATA_BANK} />}>
                         <Route path="/admin/edu-plan/theme-plan" element={<EducationalActivity />} />
+                        <Route path="/admin/nutrition/food" element={<AdminFood />} />
+                        <Route path="/admin/nutrition/meal" element={<AdminMeal />} />
+                        <Route path="/admin/nutrition/menu" element={<AdminMenu />} />
                     </Route>
+
                     <Route path="/admin/user-info" element={<AdminInfo />} />
 
                     {/* School Routes - Các role trong trường */}

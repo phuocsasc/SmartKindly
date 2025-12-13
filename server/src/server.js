@@ -12,6 +12,10 @@ import { initSocketServer } from '~/sockets';
 const START_SERVER = () => {
     const app = express();
 
+    // ✅ FIX: Tăng giới hạn body size lên 50MB (hoặc theo nhu cầu)
+    app.use(express.json({ limit: '50mb' }));
+    app.use(express.urlencoded({ limit: '50mb', extended: true }));
+
     // ✅ Create HTTP server
     const httpServer = createServer(app);
 

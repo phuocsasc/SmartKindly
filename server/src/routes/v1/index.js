@@ -22,6 +22,7 @@ import { childrenCertificateRoute } from './childrenCertificateRoute.js';
 import { notificationRoute } from './notificationRoute.js';
 import childrenProgramCompleteRoute from './childrenProgramCompleteRoute.js';
 import { auditLogRoute } from './auditLogRoute.js';
+import foodRoute from '~/routes/v1/foodRoute.js';
 
 
 const Router = express.Router();
@@ -83,5 +84,7 @@ Router.use('/notifications', notificationRoute);
 Router.use('/children-program-completes', childrenProgramCompleteRoute);
 
 Router.use('/audit-logs', auditLogRoute);
+
+Router.use('/foods', foodRoute)
 
 export const APIs_V1 = Router;

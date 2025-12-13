@@ -62,3 +62,5 @@ export * from './notificationApi';
 export * from './childrenProgramCompleteApi';
 
 export * from './auditLogApi';
+
+export * from './foodApi';

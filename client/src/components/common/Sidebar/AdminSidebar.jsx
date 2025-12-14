@@ -36,7 +36,7 @@ const menuItems = [
             { text: 'Mục tiêu năm học', path: '/admin/edu-plan/year-target' },
             { text: 'Kế hoạch giáo dục', path: '/admin/edu-plan/theme-plan' },
             { text: 'Thực phẩm', path: '/admin/nutrition/food' },
-            { text: 'Món ăn', path: '/admin/nutrition/meal' },
+            // { text: 'Món ăn', path: '/admin/nutrition/meal' },
             // { text: 'Thực đơn', path: '/admin/nutrition/menu' },
         ],
     },

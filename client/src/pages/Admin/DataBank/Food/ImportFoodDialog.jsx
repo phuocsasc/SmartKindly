@@ -12,7 +12,7 @@ import {
     IconButton,
     Alert,
     LinearProgress,
-    Chip,
+    // Chip,
     Avatar,
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
@@ -364,7 +364,7 @@ function ImportFoodDialog({ open, onClose, onSuccess }) {
                         >
                             {validationErrors.length === 0 ? (
                                 <Typography variant="body2">
-                                    ✅ Phát hiện <strong>{previewData.length}</strong> thực phẩm hợp lệ
+                                    Phát hiện <strong>{previewData.length}</strong> thực phẩm hợp lệ
                                 </Typography>
                             ) : (
                                 <Typography variant="body2">
@@ -401,7 +401,7 @@ function ImportFoodDialog({ open, onClose, onSuccess }) {
                         )}
 
                         {/* Show preview */}
-                        {validationErrors.length === 0 && (
+                        {/* {validationErrors.length === 0 && (
                             <Box sx={{ mt: 2 }}>
                                 <Typography variant="subtitle2" fontWeight={600} sx={{ mb: 1 }}>
                                     Xem trước dữ liệu:
@@ -427,7 +427,7 @@ function ImportFoodDialog({ open, onClose, onSuccess }) {
                                     )}
                                 </Box>
                             </Box>
-                        )}
+                        )} */}
                     </Box>
                 )}
 

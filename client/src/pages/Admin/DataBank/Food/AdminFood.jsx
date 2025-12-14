@@ -32,7 +32,9 @@ import { useConfirmDialog } from '~/hooks/useConfirmDialog';
 import { PERMISSIONS } from '~/config/rbacConfig';
 import { usePermission } from '~/hooks/usePermission';
 import FileUploadOutlinedIcon from '@mui/icons-material/FileUploadOutlined';
+import FileDownloadOutlinedIcon from '@mui/icons-material/FileDownloadOutlined'; // ✅ Import icon
 import ImportFoodDialog from './ImportFoodDialog';
+import { exportFoodsToExcel } from '~/utils/foodExcelExport'; // ✅ Import export function
 
 const FOOD_CATEGORIES = ['Động vật', 'Thực vật', 'Thực phẩm Khô', 'Thực phẩm tươi', 'Thực phẩm ăn liền'];
 
@@ -54,6 +56,7 @@ function AdminFood() {
     const [currentFood, setCurrentFood] = useState(null);
     const [openImportDialog, setOpenImportDialog] = useState(false);
     const [selectedRows, setSelectedRows] = useState([]); // ✅ State cho checkbox selection
+    const [exportLoading, setExportLoading] = useState(false); // ✅ Loading state cho export
 
     // Debounce search
     useEffect(() => {
@@ -164,6 +167,34 @@ function AdminFood() {
         }
     };
 
+    // ✅ Handler xuất Excel
+    const handleExportExcel = async () => {
+        try {
+            setExportLoading(true);
+
+            // Lấy tất cả records (không phân trang)
+            const res = await foodApi.getAll({
+                page: 1,
+                limit: 9999,
+                search: '',
+                category: '',
+                unit: '',
+            });
+
+            const allFoods = res.data.data.foods;
+
+            // Xuất Excel
+            await exportFoodsToExcel(allFoods);
+
+            toast.success('Xuất file Excel thành công!');
+        } catch (error) {
+            console.error('Error exporting Excel:', error);
+            toast.error('Lỗi khi xuất file Excel!');
+        } finally {
+            setExportLoading(false);
+        }
+    };
+
     const handleDialogClose = () => {
         setOpenDialog(false);
         setCurrentFood(null);
@@ -180,7 +211,7 @@ function AdminFood() {
         {
             field: 'name',
             headerName: 'Tên thực phẩm',
-            flex: 1.5,
+            flex: 1.0,
             minWidth: 200,
             sortable: false,
             renderCell: (params) => (
@@ -207,18 +238,18 @@ function AdminFood() {
         },
         {
             field: 'gramConversion',
-            headerName: 'Quy đổi sang gam',
-            width: 140,
+            headerName: 'Quy đổi sang gam (hoặc ml)',
+            width: 180,
             sortable: false,
             align: 'center',
             headerAlign: 'center',
-            renderCell: (params) => `${params.value}g`,
+            renderCell: (params) => `${params.value}`,
         },
         {
             field: 'categories',
             headerName: 'Loại thực phẩm',
-            flex: 1.5,
-            minWidth: 250,
+            flex: 1.0,
+            minWidth: 200,
             sortable: false,
             renderCell: (params) => (
                 <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap', py: 0.5 }}>
@@ -231,11 +262,78 @@ function AdminFood() {
         {
             field: 'wastePercentage',
             headerName: 'Hệ số thái bỏ (%)',
-            width: 140,
+            width: 160,
             sortable: false,
             align: 'center',
             headerAlign: 'center',
             renderCell: (params) => `${params.value}%`,
+        },
+        // ✅ 3 CỘT DINH DƯỠNG MỚI
+        {
+            field: 'protein',
+            headerName: 'Protein (Đạm)',
+            width: 140,
+            sortable: false,
+            align: 'center',
+            headerAlign: 'center',
+            renderHeader: () => (
+                <Tooltip title="Thông tin dinh dưỡng (trên 1 gam thực phẩm)" placement="top">
+                    <Box sx={{ display: 'flex', alignItems: 'center', cursor: 'help' }}>
+                        <Typography variant="body2" fontWeight={700}>
+                            Protein (Đạm)
+                        </Typography>
+                    </Box>
+                </Tooltip>
+            ),
+            renderCell: (params) => (
+                <Typography variant="body2" sx={{ color: '#5d2e7dff' }}>
+                    {params.value}
+                </Typography>
+            ),
+        },
+        {
+            field: 'lipid',
+            headerName: 'Lipid (Béo)',
+            width: 130,
+            sortable: false,
+            align: 'center',
+            headerAlign: 'center',
+            renderHeader: () => (
+                <Tooltip title="Thông tin dinh dưỡng (trên 1 gam thực phẩm)" placement="top">
+                    <Box sx={{ display: 'flex', alignItems: 'center', cursor: 'help' }}>
+                        <Typography variant="body2" fontWeight={700}>
+                            Lipid (Béo)
+                        </Typography>
+                    </Box>
+                </Tooltip>
+            ),
+            renderCell: (params) => (
+                <Typography variant="body2" sx={{ color: '#ed6c02' }}>
+                    {params.value}
+                </Typography>
+            ),
+        },
+        {
+            field: 'glucid',
+            headerName: 'Glucid (Đường)',
+            width: 145,
+            sortable: false,
+            align: 'center',
+            headerAlign: 'center',
+            renderHeader: () => (
+                <Tooltip title="Thông tin dinh dưỡng (trên 1 gam thực phẩm)" placement="top">
+                    <Box sx={{ display: 'flex', alignItems: 'center', cursor: 'help' }}>
+                        <Typography variant="body2" fontWeight={700}>
+                            Glucid (Đường)
+                        </Typography>
+                    </Box>
+                </Tooltip>
+            ),
+            renderCell: (params) => (
+                <Typography variant="body2" sx={{ color: '#1976d2' }}>
+                    {params.value}
+                </Typography>
+            ),
         },
         {
             field: 'actions',
@@ -363,6 +461,21 @@ function AdminFood() {
                                         </IconButton>
                                     </Tooltip>
 
+                                    {/* ✅ Nút Xuất Excel */}
+                                    <Tooltip title="Xuất file Excel">
+                                        <IconButton
+                                            sx={{ color: '#2e7d32' }}
+                                            onClick={handleExportExcel}
+                                            disabled={selectedRows.length >= 2}
+                                        >
+                                            {exportLoading ? (
+                                                <CircularProgress size={24} sx={{ color: '#2e7d32' }} />
+                                            ) : (
+                                                <FileDownloadOutlinedIcon />
+                                            )}
+                                        </IconButton>
+                                    </Tooltip>
+
                                     {/* ✅ Nút xóa nhiều - Chỉ hiện khi có chọn */}
                                     {selectedRows.length > 0 && (
                                         <Tooltip title={`Xóa ${selectedRows.length} thực phẩm đã chọn`}>
@@ -390,20 +503,59 @@ function AdminFood() {
                         onPaginationModelChange={setPaginationModel}
                         pageSizeOptions={[5, 10, 20, 50]}
                         getRowHeight={() => 'auto'}
-                        // ✅ Handle selection change
                         rowSelectionModel={selectedRows}
                         onRowSelectionModelChange={(newSelection) => setSelectedRows(newSelection)}
                         sx={{
-                            border: 'none',
-                            '& .MuiDataGrid-cell': {
-                                py: 1,
-                                display: 'flex',
-                                alignItems: 'center',
+                            // 💠 STYLE CHO CHECKBOX
+                            '& .MuiCheckbox-root': {
+                                color: '#0071bc',
+                                '&.Mui-checked': {
+                                    color: '#0071bc',
+                                },
+                                '&:hover': {
+                                    backgroundColor: '#aee2ff33',
+                                },
                             },
+
+                            // 💠 HEADER STYLE
                             '& .MuiDataGrid-columnHeaders': {
-                                backgroundColor: '#f5f5f5',
-                                fontWeight: 600,
+                                backgroundColor: '#e3f2fd',
+                                color: '#1976d2',
+                                fontWeight: 900,
+                                borderBottom: '2px solid #bbdefb',
                             },
+                            '& .MuiDataGrid-columnHeaderTitle': {
+                                fontWeight: 'bold',
+                                fontSize: '0.95rem',
+                            },
+                            '& .MuiDataGrid-columnHeader': {
+                                borderRight: '1px solid #bbdefb',
+                                textAlign: 'center',
+                            },
+
+                            // 💠 BODY STYLE
+                            '& .MuiDataGrid-cell': {
+                                borderRight: '1px solid #e0e0e0',
+                                borderBottom: '1px solid #f0f0f0',
+                                alignItems: 'center',
+                                whiteSpace: 'normal',
+                                wordBreak: 'break-word',
+                                color: '#000',
+                                py: 1,
+                            },
+                            '& .MuiDataGrid-cell:focus, & .MuiDataGrid-cell:focus-within': {
+                                outline: 'none',
+                            },
+
+                            // 💠 ROW HOVER
+                            '& .MuiDataGrid-row:hover': {
+                                backgroundColor: '#f5faff',
+                            },
+
+                            // 💠 BO GÓC NHẸ, BÓNG NHẸ
+                            borderRadius: 2,
+                            boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+                            border: 'none',
                         }}
                         slots={{
                             noRowsOverlay: () => (

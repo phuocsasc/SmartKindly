@@ -338,9 +338,9 @@ const createNew = async (data, userId) => {
         const ageGroupMapping = {
             '12-24 tháng': 'Nhà trẻ 12-24 tháng',
             '24-36 tháng': 'Nhà trẻ 24-36 tháng',
-            mầm: 'Khối mầm 3-4 tuổi',
-            chồi: 'Khối chồi 4-5 tuổi',
-            lá: 'Khối lá 5-6 tuổi',
+            '3-4 tuổi': 'Khối mầm 3-4 tuổi',
+            '4-5 tuổi': 'Khối chồi 4-5 tuổi',
+            '5-6 tuổi': 'Khối lá 5-6 tuổi',
         };
 
         const mappedAgeGroup = ageGroupMapping[classData.ageGroup];

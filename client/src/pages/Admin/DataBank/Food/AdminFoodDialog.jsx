@@ -178,7 +178,7 @@ function AdminFoodDialog({ open, mode, food, onClose, onSuccess }) {
                     py: 2.5,
                     maxHeight: '70vh',
                     overflowY: 'auto',
-                    mt: -2,
+                    mt: 1,
                     '&::-webkit-scrollbar': { width: '6px' },
                     '&::-webkit-scrollbar-track': { backgroundColor: '#e3f2fd' },
                     '&::-webkit-scrollbar-thumb': { backgroundColor: '#0964a1a4', borderRadius: '4px' },
@@ -280,6 +280,17 @@ function AdminFoodDialog({ open, mode, food, onClose, onSuccess }) {
 
                     {/* Section: Thông tin dinh dưỡng */}
                     <Box>
+                        <TextField
+                            label="Hệ số thái bỏ (%)"
+                            type="number"
+                            value={formData.wastePercentage}
+                            onChange={(e) => setFormData({ ...formData, wastePercentage: Number(e.target.value) })}
+                            required
+                            fullWidth
+                            size="small"
+                            inputProps={{ min: 0, max: 99, step: 0.1 }}
+                            helperText="Từ 0 đến 99%"
+                        />
                         <Typography
                             variant="subtitle2"
                             sx={{
@@ -296,18 +307,6 @@ function AdminFoodDialog({ open, mode, food, onClose, onSuccess }) {
                         </Typography>
 
                         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                            <TextField
-                                label="Hệ số thái bỏ (%)"
-                                type="number"
-                                value={formData.wastePercentage}
-                                onChange={(e) => setFormData({ ...formData, wastePercentage: Number(e.target.value) })}
-                                required
-                                fullWidth
-                                size="small"
-                                inputProps={{ min: 0, max: 99, step: 0.1 }}
-                                helperText="Từ 0 đến 99%"
-                            />
-
                             <Box sx={{ display: 'flex', gap: 2 }}>
                                 <TextField
                                     label="Protein (Đạm)"

@@ -26,7 +26,6 @@ import {
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import SearchIcon from '@mui/icons-material/Search';
 import HistoryIcon from '@mui/icons-material/History';
-import RefreshIcon from '@mui/icons-material/Refresh';
 import DeleteSweepIcon from '@mui/icons-material/DeleteSweep';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import SchoolLayout from '~/layouts/SchoolLayout';
@@ -73,6 +72,8 @@ function History() {
         startDate: null,
         endDate: null,
     });
+
+    const isDisableSingleDelete = selectedLogs.length >= 2;
 
     // ✅ Fetch logs
     const fetchLogs = async () => {
@@ -172,9 +173,6 @@ function History() {
                             >
                                 Xóa đã chọn ({selectedLogs.length})
                             </Button>
-                            <Button variant="outlined" startIcon={<RefreshIcon />} onClick={fetchLogs}>
-                                Làm mới
-                            </Button>
                         </Box>
                     </Box>
 
@@ -185,10 +183,36 @@ function History() {
                             label="Tên người tác động"
                             value={filters.userName}
                             onChange={(e) => setFilters({ ...filters, userName: e.target.value })}
-                            sx={{ minWidth: 200 }}
+                            sx={{
+                                display: 'flex',
+                                gap: 2,
+                                mb: 2,
+                                flexWrap: 'wrap',
+                                '& .MuiOutlinedInput-root': {
+                                    borderRadius: 1.5,
+                                    '&:hover fieldset': { borderColor: '#0071bc' },
+                                    '&.Mui-focused fieldset': { borderColor: '#0071bc', borderWidth: 2 },
+                                },
+                                '& label.Mui-focused': { color: '#0071bc' },
+                            }}
                         />
 
-                        <FormControl size="small" sx={{ minWidth: 150 }}>
+                        <FormControl
+                            size="small"
+                            sx={{
+                                minWidth: 150,
+                                display: 'flex',
+                                gap: 2,
+                                mb: 2,
+                                flexWrap: 'wrap',
+                                '& .MuiOutlinedInput-root': {
+                                    borderRadius: 1.5,
+                                    '&:hover fieldset': { borderColor: '#0071bc' },
+                                    '&.Mui-focused fieldset': { borderColor: '#0071bc', borderWidth: 2 },
+                                },
+                                '& label.Mui-focused': { color: '#0071bc' },
+                            }}
+                        >
                             <InputLabel>Hành động</InputLabel>
                             <Select
                                 value={filters.action}
@@ -204,7 +228,22 @@ function History() {
                             </Select>
                         </FormControl>
 
-                        <FormControl size="small" sx={{ minWidth: 150 }}>
+                        <FormControl
+                            size="small"
+                            sx={{
+                                minWidth: 150,
+                                display: 'flex',
+                                gap: 2,
+                                mb: 2,
+                                flexWrap: 'wrap',
+                                '& .MuiOutlinedInput-root': {
+                                    borderRadius: 1.5,
+                                    '&:hover fieldset': { borderColor: '#0071bc' },
+                                    '&.Mui-focused fieldset': { borderColor: '#0071bc', borderWidth: 2 },
+                                },
+                                '& label.Mui-focused': { color: '#0071bc' },
+                            }}
+                        >
                             <InputLabel>Vai trò</InputLabel>
                             <Select
                                 value={filters.userRole}
@@ -223,6 +262,19 @@ function History() {
                             value={filters.startDate}
                             onChange={(date) => setFilters({ ...filters, startDate: date })}
                             slotProps={{ textField: { size: 'small' } }}
+                            sx={{
+                                minWidth: 150,
+                                display: 'flex',
+                                gap: 2,
+                                mb: 2,
+                                flexWrap: 'wrap',
+                                '& .MuiOutlinedInput-root': {
+                                    borderRadius: 1.5,
+                                    '&:hover fieldset': { borderColor: '#0071bc' },
+                                    '&.Mui-focused fieldset': { borderColor: '#0071bc', borderWidth: 2 },
+                                },
+                                '& label.Mui-focused': { color: '#0071bc' },
+                            }}
                         />
 
                         <DatePicker
@@ -230,9 +282,45 @@ function History() {
                             value={filters.endDate}
                             onChange={(date) => setFilters({ ...filters, endDate: date })}
                             slotProps={{ textField: { size: 'small' } }}
+                            sx={{
+                                minWidth: 150,
+                                display: 'flex',
+                                gap: 2,
+                                mb: 2,
+                                flexWrap: 'wrap',
+                                '& .MuiOutlinedInput-root': {
+                                    borderRadius: 1.5,
+                                    '&:hover fieldset': { borderColor: '#0071bc' },
+                                    '&.Mui-focused fieldset': { borderColor: '#0071bc', borderWidth: 2 },
+                                },
+                                '& label.Mui-focused': { color: '#0071bc' },
+                            }}
                         />
 
-                        <Button variant="contained" startIcon={<SearchIcon />} onClick={fetchLogs}>
+                        <Button
+                            variant="outlined"
+                            startIcon={<SearchIcon />}
+                            onClick={fetchLogs}
+                            sx={{
+                                height: 40, // 👈 bằng TextField size="small"
+                                borderRadius: 1.5,
+                                color: '#1976d2',
+                                backgroundColor: '#e3f2fd',
+                                borderColor: '#c4c4c4',
+                                textTransform: 'none',
+                                fontWeight: 500,
+                                px: 2,
+                                '&:hover': {
+                                    borderColor: '#0071bc',
+                                    backgroundColor: '#e3f2fd',
+                                },
+                                '&:focus-visible': {
+                                    outline: 'none',
+                                    borderColor: '#0071bc',
+                                    boxShadow: '0 0 0 2px rgba(0,113,188,0.2)',
+                                },
+                            }}
+                        >
                             Tìm kiếm
                         </Button>
                     </Box>
@@ -246,11 +334,68 @@ function History() {
                         <Alert severity="info">Chưa có lịch sử thao tác nào</Alert>
                     ) : (
                         <>
-                            <TableContainer>
-                                <Table size="small">
+                            <TableContainer
+                                sx={{
+                                    border: '1px solid #e0e0e0',
+                                    borderRadius: 2,
+                                    maxHeight: '65vh',
+                                    overflowY: 'auto',
+                                    '&::-webkit-scrollbar': { width: '6px' },
+                                    '&::-webkit-scrollbar-track': { backgroundColor: '#e3f2fd' },
+                                    '&::-webkit-scrollbar-thumb': {
+                                        backgroundColor: '#0964a1a4',
+                                        borderRadius: '4px',
+                                    },
+                                    '&::-webkit-scrollbar-thumb:hover': { backgroundColor: '#0071BC' },
+                                }}
+                            >
+                                <Table
+                                    stickyHeader
+                                    size="small"
+                                    sx={{
+                                        // 💠 HEADER STYLE - giống bảng Lớp học
+                                        '& .MuiTableHead-root .MuiTableCell-head': {
+                                            backgroundColor: '#e3f2fd',
+                                            color: '#1976d2',
+                                            fontWeight: 600,
+                                            borderBottom: '2px solid #bbdefb',
+                                            borderRight: '1px solid #bbdefb',
+                                            fontSize: '0.95rem',
+                                            // textAlign: 'center',
+                                            zIndex: 2,
+                                        },
+
+                                        // 💠 BODY STYLE
+                                        '& .MuiTableBody-root .MuiTableCell-body': {
+                                            borderRight: '1px solid #e0e0e0',
+                                            borderBottom: '1px solid #f0f0f0',
+                                            whiteSpace: 'normal',
+                                            wordBreak: 'break-word',
+                                            color: '#000',
+                                            padding: '8px',
+                                            fontSize: '0.9rem',
+                                        },
+
+                                        // 💠 ROW HOVER
+                                        '& .MuiTableRow-root:hover': {
+                                            backgroundColor: '#f5faff',
+                                        },
+
+                                        // 💠 BO GÓC VÀ SHADOW
+                                        borderRadius: 2,
+                                        boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+                                        overflow: 'hidden',
+                                    }}
+                                >
                                     <TableHead>
-                                        <TableRow sx={{ bgcolor: '#f5f5f5' }}>
-                                            <TableCell padding="checkbox">
+                                        <TableRow>
+                                            <TableCell
+                                                align="center"
+                                                sx={{
+                                                    width: 40,
+                                                    pl: 1, // 👈 đẩy sát trái
+                                                }}
+                                            >
                                                 <Checkbox
                                                     checked={selectedLogs.length === logs.length && logs.length > 0}
                                                     indeterminate={
@@ -259,29 +404,29 @@ function History() {
                                                     onChange={handleSelectAll}
                                                 />
                                             </TableCell>
-                                            <TableCell sx={{ fontWeight: 700 }}>STT</TableCell>
-                                            <TableCell sx={{ fontWeight: 700 }}>Người tác động</TableCell>
-                                            <TableCell sx={{ fontWeight: 700 }}>Vai trò</TableCell>
-                                            <TableCell sx={{ fontWeight: 700 }}>Hành động</TableCell>
-                                            <TableCell sx={{ fontWeight: 700 }}>Đối tượng tác động</TableCell>
-                                            <TableCell sx={{ fontWeight: 700 }}>Mô tả hành động</TableCell>
-                                            <TableCell sx={{ fontWeight: 700 }}>Thời gian</TableCell>
-                                            <TableCell align="center" sx={{ fontWeight: 700 }}>
-                                                Thao tác
-                                            </TableCell>
+                                            <TableCell sx={{ width: 40 }}>STT</TableCell>
+                                            <TableCell>Người tác động</TableCell>
+                                            <TableCell>Vai trò</TableCell>
+                                            <TableCell>Hành động</TableCell>
+                                            <TableCell>Đối tượng tác động</TableCell>
+                                            <TableCell>Mô tả hành động</TableCell>
+                                            <TableCell>Thời gian</TableCell>
+                                            <TableCell sx={{ textAlign: 'center', width: 100 }}>Thao tác</TableCell>
                                         </TableRow>
                                     </TableHead>
 
                                     <TableBody>
                                         {logs.map((log, index) => (
                                             <TableRow key={log._id} hover>
-                                                <TableCell padding="checkbox">
+                                                <TableCell>
                                                     <Checkbox
                                                         checked={selectedLogs.includes(log._id)}
                                                         onChange={() => handleSelectOne(log._id)}
                                                     />
                                                 </TableCell>
-                                                <TableCell>{page * rowsPerPage + index + 1}</TableCell>
+                                                <TableCell sx={{ textAlign: 'center' }}>
+                                                    {page * rowsPerPage + index + 1}
+                                                </TableCell>
                                                 <TableCell>{log.userName}</TableCell>
                                                 <TableCell>
                                                     <Chip
@@ -305,7 +450,7 @@ function History() {
                                                             noWrap
                                                             sx={{
                                                                 maxWidth: 300,
-                                                                cursor: 'pointer'
+                                                                cursor: 'pointer',
                                                             }}
                                                         >
                                                             {log.description}
@@ -325,6 +470,7 @@ function History() {
                                                         <IconButton
                                                             size="small"
                                                             color="error"
+                                                            disabled={isDisableSingleDelete}
                                                             onClick={() => handleDelete(log._id)}
                                                         >
                                                             <DeleteOutlineIcon fontSize="small" />

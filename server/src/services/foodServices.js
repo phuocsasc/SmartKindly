@@ -292,6 +292,7 @@ const importBulk = async (data, userId) => {
                 // Create food
                 const newFood = new FoodModel({
                     name: item.name,
+                    unitPrice: item.unitPrice ?? 0,
                     unit: item.unit || 'Kg',
                     gramConversion: item.gramConversion,
                     categories: item.categories,

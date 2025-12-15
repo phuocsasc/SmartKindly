@@ -101,31 +101,31 @@ function ImportFoodDialog({ open, onClose, onSuccess }) {
                         // ✅ Parse categories (5 cột riêng)
                         const categories = [];
                         if (
-                            String(row[4] || '')
+                            String(row[5] || '')
                                 .toLowerCase()
                                 .trim() === 'x'
                         )
                             categories.push('Động vật');
                         if (
-                            String(row[5] || '')
+                            String(row[6] || '')
                                 .toLowerCase()
                                 .trim() === 'x'
                         )
                             categories.push('Thực vật');
                         if (
-                            String(row[6] || '')
+                            String(row[7] || '')
                                 .toLowerCase()
                                 .trim() === 'x'
                         )
                             categories.push('Thực phẩm Khô');
                         if (
-                            String(row[7] || '')
+                            String(row[8] || '')
                                 .toLowerCase()
                                 .trim() === 'x'
                         )
                             categories.push('Thực phẩm tươi');
                         if (
-                            String(row[8] || '')
+                            String(row[9] || '')
                                 .toLowerCase()
                                 .trim() === 'x'
                         )
@@ -134,19 +134,17 @@ function ImportFoodDialog({ open, onClose, onSuccess }) {
                         return {
                             rowNumber: excelRowNumber,
                             name: String(row[1] || '').trim(),
-                            unit: String(row[2] || 'Kg').trim(),
-                            gramConversion: Number(row[3]) || 0,
+                            unitPrice: parseInt(row[2]) || 0, // ✅ THÊM (Cột C, index 2)
+                            unit: String(row[3] || 'Kg').trim(), // ✅ Dịch từ cột 2 → 3
+                            gramConversion: Number(row[4]) || 0, // ✅ Dịch từ cột 3 → 4
                             categories,
-                            wastePercentage: Number(row[9]) || 0,
-                            protein: Number(row[10]) || 0,
-                            lipid: Number(row[11]) || 0,
-                            glucid: Number(row[12]) || 0,
+                            wastePercentage: Number(row[10]) || 0, // ✅ Dịch từ 9 → 10
+                            protein: Number(row[11]) || 0, // ✅ Dịch từ 10 → 11
+                            lipid: Number(row[12]) || 0, // ✅ Dịch từ 11 → 12
+                            glucid: Number(row[13]) || 0, // ✅ Dịch từ 12 → 13
                         };
                     })
-                    // ✅ CHỈ LỌC CÁC DÒNG CÓ TÊN THỰC PHẨM
-                    .filter((row) => {
-                        return row.name !== '';
-                    });
+                    .filter((row) => row.name !== '');
 
                 console.log('✅ Mapped Data (chỉ dòng có tên):', mappedData.slice(0, 3));
 
@@ -183,6 +181,9 @@ function ImportFoodDialog({ open, onClose, onSuccess }) {
             // Required fields (CHỈ VALIDATE CÁC DÒNG ĐÃ CÓ TÊN)
             if (!row.name || row.name.trim() === '') {
                 rowErrors.push('Thiếu tên thực phẩm');
+            }
+            if (row.unitPrice < 0) {
+                rowErrors.push('Đơn giá phải ≥ 0');
             }
             if (!row.unit || row.unit.trim() === '') {
                 rowErrors.push('Thiếu đơn vị tính');

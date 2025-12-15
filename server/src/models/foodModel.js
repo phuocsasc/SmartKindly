@@ -16,6 +16,13 @@ const FoodSchema = new mongoose.Schema(
             trim: true,
             lowercase: true,
         },
+        // ✅ THÊM TRƯỜNG ĐơN GIÁ
+        unitPrice: {
+            type: Number,
+            required: [true, 'Đơn giá là bắt buộc'],
+            min: [0, 'Đơn giá phải lớn hơn hoặc bằng 0'],
+            default: 0,
+        },
         unit: {
             type: String,
             required: [true, 'Đơn vị tính là bắt buộc'],

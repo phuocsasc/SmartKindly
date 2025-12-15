@@ -32,6 +32,7 @@ const FOOD_CATEGORIES = ['Động vật', 'Thực vật', 'Thực phẩm Khô', 
 function AdminFoodDialog({ open, mode, food, onClose, onSuccess }) {
     const [formData, setFormData] = useState({
         name: '',
+        unitPrice: 0, // ✅ THÊM
         unit: 'Kg',
         gramConversion: '',
         categories: [],
@@ -48,6 +49,7 @@ function AdminFoodDialog({ open, mode, food, onClose, onSuccess }) {
         if (mode === 'edit' && food) {
             setFormData({
                 name: food.name || '',
+                unitPrice: food.unitPrice ?? 0, // ✅ THÊM
                 unit: food.unit || 'Kg',
                 gramConversion: food.gramConversion || '',
                 categories: food.categories || [],
@@ -59,6 +61,7 @@ function AdminFoodDialog({ open, mode, food, onClose, onSuccess }) {
         } else {
             setFormData({
                 name: '',
+                unitPrice: 0, // ✅ THÊM
                 unit: 'Kg',
                 gramConversion: '',
                 categories: [],
@@ -74,6 +77,11 @@ function AdminFoodDialog({ open, mode, food, onClose, onSuccess }) {
         // Validation
         if (!formData.name.trim()) {
             toast.error('Vui lòng nhập tên thực phẩm!');
+            return;
+        }
+        // ✅ VALIDATE ĐƠN GIÁ
+        if (formData.unitPrice < 0) {
+            toast.error('Đơn giá phải lớn hơn hoặc bằng 0!');
             return;
         }
         if (!formData.unit) {
@@ -221,6 +229,20 @@ function AdminFoodDialog({ open, mode, food, onClose, onSuccess }) {
                             />
 
                             <Box sx={{ display: 'flex', gap: 2 }}>
+                                <TextField
+                                    label="Đơn giá (VNĐ)"
+                                    type="number"
+                                    value={formData.unitPrice}
+                                    onChange={(e) =>
+                                        setFormData({ ...formData, unitPrice: parseInt(e.target.value) || 0 })
+                                    }
+                                    required
+                                    fullWidth
+                                    size="small"
+                                    inputProps={{ min: 0, step: 1 }}
+                                    helperText="Nhập số nguyên ≥ 0"
+                                />
+
                                 <FormControl required fullWidth size="small">
                                     <InputLabel>Đơn vị tính</InputLabel>
                                     <Select

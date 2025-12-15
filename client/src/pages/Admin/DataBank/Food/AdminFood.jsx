@@ -227,6 +227,20 @@ function AdminFood() {
                 </Typography>
             ),
         },
+        // ✅ CỘT ĐƠN GIÁ - TRƯỚC CỘT ĐƠN VỊ TÍNH
+        {
+            field: 'unitPrice',
+            headerName: 'Đơn giá (VNĐ)',
+            width: 140,
+            sortable: false,
+            align: 'center',
+            headerAlign: 'center',
+            renderCell: (params) => (
+                <Typography variant="body2" sx={{ color: '#d32f2f', fontWeight: 600 }}>
+                    {params.value.toLocaleString('vi-VN')}
+                </Typography>
+            ),
+        },
         {
             field: 'unit',
             headerName: 'Đơn vị tính',
@@ -249,20 +263,20 @@ function AdminFood() {
             field: 'categories',
             headerName: 'Loại thực phẩm',
             flex: 1.0,
-            minWidth: 200,
+            minWidth: 150,
             sortable: false,
             renderCell: (params) => (
                 <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap', py: 0.5 }}>
                     {params.value.map((category, index) => (
-                        <Chip key={index} label={category} size="small" color="success" />
+                        <Chip key={index} label={category} size="small" color="default" />
                     ))}
                 </Box>
             ),
         },
         {
             field: 'wastePercentage',
-            headerName: 'Hệ số thái bỏ (%)',
-            width: 160,
+            headerName: 'Hệ số thái bỏ',
+            width: 140,
             sortable: false,
             align: 'center',
             headerAlign: 'center',
@@ -338,7 +352,7 @@ function AdminFood() {
         {
             field: 'actions',
             headerName: 'Thao tác',
-            width: 120,
+            width: 100,
             sortable: false,
             align: 'center',
             headerAlign: 'center',

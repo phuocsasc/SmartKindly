@@ -103,6 +103,7 @@ const SchoolMealSchema = new mongoose.Schema(
                     'Món canh',
                     'Món mặn',
                     'Món xào',
+                    'Món xế',
                     'Soup',
                     'Lẩu',
                     'Món bánh',

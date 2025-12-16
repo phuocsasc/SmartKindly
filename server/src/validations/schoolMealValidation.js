@@ -15,7 +15,18 @@ const createNew = async (req, res, next) => {
         }),
         mealType: Joi.string()
             .required()
-            .valid('Món kho', 'Món luộc', 'Món canh', 'Món mặn', 'Món xào', 'Soup', 'Lẩu', 'Món bánh', 'Tráng miệng')
+            .valid(
+                'Món kho',
+                'Món luộc',
+                'Món canh',
+                'Món mặn',
+                'Món xào',
+                'Món xế',
+                'Soup',
+                'Lẩu',
+                'Món bánh',
+                'Tráng miệng',
+            )
             .messages({
                 'any.required': 'Loại món ăn là bắt buộc',
                 'any.only': 'Loại món ăn không hợp lệ',
@@ -59,7 +70,18 @@ const update = async (req, res, next) => {
             'string.max': 'Tên món ăn không được vượt quá 200 ký tự',
         }),
         mealType: Joi.string()
-            .valid('Món kho', 'Món luộc', 'Món canh', 'Món mặn', 'Món xào', 'Soup', 'Lẩu', 'Món bánh', 'Tráng miệng')
+            .valid(
+                'Món kho',
+                'Món luộc',
+                'Món canh',
+                'Món mặn',
+                'Món xào',
+                'Món xế',
+                'Soup',
+                'Lẩu',
+                'Món bánh',
+                'Tráng miệng',
+            )
             .messages({
                 'any.only': 'Loại món ăn không hợp lệ',
             }),

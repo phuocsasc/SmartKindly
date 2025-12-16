@@ -31,12 +31,24 @@ import {
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
+import AssistantOutlinedIcon from '@mui/icons-material/AssistantOutlined';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import { schoolMealApi } from '~/apis';
 import { toast } from 'react-toastify';
 
-const MEAL_TYPES = ['Món kho', 'Món luộc', 'Món canh', 'Món mặn', 'Món xào', 'Soup', 'Lẩu', 'Món bánh', 'Tráng miệng'];
+const MEAL_TYPES = [
+    'Món kho',
+    'Món luộc',
+    'Món canh',
+    'Món mặn',
+    'Món xào',
+    'Món xế',
+    'Soup',
+    'Lẩu',
+    'Món bánh',
+    'Tráng miệng',
+];
 
 function MealDialog({ open, mode, meal, onClose, onSuccess }) {
     const [activeTab, setActiveTab] = useState(0);
@@ -265,7 +277,7 @@ function MealDialog({ open, mode, meal, onClose, onSuccess }) {
             <Box sx={{ borderBottom: 1, borderColor: 'divider', bgcolor: '#f5f5f5' }}>
                 <Tabs value={activeTab} onChange={(e, val) => setActiveTab(val)} variant="fullWidth">
                     <Tab label="Thông tin cơ bản" />
-                    <Tab label="Nguyên liệu" />
+                    <Tab label="Nguyên liệu của món ăn" />
                 </Tabs>
             </Box>
 
@@ -309,13 +321,70 @@ function MealDialog({ open, mode, meal, onClose, onSuccess }) {
                             }}
                         >
                             <Typography variant="body2" color="text.secondary">
-                                💡 <strong>Hướng dẫn:</strong>
+                                💡 <strong>Hướng dẫn tạo món ăn:</strong>
                                 <br />
-                                • Nhập tên món ăn và chọn loại món ăn
+                                – Nhập "Tên món ăn" và chọn "Loại món ăn".
                                 <br />
-                                • Chuyển sang tab "Nguyên liệu" để thêm các thực phẩm cần thiết
-                                <br />• Nhập lượng ăn cho mỗi nguyên liệu và chọn thực phẩm chính (có thể chọn nhiều)
+                                – Chuyển sang tab "Nguyên liệu của món ăn" để thêm các thực phẩm cần thiết.
+                                <br />– Nhập "Lượng ăn của 1 trẻ (g)" cho mỗi nguyên liệu.
+                                <br />– Chọn thực phẩm chính (có thể chọn nhiều).
                             </Typography>
+                        </Box>
+                        <Box
+                            sx={{
+                                p: 2,
+                                bgcolor: '#fff8e1',
+                                borderRadius: 2,
+                                border: '1px dashed #ffcc80',
+                            }}
+                        >
+                            <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 1, color: '#ef6c00' }}>
+                                <AssistantOutlinedIcon fontSize="small" sx={{ verticalAlign: 'middle', mr: 0.5 }} />
+                                Gợi ý bảng định lượng cho 1 trẻ (tham khảo)
+                            </Typography>
+
+                            {/* Món mặn */}
+                            <Typography variant="body2" fontWeight={600} sx={{ color: '#1565c0' }}>
+                                – Các món mặn
+                            </Typography>
+                            <Typography variant="body2" sx={{ ml: 1 }}>
+                                • Đạm: <strong>25 – 35g / trẻ</strong>
+                                <br />• Rau củ: <strong>15 – 25g / trẻ</strong>
+                                <br />• Gia vị: <strong>~1g</strong>
+                            </Typography>
+
+                            <Divider sx={{ my: 1 }} />
+
+                            {/* Món canh */}
+                            <Typography variant="body2" fontWeight={600} sx={{ color: '#d32f2f' }}>
+                                – Các món nước
+                            </Typography>
+                            <Typography variant="body2" sx={{ ml: 1 }}>
+                                • Rau củ: <strong>25 – 40g / trẻ</strong>
+                                <br />• Đạm: <strong>10 – 20g / trẻ</strong>
+                            </Typography>
+
+                            <Divider sx={{ my: 1 }} />
+
+                            {/* Món xế */}
+                            <Typography variant="body2" fontWeight={600} sx={{ color: '#2f490cff' }}>
+                                – Các món xế
+                            </Typography>
+                            <Typography variant="body2" sx={{ ml: 1 }}>
+                                • Thực phẩm khô (Nui, Hủ tiếu…): <strong>25 – 35g</strong>
+                                <br />• Thực phẩm tươi (Bún, Bánh phở…): <strong>40 – 60g</strong>
+                                <br />• Cháo (gạo): <strong>15 – 25g</strong>
+                                <br />• Soup (bột năng, bột bắp): <strong>5 – 10g</strong>
+                                <br />• Đạm: <strong>15 – 25g</strong>
+                                <br />• Rau củ: <strong>10 – 20g</strong>
+                            </Typography>
+
+                            <Divider sx={{ my: 1 }} />
+
+                            {/* <Typography variant="caption" color="text.secondary">
+                                ⚠️ Lưu ý: Món xế dạng thực phẩm tươi hoặc soup nên phối hợp thêm nước trái cây (chanh,
+                                tắc, cam…) để bổ sung đường tự nhiên.
+                            </Typography> */}
                         </Box>
                     </Box>
                 )}
@@ -378,10 +447,10 @@ function MealDialog({ open, mode, meal, onClose, onSuccess }) {
                                             </TableCell>
                                             <TableCell>Tên thực phẩm</TableCell>
                                             <TableCell align="center" width={140}>
-                                                Lượng ăn (g)
+                                                Lượng ăn của 1 trẻ (g)
                                             </TableCell>
                                             <TableCell align="center" width={120}>
-                                                Lượng ăn (kg)
+                                                Lượng ăn của 1 trẻ (kg)
                                             </TableCell>
                                             <TableCell align="center" width={130}>
                                                 Calo / 1 trẻ
@@ -389,17 +458,17 @@ function MealDialog({ open, mode, meal, onClose, onSuccess }) {
                                             <TableCell align="center" width={100}>
                                                 Đơn vị tính
                                             </TableCell>
-                                            <TableCell align="center" width={120}>
-                                                Hệ số thái bỏ
-                                            </TableCell>
                                             <TableCell align="center" width={130}>
-                                                Quy đổi (g)
+                                                Quy đổi sang (g)
+                                            </TableCell>
+                                            <TableCell align="center" width={120}>
+                                                Hệ số thái bỏ (%)
                                             </TableCell>
                                             <TableCell align="center" width={110}>
                                                 Thực phẩm chính
                                             </TableCell>
                                             <TableCell align="center" width={80}>
-                                                Xóa
+                                                Thao tác
                                             </TableCell>
                                         </TableRow>
                                     </TableHead>
@@ -440,8 +509,8 @@ function MealDialog({ open, mode, meal, onClose, onSuccess }) {
                                                     </Typography>
                                                 </TableCell>
                                                 <TableCell align="center">{ing.unit}</TableCell>
-                                                <TableCell align="center">{ing.wastePercentage}%</TableCell>
                                                 <TableCell align="center">{ing.gramConversion}g</TableCell>
+                                                <TableCell align="center">{ing.wastePercentage}%</TableCell>
                                                 <TableCell align="center">
                                                     {/* ✅ Checkbox thay vì Radio */}
                                                     <Checkbox

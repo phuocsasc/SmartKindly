@@ -31,7 +31,18 @@ import { useConfirmDialog } from '~/hooks/useConfirmDialog';
 import { PERMISSIONS } from '~/config/rbacConfig';
 import { usePermission } from '~/hooks/usePermission';
 
-const MEAL_TYPES = ['Món kho', 'Món luộc', 'Món canh', 'Món mặn', 'Món xào', 'Soup', 'Lẩu', 'Món bánh', 'Tráng miệng'];
+const MEAL_TYPES = [
+    'Món kho',
+    'Món luộc',
+    'Món canh',
+    'Món mặn',
+    'Món xào',
+    'Món xế',
+    'Soup',
+    'Lẩu',
+    'Món bánh',
+    'Tráng miệng',
+];
 
 function Meal() {
     const { user } = useUser();
@@ -141,10 +152,10 @@ function Meal() {
             field: 'name',
             headerName: 'Tên món ăn',
             flex: 1.0,
-            minWidth: 250,
+            minWidth: 200,
             sortable: false,
             renderCell: (params) => (
-                <Typography sx={{ fontWeight: 600, color: '#1976d2', whiteSpace: 'normal', wordBreak: 'break-word' }}>
+                <Typography sx={{ fontWeight: 600, whiteSpace: 'normal', wordBreak: 'break-word' }}>
                     {params.value}
                 </Typography>
             ),
@@ -152,7 +163,7 @@ function Meal() {
         {
             field: 'mealType',
             headerName: 'Loại món ăn',
-            width: 150,
+            minWidth: 250,
             sortable: false,
             align: 'center',
             headerAlign: 'center',
@@ -165,7 +176,7 @@ function Meal() {
         {
             field: 'ingredientsCount',
             headerName: 'Số nguyên liệu',
-            width: 140,
+            minWidth: 240,
             sortable: false,
             align: 'center',
             headerAlign: 'center',
@@ -178,7 +189,7 @@ function Meal() {
         {
             field: 'totalCalories',
             headerName: 'Tổng Calo / 1 trẻ',
-            width: 160,
+            minWidth: 260,
             sortable: false,
             align: 'center',
             headerAlign: 'center',

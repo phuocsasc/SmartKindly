@@ -24,6 +24,7 @@ import childrenProgramCompleteRoute from './childrenProgramCompleteRoute.js';
 import { auditLogRoute } from './auditLogRoute.js';
 import foodRoute from '~/routes/v1/foodRoute.js';
 import schoolFoodRoute from '~/routes/v1/schoolFoodRoute.js';
+import schoolMealRoute from './schoolMealRoute.js';
 
 const Router = express.Router();
 
@@ -88,5 +89,7 @@ Router.use('/audit-logs', auditLogRoute);
 Router.use('/foods', foodRoute);
 
 Router.use('/school-foods', schoolFoodRoute);
+
+Router.use('/school-meals', schoolMealRoute);
 
 export const APIs_V1 = Router;

@@ -24,7 +24,42 @@ import EditIcon from '@mui/icons-material/Edit';
 import { schoolFoodApi } from '~/apis/schoolFoodApi';
 import { toast } from 'react-toastify';
 
-const UNITS = ['Kg', 'Hộp', 'Miếng', 'Lit', 'Quả', 'Trứng', 'Gram', 'Gói', 'Chai', 'Hũ', 'Cái', 'Ổ'];
+const UNITS = [
+    'Kg',
+    'Hộp',
+    'Miếng',
+    'Cốc',
+    'Quả',
+    'Trứng',
+    'Chén',
+    'Gói',
+    'Chai',
+    'Hũ',
+    'Cái',
+    'Ổ',
+    'Bát',
+    'Tô',
+    'Lon',
+    'Túi',
+    'Bịch',
+    'Bao',
+    'Trái',
+    'Củ',
+    'Cây',
+    'Bắp',
+    'Tép',
+    'Lát',
+    'Khoanh',
+    'Khúc',
+    'Bó',
+    'Mớ',
+    'Chùm',
+    'Nải',
+    'Lá',
+    'Con',
+    'Viên',
+    'Hạt',
+];
 
 function FoodDialog({ open, food, onClose, onSuccess }) {
     const [formData, setFormData] = useState({

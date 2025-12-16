@@ -20,7 +20,42 @@ const createNew = async (req, res, next) => {
             'any.required': 'Đơn giá là bắt buộc',
         }),
         unit: Joi.string()
-            .valid('Kg', 'Hộp', 'Miếng', 'Lit', 'Quả', 'Trứng', 'Gram', 'Gói', 'Chai', 'Hũ', 'Cái', 'Ổ')
+            .valid(
+                'Kg',
+                'Hộp',
+                'Miếng',
+                'Cốc',
+                'Quả',
+                'Trứng',
+                'Chén',
+                'Gói',
+                'Chai',
+                'Hũ',
+                'Cái',
+                'Ổ',
+                'Bát',
+                'Tô',
+                'Lon',
+                'Túi',
+                'Bịch',
+                'Bao',
+                'Trái',
+                'Củ',
+                'Cây',
+                'Bắp',
+                'Tép',
+                'Lát',
+                'Khoanh',
+                'Khúc',
+                'Bó',
+                'Mớ',
+                'Chùm',
+                'Nải',
+                'Lá',
+                'Con',
+                'Viên',
+                'Hạt',
+            )
             .required()
             .messages({
                 'any.required': 'Đơn vị tính là bắt buộc',
@@ -86,7 +121,7 @@ const update = async (req, res, next) => {
             'number.integer': 'Đơn giá phải là số nguyên',
         }),
         unit: Joi.string()
-            .valid('Kg', 'Hộp', 'Miếng', 'Lit', 'Quả', 'Trứng', 'Gram', 'Gói', 'Chai', 'Hũ', 'Cái', 'Ổ')
+            .valid('Kg', 'Hộp', 'Miếng', 'Cốc', 'Quả', 'Trứng', 'Chén', 'Gói', 'Chai', 'Hũ', 'Cái', 'Ổ')
             .messages({
                 'any.only': 'Đơn vị tính không hợp lệ',
             }),

@@ -26,7 +26,42 @@ import EditIcon from '@mui/icons-material/Edit';
 import { foodApi } from '~/apis/foodApi';
 import { toast } from 'react-toastify';
 
-const UNITS = ['Kg', 'Hộp', 'Miếng', 'Lit', 'Quả', 'Trứng', 'Gram', 'Gói', 'Chai', 'Hũ', 'Cái', 'Ổ'];
+const UNITS = [
+    'Kg',
+    'Hộp',
+    'Miếng',
+    'Cốc',
+    'Quả',
+    'Trứng',
+    'Chén',
+    'Gói',
+    'Chai',
+    'Hũ',
+    'Cái',
+    'Ổ',
+    'Bát',
+    'Tô',
+    'Lon',
+    'Túi',
+    'Bịch',
+    'Bao',
+    'Trái',
+    'Củ',
+    'Cây',
+    'Bắp',
+    'Tép',
+    'Lát',
+    'Khoanh',
+    'Khúc',
+    'Bó',
+    'Mớ',
+    'Chùm',
+    'Nải',
+    'Lá',
+    'Con',
+    'Viên',
+    'Hạt',
+];
 const FOOD_CATEGORIES = ['Động vật', 'Thực vật', 'Thực phẩm Khô', 'Thực phẩm tươi', 'Thực phẩm ăn liền'];
 
 function AdminFoodDialog({ open, mode, food, onClose, onSuccess }) {

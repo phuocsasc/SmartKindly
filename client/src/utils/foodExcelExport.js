@@ -8,7 +8,42 @@ import dayjs from 'dayjs';
  * ✅ Định nghĩa các giá trị enum cho dropdown
  */
 const DROPDOWN_VALUES = {
-    unit: ['Kg', 'Hộp', 'Miếng', 'Lit', 'Quả', 'Trứng', 'Gram', 'Gói', 'Chai', 'Hũ', 'Cái', 'Ổ'],
+    unit: [
+        'Kg',
+        'Hộp',
+        'Miếng',
+        'Cốc',
+        'Quả',
+        'Trứng',
+        'Chén',
+        'Gói',
+        'Chai',
+        'Hũ',
+        'Cái',
+        'Ổ',
+        'Bát',
+        'Tô',
+        'Lon',
+        'Túi',
+        'Bịch',
+        'Bao',
+        'Trái',
+        'Củ',
+        'Cây',
+        'Bắp',
+        'Tép',
+        'Lát',
+        'Khoanh',
+        'Khúc',
+        'Bó',
+        'Mớ',
+        'Chùm',
+        'Nải',
+        'Lá',
+        'Con',
+        'Viên',
+        'Hạt',
+    ],
 };
 
 /**

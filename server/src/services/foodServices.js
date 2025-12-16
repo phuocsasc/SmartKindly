@@ -152,16 +152,20 @@ const update = async (id, data, userId) => {
             }
         }
 
-        // ✅ Update fields
-        Object.assign(food, data, { lastUpdatedBy: userId });
-        await food.save();
-
-        const updated = await FoodModel.findById(food._id)
+        // ✅ Update (KHÔNG TỰ ĐỘNG SYNC)
+        const updated = await FoodModel.findOneAndUpdate(
+            { _id: id, _destroy: false },
+            {
+                ...data,
+                lastUpdatedBy: userId,
+            },
+            { new: true, runValidators: true },
+        )
             .populate('createdBy', 'fullName username')
             .populate('lastUpdatedBy', 'fullName username')
             .lean();
 
-        console.log('✅ [Food update] Updated successfully');
+        console.log('✅ [Food update] Updated successfully (NO AUTO-SYNC)');
         return updated;
     } catch (error) {
         console.error('❌ [Food update] Error:', error);
@@ -183,13 +187,15 @@ const deleteFood = async (id, userId) => {
             throw new ApiError(StatusCodes.FORBIDDEN, 'Chỉ admin mới có quyền xóa thực phẩm');
         }
 
-        // ✅ Hard delete
-        const deletedFood = await FoodModel.findByIdAndDelete(id);
-        if (!deletedFood) {
+        const food = await FoodModel.findById(id);
+        if (!food) {
             throw new ApiError(StatusCodes.NOT_FOUND, 'Không tìm thấy thực phẩm');
         }
 
-        console.log('✅ [Food delete] Deleted successfully');
+        // ✅ Xóa food (hard delete, KHÔNG AUTO-SYNC)
+        await FoodModel.findByIdAndDelete(id);
+
+        console.log('✅ [Food delete] Deleted successfully (NO AUTO-SYNC)');
         return { message: 'Xóa thực phẩm thành công' };
     } catch (error) {
         console.error('❌ [Food delete] Error:', error);
@@ -203,45 +209,34 @@ const deleteFood = async (id, userId) => {
  */
 const deleteManyFoods = async (ids, userId) => {
     try {
-        console.log('🗑️ [Food deleteMany HARD] Starting with', ids.length, 'foods');
+        console.log('🗑️ [Food deleteMany] Starting with', ids.length, 'foods');
 
         // ✅ Verify user is admin
         const user = await UserModel.findById(userId).select('role');
         if (!user || user.role !== 'admin') {
-            throw new ApiError(
-                StatusCodes.FORBIDDEN,
-                'Chỉ admin mới có quyền xóa thực phẩm'
-            );
+            throw new ApiError(StatusCodes.FORBIDDEN, 'Chỉ admin mới có quyền xóa thực phẩm');
         }
 
-        // ✅ Validate IDs
         if (!Array.isArray(ids) || ids.length === 0) {
-            throw new ApiError(
-                StatusCodes.BAD_REQUEST,
-                'Danh sách ID không hợp lệ'
-            );
+            throw new ApiError(StatusCodes.BAD_REQUEST, 'Danh sách ID không hợp lệ');
         }
 
-        // ✅ HARD DELETE
+        // ✅ Hard delete (KHÔNG AUTO-SYNC)
         const result = await FoodModel.deleteMany({
-            _id: { $in: ids }
+            _id: { $in: ids },
         });
 
-        console.log('✅ [Food deleteMany HARD] Deleted', result.deletedCount, 'foods');
+        console.log(`✅ [Food deleteMany] Deleted ${result.deletedCount} foods (NO AUTO-SYNC)`);
 
         return {
-            message: `Đã xóa vĩnh viễn ${result.deletedCount} thực phẩm`
+            message: `Đã xóa ${result.deletedCount} thực phẩm`,
         };
     } catch (error) {
-        console.error('❌ [Food deleteMany HARD] Error:', error);
+        console.error('❌ [Food deleteMany] Error:', error);
         if (error instanceof ApiError) throw error;
-        throw new ApiError(
-            StatusCodes.INTERNAL_SERVER_ERROR,
-            'Lỗi khi xóa nhiều thực phẩm'
-        );
+        throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, 'Lỗi khi xóa nhiều thực phẩm');
     }
 };
-
 
 /**
  * ✅ Import bulk foods from Excel

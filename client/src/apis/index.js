@@ -64,3 +64,5 @@ export * from './childrenProgramCompleteApi';
 export * from './auditLogApi';
 
 export * from './foodApi';
+
+export * from './schoolFoodApi';

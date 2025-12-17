@@ -17,7 +17,7 @@ import KeyboardDoubleArrowLeftOutlinedIcon from '@mui/icons-material/KeyboardDou
 import KeyboardDoubleArrowRightOutlinedIcon from '@mui/icons-material/KeyboardDoubleArrowRightOutlined';
 import HistoryEduOutlinedIcon from '@mui/icons-material/HistoryEduOutlined';
 import RestaurantOutlinedIcon from '@mui/icons-material/RestaurantOutlined';
-import MonetizationOnOutlinedIcon from '@mui/icons-material/MonetizationOnOutlined';
+// import MonetizationOnOutlinedIcon from '@mui/icons-material/MonetizationOnOutlined';
 import MedicalServicesOutlinedIcon from '@mui/icons-material/MedicalServicesOutlined';
 import StorageOutlinedIcon from '@mui/icons-material/StorageOutlined';
 import SwitchAccountOutlinedIcon from '@mui/icons-material/SwitchAccountOutlined';
@@ -89,6 +89,7 @@ const menuItems = [
         icon: <RestaurantOutlinedIcon />,
         children: [
             // { text: 'Nhà cung cấp', path: '/nutrition/supplier' },
+            { text: 'Định mức dinh dưỡng', path: '/nutrition/standards' },
             { text: 'Thực phẩm', path: '/nutrition/food' },
             { text: 'Món ăn', path: '/nutrition/meal' },
             { text: 'Thực đơn', path: '/nutrition/menu' },

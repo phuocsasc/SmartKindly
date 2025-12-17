@@ -26,6 +26,7 @@ import foodRoute from '~/routes/v1/foodRoute.js';
 import schoolFoodRoute from '~/routes/v1/schoolFoodRoute.js';
 import schoolMealRoute from './schoolMealRoute.js';
 import nutritionalStandardRoute from './nutritionalStandardRoute.js';
+import schoolNutritionalStandardRoute from './schoolNutritionalStandardRoute.js';
 
 const Router = express.Router();
 
@@ -94,5 +95,7 @@ Router.use('/school-foods', schoolFoodRoute);
 Router.use('/school-meals', schoolMealRoute);
 
 Router.use('/nutritional-standards', nutritionalStandardRoute);
+
+Router.use('/school-nutritional-standards', schoolNutritionalStandardRoute);
 
 export const APIs_V1 = Router;

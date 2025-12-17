@@ -25,6 +25,7 @@ import { auditLogRoute } from './auditLogRoute.js';
 import foodRoute from '~/routes/v1/foodRoute.js';
 import schoolFoodRoute from '~/routes/v1/schoolFoodRoute.js';
 import schoolMealRoute from './schoolMealRoute.js';
+import nutritionalStandardRoute from './nutritionalStandardRoute.js';
 
 const Router = express.Router();
 
@@ -91,5 +92,7 @@ Router.use('/foods', foodRoute);
 Router.use('/school-foods', schoolFoodRoute);
 
 Router.use('/school-meals', schoolMealRoute);
+
+Router.use('/nutritional-standards', nutritionalStandardRoute);
 
 export const APIs_V1 = Router;

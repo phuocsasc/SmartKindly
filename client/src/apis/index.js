@@ -68,3 +68,5 @@ export * from './foodApi';
 export * from './schoolFoodApi';
 
 export * from './schoolMealApi';
+
+export * from './nutritionalStandardApi';

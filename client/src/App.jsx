@@ -18,6 +18,7 @@ import EducationalActivity from '~/pages/Admin/DataBank/ThemePlan/EducationalAct
 import AdminFood from '~/pages/Admin/DataBank/Food/AdminFood';
 import AdminMeal from '~/pages/Admin/DataBank/Meal/AdminMeal';
 import AdminMenu from '~/pages/Admin/DataBank/Menu/AdminMenu';
+import AdminNutritionalStandards from '~/pages/Admin/DataBank/NutritionalStandards/AdminNutritionalStandards';
 
 // Users
 import UserManagement from '~/pages/School/Users/UserManagement';
@@ -104,6 +105,7 @@ function AppContent() {
                         <Route path="/admin/nutrition/food" element={<AdminFood />} />
                         <Route path="/admin/nutrition/meal" element={<AdminMeal />} />
                         <Route path="/admin/nutrition/menu" element={<AdminMenu />} />
+                        <Route path="/admin/nutrition/standards" element={<AdminNutritionalStandards />} />
                     </Route>
 
                     <Route path="/admin/user-info" element={<AdminInfo />} />

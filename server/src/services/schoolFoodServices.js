@@ -27,30 +27,35 @@ const syncFoodsForSchool = async (schoolId) => {
         if (allFoods.length === 0) {
             console.log('⚠️ No foods found in admin database');
 
-            // ✅ Nếu admin không có thực phẩm nào, xóa tất cả thực phẩm của trường
-            const deleteResult = await SchoolFoodModel.deleteMany({ schoolId });
+            // ✅ Nếu admin không có thực phẩm nào, đánh dấu _destroy = true thay vì xóa
+            const deleteResult = await SchoolFoodModel.updateMany({ schoolId }, { $set: { _destroy: true } });
 
             return {
                 total: 0,
                 upserted: 0,
                 modified: 0,
-                deleted: deleteResult.deletedCount,
+                deleted: deleteResult.modifiedCount,
             };
         }
 
         // ✅ 2. Lấy danh sách foodId từ admin
         const adminFoodIds = allFoods.map((food) => food._id.toString());
 
-        // ✅ 3. Xóa các thực phẩm của trường KHÔNG CÒN trong admin
-        const deleteResult = await SchoolFoodModel.deleteMany({
-            schoolId,
-            foodId: { $nin: adminFoodIds },
-        });
+        // ✅ 3. Đánh dấu _destroy = true cho các thực phẩm KHÔNG CÒN trong admin
+        // (KHÔNG XÓA để giữ reference trong meals)
+        const deleteResult = await SchoolFoodModel.updateMany(
+            {
+                schoolId,
+                foodId: { $nin: adminFoodIds },
+                _destroy: false,
+            },
+            { $set: { _destroy: true } },
+        );
 
-        result.deletedCount = deleteResult.deletedCount;
+        result.deletedCount = deleteResult.modifiedCount;
 
-        if (deleteResult.deletedCount > 0) {
-            console.log(`🗑️ Deleted ${deleteResult.deletedCount} foods not in admin database`);
+        if (deleteResult.modifiedCount > 0) {
+            console.log(`🗑️ Marked ${deleteResult.modifiedCount} foods as deleted (not in admin database)`);
         }
 
         // ✅ 4. Upsert thực phẩm từ admin
@@ -61,7 +66,7 @@ const syncFoodsForSchool = async (schoolId) => {
                 updateOne: {
                     filter: { schoolId, foodId: food._id },
                     update: {
-                        // ✅ Nếu chưa có thì insert
+                        // ✅ Nếu chưa có thì insert với _id mới
                         $setOnInsert: {
                             schoolId,
                             foodId: food._id,
@@ -79,6 +84,7 @@ const syncFoodsForSchool = async (schoolId) => {
                             protein: food.protein,
                             lipid: food.lipid,
                             glucid: food.glucid,
+                            _destroy: false, // ✅ Đảm bảo food được khôi phục nếu đã bị đánh dấu xóa
                         },
                     },
                     upsert: true,
@@ -93,7 +99,7 @@ const syncFoodsForSchool = async (schoolId) => {
             result.modifiedCount = bulkResult.modifiedCount || 0;
 
             console.log(
-                `✅ Synced ${result.upsertedCount} new, ${result.modifiedCount} updated, ${result.deletedCount} deleted`,
+                `✅ Synced ${result.upsertedCount} new, ${result.modifiedCount} updated, ${result.deletedCount} marked deleted`,
             );
         }
 

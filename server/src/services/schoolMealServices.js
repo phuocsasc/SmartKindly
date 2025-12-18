@@ -218,11 +218,17 @@ const update = async (id, data, userId) => {
                     const food = await SchoolFoodModel.findOne({
                         _id: ing.foodId,
                         schoolId: user.schoolId,
-                        _destroy: false,
+                        // ✅ FIX: Cho phép tìm cả food đã bị đánh dấu _destroy
+                        // _destroy: false, // ❌ REMOVE THIS LINE
                     }).lean();
 
                     if (!food) {
                         throw new ApiError(StatusCodes.NOT_FOUND, `Không tìm thấy thực phẩm với ID: ${ing.foodId}`);
+                    }
+
+                    // ✅ Cảnh báo nếu food đã bị xóa ở admin
+                    if (food._destroy) {
+                        console.warn(`⚠️ Food ${food.name} (${food._id}) has been removed from admin database`);
                     }
 
                     return {

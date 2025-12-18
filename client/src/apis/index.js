@@ -72,3 +72,5 @@ export * from './schoolMealApi';
 export * from './nutritionalStandardApi';
 
 export * from './schoolNutritionalStandardApi';
+
+export * from './schoolServiceChargeApi';

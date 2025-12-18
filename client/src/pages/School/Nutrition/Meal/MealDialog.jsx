@@ -125,6 +125,7 @@ function MealDialog({ open, mode, meal, onClose, onSuccess }) {
             quantityPerChildGram: 0,
             isMainFood: false,
             // Copy thông tin từ SchoolFood
+            unitPrice: food.unitPrice, // ✅ THÊM UNIT PRICE
             unit: food.unit,
             gramConversion: food.gramConversion,
             wastePercentage: food.wastePercentage,

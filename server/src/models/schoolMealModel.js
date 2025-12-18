@@ -33,6 +33,13 @@ const IngredientSchema = new mongoose.Schema(
             type: Number,
             default: 0,
         },
+        // ✅ THÊM UNIT PRICE
+        unitPrice: {
+            type: Number,
+            required: [true, 'Đơn giá là bắt buộc'],
+            min: [0, 'Đơn giá phải lớn hơn hoặc bằng 0'],
+            default: 0,
+        },
         unit: {
             type: String,
             required: true,

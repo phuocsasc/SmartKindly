@@ -55,6 +55,7 @@ const createNew = async (data, userId) => {
                     protein: food.protein,
                     lipid: food.lipid,
                     glucid: food.glucid,
+                    unitPrice: food.unitPrice, // ✅ THÊM UNIT PRICE
                     unit: food.unit,
                     gramConversion: food.gramConversion,
                     wastePercentage: food.wastePercentage,
@@ -71,11 +72,15 @@ const createNew = async (data, userId) => {
             mealType: data.mealType,
             ingredients: enrichedIngredients,
             createdBy: userId,
+            lastUpdatedBy: userId,
         });
 
         await newMeal.save();
 
-        const populated = await SchoolMealModel.findById(newMeal._id).populate('createdBy', 'fullName username').lean();
+        const populated = await SchoolMealModel.findById(newMeal._id)
+            .populate('createdBy', 'fullName username')
+            .populate('lastUpdatedBy', 'fullName username')
+            .lean();
 
         console.log('✅ [SchoolMeal createNew] Created successfully');
         return populated;
@@ -219,7 +224,6 @@ const update = async (id, data, userId) => {
                         _id: ing.foodId,
                         schoolId: user.schoolId,
                         // ✅ FIX: Cho phép tìm cả food đã bị đánh dấu _destroy
-                        // _destroy: false, // ❌ REMOVE THIS LINE
                     }).lean();
 
                     if (!food) {
@@ -239,6 +243,7 @@ const update = async (id, data, userId) => {
                         protein: food.protein,
                         lipid: food.lipid,
                         glucid: food.glucid,
+                        unitPrice: food.unitPrice, // ✅ THÊM UNIT PRICE
                         unit: food.unit,
                         gramConversion: food.gramConversion,
                         wastePercentage: food.wastePercentage,

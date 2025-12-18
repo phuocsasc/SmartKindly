@@ -30,6 +30,7 @@ import ConfirmDialog from '~/components/common/ConfirmDialog';
 import { useConfirmDialog } from '~/hooks/useConfirmDialog';
 import { PERMISSIONS } from '~/config/rbacConfig';
 import { usePermission } from '~/hooks/usePermission';
+import dayjs from '~/config/dayjsConfig';
 
 const MEAL_TYPES = [
     'Món kho',
@@ -145,6 +146,12 @@ function Meal() {
         handleDialogClose();
     };
 
+    // ✅ Format datetime function
+    const formatDateTime = (dateString) => {
+        if (!dateString) return '—';
+        return dayjs(dateString).format('HH:mm:ss | DD/MM/YYYY');
+    };
+
     // Columns
     const columns = [
         { field: 'stt', headerName: 'STT', width: 60, sortable: false },
@@ -168,7 +175,7 @@ function Meal() {
             align: 'center',
             headerAlign: 'center',
             renderCell: (params) => (
-                <Typography variant="body2" sx={{ color: '#2e7d32', fontWeight: 500 }}>
+                <Typography variant="body2" sx={{ color: '#000000ff', fontWeight: 500 }}>
                     {params.value}
                 </Typography>
             ),
@@ -181,7 +188,7 @@ function Meal() {
             align: 'center',
             headerAlign: 'center',
             renderCell: (params) => (
-                <Typography variant="body2" sx={{ color: '#ed6c02' }}>
+                <Typography variant="body2" sx={{ color: '#000000' }}>
                     {params.value} nguyên liệu
                 </Typography>
             ),
@@ -196,6 +203,34 @@ function Meal() {
             renderCell: (params) => (
                 <Typography variant="body2" sx={{ color: '#d32f2f', fontWeight: 600 }}>
                     {params.value.toFixed(2)} kcal
+                </Typography>
+            ),
+        },
+        // ✅ CỘT THỜI GIAN TẠO
+        {
+            field: 'createdAt',
+            headerName: 'Thời gian tạo',
+            width: 180,
+            sortable: false,
+            align: 'center',
+            headerAlign: 'center',
+            renderCell: (params) => (
+                <Typography variant="caption" color="text.secondary">
+                    {formatDateTime(params.value)}
+                </Typography>
+            ),
+        },
+        // ✅ CỘT THỜI GIAN SỬA
+        {
+            field: 'updatedAt',
+            headerName: 'Thời gian sửa',
+            width: 180,
+            sortable: false,
+            align: 'center',
+            headerAlign: 'center',
+            renderCell: (params) => (
+                <Typography variant="caption" color="text.secondary">
+                    {formatDateTime(params.value)}
                 </Typography>
             ),
         },

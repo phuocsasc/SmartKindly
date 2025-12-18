@@ -128,6 +128,12 @@ export const PERMISSIONS = {
     VIEW_NUTRITIONAL_STANDARDS: 'view_nutritional_standards',
     UPDATE_NUTRITIONAL_STANDARDS: 'update_nutritional_standards',
 
+    // Quản lý tiền dịch vụ
+    VIEW_SERVICE_CHARGE: 'view_service_charge',
+    CREATE_SERVICE_CHARGE: 'create_service_charge',
+    UPDATE_SERVICE_CHARGE: 'update_service_charge',
+    DELETE_SERVICE_CHARGE: 'delete_service_charge',
+
     // Quản lý món ăn
     VIEW_MEAL: 'view_meal',
     CREATE_MEAL: 'create_meal',
@@ -205,6 +211,7 @@ export const ROLE_PERMISSIONS = {
         PERMISSIONS.VIEW_MEAL,
         PERMISSIONS.VIEW_MENU,
         PERMISSIONS.VIEW_NUTRITIONAL_STANDARDS,
+        PERMISSIONS.VIEW_SERVICE_CHARGE,
     ],
     [ROLES.GIAO_VIEN]: [
         PERMISSIONS.VIEW_SCHOOL_INFO,
@@ -258,6 +265,7 @@ export const ROLE_PERMISSIONS = {
         PERMISSIONS.VIEW_MEAL,
         PERMISSIONS.VIEW_MENU,
         PERMISSIONS.VIEW_NUTRITIONAL_STANDARDS,
+        PERMISSIONS.VIEW_SERVICE_CHARGE,
     ],
     [ROLES.KE_TOAN]: [PERMISSIONS.VIEW_SCHOOL_INFO, PERMISSIONS.VIEW_CLASSROOM, PERMISSIONS.VIEW_DASHBOARD],
     [ROLES.PHU_HUYNH]: [PERMISSIONS.VIEW_SCHOOL_INFO, PERMISSIONS.VIEW_DASHBOARD],

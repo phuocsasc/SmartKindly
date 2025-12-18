@@ -54,6 +54,7 @@ import Food from '~/pages/School/Nutrition/Food/Food';
 import Meal from '~/pages/School/Nutrition/Meal/Meal';
 import Menu from '~/pages/School/Nutrition/Menu/menu';
 import NutritionalStandards from '~/pages/School/Nutrition/Standard/NutritionalStandards';
+import ServiceCharge from '~/pages/School/Nutrition/ServiceCharge/ServiceCharge';
 
 /**
  * Protected Routes với UserContext
@@ -181,6 +182,9 @@ function AppContent() {
                     {/* Dinh dưỡng */}
                     <Route element={<RbacRoute requiredPermission={PERMISSIONS.VIEW_NUTRITIONAL_STANDARDS} />}>
                         <Route path="/nutrition/standards" element={<NutritionalStandards />} />
+                    </Route>
+                    <Route element={<RbacRoute requiredPermission={PERMISSIONS.VIEW_SERVICE_CHARGE} />}>
+                        <Route path="/nutrition/service-charge" element={<ServiceCharge />} />
                     </Route>
                     <Route element={<RbacRoute requiredPermission={PERMISSIONS.VIEW_FOOD} />}>
                         <Route path="/nutrition/food" element={<Food />} />

@@ -124,6 +124,7 @@ function Food() {
         } catch (error) {
             console.error('Error fetching foods:', error);
             toast.error('Lỗi khi tải danh sách thực phẩm!');
+            setRows([]);
         } finally {
             setLoading(false);
         }
@@ -390,6 +391,7 @@ function Food() {
                         pageSizeOptions={[5, 10, 20, 50]}
                         getRowHeight={() => 'auto'}
                         autoHeight
+                        getRowId={(row) => row.id}
                         sx={{
                             '& .MuiDataGrid-columnHeaders': {
                                 backgroundColor: '#e3f2fd',

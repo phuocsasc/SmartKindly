@@ -152,7 +152,7 @@ const getAll = async (query, userId) => {
                 .populate('lastUpdatedBy', 'fullName username')
                 .skip(skip)
                 .limit(Number(limit))
-                .sort({ createdAt: -1 })
+                .sort({ createdAt: -1, _id: -1 })
                 .lean(),
             SchoolFoodModel.countDocuments(filter),
         ]);

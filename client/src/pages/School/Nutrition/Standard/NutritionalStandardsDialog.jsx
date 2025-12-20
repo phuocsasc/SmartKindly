@@ -13,10 +13,7 @@ import {
     Avatar,
     Divider,
     Paper,
-    Grid,
     Radio,
-    RadioGroup,
-    FormControlLabel,
     FormControl,
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
@@ -114,58 +111,45 @@ function NutritionalStandardsDialog({ open, standard, onClose, onSuccess }) {
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
                     {/* Chọn PLG structure */}
                     <Box>
-                        <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 1 }}>
+                        <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 1, mt: 1 }}>
                             Chọn 1 cơ cấu PLG chuẩn để áp dụng cân đối về chất:
                         </Typography>
 
                         <FormControl component="fieldset" fullWidth>
-                            <RadioGroup
-                                value={selectedPLGIndex}
-                                onChange={(e) => setSelectedPLGIndex(parseInt(e.target.value))}
+                            <Box
+                                sx={{
+                                    display: 'flex',
+                                    flexDirection: 'column', // 🔽 hiển thị dọc
+                                    gap: 1,
+                                }}
                             >
                                 {standard.plgStructures.map((plg, index) => (
-                                    <Paper
+                                    <Box
                                         key={index}
-                                        variant="outlined"
+                                        onClick={() => setSelectedPLGIndex(index)}
                                         sx={{
-                                            p: 2,
-                                            mb: 1,
-                                            borderColor: selectedPLGIndex === index ? '#1976d2' : '#e0e0e0',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: 1,
+                                            px: 1,
+                                            py: 0.75,
+                                            borderRadius: 1,
+                                            cursor: 'pointer',
                                             bgcolor: selectedPLGIndex === index ? '#f3f9ff' : 'transparent',
+                                            '&:hover': {
+                                                bgcolor: '#f5f5f5',
+                                            },
                                         }}
                                     >
-                                        <FormControlLabel
-                                            value={index}
-                                            control={<Radio />}
-                                            label={
-                                                <Box sx={{ ml: 1 }}>
-                                                    <Typography variant="body2" fontWeight={600}>
-                                                        Cơ cấu PLG #{index + 1}
-                                                    </Typography>
-                                                    <Grid container spacing={2} sx={{ mt: 0.5 }}>
-                                                        <Grid item xs={4}>
-                                                            <Typography variant="body2" color="text.secondary">
-                                                                Protein (Đạm): <strong>{plg.protein}%</strong>
-                                                            </Typography>
-                                                        </Grid>
-                                                        <Grid item xs={4}>
-                                                            <Typography variant="body2" color="text.secondary">
-                                                                Lipid (Béo): <strong>{plg.lipid}%</strong>
-                                                            </Typography>
-                                                        </Grid>
-                                                        <Grid item xs={4}>
-                                                            <Typography variant="body2" color="text.secondary">
-                                                                Glucid (Đường): <strong>{plg.glucid}%</strong>
-                                                            </Typography>
-                                                        </Grid>
-                                                    </Grid>
-                                                </Box>
-                                            }
-                                            sx={{ width: '100%', m: 0 }}
-                                        />
-                                    </Paper>
+                                        <Radio checked={selectedPLGIndex === index} value={index} />
+
+                                        <Typography fontWeight={500}>
+                                            Protein: {plg.protein}% &nbsp;|&nbsp; Lipid: {plg.lipid}% &nbsp;|&nbsp;
+                                            Glucid: {plg.glucid}%
+                                        </Typography>
+                                    </Box>
                                 ))}
-                            </RadioGroup>
+                            </Box>
                         </FormControl>
                     </Box>
 
@@ -177,48 +161,50 @@ function NutritionalStandardsDialog({ open, standard, onClose, onSuccess }) {
                             Thông tin dinh dưỡng:
                         </Typography>
 
-                        <Grid container spacing={2}>
-                            <Grid item xs={6}>
-                                <Typography variant="body2" color="text.secondary">
-                                    Protein Đạm (g):
-                                </Typography>
-                                <Typography variant="h6" sx={{ color: '#d32f2f', fontWeight: 600 }}>
-                                    {standard.protein}g
-                                </Typography>
-                            </Grid>
-                            <Grid item xs={6}>
-                                <Typography variant="body2" color="text.secondary">
-                                    Lipid Béo (g):
+                        {/* Định mức 1 ngày */}
+                        <Paper variant="outlined" sx={{ p: 2, mb: 2 }}>
+                            <Typography fontWeight={600} sx={{ mb: 1 }}>
+                                Định mức 1 ngày của mỗi chất:
+                            </Typography>
+
+                            <Box sx={{ display: 'flex', gap: 4 }}>
+                                <Typography variant="h6" sx={{ color: '#5d2e7dff', fontWeight: 600 }}>
+                                    Protein (g): <strong>{standard.protein}</strong>
                                 </Typography>
                                 <Typography variant="h6" sx={{ color: '#f57c00', fontWeight: 600 }}>
-                                    {standard.lipid}g
-                                </Typography>
-                            </Grid>
-                            <Grid item xs={6}>
-                                <Typography variant="body2" color="text.secondary">
-                                    Glucid Đường (g):
+                                    Lipid (g): <strong>{standard.lipid}</strong>
                                 </Typography>
                                 <Typography variant="h6" sx={{ color: '#1976d2', fontWeight: 600 }}>
-                                    {standard.glucid}g
+                                    Glucid (g): <strong>{standard.glucid}</strong>
                                 </Typography>
-                            </Grid>
-                            <Grid item xs={6}>
-                                <Typography variant="body2" color="text.secondary">
-                                    Calo cả ngày (kCal):
-                                </Typography>
-                                <Typography variant="h6" sx={{ color: '#7b1fa2', fontWeight: 700 }}>
-                                    {standard.totalCalories} kcal
-                                </Typography>
-                            </Grid>
-                            <Grid item xs={12}>
-                                <Typography variant="body2" color="text.secondary">
-                                    Năng lượng khuyến nghị ăn tại trường (kCal):
-                                </Typography>
-                                <Typography variant="h6" sx={{ color: '#0288d1', fontWeight: 700 }}>
-                                    {standard.recommendedCaloriesMin} - {standard.recommendedCaloriesMax} kcal
-                                </Typography>
-                            </Grid>
-                        </Grid>
+                            </Box>
+
+                            <Divider sx={{ my: 1.5 }} />
+
+                            <Typography fontWeight={600}>
+                                Calo cả ngày (kCal):
+                                {/* <span style={{ color: '#000000ff', fontSize: 20 }}>{standard.totalCalories} kcal</span> */}
+                            </Typography>
+
+                            <Typography variant="h6" sx={{ color: '#000305ff', fontWeight: 700 }}>
+                                {standard.totalCalories} kcal
+                            </Typography>
+
+                            <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+                                Công thức: [Protein (g) × 4] + [Lipid (g) × 9] + [Glucid (g) × 4]
+                            </Typography>
+                        </Paper>
+
+                        {/* Năng lượng khuyến nghị */}
+                        <Paper variant="outlined" sx={{ p: 2 }}>
+                            <Typography fontWeight={600} sx={{ mb: 0.5 }}>
+                                Năng lượng khuyến nghị ăn tại trường (kCal):
+                            </Typography>
+
+                            <Typography variant="h6" sx={{ color: '#51994bff', fontWeight: 700 }}>
+                                Từ {standard.recommendedCaloriesMin} – {standard.recommendedCaloriesMax} kcal
+                            </Typography>
+                        </Paper>
                     </Box>
                 </Box>
             </DialogContent>

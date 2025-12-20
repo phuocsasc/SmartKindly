@@ -156,7 +156,7 @@ function AdminNutritionalStandards() {
                                 color: '#304c6dff',
                                 borderColor: '#304c6dff',
                                 '& .MuiChip-label': {
-                                    px: 5,
+                                    px: 2,
                                 },
                             }}
                         />

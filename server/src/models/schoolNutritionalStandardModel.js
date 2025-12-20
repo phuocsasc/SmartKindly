@@ -10,20 +10,23 @@ const PLGStructureSchema = new mongoose.Schema(
         protein: {
             type: Number,
             required: [true, 'Tỷ lệ Protein là bắt buộc'],
-            min: [0, 'Tỷ lệ Protein phải lớn hơn 0'],
+            min: [1, 'Tỷ lệ Protein phải lớn hơn 0'],
             max: [100, 'Tỷ lệ Protein không được vượt quá 100'],
+            integer: true, // Số nguyên
         },
         lipid: {
             type: Number,
             required: [true, 'Tỷ lệ Lipid là bắt buộc'],
-            min: [0, 'Tỷ lệ Lipid phải lớn hơn 0'],
+            min: [1, 'Tỷ lệ Lipid phải lớn hơn 0'],
             max: [100, 'Tỷ lệ Lipid không được vượt quá 100'],
+            integer: true, // Số nguyên
         },
         glucid: {
             type: Number,
             required: [true, 'Tỷ lệ Glucid là bắt buộc'],
-            min: [0, 'Tỷ lệ Glucid phải lớn hơn 0'],
+            min: [1, 'Tỷ lệ Glucid phải lớn hơn 0'],
             max: [100, 'Tỷ lệ Glucid không được vượt quá 100'],
+            integer: true, // Số nguyên
         },
         // ✅ Trạng thái chọn (chỉ được chọn 1 PLG structure)
         isSelected: {
@@ -70,29 +73,17 @@ const SchoolNutritionalStandardSchema = new mongoose.Schema(
                 message: 'Phải có ít nhất 1 cơ cấu PLG chuẩn',
             },
         },
-        // ✅ Protein (Đạm)
-        proteinAnimal: {
+        // ✅ Định mức 1 ngày của mỗi chất (loại bỏ tách động vật/thực vật)
+        protein: {
             type: Number,
-            required: [true, 'Protein Đạm động vật là bắt buộc'],
-            min: [0.001, 'Protein Đạm động vật phải lớn hơn 0'],
+            required: [true, 'Protein Đạm là bắt buộc'],
+            min: [0.001, 'Protein Đạm phải lớn hơn 0'],
         },
-        proteinPlant: {
+        lipid: {
             type: Number,
-            required: [true, 'Protein Đạm thực vật là bắt buộc'],
-            min: [0.001, 'Protein Đạm thực vật phải lớn hơn 0'],
+            required: [true, 'Lipid Béo là bắt buộc'],
+            min: [0.001, 'Lipid Béo phải lớn hơn 0'],
         },
-        // ✅ Lipid (Béo)
-        lipidAnimal: {
-            type: Number,
-            required: [true, 'Lipid Béo động vật là bắt buộc'],
-            min: [0.001, 'Lipid Béo động vật phải lớn hơn 0'],
-        },
-        lipidPlant: {
-            type: Number,
-            required: [true, 'Lipid Béo thực vật là bắt buộc'],
-            min: [0.001, 'Lipid Béo thực vật phải lớn hơn 0'],
-        },
-        // ✅ Glucid (Đường)
         glucid: {
             type: Number,
             required: [true, 'Glucid Đường là bắt buộc'],
@@ -108,11 +99,13 @@ const SchoolNutritionalStandardSchema = new mongoose.Schema(
             type: Number,
             required: [true, 'Năng lượng khuyến nghị tối thiểu là bắt buộc'],
             min: [0, 'Năng lượng khuyến nghị tối thiểu phải lớn hơn 0'],
+            integer: true, // Số nguyên
         },
         recommendedCaloriesMax: {
             type: Number,
             required: [true, 'Năng lượng khuyến nghị tối đa là bắt buộc'],
             min: [0, 'Năng lượng khuyến nghị tối đa phải lớn hơn 0'],
+            integer: true, // Số nguyên
         },
         lastUpdatedBy: {
             type: mongoose.Schema.Types.ObjectId,
@@ -128,8 +121,8 @@ const SchoolNutritionalStandardSchema = new mongoose.Schema(
     },
 );
 
-// ✅ Composite index: schoolId + ageGroup (unique)
-SchoolNutritionalStandardSchema.index({ schoolId: 1, ageGroup: 1 }, { unique: true });
+// ✅ Composite index: schoolId + nutritionalStandardId (unique)
+SchoolNutritionalStandardSchema.index({ schoolId: 1, nutritionalStandardId: 1 }, { unique: true });
 
 // ✅ Pre-save hook: Validate PLG structures và tính totalCalories
 SchoolNutritionalStandardSchema.pre('save', function (next) {
@@ -146,8 +139,7 @@ SchoolNutritionalStandardSchema.pre('save', function (next) {
                 );
             }
         }
-
-        // ✅ Validate chỉ được chọn 1 PLG structure
+        // Validate chỉ được chọn 1 PLG structure
         const selectedCount = this.plgStructures.filter((plg) => plg.isSelected).length;
         if (selectedCount > 1) {
             return next(new Error('Chỉ được chọn 1 cơ cấu PLG chuẩn'));
@@ -155,9 +147,7 @@ SchoolNutritionalStandardSchema.pre('save', function (next) {
     }
 
     // 2. Tính totalCalories
-    const totalProtein = this.proteinAnimal + this.proteinPlant;
-    const totalLipid = this.lipidAnimal + this.lipidPlant;
-    this.totalCalories = Math.round(totalProtein * 4 + totalLipid * 9 + this.glucid * 4);
+    this.totalCalories = Math.round(this.protein * 4 + this.lipid * 9 + this.glucid * 4);
 
     // 3. Validate recommendedCalories
     if (this.recommendedCaloriesMin > this.recommendedCaloriesMax) {

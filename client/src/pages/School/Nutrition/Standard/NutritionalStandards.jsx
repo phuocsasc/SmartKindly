@@ -45,10 +45,8 @@ function NutritionalStandards() {
                 stt: paginationModel.page * paginationModel.pageSize + index + 1,
                 ageGroup: standard.ageGroup,
                 selectedPLG: getSelectedPLG(standard.plgStructures),
-                proteinAnimal: standard.proteinAnimal,
-                proteinPlant: standard.proteinPlant,
-                lipidAnimal: standard.lipidAnimal,
-                lipidPlant: standard.lipidPlant,
+                protein: standard.protein,
+                lipid: standard.lipid,
                 glucid: standard.glucid,
                 totalCalories: standard.totalCalories,
                 recommendedCaloriesMin: standard.recommendedCaloriesMin,
@@ -145,8 +143,8 @@ function NutritionalStandards() {
         },
         {
             field: 'selectedPLG',
-            headerName: 'Cơ cấu áp dụng',
-            width: 180,
+            headerName: 'Cơ cấu PLG áp dụng',
+            width: 200,
             sortable: false,
             align: 'center',
             headerAlign: 'center',
@@ -154,7 +152,7 @@ function NutritionalStandards() {
                 <Typography
                     variant="body2"
                     sx={{
-                        color: params.value === 'Chưa chọn' ? '#d32f2f' : '#2e7d32',
+                        color: params.value === 'Chưa chọn' ? '#8f4c4cff' : '#1e301eff',
                         fontWeight: 600,
                     }}
                 >
@@ -163,34 +161,21 @@ function NutritionalStandards() {
             ),
         },
         {
-            field: 'proteinAnimal',
-            headerName: 'Đạm động vật (g)',
+            field: 'protein',
+            headerName: 'Protein Đạm (g)',
             width: 150,
             sortable: false,
             align: 'center',
             headerAlign: 'center',
             renderCell: (params) => (
-                <Typography variant="body2" sx={{ color: '#d32f2f', fontWeight: 500 }}>
+                <Typography variant="body2" sx={{ color: '#5d2e7dff', fontWeight: 500 }}>
                     {params.value} g
                 </Typography>
             ),
         },
         {
-            field: 'proteinPlant',
-            headerName: 'Đạm thực vật (g)',
-            width: 150,
-            sortable: false,
-            align: 'center',
-            headerAlign: 'center',
-            renderCell: (params) => (
-                <Typography variant="body2" sx={{ color: '#388e3c', fontWeight: 500 }}>
-                    {params.value} g
-                </Typography>
-            ),
-        },
-        {
-            field: 'lipidAnimal',
-            headerName: 'Béo động vật (g)',
+            field: 'lipid',
+            headerName: 'Lipid Béo (g)',
             width: 140,
             sortable: false,
             align: 'center',
@@ -202,22 +187,9 @@ function NutritionalStandards() {
             ),
         },
         {
-            field: 'lipidPlant',
-            headerName: 'Béo thực vật (g)',
-            width: 140,
-            sortable: false,
-            align: 'center',
-            headerAlign: 'center',
-            renderCell: (params) => (
-                <Typography variant="body2" sx={{ color: '#689f38', fontWeight: 500 }}>
-                    {params.value} g
-                </Typography>
-            ),
-        },
-        {
             field: 'glucid',
-            headerName: 'Đường (g)',
-            width: 100,
+            headerName: 'Glucid Đường (g)',
+            width: 150,
             sortable: false,
             align: 'center',
             headerAlign: 'center',
@@ -229,26 +201,26 @@ function NutritionalStandards() {
         },
         {
             field: 'totalCalories',
-            headerName: 'Calo cả ngày',
-            width: 120,
+            headerName: 'Calo cả ngày (kcal)',
+            width: 160,
             sortable: false,
             align: 'center',
             headerAlign: 'center',
             renderCell: (params) => (
-                <Typography variant="body2" sx={{ color: '#7b1fa2', fontWeight: 700 }}>
+                <Typography variant="body2" sx={{ color: '#000000ff', fontWeight: 700 }}>
                     {params.value} kcal
                 </Typography>
             ),
         },
         {
             field: 'recommendedCalories',
-            headerName: 'Calo khuyến nghị',
-            width: 150,
+            headerName: 'Năng lượng khuyến nghị (kcal)',
+            width: 250,
             sortable: false,
             align: 'center',
             headerAlign: 'center',
             renderCell: (params) => (
-                <Typography variant="body2" sx={{ color: '#0288d1', fontWeight: 600 }}>
+                <Typography variant="body2" sx={{ color: '#000000ff', fontWeight: 600 }}>
                     {params.row.recommendedCaloriesMin} - {params.row.recommendedCaloriesMax} kcal
                 </Typography>
             ),

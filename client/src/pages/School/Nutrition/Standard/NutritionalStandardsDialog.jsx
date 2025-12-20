@@ -21,6 +21,7 @@ import {
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import EditIcon from '@mui/icons-material/Edit';
+import CircularProgress from '@mui/material/CircularProgress';
 import { schoolNutritionalStandardApi } from '~/apis';
 import { toast } from 'react-toastify';
 
@@ -111,28 +112,16 @@ function NutritionalStandardsDialog({ open, standard, onClose, onSuccess }) {
             {/* Content */}
             <DialogContent sx={{ px: 3, py: 2.5 }}>
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
-                    {/* Nhóm trẻ */}
+                    {/* Chọn PLG structure */}
                     <Box>
                         <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 1 }}>
-                            Tên nhóm trẻ:
-                        </Typography>
-                        <Typography variant="body1" sx={{ color: '#1976d2', fontWeight: 500 }}>
-                            {standard.ageGroup}
-                        </Typography>
-                    </Box>
-
-                    <Divider />
-
-                    {/* Chọn cơ cấu PLG */}
-                    <Box>
-                        <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 1 }}>
-                            Cơ cấu PLG chuẩn (chọn 1):
+                            Chọn 1 cơ cấu PLG chuẩn để áp dụng cân đối về chất:
                         </Typography>
 
                         <FormControl component="fieldset" fullWidth>
                             <RadioGroup
                                 value={selectedPLGIndex}
-                                onChange={(e) => setSelectedPLGIndex(Number(e.target.value))}
+                                onChange={(e) => setSelectedPLGIndex(parseInt(e.target.value))}
                             >
                                 {standard.plgStructures.map((plg, index) => (
                                     <Paper
@@ -140,16 +129,10 @@ function NutritionalStandardsDialog({ open, standard, onClose, onSuccess }) {
                                         variant="outlined"
                                         sx={{
                                             p: 2,
-                                            mb: 1.5,
-                                            bgcolor: index === selectedPLGIndex ? '#e3f2fd' : '#f5f5f5',
-                                            border: `2px solid ${index === selectedPLGIndex ? '#1976d2' : '#e0e0e0'}`,
-                                            cursor: 'pointer',
-                                            '&:hover': {
-                                                bgcolor: '#e3f2fd',
-                                                borderColor: '#1976d2',
-                                            },
+                                            mb: 1,
+                                            borderColor: selectedPLGIndex === index ? '#1976d2' : '#e0e0e0',
+                                            bgcolor: selectedPLGIndex === index ? '#f3f9ff' : 'transparent',
                                         }}
-                                        onClick={() => setSelectedPLGIndex(index)}
                                     >
                                         <FormControlLabel
                                             value={index}
@@ -197,37 +180,21 @@ function NutritionalStandardsDialog({ open, standard, onClose, onSuccess }) {
                         <Grid container spacing={2}>
                             <Grid item xs={6}>
                                 <Typography variant="body2" color="text.secondary">
-                                    Protein Đạm động vật (g):
+                                    Protein Đạm (g):
                                 </Typography>
                                 <Typography variant="h6" sx={{ color: '#d32f2f', fontWeight: 600 }}>
-                                    {standard.proteinAnimal}g
+                                    {standard.protein}g
                                 </Typography>
                             </Grid>
                             <Grid item xs={6}>
                                 <Typography variant="body2" color="text.secondary">
-                                    Protein Đạm thực vật (g):
-                                </Typography>
-                                <Typography variant="h6" sx={{ color: '#388e3c', fontWeight: 600 }}>
-                                    {standard.proteinPlant}g
-                                </Typography>
-                            </Grid>
-                            <Grid item xs={6}>
-                                <Typography variant="body2" color="text.secondary">
-                                    Lipid Béo động vật (g):
+                                    Lipid Béo (g):
                                 </Typography>
                                 <Typography variant="h6" sx={{ color: '#f57c00', fontWeight: 600 }}>
-                                    {standard.lipidAnimal}g
+                                    {standard.lipid}g
                                 </Typography>
                             </Grid>
                             <Grid item xs={6}>
-                                <Typography variant="body2" color="text.secondary">
-                                    Lipid Béo thực vật (g):
-                                </Typography>
-                                <Typography variant="h6" sx={{ color: '#689f38', fontWeight: 600 }}>
-                                    {standard.lipidPlant}g
-                                </Typography>
-                            </Grid>
-                            <Grid item xs={12}>
                                 <Typography variant="body2" color="text.secondary">
                                     Glucid Đường (g):
                                 </Typography>
@@ -235,27 +202,19 @@ function NutritionalStandardsDialog({ open, standard, onClose, onSuccess }) {
                                     {standard.glucid}g
                                 </Typography>
                             </Grid>
-                        </Grid>
-                    </Box>
-
-                    <Divider />
-
-                    {/* Calo */}
-                    <Box>
-                        <Grid container spacing={2}>
                             <Grid item xs={6}>
                                 <Typography variant="body2" color="text.secondary">
                                     Calo cả ngày (kCal):
                                 </Typography>
-                                <Typography variant="h5" sx={{ color: '#7b1fa2', fontWeight: 700 }}>
+                                <Typography variant="h6" sx={{ color: '#7b1fa2', fontWeight: 700 }}>
                                     {standard.totalCalories} kcal
                                 </Typography>
                             </Grid>
-                            <Grid item xs={6}>
+                            <Grid item xs={12}>
                                 <Typography variant="body2" color="text.secondary">
                                     Năng lượng khuyến nghị ăn tại trường (kCal):
                                 </Typography>
-                                <Typography variant="h5" sx={{ color: '#0288d1', fontWeight: 700 }}>
+                                <Typography variant="h6" sx={{ color: '#0288d1', fontWeight: 700 }}>
                                     {standard.recommendedCaloriesMin} - {standard.recommendedCaloriesMax} kcal
                                 </Typography>
                             </Grid>
@@ -265,37 +224,17 @@ function NutritionalStandardsDialog({ open, standard, onClose, onSuccess }) {
             </DialogContent>
 
             <Divider />
-
-            {/* Actions */}
-            <DialogActions sx={{ px: 3, py: 1.5, gap: 1 }}>
-                <Button
-                    onClick={onClose}
-                    variant="outlined"
-                    color="inherit"
-                    size="small"
-                    sx={{ borderRadius: 1.5, px: 2.5, textTransform: 'none', fontWeight: 600 }}
-                >
-                    Hủy bỏ
+            <DialogActions sx={{ px: 3, py: 2 }}>
+                <Button onClick={onClose} color="inherit">
+                    Hủy
                 </Button>
                 <Button
-                    variant="contained"
                     onClick={handleSubmit}
+                    variant="contained"
                     disabled={loading}
-                    size="small"
-                    sx={{
-                        borderRadius: 1.5,
-                        px: 3,
-                        textTransform: 'none',
-                        fontWeight: 600,
-                        boxShadow: 2,
-                        background: 'linear-gradient(135deg, #0071bc 100%, #aee2ff 100%)',
-                        '&:hover': {
-                            boxShadow: 3,
-                            background: 'linear-gradient(135deg, #1180caff 100%, #aee2ff 100%)',
-                        },
-                    }}
+                    startIcon={loading ? <CircularProgress size={20} /> : null}
                 >
-                    {loading ? 'Đang xử lý...' : 'Cập nhật'}
+                    {loading ? 'Đang cập nhật...' : 'Cập nhật'}
                 </Button>
             </DialogActions>
         </Dialog>

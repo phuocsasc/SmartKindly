@@ -45,10 +45,8 @@ const syncStandardsForSchool = async (schoolId) => {
                                 glucid: plg.glucid,
                                 isSelected: false, // ✅ Default = false
                             })),
-                            proteinAnimal: standard.proteinAnimal,
-                            proteinPlant: standard.proteinPlant,
-                            lipidAnimal: standard.lipidAnimal,
-                            lipidPlant: standard.lipidPlant,
+                            protein: standard.protein,
+                            lipid: standard.lipid,
                             glucid: standard.glucid,
                             totalCalories: standard.totalCalories,
                             recommendedCaloriesMin: standard.recommendedCaloriesMin,
@@ -122,7 +120,6 @@ const getAll = async (query, userId) => {
         };
     } catch (error) {
         console.error('❌ [SchoolNutritionalStandard getAll] Error:', error);
-        if (error instanceof ApiError) throw error;
         throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, 'Lỗi khi lấy danh sách định mức dinh dưỡng');
     }
 };
@@ -225,19 +222,15 @@ const checkAndSync = async (userId) => {
         });
 
         if (count === 0) {
-            console.log('🔄 [checkAndSync] School has no standards, syncing...');
-            const result = await syncStandardsForSchool(user.schoolId);
-            return {
-                synced: true,
-                message: `Đã đồng bộ ${result.total} định mức dinh dưỡng từ ngân hàng dữ liệu`,
-            };
+            // Auto sync if no data
+            const syncResult = await syncStandardsForSchool(user.schoolId);
+            return { synced: true, message: syncResult.message };
         }
 
-        return { synced: false, message: 'Trường đã có dữ liệu định mức dinh dưỡng' };
+        return { synced: false, message: 'Đã có dữ liệu định mức dinh dưỡng' };
     } catch (error) {
-        console.error('❌ [checkAndSync] Error:', error);
-        if (error instanceof ApiError) throw error;
-        throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, 'Lỗi khi kiểm tra đồng bộ');
+        console.error('❌ [SchoolNutritionalStandard checkAndSync] Error:', error);
+        throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, 'Lỗi khi kiểm tra đồng bộ định mức dinh dưỡng');
     }
 };
 
@@ -251,24 +244,17 @@ const forceSync = async (userId) => {
             throw new ApiError(StatusCodes.FORBIDDEN, 'Bạn không thuộc trường học nào');
         }
 
-        // ✅ Chỉ BGH mới được sync
+        // ✅ Chỉ BGH mới được force sync
         if (user.role !== 'ban_giam_hieu') {
-            throw new ApiError(StatusCodes.FORBIDDEN, 'Chỉ Ban giám hiệu mới có quyền đồng bộ');
+            throw new ApiError(StatusCodes.FORBIDDEN, 'Chỉ Ban giám hiệu mới có quyền đồng bộ định mức dinh dưỡng');
         }
 
-        console.log('🔄 [forceSync] Force syncing for school:', user.schoolId);
-
-        const result = await syncStandardsForSchool(user.schoolId);
-
-        return {
-            synced: true,
-            message: `Đã đồng bộ thành công: ${result.upserted} mới, ${result.modified} cập nhật`,
-            data: result,
-        };
+        const syncResult = await syncStandardsForSchool(user.schoolId);
+        return syncResult;
     } catch (error) {
-        console.error('❌ [forceSync] Error:', error);
+        console.error('❌ [SchoolNutritionalStandard forceSync] Error:', error);
         if (error instanceof ApiError) throw error;
-        throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, 'Lỗi khi đồng bộ: ' + error.message);
+        throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, 'Lỗi khi đồng bộ định mức dinh dưỡng');
     }
 };
 

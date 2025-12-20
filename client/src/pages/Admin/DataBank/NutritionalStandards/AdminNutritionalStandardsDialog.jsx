@@ -22,6 +22,7 @@ import {
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
+import CircularProgress from '@mui/material/CircularProgress';
 import EditIcon from '@mui/icons-material/Edit';
 import AddIcon from '@mui/icons-material/Add';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
@@ -35,11 +36,9 @@ function AdminNutritionalStandardsDialog({ open, mode, standard, onClose, onSucc
 
     const [formData, setFormData] = useState({
         ageGroup: '',
-        plgStructures: [{ protein: 13, lipid: 37, glucid: 50 }],
-        proteinAnimal: 0,
-        proteinPlant: 0,
-        lipidAnimal: 0,
-        lipidPlant: 0,
+        plgStructures: [{ protein: 13, lipid: 27, glucid: 60 }],
+        protein: 0,
+        lipid: 0,
         glucid: 0,
         recommendedCaloriesMin: 0,
         recommendedCaloriesMax: 0,
@@ -52,11 +51,9 @@ function AdminNutritionalStandardsDialog({ open, mode, standard, onClose, onSucc
         if (mode === 'edit' && standard) {
             setFormData({
                 ageGroup: standard.ageGroup || '',
-                plgStructures: standard.plgStructures || [{ protein: 13, lipid: 37, glucid: 50 }],
-                proteinAnimal: standard.proteinAnimal || 0,
-                proteinPlant: standard.proteinPlant || 0,
-                lipidAnimal: standard.lipidAnimal || 0,
-                lipidPlant: standard.lipidPlant || 0,
+                plgStructures: standard.plgStructures || [{ protein: 13, lipid: 27, glucid: 60 }],
+                protein: standard.protein || 0,
+                lipid: standard.lipid || 0,
                 glucid: standard.glucid || 0,
                 recommendedCaloriesMin: standard.recommendedCaloriesMin || 0,
                 recommendedCaloriesMax: standard.recommendedCaloriesMax || 0,
@@ -64,11 +61,9 @@ function AdminNutritionalStandardsDialog({ open, mode, standard, onClose, onSucc
         } else {
             setFormData({
                 ageGroup: '',
-                plgStructures: [{ protein: 13, lipid: 37, glucid: 50 }],
-                proteinAnimal: 0,
-                proteinPlant: 0,
-                lipidAnimal: 0,
-                lipidPlant: 0,
+                plgStructures: [{ protein: 13, lipid: 27, glucid: 60 }],
+                protein: 0,
+                lipid: 0,
                 glucid: 0,
                 recommendedCaloriesMin: 0,
                 recommendedCaloriesMax: 0,
@@ -78,8 +73,8 @@ function AdminNutritionalStandardsDialog({ open, mode, standard, onClose, onSucc
 
     // Calculate total calories
     const calculateTotalCalories = () => {
-        const totalProtein = formData.proteinAnimal + formData.proteinPlant;
-        const totalLipid = formData.lipidAnimal + formData.lipidPlant;
+        const totalProtein = formData.protein;
+        const totalLipid = formData.lipid;
         return Math.round(totalProtein * 4 + totalLipid * 9 + formData.glucid * 4);
     };
 
@@ -97,15 +92,14 @@ function AdminNutritionalStandardsDialog({ open, mode, standard, onClose, onSucc
             toast.warning('Phải có ít nhất 1 cơ cấu PLG!');
             return;
         }
-        const updated = [...formData.plgStructures];
-        updated.splice(index, 1);
+        const updated = formData.plgStructures.filter((_, i) => i !== index);
         setFormData({ ...formData, plgStructures: updated });
     };
 
     // Update PLG structure
     const handlePLGChange = (index, field, value) => {
         const updated = [...formData.plgStructures];
-        updated[index][field] = parseFloat(value) || 0;
+        updated[index][field] = parseInt(value) || 0;
         setFormData({ ...formData, plgStructures: updated });
     };
 
@@ -139,20 +133,12 @@ function AdminNutritionalStandardsDialog({ open, mode, standard, onClose, onSucc
             }
         }
 
-        if (formData.proteinAnimal <= 0) {
-            toast.error('Protein Đạm động vật phải lớn hơn 0!');
+        if (formData.protein <= 0) {
+            toast.error('Protein Đạm phải lớn hơn 0!');
             return;
         }
-        if (formData.proteinPlant <= 0) {
-            toast.error('Protein Đạm thực vật phải lớn hơn 0!');
-            return;
-        }
-        if (formData.lipidAnimal <= 0) {
-            toast.error('Lipid Béo động vật phải lớn hơn 0!');
-            return;
-        }
-        if (formData.lipidPlant <= 0) {
-            toast.error('Lipid Béo thực vật phải lớn hơn 0!');
+        if (formData.lipid <= 0) {
+            toast.error('Lipid Béo phải lớn hơn 0!');
             return;
         }
         if (formData.glucid <= 0) {
@@ -197,7 +183,6 @@ function AdminNutritionalStandardsDialog({ open, mode, standard, onClose, onSucc
                 sx: { borderRadius: 3, boxShadow: '0 8px 32px rgba(0, 0, 0, 0.12)' },
             }}
         >
-            {/* Header */}
             <DialogTitle
                 sx={{
                     background: 'linear-gradient(135deg, #0071bc 0%, #aee2ff 100%)',
@@ -229,7 +214,6 @@ function AdminNutritionalStandardsDialog({ open, mode, standard, onClose, onSucc
                 </IconButton>
             </DialogTitle>
 
-            {/* Content */}
             <DialogContent sx={{ px: 3, py: 2.5 }}>
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
                     {/* Nhóm trẻ */}
@@ -280,7 +264,7 @@ function AdminNutritionalStandardsDialog({ open, mode, standard, onClose, onSucc
                                         p: 2,
                                         mb: 1.5,
                                         bgcolor: isValid ? '#f1f8e9' : '#fff3e0',
-                                        border: `1px solid ${isValid ? '#aed581' : '#ffb74d'}`,
+                                        borderColor: isValid ? '#4caf50' : '#ff9800',
                                     }}
                                 >
                                     <Box
@@ -291,7 +275,7 @@ function AdminNutritionalStandardsDialog({ open, mode, standard, onClose, onSucc
                                             mb: 1,
                                         }}
                                     >
-                                        <Typography variant="body2" fontWeight={600}>
+                                        <Typography variant="subtitle2" fontWeight={600}>
                                             Cơ cấu PLG #{index + 1}
                                         </Typography>
                                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -302,7 +286,7 @@ function AdminNutritionalStandardsDialog({ open, mode, standard, onClose, onSucc
                                                     fontWeight: 600,
                                                 }}
                                             >
-                                                Tổng: {total.toFixed(1)}% {isValid ? '✓' : '✗'}
+                                                Tổng: {total}% {isValid ? '✓' : '✗'}
                                             </Typography>
                                             {formData.plgStructures.length > 1 && (
                                                 <IconButton
@@ -325,7 +309,7 @@ function AdminNutritionalStandardsDialog({ open, mode, standard, onClose, onSucc
                                                 onChange={(e) => handlePLGChange(index, 'protein', e.target.value)}
                                                 size="small"
                                                 fullWidth
-                                                inputProps={{ min: 0, max: 100, step: 0.1 }}
+                                                inputProps={{ min: 1, max: 100, step: 1 }}
                                             />
                                         </Grid>
                                         <Grid item xs={4}>
@@ -336,7 +320,7 @@ function AdminNutritionalStandardsDialog({ open, mode, standard, onClose, onSucc
                                                 onChange={(e) => handlePLGChange(index, 'lipid', e.target.value)}
                                                 size="small"
                                                 fullWidth
-                                                inputProps={{ min: 0, max: 100, step: 0.1 }}
+                                                inputProps={{ min: 1, max: 100, step: 1 }}
                                             />
                                         </Grid>
                                         <Grid item xs={4}>
@@ -347,7 +331,7 @@ function AdminNutritionalStandardsDialog({ open, mode, standard, onClose, onSucc
                                                 onChange={(e) => handlePLGChange(index, 'glucid', e.target.value)}
                                                 size="small"
                                                 fullWidth
-                                                inputProps={{ min: 0, max: 100, step: 0.1 }}
+                                                inputProps={{ min: 1, max: 100, step: 1 }}
                                             />
                                         </Grid>
                                     </Grid>
@@ -356,21 +340,21 @@ function AdminNutritionalStandardsDialog({ open, mode, standard, onClose, onSucc
                         })}
                     </Box>
 
-                    <Divider />
+                    {/* <Divider /> */}
 
-                    {/* Protein */}
+                    {/* Định mức 1 ngày */}
                     <Box>
                         <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 1 }}>
-                            Protein (Đạm)
+                            Định mức 1 ngày của mỗi chất
                         </Typography>
                         <Grid container spacing={2}>
-                            <Grid item xs={6}>
+                            <Grid item xs={4}>
                                 <TextField
-                                    label="Đạm động vật (g)"
+                                    label="Protein Đạm (g)"
                                     type="number"
-                                    value={formData.proteinAnimal}
+                                    value={formData.protein}
                                     onChange={(e) =>
-                                        setFormData({ ...formData, proteinAnimal: parseFloat(e.target.value) || 0 })
+                                        setFormData({ ...formData, protein: parseFloat(e.target.value) || 0 })
                                     }
                                     required
                                     fullWidth
@@ -378,13 +362,27 @@ function AdminNutritionalStandardsDialog({ open, mode, standard, onClose, onSucc
                                     inputProps={{ min: 0.001, step: 0.1 }}
                                 />
                             </Grid>
-                            <Grid item xs={6}>
+                            <Grid item xs={4}>
                                 <TextField
-                                    label="Đạm thực vật (g)"
+                                    label="Lipid Béo (g)"
                                     type="number"
-                                    value={formData.proteinPlant}
+                                    value={formData.lipid}
                                     onChange={(e) =>
-                                        setFormData({ ...formData, proteinPlant: parseFloat(e.target.value) || 0 })
+                                        setFormData({ ...formData, lipid: parseFloat(e.target.value) || 0 })
+                                    }
+                                    required
+                                    fullWidth
+                                    size="small"
+                                    inputProps={{ min: 0.001, step: 0.1 }}
+                                />
+                            </Grid>
+                            <Grid item xs={4}>
+                                <TextField
+                                    label="Glucid Đường (g)"
+                                    type="number"
+                                    value={formData.glucid}
+                                    onChange={(e) =>
+                                        setFormData({ ...formData, glucid: parseFloat(e.target.value) || 0 })
                                     }
                                     required
                                     fullWidth
@@ -394,55 +392,6 @@ function AdminNutritionalStandardsDialog({ open, mode, standard, onClose, onSucc
                             </Grid>
                         </Grid>
                     </Box>
-
-                    {/* Lipid */}
-                    <Box>
-                        <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 1 }}>
-                            Lipid (Béo)
-                        </Typography>
-                        <Grid container spacing={2}>
-                            <Grid item xs={6}>
-                                <TextField
-                                    label="Béo động vật (g)"
-                                    type="number"
-                                    value={formData.lipidAnimal}
-                                    onChange={(e) =>
-                                        setFormData({ ...formData, lipidAnimal: parseFloat(e.target.value) || 0 })
-                                    }
-                                    required
-                                    fullWidth
-                                    size="small"
-                                    inputProps={{ min: 0.001, step: 0.1 }}
-                                />
-                            </Grid>
-                            <Grid item xs={6}>
-                                <TextField
-                                    label="Béo thực vật (g)"
-                                    type="number"
-                                    value={formData.lipidPlant}
-                                    onChange={(e) =>
-                                        setFormData({ ...formData, lipidPlant: parseFloat(e.target.value) || 0 })
-                                    }
-                                    required
-                                    fullWidth
-                                    size="small"
-                                    inputProps={{ min: 0.001, step: 0.1 }}
-                                />
-                            </Grid>
-                        </Grid>
-                    </Box>
-
-                    {/* Glucid */}
-                    <TextField
-                        label="Glucid Đường (g)"
-                        type="number"
-                        value={formData.glucid}
-                        onChange={(e) => setFormData({ ...formData, glucid: parseFloat(e.target.value) || 0 })}
-                        required
-                        fullWidth
-                        size="small"
-                        inputProps={{ min: 0.001, step: 0.1 }}
-                    />
 
                     {/* Calo cả ngày (tự tính) */}
                     <Box
@@ -460,7 +409,7 @@ function AdminNutritionalStandardsDialog({ open, mode, standard, onClose, onSucc
                             {calculateTotalCalories()} kcal
                         </Typography>
                         <Typography variant="caption" color="text.secondary">
-                            = [(P động vật + P thực vật) × 4] + [(L động vật + L thực vật) × 9] + (G × 4)
+                            Công thức: [Protein × 4] + [Lipid × 9] + [Glucid × 4]
                         </Typography>
                     </Box>
 
@@ -478,7 +427,7 @@ function AdminNutritionalStandardsDialog({ open, mode, standard, onClose, onSucc
                                     onChange={(e) =>
                                         setFormData({
                                             ...formData,
-                                            recommendedCaloriesMin: parseFloat(e.target.value) || 0,
+                                            recommendedCaloriesMin: parseInt(e.target.value) || 0,
                                         })
                                     }
                                     required
@@ -495,7 +444,7 @@ function AdminNutritionalStandardsDialog({ open, mode, standard, onClose, onSucc
                                     onChange={(e) =>
                                         setFormData({
                                             ...formData,
-                                            recommendedCaloriesMax: parseFloat(e.target.value) || 0,
+                                            recommendedCaloriesMax: parseInt(e.target.value) || 0,
                                         })
                                     }
                                     required
@@ -510,35 +459,15 @@ function AdminNutritionalStandardsDialog({ open, mode, standard, onClose, onSucc
             </DialogContent>
 
             <Divider />
-
-            {/* Actions */}
-            <DialogActions sx={{ px: 3, py: 1.5, gap: 1 }}>
-                <Button
-                    onClick={onClose}
-                    variant="outlined"
-                    color="inherit"
-                    size="small"
-                    sx={{ borderRadius: 1.5, px: 2.5, textTransform: 'none', fontWeight: 600 }}
-                >
-                    Hủy bỏ
+            <DialogActions sx={{ px: 3, py: 2 }}>
+                <Button onClick={onClose} color="inherit">
+                    Hủy
                 </Button>
                 <Button
-                    variant="contained"
                     onClick={handleSubmit}
+                    variant="contained"
                     disabled={loading}
-                    size="small"
-                    sx={{
-                        borderRadius: 1.5,
-                        px: 3,
-                        textTransform: 'none',
-                        fontWeight: 600,
-                        boxShadow: 2,
-                        background: 'linear-gradient(135deg, #0071bc 100%, #aee2ff 100%)',
-                        '&:hover': {
-                            boxShadow: 3,
-                            background: 'linear-gradient(135deg, #1180caff 100%, #aee2ff 100%)',
-                        },
-                    }}
+                    startIcon={loading ? <CircularProgress size={20} /> : null}
                 >
                     {loading ? 'Đang xử lý...' : isCreateMode ? 'Tạo định mức' : 'Cập nhật'}
                 </Button>

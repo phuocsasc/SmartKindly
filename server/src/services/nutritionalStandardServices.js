@@ -139,7 +139,6 @@ const update = async (id, data, userId) => {
         // ✅ Check duplicate ageGroup if changed
         if (data.ageGroup && data.ageGroup !== standard.ageGroup) {
             const existing = await NutritionalStandardModel.findOne({
-                _id: { $ne: id },
                 ageGroup: data.ageGroup,
                 _destroy: false,
             });

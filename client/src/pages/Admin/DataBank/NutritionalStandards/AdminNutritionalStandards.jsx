@@ -1,7 +1,7 @@
 // client/src/pages/Admin/DataBank/NutritionalStandards/AdminNutritionalStandards.jsx
 
 import { useState, useEffect } from 'react';
-import { Box, Typography, Paper, IconButton, Tooltip, CircularProgress } from '@mui/material';
+import { Box, Typography, Paper, IconButton, Tooltip, CircularProgress, Chip } from '@mui/material';
 import { DataGrid } from '@mui/x-data-grid';
 import AddCircleOutlineOutlinedIcon from '@mui/icons-material/AddCircleOutlineOutlined';
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
@@ -47,10 +47,8 @@ function AdminNutritionalStandards() {
                 id: standard._id,
                 stt: paginationModel.page * paginationModel.pageSize + index + 1,
                 ageGroup: standard.ageGroup,
-                proteinAnimal: standard.proteinAnimal,
-                proteinPlant: standard.proteinPlant,
-                lipidAnimal: standard.lipidAnimal,
-                lipidPlant: standard.lipidPlant,
+                protein: standard.protein,
+                lipid: standard.lipid,
                 glucid: standard.glucid,
                 totalCalories: standard.totalCalories,
                 recommendedCaloriesMin: standard.recommendedCaloriesMin,
@@ -129,93 +127,104 @@ function AdminNutritionalStandards() {
                 </Typography>
             ),
         },
+        // ✅ Thêm cột Cơ cấu PLG chuẩn
         {
-            field: 'proteinAnimal',
-            headerName: 'Đạm động vật (g)',
+            field: 'plgStructures',
+            headerName: 'Cơ cấu PLG chuẩn',
+            flex: 0.6,
+            align: 'center',
+            headerAlign: 'center',
+            minWidth: 150,
+            sortable: false,
+            renderCell: (params) => (
+                <Box
+                    sx={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: 1,
+                        py: 0.5,
+                    }}
+                >
+                    {params.value.map((plg, index) => (
+                        <Chip
+                            key={index}
+                            label={`P:${plg.protein}% L:${plg.lipid}% G:${plg.glucid}%`}
+                            variant="outlined"
+                            sx={{
+                                fontSize: '0.85rem',
+                                fontWeight: 600,
+                                color: '#304c6dff',
+                                borderColor: '#304c6dff',
+                                '& .MuiChip-label': {
+                                    px: 5,
+                                },
+                            }}
+                        />
+                    ))}
+                </Box>
+            ),
+        },
+        {
+            field: 'protein',
+            headerName: 'Protein Đạm (g)',
             width: 150,
             sortable: false,
             align: 'center',
             headerAlign: 'center',
             renderCell: (params) => (
-                <Typography variant="body2" sx={{ color: '#d32f2f', fontWeight: 500 }}>
-                    {params.value}g
+                <Typography variant="body2" sx={{ color: '#5d2e7dff', fontWeight: 500 }}>
+                    {params.value} g
                 </Typography>
             ),
         },
         {
-            field: 'proteinPlant',
-            headerName: 'Đạm thực vật (g)',
-            width: 150,
-            sortable: false,
-            align: 'center',
-            headerAlign: 'center',
-            renderCell: (params) => (
-                <Typography variant="body2" sx={{ color: '#388e3c', fontWeight: 500 }}>
-                    {params.value}g
-                </Typography>
-            ),
-        },
-        {
-            field: 'lipidAnimal',
-            headerName: 'Béo động vật (g)',
+            field: 'lipid',
+            headerName: 'Lipid Béo (g)',
             width: 150,
             sortable: false,
             align: 'center',
             headerAlign: 'center',
             renderCell: (params) => (
                 <Typography variant="body2" sx={{ color: '#f57c00', fontWeight: 500 }}>
-                    {params.value}g
-                </Typography>
-            ),
-        },
-        {
-            field: 'lipidPlant',
-            headerName: 'Béo thực vật (g)',
-            width: 150,
-            sortable: false,
-            align: 'center',
-            headerAlign: 'center',
-            renderCell: (params) => (
-                <Typography variant="body2" sx={{ color: '#689f38', fontWeight: 500 }}>
-                    {params.value}g
+                    {params.value} g
                 </Typography>
             ),
         },
         {
             field: 'glucid',
-            headerName: 'Đường (g)',
-            width: 120,
+            headerName: 'Glucid Đường (g)',
+            width: 150,
             sortable: false,
             align: 'center',
             headerAlign: 'center',
             renderCell: (params) => (
                 <Typography variant="body2" sx={{ color: '#1976d2', fontWeight: 500 }}>
-                    {params.value}g
+                    {params.value} g
                 </Typography>
             ),
         },
         {
             field: 'totalCalories',
-            headerName: 'Calo cả ngày',
-            width: 140,
+            headerName: 'Calo cả ngày (kcal)',
+            width: 180,
             sortable: false,
             align: 'center',
             headerAlign: 'center',
             renderCell: (params) => (
-                <Typography variant="body2" sx={{ color: '#7b1fa2', fontWeight: 700 }}>
+                <Typography variant="body2" sx={{ color: '#000000ff', fontWeight: 700 }}>
                     {params.value} kcal
                 </Typography>
             ),
         },
         {
             field: 'recommendedCalories',
-            headerName: 'Calo khuyến nghị',
-            width: 180,
+            headerName: 'Năng lượng khuyến nghị (kcal)',
+            width: 240,
             sortable: false,
             align: 'center',
             headerAlign: 'center',
             renderCell: (params) => (
-                <Typography variant="body2" sx={{ color: '#0288d1', fontWeight: 600 }}>
+                <Typography variant="body2" sx={{ color: '#000000ff', fontWeight: 600 }}>
                     {params.row.recommendedCaloriesMin} - {params.row.recommendedCaloriesMax} kcal
                 </Typography>
             ),

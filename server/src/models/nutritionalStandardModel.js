@@ -10,20 +10,23 @@ const PLGStructureSchema = new mongoose.Schema(
         protein: {
             type: Number,
             required: [true, 'Tỷ lệ Protein là bắt buộc'],
-            min: [0, 'Tỷ lệ Protein phải lớn hơn 0'],
+            min: [1, 'Tỷ lệ Protein phải lớn hơn 0'],
             max: [100, 'Tỷ lệ Protein không được vượt quá 100'],
+            integer: true, // Số nguyên
         },
         lipid: {
             type: Number,
             required: [true, 'Tỷ lệ Lipid là bắt buộc'],
-            min: [0, 'Tỷ lệ Lipid phải lớn hơn 0'],
+            min: [1, 'Tỷ lệ Lipid phải lớn hơn 0'],
             max: [100, 'Tỷ lệ Lipid không được vượt quá 100'],
+            integer: true, // Số nguyên
         },
         glucid: {
             type: Number,
             required: [true, 'Tỷ lệ Glucid là bắt buộc'],
-            min: [0, 'Tỷ lệ Glucid phải lớn hơn 0'],
+            min: [1, 'Tỷ lệ Glucid phải lớn hơn 0'],
             max: [100, 'Tỷ lệ Glucid không được vượt quá 100'],
+            integer: true, // Số nguyên
         },
     },
     { _id: true },
@@ -53,29 +56,17 @@ const NutritionalStandardSchema = new mongoose.Schema(
                 message: 'Phải có ít nhất 1 cơ cấu PLG chuẩn',
             },
         },
-        // ✅ Protein (Đạm)
-        proteinAnimal: {
+        // ✅ Định mức 1 ngày của mỗi chất
+        protein: {
             type: Number,
-            required: [true, 'Protein Đạm động vật là bắt buộc'],
-            min: [0.001, 'Protein Đạm động vật phải lớn hơn 0'],
+            required: [true, 'Protein Đạm là bắt buộc'],
+            min: [0.001, 'Protein Đạm phải lớn hơn 0'],
         },
-        proteinPlant: {
+        lipid: {
             type: Number,
-            required: [true, 'Protein Đạm thực vật là bắt buộc'],
-            min: [0.001, 'Protein Đạm thực vật phải lớn hơn 0'],
+            required: [true, 'Lipid Béo là bắt buộc'],
+            min: [0.001, 'Lipid Béo phải lớn hơn 0'],
         },
-        // ✅ Lipid (Béo)
-        lipidAnimal: {
-            type: Number,
-            required: [true, 'Lipid Béo động vật là bắt buộc'],
-            min: [0.001, 'Lipid Béo động vật phải lớn hơn 0'],
-        },
-        lipidPlant: {
-            type: Number,
-            required: [true, 'Lipid Béo thực vật là bắt buộc'],
-            min: [0.001, 'Lipid Béo thực vật phải lớn hơn 0'],
-        },
-        // ✅ Glucid (Đường)
         glucid: {
             type: Number,
             required: [true, 'Glucid Đường là bắt buộc'],
@@ -91,11 +82,13 @@ const NutritionalStandardSchema = new mongoose.Schema(
             type: Number,
             required: [true, 'Năng lượng khuyến nghị tối thiểu là bắt buộc'],
             min: [0, 'Năng lượng khuyến nghị tối thiểu phải lớn hơn 0'],
+            integer: true, // Số nguyên
         },
         recommendedCaloriesMax: {
             type: Number,
             required: [true, 'Năng lượng khuyến nghị tối đa là bắt buộc'],
             min: [0, 'Năng lượng khuyến nghị tối đa phải lớn hơn 0'],
+            integer: true, // Số nguyên
         },
         createdBy: {
             type: mongoose.Schema.Types.ObjectId,
@@ -136,10 +129,7 @@ NutritionalStandardSchema.pre('save', function (next) {
     }
 
     // 2. Tính totalCalories
-    // Calo = [(Protein động vật + Protein thực vật) * 4] + [(Lipid động vật + Lipid thực vật) * 9] + (Glucid * 4)
-    const totalProtein = this.proteinAnimal + this.proteinPlant;
-    const totalLipid = this.lipidAnimal + this.lipidPlant;
-    this.totalCalories = Math.round(totalProtein * 4 + totalLipid * 9 + this.glucid * 4);
+    this.totalCalories = Math.round(this.protein * 4 + this.lipid * 9 + this.glucid * 4);
 
     // 3. Validate recommendedCalories
     if (this.recommendedCaloriesMin > this.recommendedCaloriesMax) {

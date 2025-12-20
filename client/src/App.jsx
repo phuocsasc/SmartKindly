@@ -52,7 +52,7 @@ import ChildrenProgramComplete from '~/pages/School/Children/ChildrenProgramComp
 // Dinh dưỡng
 import Food from '~/pages/School/Nutrition/Food/Food';
 import Meal from '~/pages/School/Nutrition/Meal/Meal';
-import Menu from '~/pages/School/Nutrition/Menu/menu';
+import Menu from '~/pages/School/Nutrition/Menu/Menu';
 import NutritionalStandards from '~/pages/School/Nutrition/Standard/NutritionalStandards';
 import ServiceCharge from '~/pages/School/Nutrition/ServiceCharge/ServiceCharge';
 

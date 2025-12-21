@@ -19,13 +19,12 @@ import {
     Divider,
     Paper,
     Grid,
+    Alert,
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
 import CircularProgress from '@mui/material/CircularProgress';
 import EditIcon from '@mui/icons-material/Edit';
-import AddIcon from '@mui/icons-material/Add';
-import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import { nutritionalStandardApi } from '~/apis';
 import { toast } from 'react-toastify';
 
@@ -36,7 +35,14 @@ function AdminNutritionalStandardsDialog({ open, mode, standard, onClose, onSucc
 
     const [formData, setFormData] = useState({
         ageGroup: '',
-        plgStructures: [{ protein: 13, lipid: 27, glucid: 60 }],
+        plgStructure: {
+            proteinMin: 13,
+            proteinMax: 20,
+            lipidMin: 30,
+            lipidMax: 40,
+            glucidMin: 47,
+            glucidMax: 50,
+        },
         protein: 0,
         lipid: 0,
         glucid: 0,
@@ -51,7 +57,14 @@ function AdminNutritionalStandardsDialog({ open, mode, standard, onClose, onSucc
         if (mode === 'edit' && standard) {
             setFormData({
                 ageGroup: standard.ageGroup || '',
-                plgStructures: standard.plgStructures || [{ protein: 13, lipid: 27, glucid: 60 }],
+                plgStructure: standard.plgStructure || {
+                    proteinMin: 13,
+                    proteinMax: 20,
+                    lipidMin: 30,
+                    lipidMax: 40,
+                    glucidMin: 47,
+                    glucidMax: 50,
+                },
                 protein: standard.protein || 0,
                 lipid: standard.lipid || 0,
                 glucid: standard.glucid || 0,
@@ -61,7 +74,14 @@ function AdminNutritionalStandardsDialog({ open, mode, standard, onClose, onSucc
         } else {
             setFormData({
                 ageGroup: '',
-                plgStructures: [{ protein: 13, lipid: 27, glucid: 60 }],
+                plgStructure: {
+                    proteinMin: 13,
+                    proteinMax: 20,
+                    lipidMin: 30,
+                    lipidMax: 40,
+                    glucidMin: 47,
+                    glucidMax: 50,
+                },
                 protein: 0,
                 lipid: 0,
                 glucid: 0,
@@ -75,38 +95,19 @@ function AdminNutritionalStandardsDialog({ open, mode, standard, onClose, onSucc
     const calculateTotalCalories = () => {
         const totalProtein = formData.protein;
         const totalLipid = formData.lipid;
-        return Math.round(totalProtein * 4 + totalLipid * 9 + formData.glucid * 4);
-    };
-
-    // Add PLG structure
-    const handleAddPLG = () => {
-        setFormData({
-            ...formData,
-            plgStructures: [...formData.plgStructures, { protein: 0, lipid: 0, glucid: 0 }],
-        });
-    };
-
-    // Remove PLG structure
-    const handleRemovePLG = (index) => {
-        if (formData.plgStructures.length === 1) {
-            toast.warning('Phải có ít nhất 1 cơ cấu PLG!');
-            return;
-        }
-        const updated = formData.plgStructures.filter((_, i) => i !== index);
-        setFormData({ ...formData, plgStructures: updated });
+        const totalGlucid = formData.glucid;
+        return Math.round(totalProtein * 4 + totalLipid * 9 + totalGlucid * 4);
     };
 
     // Update PLG structure
-    const handlePLGChange = (index, field, value) => {
-        const updated = [...formData.plgStructures];
-        updated[index][field] = parseInt(value) || 0;
-        setFormData({ ...formData, plgStructures: updated });
-    };
-
-    // Validate PLG total
-    const validatePLGTotal = (plg) => {
-        const total = plg.protein + plg.lipid + plg.glucid;
-        return Math.abs(total - 100) < 0.01; // Allow small floating point error
+    const handlePLGChange = (field, value) => {
+        setFormData({
+            ...formData,
+            plgStructure: {
+                ...formData.plgStructure,
+                [field]: parseInt(value) || 0,
+            },
+        });
     };
 
     // Submit
@@ -117,20 +118,34 @@ function AdminNutritionalStandardsDialog({ open, mode, standard, onClose, onSucc
             return;
         }
 
-        // Validate PLG structures
-        for (let i = 0; i < formData.plgStructures.length; i++) {
-            const plg = formData.plgStructures[i];
-            if (plg.protein <= 0 || plg.lipid <= 0 || plg.glucid <= 0) {
-                toast.error(`Cơ cấu PLG #${i + 1}: Tất cả giá trị phải lớn hơn 0!`);
-                return;
-            }
-            if (!validatePLGTotal(plg)) {
-                const total = plg.protein + plg.lipid + plg.glucid;
-                toast.error(
-                    `Cơ cấu PLG #${i + 1}: Tổng phải bằng 100% (hiện tại: ${total.toFixed(2)}%). P: ${plg.protein}%, L: ${plg.lipid}%, G: ${plg.glucid}%`,
-                );
-                return;
-            }
+        // Validate PLG structure
+        const plg = formData.plgStructure;
+
+        // Validate Min <= Max
+        if (plg.proteinMin > plg.proteinMax) {
+            toast.error('Protein: Giá trị "Từ" không được lớn hơn "Đến"!');
+            return;
+        }
+        if (plg.lipidMin > plg.lipidMax) {
+            toast.error('Lipid: Giá trị "Từ" không được lớn hơn "Đến"!');
+            return;
+        }
+        if (plg.glucidMin > plg.glucidMax) {
+            toast.error('Glucid: Giá trị "Từ" không được lớn hơn "Đến"!');
+            return;
+        }
+
+        // Validate values > 0
+        if (
+            plg.proteinMin <= 0 ||
+            plg.proteinMax <= 0 ||
+            plg.lipidMin <= 0 ||
+            plg.lipidMax <= 0 ||
+            plg.glucidMin <= 0 ||
+            plg.glucidMax <= 0
+        ) {
+            toast.error('Tất cả giá trị PLG phải lớn hơn 0!');
+            return;
         }
 
         if (formData.protein <= 0) {
@@ -236,111 +251,120 @@ function AdminNutritionalStandardsDialog({ open, mode, standard, onClose, onSucc
 
                     <Divider />
 
-                    {/* Cơ cấu PLG */}
+                    {/* Cơ cấu PLG chuẩn duy nhất */}
                     <Box>
-                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
-                            <Typography variant="subtitle1" fontWeight={600}>
-                                Cơ cấu PLG chuẩn (tổng = 100%)
-                            </Typography>
-                            <Button
-                                size="small"
-                                startIcon={<AddIcon />}
-                                onClick={handleAddPLG}
-                                sx={{ textTransform: 'none' }}
-                            >
-                                Thêm cơ cấu PLG
-                            </Button>
-                        </Box>
+                        <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 1.5 }}>
+                            Cơ cấu PLG chuẩn duy nhất (%)
+                        </Typography>
 
-                        {formData.plgStructures.map((plg, index) => {
-                            const total = plg.protein + plg.lipid + plg.glucid;
-                            const isValid = validatePLGTotal(plg);
+                        <Alert severity="info" sx={{ mb: 2 }}>
+                            Nhập khoảng tỷ lệ % cho mỗi chất dinh dưỡng (Từ % - Đến %). Tất cả giá trị phải là số nguyên
+                            từ 1 đến 100.
+                        </Alert>
 
-                            return (
-                                <Paper
-                                    key={index}
-                                    variant="outlined"
-                                    sx={{
-                                        p: 2,
-                                        mb: 1.5,
-                                        bgcolor: isValid ? '#f1f8e9' : '#fff3e0',
-                                        borderColor: isValid ? '#4caf50' : '#ff9800',
-                                    }}
-                                >
-                                    <Box
-                                        sx={{
-                                            display: 'flex',
-                                            justifyContent: 'space-between',
-                                            alignItems: 'center',
-                                            mb: 1,
-                                        }}
-                                    >
-                                        <Typography variant="subtitle2" fontWeight={600}>
-                                            Cơ cấu PLG #{index + 1}
-                                        </Typography>
-                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                            <Typography
-                                                variant="caption"
-                                                sx={{
-                                                    color: isValid ? '#2e7d32' : '#f57c00',
-                                                    fontWeight: 600,
-                                                }}
-                                            >
-                                                Tổng: {total}% {isValid ? '✓' : '✗'}
-                                            </Typography>
-                                            {formData.plgStructures.length > 1 && (
-                                                <IconButton
-                                                    size="small"
-                                                    color="error"
-                                                    onClick={() => handleRemovePLG(index)}
-                                                >
-                                                    <DeleteOutlineIcon fontSize="small" />
-                                                </IconButton>
-                                            )}
-                                        </Box>
-                                    </Box>
-
-                                    <Grid container spacing={2}>
-                                        <Grid item xs={4}>
-                                            <TextField
-                                                label="Protein (Đạm) %"
-                                                type="number"
-                                                value={plg.protein}
-                                                onChange={(e) => handlePLGChange(index, 'protein', e.target.value)}
-                                                size="small"
-                                                fullWidth
-                                                inputProps={{ min: 1, max: 100, step: 1 }}
-                                            />
-                                        </Grid>
-                                        <Grid item xs={4}>
-                                            <TextField
-                                                label="Lipid (Béo) %"
-                                                type="number"
-                                                value={plg.lipid}
-                                                onChange={(e) => handlePLGChange(index, 'lipid', e.target.value)}
-                                                size="small"
-                                                fullWidth
-                                                inputProps={{ min: 1, max: 100, step: 1 }}
-                                            />
-                                        </Grid>
-                                        <Grid item xs={4}>
-                                            <TextField
-                                                label="Glucid (Đường) %"
-                                                type="number"
-                                                value={plg.glucid}
-                                                onChange={(e) => handlePLGChange(index, 'glucid', e.target.value)}
-                                                size="small"
-                                                fullWidth
-                                                inputProps={{ min: 1, max: 100, step: 1 }}
-                                            />
-                                        </Grid>
+                        <Paper variant="outlined" sx={{ p: 2, bgcolor: '#f9fafb' }}>
+                            {/* Protein */}
+                            <Box sx={{ mb: 2 }}>
+                                <Typography variant="body2" fontWeight={600} sx={{ mb: 1, color: '#5d2e7dff' }}>
+                                    Protein (Đạm) %
+                                </Typography>
+                                <Grid container spacing={2}>
+                                    <Grid item xs={6}>
+                                        <TextField
+                                            label="Từ (%)"
+                                            type="number"
+                                            value={formData.plgStructure.proteinMin}
+                                            onChange={(e) => handlePLGChange('proteinMin', e.target.value)}
+                                            size="small"
+                                            fullWidth
+                                            required
+                                            inputProps={{ min: 1, max: 100, step: 1 }}
+                                        />
                                     </Grid>
-                                </Paper>
-                            );
-                        })}
+                                    <Grid item xs={6}>
+                                        <TextField
+                                            label="Đến (%)"
+                                            type="number"
+                                            value={formData.plgStructure.proteinMax}
+                                            onChange={(e) => handlePLGChange('proteinMax', e.target.value)}
+                                            size="small"
+                                            fullWidth
+                                            required
+                                            inputProps={{ min: 1, max: 100, step: 1 }}
+                                        />
+                                    </Grid>
+                                </Grid>
+                            </Box>
+
+                            {/* Lipid */}
+                            <Box sx={{ mb: 2 }}>
+                                <Typography variant="body2" fontWeight={600} sx={{ mb: 1, color: '#f57c00' }}>
+                                    Lipid (Béo) %
+                                </Typography>
+                                <Grid container spacing={2}>
+                                    <Grid item xs={6}>
+                                        <TextField
+                                            label="Từ (%)"
+                                            type="number"
+                                            value={formData.plgStructure.lipidMin}
+                                            onChange={(e) => handlePLGChange('lipidMin', e.target.value)}
+                                            size="small"
+                                            fullWidth
+                                            required
+                                            inputProps={{ min: 1, max: 100, step: 1 }}
+                                        />
+                                    </Grid>
+                                    <Grid item xs={6}>
+                                        <TextField
+                                            label="Đến (%)"
+                                            type="number"
+                                            value={formData.plgStructure.lipidMax}
+                                            onChange={(e) => handlePLGChange('lipidMax', e.target.value)}
+                                            size="small"
+                                            fullWidth
+                                            required
+                                            inputProps={{ min: 1, max: 100, step: 1 }}
+                                        />
+                                    </Grid>
+                                </Grid>
+                            </Box>
+
+                            {/* Glucid */}
+                            <Box>
+                                <Typography variant="body2" fontWeight={600} sx={{ mb: 1, color: '#1976d2' }}>
+                                    Glucid (Đường) %
+                                </Typography>
+                                <Grid container spacing={2}>
+                                    <Grid item xs={6}>
+                                        <TextField
+                                            label="Từ (%)"
+                                            type="number"
+                                            value={formData.plgStructure.glucidMin}
+                                            onChange={(e) => handlePLGChange('glucidMin', e.target.value)}
+                                            size="small"
+                                            fullWidth
+                                            required
+                                            inputProps={{ min: 1, max: 100, step: 1 }}
+                                        />
+                                    </Grid>
+                                    <Grid item xs={6}>
+                                        <TextField
+                                            label="Đến (%)"
+                                            type="number"
+                                            value={formData.plgStructure.glucidMax}
+                                            onChange={(e) => handlePLGChange('glucidMax', e.target.value)}
+                                            size="small"
+                                            fullWidth
+                                            required
+                                            inputProps={{ min: 1, max: 100, step: 1 }}
+                                        />
+                                    </Grid>
+                                </Grid>
+                            </Box>
+                        </Paper>
                     </Box>
 
-                    {/* <Divider /> */}
+                    <Divider />
 
                     {/* Định mức 1 ngày */}
                     <Box>

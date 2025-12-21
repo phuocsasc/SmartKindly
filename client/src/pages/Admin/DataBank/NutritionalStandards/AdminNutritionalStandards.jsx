@@ -1,7 +1,7 @@
 // client/src/pages/Admin/DataBank/NutritionalStandards/AdminNutritionalStandards.jsx
 
 import { useState, useEffect } from 'react';
-import { Box, Typography, Paper, IconButton, Tooltip, CircularProgress, Chip } from '@mui/material';
+import { Box, Typography, Paper, IconButton, Tooltip, CircularProgress } from '@mui/material';
 import { DataGrid } from '@mui/x-data-grid';
 import AddCircleOutlineOutlinedIcon from '@mui/icons-material/AddCircleOutlineOutlined';
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
@@ -127,42 +127,31 @@ function AdminNutritionalStandards() {
                 </Typography>
             ),
         },
-        // ✅ Thêm cột Cơ cấu PLG chuẩn
+        // ✅ Cột Cơ cấu PLG chuẩn (hiển thị khoảng Từ - Đến)
         {
-            field: 'plgStructures',
-            headerName: 'Cơ cấu PLG chuẩn',
-            flex: 0.6,
+            field: 'plgStructure',
+            headerName: 'Cơ cấu PLG chuẩn (%)',
+            flex: 1,
             align: 'center',
             headerAlign: 'center',
-            minWidth: 150,
+            minWidth: 280,
             sortable: false,
-            renderCell: (params) => (
-                <Box
-                    sx={{
-                        display: 'flex',
-                        flexDirection: 'column',
-                        gap: 1,
-                        py: 0.5,
-                    }}
-                >
-                    {params.value.map((plg, index) => (
-                        <Chip
-                            key={index}
-                            label={`P:${plg.protein}% L:${plg.lipid}% G:${plg.glucid}%`}
-                            variant="outlined"
-                            sx={{
-                                fontSize: '0.85rem',
-                                fontWeight: 600,
-                                color: '#304c6dff',
-                                borderColor: '#304c6dff',
-                                '& .MuiChip-label': {
-                                    px: 2,
-                                },
-                            }}
-                        />
-                    ))}
-                </Box>
-            ),
+            renderCell: (params) => {
+                const plg = params.value;
+                return (
+                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, py: 0.5 }}>
+                        <Typography variant="caption" sx={{ color: '#5d2e7dff', fontWeight: 600 }}>
+                            Protein Đạm: {plg.proteinMin}% - {plg.proteinMax}%
+                        </Typography>
+                        <Typography variant="caption" sx={{ color: '#f57c00', fontWeight: 600 }}>
+                            Lipid Béo: {plg.lipidMin}% - {plg.lipidMax}%
+                        </Typography>
+                        <Typography variant="caption" sx={{ color: '#1976d2', fontWeight: 600 }}>
+                            Glucid Đường: {plg.glucidMin}% - {plg.glucidMax}%
+                        </Typography>
+                    </Box>
+                );
+            },
         },
         {
             field: 'protein',

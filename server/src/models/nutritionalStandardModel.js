@@ -3,37 +3,61 @@
 import mongoose from 'mongoose';
 
 /**
- * ✅ Sub-schema: Cơ cấu PLG chuẩn
+ * ✅ Sub-schema: Cơ cấu PLG chuẩn duy nhất (có khoảng Từ - Đến)
  */
 const PLGStructureSchema = new mongoose.Schema(
     {
-        protein: {
+        // Protein (Đạm)
+        proteinMin: {
             type: Number,
-            required: [true, 'Tỷ lệ Protein là bắt buộc'],
-            min: [1, 'Tỷ lệ Protein phải lớn hơn 0'],
-            max: [100, 'Tỷ lệ Protein không được vượt quá 100'],
-            integer: true, // Số nguyên
+            required: [true, 'Tỷ lệ Protein tối thiểu là bắt buộc'],
+            min: [1, 'Tỷ lệ Protein tối thiểu phải lớn hơn 0'],
+            max: [100, 'Tỷ lệ Protein tối thiểu không được vượt quá 100'],
+            integer: true,
         },
-        lipid: {
+        proteinMax: {
             type: Number,
-            required: [true, 'Tỷ lệ Lipid là bắt buộc'],
-            min: [1, 'Tỷ lệ Lipid phải lớn hơn 0'],
-            max: [100, 'Tỷ lệ Lipid không được vượt quá 100'],
-            integer: true, // Số nguyên
+            required: [true, 'Tỷ lệ Protein tối đa là bắt buộc'],
+            min: [1, 'Tỷ lệ Protein tối đa phải lớn hơn 0'],
+            max: [100, 'Tỷ lệ Protein tối đa không được vượt quá 100'],
+            integer: true,
         },
-        glucid: {
+        // Lipid (Béo)
+        lipidMin: {
             type: Number,
-            required: [true, 'Tỷ lệ Glucid là bắt buộc'],
-            min: [1, 'Tỷ lệ Glucid phải lớn hơn 0'],
-            max: [100, 'Tỷ lệ Glucid không được vượt quá 100'],
-            integer: true, // Số nguyên
+            required: [true, 'Tỷ lệ Lipid tối thiểu là bắt buộc'],
+            min: [1, 'Tỷ lệ Lipid tối thiểu phải lớn hơn 0'],
+            max: [100, 'Tỷ lệ Lipid tối thiểu không được vượt quá 100'],
+            integer: true,
+        },
+        lipidMax: {
+            type: Number,
+            required: [true, 'Tỷ lệ Lipid tối đa là bắt buộc'],
+            min: [1, 'Tỷ lệ Lipid tối đa phải lớn hơn 0'],
+            max: [100, 'Tỷ lệ Lipid tối đa không được vượt quá 100'],
+            integer: true,
+        },
+        // Glucid (Đường)
+        glucidMin: {
+            type: Number,
+            required: [true, 'Tỷ lệ Glucid tối thiểu là bắt buộc'],
+            min: [1, 'Tỷ lệ Glucid tối thiểu phải lớn hơn 0'],
+            max: [100, 'Tỷ lệ Glucid tối thiểu không được vượt quá 100'],
+            integer: true,
+        },
+        glucidMax: {
+            type: Number,
+            required: [true, 'Tỷ lệ Glucid tối đa là bắt buộc'],
+            min: [1, 'Tỷ lệ Glucid tối đa phải lớn hơn 0'],
+            max: [100, 'Tỷ lệ Glucid tối đa không được vượt quá 100'],
+            integer: true,
         },
     },
-    { _id: true },
+    { _id: false },
 );
 
 /**
- * ✅ Main Schema: Định mức dinh dưỡng
+ * ✅ Main Schema: Định mức dinh dưỡng (Global - Admin quản lý)
  */
 const NutritionalStandardSchema = new mongoose.Schema(
     {
@@ -44,17 +68,12 @@ const NutritionalStandardSchema = new mongoose.Schema(
                 values: ['Nhóm nhà trẻ (12 - 36 tháng tuổi)', 'Nhóm mẫu giáo (3 - 6 tuổi)'],
                 message: 'Nhóm trẻ không hợp lệ',
             },
-            unique: true,
+            unique: true, // ✅ Mỗi nhóm trẻ chỉ tạo 1 lần
         },
-        // ✅ Cơ cấu PLG chuẩn (có thể có nhiều)
-        plgStructures: {
-            type: [PLGStructureSchema],
-            validate: {
-                validator: function (v) {
-                    return v && v.length > 0;
-                },
-                message: 'Phải có ít nhất 1 cơ cấu PLG chuẩn',
-            },
+        // ✅ Cơ cấu PLG chuẩn duy nhất
+        plgStructure: {
+            type: PLGStructureSchema,
+            required: [true, 'Cơ cấu PLG chuẩn là bắt buộc'],
         },
         // ✅ Định mức 1 ngày của mỗi chất
         protein: {
@@ -111,20 +130,20 @@ const NutritionalStandardSchema = new mongoose.Schema(
 // ✅ Index
 NutritionalStandardSchema.index({ ageGroup: 1 });
 
-// ✅ Pre-save hook: Validate PLG structures và tính totalCalories
+// ✅ Pre-save hook: Validate PLG structure và tính totalCalories
 NutritionalStandardSchema.pre('save', function (next) {
-    // 1. Validate PLG structures
-    if (this.isModified('plgStructures')) {
-        for (const plg of this.plgStructures) {
-            const total = plg.protein + plg.lipid + plg.glucid;
-            if (Math.abs(total - 100) > 0.01) {
-                // Allow small floating point error
-                return next(
-                    new Error(
-                        `Tổng tỷ lệ PLG phải bằng 100% (hiện tại: ${total}%). Protein: ${plg.protein}%, Lipid: ${plg.lipid}%, Glucid: ${plg.glucid}%`,
-                    ),
-                );
-            }
+    // 1. Validate PLG structure (Min <= Max)
+    if (this.isModified('plgStructure')) {
+        const plg = this.plgStructure;
+
+        if (plg.proteinMin > plg.proteinMax) {
+            return next(new Error('Tỷ lệ Protein tối thiểu không được lớn hơn tối đa'));
+        }
+        if (plg.lipidMin > plg.lipidMax) {
+            return next(new Error('Tỷ lệ Lipid tối thiểu không được lớn hơn tối đa'));
+        }
+        if (plg.glucidMin > plg.glucidMax) {
+            return next(new Error('Tỷ lệ Glucid tối thiểu không được lớn hơn tối đa'));
         }
     }
 

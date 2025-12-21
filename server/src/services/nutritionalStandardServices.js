@@ -18,26 +18,34 @@ const createNew = async (data, userId) => {
             throw new ApiError(StatusCodes.FORBIDDEN, 'Chỉ admin mới có quyền tạo định mức dinh dưỡng');
         }
 
-        // ✅ Check duplicate ageGroup
+        // Kiểm tra nhóm trẻ đã tồn tại chưa
         const existing = await NutritionalStandardModel.findOne({
             ageGroup: data.ageGroup,
             _destroy: false,
         });
 
         if (existing) {
-            throw new ApiError(StatusCodes.CONFLICT, `Định mức dinh dưỡng cho "${data.ageGroup}" đã tồn tại`);
+            throw new ApiError(StatusCodes.CONFLICT, `Nhóm trẻ "${data.ageGroup}" đã có định mức dinh dưỡng`);
         }
 
-        // ✅ Create new standard
+        // Tạo mới
         const newStandard = new NutritionalStandardModel({
-            ...data,
+            ageGroup: data.ageGroup,
+            plgStructure: data.plgStructure,
+            protein: data.protein,
+            lipid: data.lipid,
+            glucid: data.glucid,
+            recommendedCaloriesMin: data.recommendedCaloriesMin,
+            recommendedCaloriesMax: data.recommendedCaloriesMax,
             createdBy: userId,
+            lastUpdatedBy: userId,
         });
 
         await newStandard.save();
 
         const populated = await NutritionalStandardModel.findById(newStandard._id)
             .populate('createdBy', 'fullName username')
+            .populate('lastUpdatedBy', 'fullName username')
             .lean();
 
         console.log('✅ [NutritionalStandard createNew] Created successfully');
@@ -119,7 +127,7 @@ const getDetails = async (id) => {
  */
 const update = async (id, data, userId) => {
     try {
-        console.log('📝 [NutritionalStandard update] Starting');
+        console.log('📝 [NutritionalStandard update] Starting with id:', id);
 
         // ✅ Verify user is admin
         const user = await UserModel.findById(userId).select('role');
@@ -136,29 +144,39 @@ const update = async (id, data, userId) => {
             throw new ApiError(StatusCodes.NOT_FOUND, 'Không tìm thấy định mức dinh dưỡng');
         }
 
-        // ✅ Check duplicate ageGroup if changed
+        // Kiểm tra trùng nhóm trẻ (nếu đổi)
         if (data.ageGroup && data.ageGroup !== standard.ageGroup) {
             const existing = await NutritionalStandardModel.findOne({
                 ageGroup: data.ageGroup,
+                _id: { $ne: id },
                 _destroy: false,
             });
 
             if (existing) {
-                throw new ApiError(StatusCodes.CONFLICT, `Định mức dinh dưỡng cho "${data.ageGroup}" đã tồn tại`);
+                throw new ApiError(StatusCodes.CONFLICT, `Nhóm trẻ "${data.ageGroup}" đã có định mức dinh dưỡng`);
             }
         }
 
-        // ✅ Update
-        Object.assign(standard, data, { lastUpdatedBy: userId });
+        // Update fields
+        if (data.ageGroup) standard.ageGroup = data.ageGroup;
+        if (data.plgStructure) standard.plgStructure = data.plgStructure;
+        if (data.protein !== undefined) standard.protein = data.protein;
+        if (data.lipid !== undefined) standard.lipid = data.lipid;
+        if (data.glucid !== undefined) standard.glucid = data.glucid;
+        if (data.recommendedCaloriesMin !== undefined) standard.recommendedCaloriesMin = data.recommendedCaloriesMin;
+        if (data.recommendedCaloriesMax !== undefined) standard.recommendedCaloriesMax = data.recommendedCaloriesMax;
+
+        standard.lastUpdatedBy = userId;
+
         await standard.save();
 
-        const updated = await NutritionalStandardModel.findById(standard._id)
+        const populated = await NutritionalStandardModel.findById(standard._id)
             .populate('createdBy', 'fullName username')
             .populate('lastUpdatedBy', 'fullName username')
             .lean();
 
         console.log('✅ [NutritionalStandard update] Updated successfully');
-        return updated;
+        return populated;
     } catch (error) {
         console.error('❌ [NutritionalStandard update] Error:', error);
         if (error instanceof ApiError) throw error;

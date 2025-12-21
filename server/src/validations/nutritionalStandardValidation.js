@@ -5,27 +5,47 @@ import { StatusCodes } from 'http-status-codes';
 import ApiError from '~/utils/ApiError.js';
 
 const plgStructureSchema = Joi.object({
-    _id: Joi.string().optional(),
-    protein: Joi.number().required().min(1).max(100).integer().messages({
-        'number.base': 'Tỷ lệ Protein phải là số',
-        'number.min': 'Tỷ lệ Protein phải lớn hơn 0',
-        'number.max': 'Tỷ lệ Protein không được vượt quá 100',
-        'number.integer': 'Tỷ lệ Protein phải là số nguyên',
-        'any.required': 'Tỷ lệ Protein là bắt buộc',
+    proteinMin: Joi.number().required().min(1).max(100).integer().messages({
+        'number.base': 'Tỷ lệ Protein tối thiểu phải là số',
+        'number.min': 'Tỷ lệ Protein tối thiểu phải lớn hơn 0',
+        'number.max': 'Tỷ lệ Protein tối thiểu không được vượt quá 100',
+        'number.integer': 'Tỷ lệ Protein tối thiểu phải là số nguyên',
+        'any.required': 'Tỷ lệ Protein tối thiểu là bắt buộc',
     }),
-    lipid: Joi.number().required().min(1).max(100).integer().messages({
-        'number.base': 'Tỷ lệ Lipid phải là số',
-        'number.min': 'Tỷ lệ Lipid phải lớn hơn 0',
-        'number.max': 'Tỷ lệ Lipid không được vượt quá 100',
-        'number.integer': 'Tỷ lệ Lipid phải là số nguyên',
-        'any.required': 'Tỷ lệ Lipid là bắt buộc',
+    proteinMax: Joi.number().required().min(1).max(100).integer().messages({
+        'number.base': 'Tỷ lệ Protein tối đa phải là số',
+        'number.min': 'Tỷ lệ Protein tối đa phải lớn hơn 0',
+        'number.max': 'Tỷ lệ Protein tối đa không được vượt quá 100',
+        'number.integer': 'Tỷ lệ Protein tối đa phải là số nguyên',
+        'any.required': 'Tỷ lệ Protein tối đa là bắt buộc',
     }),
-    glucid: Joi.number().required().min(1).max(100).integer().messages({
-        'number.base': 'Tỷ lệ Glucid phải là số',
-        'number.min': 'Tỷ lệ Glucid phải lớn hơn 0',
-        'number.max': 'Tỷ lệ Glucid không được vượt quá 100',
-        'number.integer': 'Tỷ lệ Glucid phải là số nguyên',
-        'any.required': 'Tỷ lệ Glucid là bắt buộc',
+    lipidMin: Joi.number().required().min(1).max(100).integer().messages({
+        'number.base': 'Tỷ lệ Lipid tối thiểu phải là số',
+        'number.min': 'Tỷ lệ Lipid tối thiểu phải lớn hơn 0',
+        'number.max': 'Tỷ lệ Lipid tối thiểu không được vượt quá 100',
+        'number.integer': 'Tỷ lệ Lipid tối thiểu phải là số nguyên',
+        'any.required': 'Tỷ lệ Lipid tối thiểu là bắt buộc',
+    }),
+    lipidMax: Joi.number().required().min(1).max(100).integer().messages({
+        'number.base': 'Tỷ lệ Lipid tối đa phải là số',
+        'number.min': 'Tỷ lệ Lipid tối đa phải lớn hơn 0',
+        'number.max': 'Tỷ lệ Lipid tối đa không được vượt quá 100',
+        'number.integer': 'Tỷ lệ Lipid tối đa phải là số nguyên',
+        'any.required': 'Tỷ lệ Lipid tối đa là bắt buộc',
+    }),
+    glucidMin: Joi.number().required().min(1).max(100).integer().messages({
+        'number.base': 'Tỷ lệ Glucid tối thiểu phải là số',
+        'number.min': 'Tỷ lệ Glucid tối thiểu phải lớn hơn 0',
+        'number.max': 'Tỷ lệ Glucid tối thiểu không được vượt quá 100',
+        'number.integer': 'Tỷ lệ Glucid tối thiểu phải là số nguyên',
+        'any.required': 'Tỷ lệ Glucid tối thiểu là bắt buộc',
+    }),
+    glucidMax: Joi.number().required().min(1).max(100).integer().messages({
+        'number.base': 'Tỷ lệ Glucid tối đa phải là số',
+        'number.min': 'Tỷ lệ Glucid tối đa phải lớn hơn 0',
+        'number.max': 'Tỷ lệ Glucid tối đa không được vượt quá 100',
+        'number.integer': 'Tỷ lệ Glucid tối đa phải là số nguyên',
+        'any.required': 'Tỷ lệ Glucid tối đa là bắt buộc',
     }),
 });
 
@@ -38,8 +58,7 @@ const createNew = async (req, res, next) => {
                 'any.required': 'Tên nhóm trẻ là bắt buộc',
                 'any.only': 'Nhóm trẻ không hợp lệ',
             }),
-        plgStructures: Joi.array().items(plgStructureSchema).min(1).required().messages({
-            'array.min': 'Phải có ít nhất 1 cơ cấu PLG chuẩn',
+        plgStructure: plgStructureSchema.required().messages({
             'any.required': 'Cơ cấu PLG chuẩn là bắt buộc',
         }),
         protein: Joi.number().required().min(0.001).messages({
@@ -85,9 +104,7 @@ const update = async (req, res, next) => {
         ageGroup: Joi.string().valid('Nhóm nhà trẻ (12 - 36 tháng tuổi)', 'Nhóm mẫu giáo (3 - 6 tuổi)').messages({
             'any.only': 'Nhóm trẻ không hợp lệ',
         }),
-        plgStructures: Joi.array().items(plgStructureSchema).min(1).messages({
-            'array.min': 'Phải có ít nhất 1 cơ cấu PLG chuẩn',
-        }),
+        plgStructure: plgStructureSchema,
         protein: Joi.number().min(0.001).messages({
             'number.base': 'Protein Đạm phải là số',
             'number.min': 'Protein Đạm phải lớn hơn 0',

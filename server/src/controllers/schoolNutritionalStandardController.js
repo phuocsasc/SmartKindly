@@ -29,19 +29,6 @@ const getDetails = async (req, res, next) => {
     }
 };
 
-const update = async (req, res, next) => {
-    try {
-        const userId = req.jwtDecoded.id;
-        const result = await schoolNutritionalStandardServices.update(req.params.id, req.body, userId);
-        res.status(StatusCodes.OK).json({
-            message: 'Cập nhật định mức dinh dưỡng thành công!',
-            data: result,
-        });
-    } catch (error) {
-        next(error);
-    }
-};
-
 const checkAndSync = async (req, res, next) => {
     try {
         const userId = req.jwtDecoded.id;
@@ -65,7 +52,6 @@ const forceSync = async (req, res, next) => {
 export const schoolNutritionalStandardController = {
     getAll,
     getDetails,
-    update,
     checkAndSync,
     forceSync,
 };

@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react';
 import { Box, Typography, Paper, IconButton, Tooltip, CircularProgress, Alert } from '@mui/material';
 import { DataGrid } from '@mui/x-data-grid';
-import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
 import RestaurantOutlinedIcon from '@mui/icons-material/RestaurantOutlined';
 import SyncIcon from '@mui/icons-material/Sync';
 import MainLayout from '~/layouts/SchoolLayout';
@@ -12,7 +11,6 @@ import PageBreadcrumb from '~/components/common/PageBreadcrumb';
 import { useUser } from '~/contexts/UserContext';
 import { schoolNutritionalStandardApi } from '~/apis';
 import { toast } from 'react-toastify';
-import NutritionalStandardsDialog from './NutritionalStandardsDialog';
 import { PERMISSIONS } from '~/config/rbacConfig';
 import { usePermission } from '~/hooks/usePermission';
 
@@ -26,8 +24,6 @@ function NutritionalStandards() {
     const [syncing, setSyncing] = useState(false);
     const [paginationModel, setPaginationModel] = useState({ page: 0, pageSize: 10 });
     const [totalRows, setTotalRows] = useState(0);
-    const [openDialog, setOpenDialog] = useState(false);
-    const [currentStandard, setCurrentStandard] = useState(null);
     const [needSync, setNeedSync] = useState(false);
 
     // Fetch standards
@@ -44,7 +40,7 @@ function NutritionalStandards() {
                 id: standard._id,
                 stt: paginationModel.page * paginationModel.pageSize + index + 1,
                 ageGroup: standard.ageGroup,
-                selectedPLG: getSelectedPLG(standard.plgStructures),
+                plgStructure: standard.plgStructure,
                 protein: standard.protein,
                 lipid: standard.lipid,
                 glucid: standard.glucid,
@@ -63,13 +59,6 @@ function NutritionalStandards() {
         } finally {
             setLoading(false);
         }
-    };
-
-    // Get selected PLG structure
-    const getSelectedPLG = (plgStructures) => {
-        const selected = plgStructures.find((plg) => plg.isSelected);
-        if (!selected) return 'Chưa chọn';
-        return `P: ${selected.protein}% | L: ${selected.lipid}% | G: ${selected.glucid}%`;
     };
 
     // Check and sync on mount
@@ -95,23 +84,7 @@ function NutritionalStandards() {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [paginationModel]);
 
-    // Handlers
-    const handleEdit = (standard) => {
-        setCurrentStandard(standard);
-        setOpenDialog(true);
-    };
-
-    const handleDialogClose = () => {
-        setOpenDialog(false);
-        setCurrentStandard(null);
-    };
-
-    const handleDialogSuccess = () => {
-        fetchStandards();
-        handleDialogClose();
-    };
-
-    // Manual sync
+    // Manual sync (chỉ BGH)
     const handleManualSync = async () => {
         try {
             setSyncing(true);
@@ -128,7 +101,7 @@ function NutritionalStandards() {
 
     // Columns
     const columns = [
-        { field: 'stt', headerName: 'STT', width: 40, sortable: false },
+        { field: 'stt', headerName: 'STT', width: 40, sortable: false, align: 'center', headerAlign: 'center' },
         {
             field: 'ageGroup',
             headerName: 'Tên nhóm trẻ',
@@ -141,24 +114,31 @@ function NutritionalStandards() {
                 </Typography>
             ),
         },
+        // ✅ Cột Cơ cấu PLG chuẩn (hiển thị khoảng Từ - Đến)
         {
-            field: 'selectedPLG',
-            headerName: 'Cơ cấu PLG áp dụng',
-            width: 200,
-            sortable: false,
+            field: 'plgStructure',
+            headerName: 'Cơ cấu PLG chuẩn (%)',
+            flex: 1,
             align: 'center',
             headerAlign: 'center',
-            renderCell: (params) => (
-                <Typography
-                    variant="body2"
-                    sx={{
-                        color: params.value === 'Chưa chọn' ? '#8f4c4cff' : '#1e301eff',
-                        fontWeight: 600,
-                    }}
-                >
-                    {params.value}
-                </Typography>
-            ),
+            minWidth: 280,
+            sortable: false,
+            renderCell: (params) => {
+                const plg = params.value;
+                return (
+                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, py: 0.5 }}>
+                        <Typography variant="body2" sx={{ color: '#251133ff', fontWeight: 600 }}>
+                            Protein Đạm: {plg.proteinMin}% - {plg.proteinMax}%
+                        </Typography>
+                        <Typography variant="body2" sx={{ color: '#251133ff', fontWeight: 600 }}>
+                            Lipid Béo: {plg.lipidMin}% - {plg.lipidMax}%
+                        </Typography>
+                        <Typography variant="body2" sx={{ color: '#251133ff', fontWeight: 600 }}>
+                            Glucid Đường: {plg.glucidMin}% - {plg.glucidMax}%
+                        </Typography>
+                    </Box>
+                );
+            },
         },
         {
             field: 'protein',
@@ -176,7 +156,7 @@ function NutritionalStandards() {
         {
             field: 'lipid',
             headerName: 'Lipid Béo (g)',
-            width: 140,
+            width: 150,
             sortable: false,
             align: 'center',
             headerAlign: 'center',
@@ -202,7 +182,7 @@ function NutritionalStandards() {
         {
             field: 'totalCalories',
             headerName: 'Calo cả ngày (kcal)',
-            width: 160,
+            width: 180,
             sortable: false,
             align: 'center',
             headerAlign: 'center',
@@ -223,25 +203,6 @@ function NutritionalStandards() {
                 <Typography variant="body2" sx={{ color: '#000000ff', fontWeight: 600 }}>
                     {params.row.recommendedCaloriesMin} - {params.row.recommendedCaloriesMax} kcal
                 </Typography>
-            ),
-        },
-        {
-            field: 'actions',
-            headerName: 'Thao tác',
-            width: 90,
-            sortable: false,
-            align: 'center',
-            headerAlign: 'center',
-            renderCell: (params) => (
-                <Box sx={{ display: 'flex', gap: 0.5 }}>
-                    {hasPermission(PERMISSIONS.UPDATE_SCHOOL_INFO) && (
-                        <Tooltip title="Chọn cơ cấu PLG">
-                            <IconButton size="small" color="primary" onClick={() => handleEdit(params.row)}>
-                                <EditOutlinedIcon fontSize="small" />
-                            </IconButton>
-                        </Tooltip>
-                    )}
-                </Box>
             ),
         },
     ];
@@ -270,7 +231,7 @@ function NutritionalStandards() {
                             Danh sách định mức dinh dưỡng
                         </Typography>
 
-                        {/* Nút đồng bộ */}
+                        {/* ✅ Nút đồng bộ - Chỉ BGH */}
                         {hasPermission(PERMISSIONS.UPDATE_SCHOOL_INFO) && (
                             <Tooltip title="Đồng bộ từ ngân hàng dữ liệu">
                                 <IconButton sx={{ color: '#1976d2' }} onClick={handleManualSync} disabled={syncing}>
@@ -357,14 +318,6 @@ function NutritionalStandards() {
                     />
                 </Paper>
             </PageContainer>
-
-            {/* Dialog */}
-            <NutritionalStandardsDialog
-                open={openDialog}
-                standard={currentStandard}
-                onClose={handleDialogClose}
-                onSuccess={handleDialogSuccess}
-            />
         </MainLayout>
     );
 }

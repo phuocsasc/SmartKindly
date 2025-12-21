@@ -1,7 +1,6 @@
 // server/src/routes/v1/schoolNutritionalStandardRoute.js
 
 import express from 'express';
-import { schoolNutritionalStandardValidation } from '~/validations/schoolNutritionalStandardValidation.js';
 import { schoolNutritionalStandardController } from '~/controllers/schoolNutritionalStandardController.js';
 import { authMiddleware } from '~/middlewares/authMiddleware.js';
 import { rbacMiddleware } from '~/middlewares/rbacMiddleware.js';
@@ -32,17 +31,10 @@ Router.route('/').get(
     schoolNutritionalStandardController.getAll,
 );
 
-Router.route('/:id')
-    .get(
-        authMiddleware.isAuthorized,
-        rbacMiddleware.isValidPermission([PERMISSIONS.VIEW_NUTRITIONAL_STANDARDS]),
-        schoolNutritionalStandardController.getDetails,
-    )
-    .put(
-        authMiddleware.isAuthorized,
-        rbacMiddleware.isValidPermission([PERMISSIONS.UPDATE_SCHOOL_INFO]), // Chỉ BGH
-        schoolNutritionalStandardValidation.update,
-        schoolNutritionalStandardController.update,
-    );
+Router.route('/:id').get(
+    authMiddleware.isAuthorized,
+    rbacMiddleware.isValidPermission([PERMISSIONS.VIEW_NUTRITIONAL_STANDARDS]),
+    schoolNutritionalStandardController.getDetails,
+);
 
 export default Router;

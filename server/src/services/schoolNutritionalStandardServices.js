@@ -7,21 +7,20 @@ import ApiError from '~/utils/ApiError.js';
 import { StatusCodes } from 'http-status-codes';
 
 /**
- * ✅ Đồng bộ định mức dinh dưỡng từ NutritionalStandardModel sang SchoolNutritionalStandardModel
+ * ✅ Đồng bộ định mức dinh dưỡng từ Admin sang School
  */
 const syncStandardsForSchool = async (schoolId) => {
     try {
         console.log('🔄 [syncStandardsForSchool] Starting for schoolId:', schoolId);
 
-        // 1. Lấy tất cả định mức dinh dưỡng từ admin database
+        // 1. Lấy tất cả định mức từ Admin
         const allStandards = await NutritionalStandardModel.find({ _destroy: false }).lean();
 
         if (allStandards.length === 0) {
-            return { total: 0, upserted: 0, modified: 0, message: 'Không có định mức dinh dưỡng nào trong hệ thống' };
+            return { total: 0, synced: 0, message: 'Không có định mức dinh dưỡng nào trong hệ thống' };
         }
 
         const bulkOps = [];
-        const result = { upsertedCount: 0, modifiedCount: 0 };
 
         // 2. Prepare bulk operations
         for (const standard of allStandards) {
@@ -39,12 +38,7 @@ const syncStandardsForSchool = async (schoolId) => {
                         },
                         $set: {
                             ageGroup: standard.ageGroup,
-                            plgStructures: standard.plgStructures.map((plg) => ({
-                                protein: plg.protein,
-                                lipid: plg.lipid,
-                                glucid: plg.glucid,
-                                isSelected: false, // ✅ Default = false
-                            })),
+                            plgStructure: standard.plgStructure,
                             protein: standard.protein,
                             lipid: standard.lipid,
                             glucid: standard.glucid,
@@ -59,19 +53,12 @@ const syncStandardsForSchool = async (schoolId) => {
         }
 
         // 3. Execute bulk operations
-        if (bulkOps.length > 0) {
-            const bulkResult = await SchoolNutritionalStandardModel.bulkWrite(bulkOps);
-            result.upsertedCount = bulkResult.upsertedCount || 0;
-            result.modifiedCount = bulkResult.modifiedCount || 0;
+        const result = await SchoolNutritionalStandardModel.bulkWrite(bulkOps);
 
-            console.log(`✅ Synced ${result.upsertedCount} new, ${result.modifiedCount} updated`);
-        }
-
-        console.log('✅ [syncStandardsForSchool] Completed');
+        console.log('✅ [syncStandardsForSchool] Synced successfully');
         return {
             total: allStandards.length,
-            upserted: result.upsertedCount,
-            modified: result.modifiedCount,
+            synced: result.upsertedCount + result.modifiedCount,
             message: `Đồng bộ thành công ${allStandards.length} định mức dinh dưỡng`,
         };
     } catch (error) {
@@ -155,58 +142,6 @@ const getDetails = async (id, userId) => {
 };
 
 /**
- * ✅ Cập nhật định mức dinh dưỡng (chỉ BGH, chỉ chọn 1 PLG structure)
- */
-const update = async (id, data, userId) => {
-    try {
-        console.log('📝 [SchoolNutritionalStandard update] Starting');
-
-        const user = await UserModel.findById(userId).select('schoolId role');
-        if (!user || !user.schoolId) {
-            throw new ApiError(StatusCodes.FORBIDDEN, 'Bạn không thuộc trường học nào');
-        }
-
-        // ✅ Chỉ BGH mới được update
-        if (user.role !== 'ban_giam_hieu') {
-            throw new ApiError(StatusCodes.FORBIDDEN, 'Chỉ Ban giám hiệu mới có quyền cập nhật định mức dinh dưỡng');
-        }
-
-        const standard = await SchoolNutritionalStandardModel.findOne({
-            _id: id,
-            schoolId: user.schoolId,
-            _destroy: false,
-        });
-
-        if (!standard) {
-            throw new ApiError(StatusCodes.NOT_FOUND, 'Không tìm thấy định mức dinh dưỡng');
-        }
-
-        // ✅ Validate chỉ được chọn 1 PLG structure
-        if (data.plgStructures) {
-            const selectedCount = data.plgStructures.filter((plg) => plg.isSelected).length;
-            if (selectedCount > 1) {
-                throw new ApiError(StatusCodes.BAD_REQUEST, 'Chỉ được chọn 1 cơ cấu PLG chuẩn');
-            }
-        }
-
-        // ✅ Update
-        Object.assign(standard, data, { lastUpdatedBy: userId });
-        await standard.save();
-
-        const updated = await SchoolNutritionalStandardModel.findById(standard._id)
-            .populate('lastUpdatedBy', 'fullName username')
-            .lean();
-
-        console.log('✅ [SchoolNutritionalStandard update] Updated successfully');
-        return updated;
-    } catch (error) {
-        console.error('❌ [SchoolNutritionalStandard update] Error:', error);
-        if (error instanceof ApiError) throw error;
-        throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, 'Lỗi khi cập nhật định mức dinh dưỡng: ' + error.message);
-    }
-};
-
-/**
  * ✅ Kiểm tra và tự động đồng bộ lần đầu
  */
 const checkAndSync = async (userId) => {
@@ -262,7 +197,6 @@ export const schoolNutritionalStandardServices = {
     syncStandardsForSchool,
     getAll,
     getDetails,
-    update,
     checkAndSync,
     forceSync,
 };

@@ -140,13 +140,13 @@ function AdminNutritionalStandards() {
                 const plg = params.value;
                 return (
                     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, py: 0.5 }}>
-                        <Typography variant="caption" sx={{ color: '#5d2e7dff', fontWeight: 600 }}>
+                        <Typography variant="body2" sx={{ color: '#251133ff', fontWeight: 600 }}>
                             Protein Đạm: {plg.proteinMin}% - {plg.proteinMax}%
                         </Typography>
-                        <Typography variant="caption" sx={{ color: '#f57c00', fontWeight: 600 }}>
+                        <Typography variant="body2" sx={{ color: '#251133ff', fontWeight: 600 }}>
                             Lipid Béo: {plg.lipidMin}% - {plg.lipidMax}%
                         </Typography>
-                        <Typography variant="caption" sx={{ color: '#1976d2', fontWeight: 600 }}>
+                        <Typography variant="body2" sx={{ color: '#251133ff', fontWeight: 600 }}>
                             Glucid Đường: {plg.glucidMin}% - {plg.glucidMax}%
                         </Typography>
                     </Box>

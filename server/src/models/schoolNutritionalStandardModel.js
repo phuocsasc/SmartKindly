@@ -3,42 +3,61 @@
 import mongoose from 'mongoose';
 
 /**
- * ✅ Sub-schema: Cơ cấu PLG chuẩn (có thể có nhiều, chỉ chọn 1)
+ * ✅ Sub-schema: Cơ cấu PLG chuẩn duy nhất (có khoảng Từ - Đến)
  */
 const PLGStructureSchema = new mongoose.Schema(
     {
-        protein: {
+        // Protein (Đạm)
+        proteinMin: {
             type: Number,
-            required: [true, 'Tỷ lệ Protein là bắt buộc'],
-            min: [1, 'Tỷ lệ Protein phải lớn hơn 0'],
-            max: [100, 'Tỷ lệ Protein không được vượt quá 100'],
-            integer: true, // Số nguyên
+            required: [true, 'Tỷ lệ Protein tối thiểu là bắt buộc'],
+            min: [1, 'Tỷ lệ Protein tối thiểu phải lớn hơn 0'],
+            max: [100, 'Tỷ lệ Protein tối thiểu không được vượt quá 100'],
+            integer: true,
         },
-        lipid: {
+        proteinMax: {
             type: Number,
-            required: [true, 'Tỷ lệ Lipid là bắt buộc'],
-            min: [1, 'Tỷ lệ Lipid phải lớn hơn 0'],
-            max: [100, 'Tỷ lệ Lipid không được vượt quá 100'],
-            integer: true, // Số nguyên
+            required: [true, 'Tỷ lệ Protein tối đa là bắt buộc'],
+            min: [1, 'Tỷ lệ Protein tối đa phải lớn hơn 0'],
+            max: [100, 'Tỷ lệ Protein tối đa không được vượt quá 100'],
+            integer: true,
         },
-        glucid: {
+        // Lipid (Béo)
+        lipidMin: {
             type: Number,
-            required: [true, 'Tỷ lệ Glucid là bắt buộc'],
-            min: [1, 'Tỷ lệ Glucid phải lớn hơn 0'],
-            max: [100, 'Tỷ lệ Glucid không được vượt quá 100'],
-            integer: true, // Số nguyên
+            required: [true, 'Tỷ lệ Lipid tối thiểu là bắt buộc'],
+            min: [1, 'Tỷ lệ Lipid tối thiểu phải lớn hơn 0'],
+            max: [100, 'Tỷ lệ Lipid tối thiểu không được vượt quá 100'],
+            integer: true,
         },
-        // ✅ Trạng thái chọn (chỉ được chọn 1 PLG structure)
-        isSelected: {
-            type: Boolean,
-            default: false,
+        lipidMax: {
+            type: Number,
+            required: [true, 'Tỷ lệ Lipid tối đa là bắt buộc'],
+            min: [1, 'Tỷ lệ Lipid tối đa phải lớn hơn 0'],
+            max: [100, 'Tỷ lệ Lipid tối đa không được vượt quá 100'],
+            integer: true,
+        },
+        // Glucid (Đường)
+        glucidMin: {
+            type: Number,
+            required: [true, 'Tỷ lệ Glucid tối thiểu là bắt buộc'],
+            min: [1, 'Tỷ lệ Glucid tối thiểu phải lớn hơn 0'],
+            max: [100, 'Tỷ lệ Glucid tối thiểu không được vượt quá 100'],
+            integer: true,
+        },
+        glucidMax: {
+            type: Number,
+            required: [true, 'Tỷ lệ Glucid tối đa là bắt buộc'],
+            min: [1, 'Tỷ lệ Glucid tối đa phải lớn hơn 0'],
+            max: [100, 'Tỷ lệ Glucid tối đa không được vượt quá 100'],
+            integer: true,
         },
     },
-    { _id: true },
+    { _id: false },
 );
 
 /**
- * ✅ Main Schema: Định mức dinh dưỡng của trường
+ * ✅ Main Schema: Định mức dinh dưỡng của trường (Copy từ Admin)
  */
 const SchoolNutritionalStandardSchema = new mongoose.Schema(
     {
@@ -48,6 +67,7 @@ const SchoolNutritionalStandardSchema = new mongoose.Schema(
             ref: 'School',
             index: true,
         },
+        // ✅ Reference đến NutritionalStandard (Admin)
         nutritionalStandardId: {
             type: mongoose.Schema.Types.ObjectId,
             required: [true, 'Nutritional Standard ID là bắt buộc'],
@@ -63,17 +83,12 @@ const SchoolNutritionalStandardSchema = new mongoose.Schema(
                 message: 'Nhóm trẻ không hợp lệ',
             },
         },
-        // ✅ Cơ cấu PLG chuẩn (có thể có nhiều, chỉ chọn 1)
-        plgStructures: {
-            type: [PLGStructureSchema],
-            validate: {
-                validator: function (v) {
-                    return v && v.length > 0;
-                },
-                message: 'Phải có ít nhất 1 cơ cấu PLG chuẩn',
-            },
+        // ✅ Cơ cấu PLG chuẩn duy nhất
+        plgStructure: {
+            type: PLGStructureSchema,
+            required: [true, 'Cơ cấu PLG chuẩn là bắt buộc'],
         },
-        // ✅ Định mức 1 ngày của mỗi chất (loại bỏ tách động vật/thực vật)
+        // ✅ Định mức 1 ngày
         protein: {
             type: Number,
             required: [true, 'Protein Đạm là bắt buộc'],
@@ -121,28 +136,23 @@ const SchoolNutritionalStandardSchema = new mongoose.Schema(
     },
 );
 
-// ✅ Composite index: schoolId + nutritionalStandardId (unique)
+// ✅ Composite unique index
 SchoolNutritionalStandardSchema.index({ schoolId: 1, nutritionalStandardId: 1 }, { unique: true });
 
-// ✅ Pre-save hook: Validate PLG structures và tính totalCalories
+// ✅ Pre-save hook: Validate PLG và tính totalCalories
 SchoolNutritionalStandardSchema.pre('save', function (next) {
-    // 1. Validate PLG structures
-    if (this.isModified('plgStructures')) {
-        // Validate tổng = 100%
-        for (const plg of this.plgStructures) {
-            const total = plg.protein + plg.lipid + plg.glucid;
-            if (Math.abs(total - 100) > 0.01) {
-                return next(
-                    new Error(
-                        `Tổng tỷ lệ PLG phải bằng 100% (hiện tại: ${total}%). Protein: ${plg.protein}%, Lipid: ${plg.lipid}%, Glucid: ${plg.glucid}%`,
-                    ),
-                );
-            }
+    // 1. Validate PLG structure (Min <= Max)
+    if (this.isModified('plgStructure')) {
+        const plg = this.plgStructure;
+
+        if (plg.proteinMin > plg.proteinMax) {
+            return next(new Error('Tỷ lệ Protein tối thiểu không được lớn hơn tối đa'));
         }
-        // Validate chỉ được chọn 1 PLG structure
-        const selectedCount = this.plgStructures.filter((plg) => plg.isSelected).length;
-        if (selectedCount > 1) {
-            return next(new Error('Chỉ được chọn 1 cơ cấu PLG chuẩn'));
+        if (plg.lipidMin > plg.lipidMax) {
+            return next(new Error('Tỷ lệ Lipid tối thiểu không được lớn hơn tối đa'));
+        }
+        if (plg.glucidMin > plg.glucidMax) {
+            return next(new Error('Tỷ lệ Glucid tối thiểu không được lớn hơn tối đa'));
         }
     }
 

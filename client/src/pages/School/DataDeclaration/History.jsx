@@ -39,17 +39,17 @@ import { ROLE_DISPLAY } from '~/config/roleConfig';
 
 // ✅ Action colors
 const ACTION_COLORS = {
-    CREATE: 'success',
-    UPDATE: 'info',
-    DELETE: 'error',
-    IMPORT: 'primary',
-    EXPORT: 'secondary',
-    LOGIN: 'success',
-    LOGOUT: 'default',
-    VIEW: 'default',
-    COPY: 'success',
-    ACTIVATE: 'success',
-    DEACTIVATE: 'warning',
+    'Tạo mới': 'success',
+    'Cập nhật': 'info',
+    'Xóa': 'error',
+    'Nhập dữ liệu': 'primary',
+    'Xuất dữ liệu': 'secondary',
+    'Đăng nhập': 'success',
+    'Đăng xuất': 'default',
+    'Xem': 'default',
+    'Sao chép': 'success',
+    'Kích hoạt': 'success',
+    'Vô hiệu hóa': 'warning',
 };
 
 function History() {

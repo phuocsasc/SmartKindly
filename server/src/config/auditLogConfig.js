@@ -1,15 +1,15 @@
 export const AUDIT_LOG_ACTIONS = {
-    CREATE: 'CREATE',
-    UPDATE: 'UPDATE',
-    DELETE: 'DELETE',
-    IMPORT: 'IMPORT',
-    EXPORT: 'EXPORT',
-    LOGIN: 'LOGIN',
-    LOGOUT: 'LOGOUT',
-    VIEW: 'VIEW',
-    COPY: 'COPY',
-    ACTIVATE: 'ACTIVATE',
-    DEACTIVATE: 'DEACTIVATE',
+    CREATE: 'Tạo mới',
+    UPDATE: 'Cập nhật',
+    DELETE: 'Xóa',
+    IMPORT: 'Nhập dữ liệu',
+    EXPORT: 'Xuất dữ liệu',
+    LOGIN: 'Đăng nhập',
+    LOGOUT: 'Đăng xuất',
+    VIEW: 'Xem',
+    COPY: 'Sao chép',
+    ACTIVATE: 'Kích hoạt',
+    DEACTIVATE: 'Vô hiệu hóa',
 };
 
 export const AUDIT_LOG_RESOURCES = {

@@ -227,20 +227,6 @@ function AdminFood() {
                 </Typography>
             ),
         },
-        // ✅ CỘT ĐƠN GIÁ - TRƯỚC CỘT ĐƠN VỊ TÍNH
-        {
-            field: 'unitPrice',
-            headerName: 'Đơn giá (VNĐ)',
-            width: 140,
-            sortable: false,
-            align: 'center',
-            headerAlign: 'center',
-            renderCell: (params) => (
-                <Typography variant="body2" sx={{ color: '#d32f2f', fontWeight: 600 }}>
-                    {params.value.toLocaleString('vi-VN')}
-                </Typography>
-            ),
-        },
         {
             field: 'unit',
             headerName: 'Đơn vị tính',

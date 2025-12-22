@@ -107,7 +107,6 @@ function Food() {
                 id: food._id,
                 stt: paginationModel.page * paginationModel.pageSize + index + 1,
                 name: food.name,
-                unitPrice: food.unitPrice,
                 unit: food.unit,
                 gramConversion: food.gramConversion,
                 categories: food.categories,
@@ -163,19 +162,6 @@ function Food() {
             renderCell: (params) => (
                 <Typography sx={{ fontWeight: 500, color: '#000', whiteSpace: 'normal', wordBreak: 'break-word' }}>
                     {params.value}
-                </Typography>
-            ),
-        },
-        {
-            field: 'unitPrice',
-            headerName: 'Đơn giá (VNĐ)',
-            width: 140,
-            sortable: false,
-            align: 'center',
-            headerAlign: 'center',
-            renderCell: (params) => (
-                <Typography variant="body2" sx={{ color: '#d32f2f', fontWeight: 600 }}>
-                    {params.value.toLocaleString('vi-VN')}
                 </Typography>
             ),
         },

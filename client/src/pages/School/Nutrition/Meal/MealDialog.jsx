@@ -97,9 +97,11 @@ function MealDialog({ open, mode, meal, onClose, onSuccess }) {
     };
 
     useEffect(() => {
-        if (searchFoodText.trim().length >= 1) {
+        const keyword = searchFoodText.trim();
+
+        if (keyword.length >= 1) {
             const timer = setTimeout(() => {
-                searchFoods(searchFoodText);
+                searchFoods(keyword); // ✅ GỬI ĐÃ TRIM
             }, 500);
             return () => clearTimeout(timer);
         } else {
@@ -125,7 +127,6 @@ function MealDialog({ open, mode, meal, onClose, onSuccess }) {
             quantityPerChildGram: 0,
             isMainFood: false,
             // Copy thông tin từ SchoolFood
-            unitPrice: food.unitPrice, // ✅ THÊM UNIT PRICE
             unit: food.unit,
             gramConversion: food.gramConversion,
             wastePercentage: food.wastePercentage,
@@ -397,10 +398,11 @@ function MealDialog({ open, mode, meal, onClose, onSuccess }) {
                         <Box sx={{ mb: 2 }}>
                             <Autocomplete
                                 freeSolo
+                                filterOptions={(x) => x} // ✅ TẮT FILTER MUI
                                 options={foodOptions}
                                 getOptionLabel={(option) => option.name || ''}
                                 inputValue={searchFoodText}
-                                onInputChange={(e, value) => setSearchFoodText(value)}
+                                onInputChange={(e, value) => setSearchFoodText(value.replace(/\s+/g, ' '))}
                                 onChange={(e, value) => handleAddIngredient(value)}
                                 loading={loadingFoods}
                                 renderInput={(params) => (

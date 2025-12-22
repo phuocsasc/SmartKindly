@@ -2,6 +2,7 @@
  * Loại bỏ dấu tiếng Việt
  */
 export const removeVietnameseTones = (str) => {
+    if (!str) return '';
     str = str.replace(/à|á|ạ|ả|ã|â|ầ|ấ|ậ|ẩ|ẫ|ă|ằ|ắ|ặ|ẳ|ẵ/g, 'a');
     str = str.replace(/è|é|ẹ|ẻ|ẽ|ê|ề|ế|ệ|ể|ễ/g, 'e');
     str = str.replace(/ì|í|ị|ỉ|ĩ/g, 'i');
@@ -16,6 +17,8 @@ export const removeVietnameseTones = (str) => {
     str = str.replace(/Ù|Ú|Ụ|Ủ|Ũ|Ư|Ừ|Ứ|Ự|Ử|Ữ/g, 'U');
     str = str.replace(/Ỳ|Ý|Ỵ|Ỷ|Ỹ/g, 'Y');
     str = str.replace(/Đ/g, 'D');
+    str = str.replace(/\s+/g, ' ');
+    str = str.trim();
     return str;
 };
 

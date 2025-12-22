@@ -12,13 +12,6 @@ const createNew = async (req, res, next) => {
             'string.max': 'Tên thực phẩm không được vượt quá 200 ký tự',
             'any.required': 'Tên thực phẩm là bắt buộc',
         }),
-        // ✅ VALIDATION CHO ĐƠN GIÁ
-        unitPrice: Joi.number().required().min(0).integer().messages({
-            'number.base': 'Đơn giá phải là số',
-            'number.min': 'Đơn giá phải lớn hơn hoặc bằng 0',
-            'number.integer': 'Đơn giá phải là số nguyên',
-            'any.required': 'Đơn giá là bắt buộc',
-        }),
         unit: Joi.string()
             .valid(
                 'Kg',
@@ -113,12 +106,6 @@ const update = async (req, res, next) => {
         name: Joi.string().min(2).max(200).trim().messages({
             'string.min': 'Tên thực phẩm phải có ít nhất 2 ký tự',
             'string.max': 'Tên thực phẩm không được vượt quá 200 ký tự',
-        }),
-        // ✅ VALIDATION CHO ĐƠN GIÁ (UPDATE)
-        unitPrice: Joi.number().min(0).integer().messages({
-            'number.base': 'Đơn giá phải là số',
-            'number.min': 'Đơn giá phải lớn hơn hoặc bằng 0',
-            'number.integer': 'Đơn giá phải là số nguyên',
         }),
         unit: Joi.string()
             .valid('Kg', 'Hộp', 'Miếng', 'Cốc', 'Quả', 'Trứng', 'Chén', 'Gói', 'Chai', 'Hũ', 'Cái', 'Ổ')

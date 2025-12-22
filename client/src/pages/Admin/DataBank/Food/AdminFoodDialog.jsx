@@ -65,11 +65,11 @@ const UNITS = [
 const FOOD_CATEGORIES = ['Động vật', 'Thực vật', 'Thực phẩm Khô', 'Thực phẩm tươi', 'Thực phẩm ăn liền'];
 
 function AdminFoodDialog({ open, mode, food, onClose, onSuccess }) {
+    const [loading, setLoading] = useState(false);
     const [formData, setFormData] = useState({
         name: '',
-        unitPrice: 0, // ✅ THÊM
         unit: 'Kg',
-        gramConversion: '',
+        gramConversion: 1000,
         categories: [],
         wastePercentage: 0,
         protein: 0,
@@ -77,28 +77,26 @@ function AdminFoodDialog({ open, mode, food, onClose, onSuccess }) {
         glucid: 0,
     });
 
-    const [loading, setLoading] = useState(false);
     const isCreateMode = mode === 'create';
 
+    // Load data for edit mode
     useEffect(() => {
         if (mode === 'edit' && food) {
             setFormData({
                 name: food.name || '',
-                unitPrice: food.unitPrice ?? 0, // ✅ THÊM
                 unit: food.unit || 'Kg',
-                gramConversion: food.gramConversion || '',
+                gramConversion: food.gramConversion || 1000,
                 categories: food.categories || [],
-                wastePercentage: food.wastePercentage ?? 0,
-                protein: food.protein ?? 0,
-                lipid: food.lipid ?? 0,
-                glucid: food.glucid ?? 0,
+                wastePercentage: food.wastePercentage || 0,
+                protein: food.protein || 0,
+                lipid: food.lipid || 0,
+                glucid: food.glucid || 0,
             });
         } else {
             setFormData({
                 name: '',
-                unitPrice: 0, // ✅ THÊM
                 unit: 'Kg',
-                gramConversion: '',
+                gramConversion: 1000,
                 categories: [],
                 wastePercentage: 0,
                 protein: 0,
@@ -108,15 +106,11 @@ function AdminFoodDialog({ open, mode, food, onClose, onSuccess }) {
         }
     }, [mode, food, open]);
 
+    // Submit
     const handleSubmit = async () => {
         // Validation
         if (!formData.name.trim()) {
             toast.error('Vui lòng nhập tên thực phẩm!');
-            return;
-        }
-        // ✅ VALIDATE ĐƠN GIÁ
-        if (formData.unitPrice < 0) {
-            toast.error('Đơn giá phải lớn hơn hoặc bằng 0!');
             return;
         }
         if (!formData.unit) {
@@ -150,13 +144,15 @@ function AdminFoodDialog({ open, mode, food, onClose, onSuccess }) {
 
         try {
             setLoading(true);
-            if (mode === 'create') {
+
+            if (isCreateMode) {
                 await foodApi.create(formData);
                 toast.success('Tạo thực phẩm thành công!');
             } else {
                 await foodApi.update(food.id, formData);
                 toast.success('Cập nhật thực phẩm thành công!');
             }
+
             onSuccess();
         } catch (error) {
             toast.error(error?.response?.data?.message || 'Có lỗi xảy ra!');
@@ -264,20 +260,6 @@ function AdminFoodDialog({ open, mode, food, onClose, onSuccess }) {
                             />
 
                             <Box sx={{ display: 'flex', gap: 2 }}>
-                                <TextField
-                                    label="Đơn giá (VNĐ)"
-                                    type="number"
-                                    value={formData.unitPrice}
-                                    onChange={(e) =>
-                                        setFormData({ ...formData, unitPrice: parseInt(e.target.value) || 0 })
-                                    }
-                                    required
-                                    fullWidth
-                                    size="small"
-                                    inputProps={{ min: 0, step: 1 }}
-                                    helperText="Nhập số nguyên ≥ 0"
-                                />
-
                                 <FormControl required fullWidth size="small">
                                     <InputLabel>Đơn vị tính</InputLabel>
                                     <Select
@@ -304,12 +286,12 @@ function AdminFoodDialog({ open, mode, food, onClose, onSuccess }) {
                                     fullWidth
                                     size="small"
                                     inputProps={{ min: 1, max: 1000 }}
-                                    helperText="Từ 1 đến 1000 gam"
+                                    helperText="Từ 1 đến 1000 gram"
                                 />
                             </Box>
 
-                            <FormControl required fullWidth size="small">
-                                <InputLabel>Loại thực phẩm</InputLabel>
+                            <FormControl fullWidth size="small" required>
+                                <InputLabel>Loại thực phẩm (chọn nhiều)</InputLabel>
                                 <Select
                                     multiple
                                     value={formData.categories}
@@ -330,6 +312,23 @@ function AdminFoodDialog({ open, mode, food, onClose, onSuccess }) {
                                     ))}
                                 </Select>
                             </FormControl>
+
+                            <TextField
+                                label="Hệ số thái bỏ (%)"
+                                type="number"
+                                value={formData.wastePercentage}
+                                onChange={(e) =>
+                                    setFormData({
+                                        ...formData,
+                                        wastePercentage: Number(e.target.value),
+                                    })
+                                }
+                                required
+                                fullWidth
+                                size="small"
+                                inputProps={{ min: 0, max: 99 }}
+                                helperText="Từ 0% đến 99%"
+                            />
                         </Box>
                     </Box>
 
@@ -337,70 +336,57 @@ function AdminFoodDialog({ open, mode, food, onClose, onSuccess }) {
 
                     {/* Section: Thông tin dinh dưỡng */}
                     <Box>
-                        <TextField
-                            label="Hệ số thái bỏ (%)"
-                            type="number"
-                            value={formData.wastePercentage}
-                            onChange={(e) => setFormData({ ...formData, wastePercentage: Number(e.target.value) })}
-                            required
-                            fullWidth
-                            size="small"
-                            inputProps={{ min: 0, max: 99, step: 0.1 }}
-                            helperText="Từ 0 đến 99%"
-                        />
                         <Typography
                             variant="subtitle2"
                             sx={{
                                 mb: 1.5,
-                                color: 'primary.main',
+                                color: 'success.main',
                                 fontWeight: 600,
                                 display: 'flex',
                                 alignItems: 'center',
                                 gap: 1,
                             }}
                         >
-                            <Box sx={{ width: 3, height: 14, bgcolor: 'primary.main', borderRadius: 1 }} />
+                            <Box sx={{ width: 3, height: 14, bgcolor: 'success.main', borderRadius: 1 }} />
                             Thông tin dinh dưỡng (trên 1 gam thực phẩm)
                         </Typography>
 
                         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                            <Box sx={{ display: 'flex', gap: 2 }}>
-                                <TextField
-                                    label="Protein (Đạm)"
-                                    type="number"
-                                    value={formData.protein}
-                                    onChange={(e) => setFormData({ ...formData, protein: Number(e.target.value) })}
-                                    required
-                                    fullWidth
-                                    size="small"
-                                    inputProps={{ min: 0, step: 0.001 }}
-                                    helperText="VD: 0.005, 9.026..."
-                                />
+                            <TextField
+                                label="Protein (Đạm)"
+                                type="number"
+                                value={formData.protein}
+                                onChange={(e) => setFormData({ ...formData, protein: Number(e.target.value) })}
+                                required
+                                fullWidth
+                                size="small"
+                                inputProps={{ min: 0, step: 0.001 }}
+                                helperText="VD: 0.005, 9.026..."
+                            />
 
-                                <TextField
-                                    label="Lipid (Béo)"
-                                    type="number"
-                                    value={formData.lipid}
-                                    onChange={(e) => setFormData({ ...formData, lipid: Number(e.target.value) })}
-                                    required
-                                    fullWidth
-                                    size="small"
-                                    inputProps={{ min: 0, step: 0.001 }}
-                                    helperText="VD: 0.005, 9.026..."
-                                />
+                            <TextField
+                                label="Lipid (Béo)"
+                                type="number"
+                                value={formData.lipid}
+                                onChange={(e) => setFormData({ ...formData, lipid: Number(e.target.value) })}
+                                required
+                                fullWidth
+                                size="small"
+                                inputProps={{ min: 0, step: 0.001 }}
+                                helperText="VD: 0.005, 9.026..."
+                            />
 
-                                <TextField
-                                    label="Glucid (Đường)"
-                                    type="number"
-                                    value={formData.glucid}
-                                    onChange={(e) => setFormData({ ...formData, glucid: Number(e.target.value) })}
-                                    required
-                                    fullWidth
-                                    size="small"
-                                    inputProps={{ min: 0, step: 0.001 }}
-                                    helperText="VD: 0.005, 9.026..."
-                                />
-                            </Box>
+                            <TextField
+                                label="Glucid (Đường)"
+                                type="number"
+                                value={formData.glucid}
+                                onChange={(e) => setFormData({ ...formData, glucid: Number(e.target.value) })}
+                                required
+                                fullWidth
+                                size="small"
+                                inputProps={{ min: 0, step: 0.001 }}
+                                helperText="VD: 0.005, 9.026..."
+                            />
                         </Box>
                     </Box>
                 </Box>

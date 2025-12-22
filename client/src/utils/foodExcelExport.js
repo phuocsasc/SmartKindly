@@ -59,14 +59,6 @@ const COLUMNS_CONFIG = [
         note: 'Bắt buộc nhập\nVD: Thịt gà, Cà rốt...',
     },
     {
-        key: 'unitPrice',
-        header: 'Đơn giá (VNĐ)',
-        width: 15,
-        required: true,
-        format: 'number',
-        note: 'Bắt buộc\nSố nguyên ≥ 0\nMặc định: 0',
-    },
-    {
         key: 'unit',
         header: 'Đơn vị tính',
         width: 15,

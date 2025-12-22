@@ -5,6 +5,7 @@ import { SchoolFoodModel } from '~/models/schoolFoodModel.js';
 import { UserModel } from '~/models/userModel.js';
 import ApiError from '~/utils/ApiError.js';
 import { StatusCodes } from 'http-status-codes';
+import { removeVietnameseTones } from '~/utils/formatters.js'; // ✅ Named import
 
 /**
  * ✅ Tạo món ăn mới
@@ -55,7 +56,6 @@ const createNew = async (data, userId) => {
                     protein: food.protein,
                     lipid: food.lipid,
                     glucid: food.glucid,
-                    unitPrice: food.unitPrice, // ✅ THÊM UNIT PRICE
                     unit: food.unit,
                     gramConversion: food.gramConversion,
                     wastePercentage: food.wastePercentage,
@@ -243,7 +243,6 @@ const update = async (id, data, userId) => {
                         protein: food.protein,
                         lipid: food.lipid,
                         glucid: food.glucid,
-                        unitPrice: food.unitPrice, // ✅ THÊM UNIT PRICE
                         unit: food.unit,
                         gramConversion: food.gramConversion,
                         wastePercentage: food.wastePercentage,
@@ -327,8 +326,13 @@ const searchFoods = async (query, userId) => {
         const filter = { schoolId: user.schoolId, _destroy: false };
 
         if (search) {
-            const searchRegex = new RegExp(search, 'i');
-            filter.$or = [{ name: searchRegex }, { nameWithoutAccent: searchRegex }];
+            const searchTrimmed = search.trim(); // Loại bỏ khoảng trắng đầu cuối
+            const searchNormalized = removeVietnameseTones(searchTrimmed).toLowerCase(); // Bỏ dấu + lowercase
+
+            filter.$or = [
+                { name: { $regex: searchTrimmed, $options: 'i' } }, // Tìm có dấu
+                { nameWithoutAccent: { $regex: searchNormalized, $options: 'i' } }, // Tìm không dấu
+            ];
         }
 
         const foods = await SchoolFoodModel.find(filter).limit(Number(limit)).sort({ name: 1 }).lean();

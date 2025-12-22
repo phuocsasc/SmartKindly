@@ -4,6 +4,7 @@ import { FoodModel } from '~/models/foodModel.js';
 import { UserModel } from '~/models/userModel.js';
 import ApiError from '~/utils/ApiError.js';
 import { StatusCodes } from 'http-status-codes';
+import { removeVietnameseTones } from '~/utils/formatters.js'; // ✅ Named import
 
 /**
  * ✅ Tạo thực phẩm mới
@@ -57,10 +58,15 @@ const getAll = async (query) => {
 
         const filter = { _destroy: false };
 
-        // ✅ Search by name (có dấu hoặc không dấu, hoa thường)
+        // ✅ IMPROVED SEARCH: Trim, lowercase, bỏ dấu
         if (search) {
-            const searchRegex = new RegExp(search, 'i');
-            filter.$or = [{ name: searchRegex }, { nameWithoutAccent: searchRegex }];
+            const searchTrimmed = search.trim(); // Loại bỏ khoảng trắng đầu cuối
+            const searchNormalized = removeVietnameseTones(searchTrimmed).toLowerCase(); // Bỏ dấu + lowercase
+
+            filter.$or = [
+                { name: { $regex: searchTrimmed, $options: 'i' } }, // Tìm có dấu
+                { nameWithoutAccent: { $regex: searchNormalized, $options: 'i' } }, // Tìm không dấu
+            ];
         }
 
         // ✅ Filter by category
@@ -140,16 +146,22 @@ const update = async (id, data, userId) => {
         }
 
         // ✅ Check duplicate name if name is being updated
-        if (data.name && data.name !== food.name) {
+        if (data.name && data.name.trim() !== food.name) {
+            const normalizedName = data.name.trim();
             const existingFood = await FoodModel.findOne({
                 _id: { $ne: id },
-                name: { $regex: new RegExp(`^${data.name}$`, 'i') },
+                name: { $regex: new RegExp(`^${normalizedName}$`, 'i') },
                 _destroy: false,
             });
 
             if (existingFood) {
                 throw new ApiError(StatusCodes.CONFLICT, 'Tên thực phẩm đã tồn tại');
             }
+        }
+
+        // ✅ Trim name if provided
+        if (data.name) {
+            data.name = data.name.trim();
         }
 
         // ✅ Update (KHÔNG TỰ ĐỘNG SYNC)
@@ -255,62 +267,38 @@ const importBulk = async (data, userId) => {
             errors: [],
         };
 
-        for (const [index, item] of data.entries()) {
+        for (const foodData of data) {
             try {
-                const rowNumber = index + 7; // Excel row number
-
-                // Validate
-                if (!item.name || item.name.trim() === '') {
-                    results.errors.push({
-                        row: rowNumber,
-                        name: item.name || '(Chưa có tên)',
-                        error: 'Thiếu tên thực phẩm',
-                    });
-                    continue;
-                }
+                // ✅ Trim name
+                const normalizedName = foodData.name.trim();
 
                 // Check duplicate
-                const existingFood = await FoodModel.findOne({
-                    name: { $regex: new RegExp(`^${item.name}$`, 'i') },
+                const existing = await FoodModel.findOne({
+                    name: { $regex: new RegExp(`^${normalizedName}$`, 'i') },
                     _destroy: false,
                 });
 
-                if (existingFood) {
+                if (existing) {
                     results.errors.push({
-                        row: rowNumber,
-                        name: item.name,
-                        error: 'Tên thực phẩm đã tồn tại',
+                        row: foodData.rowNumber,
+                        name: normalizedName,
+                        error: 'Thực phẩm đã tồn tại',
                     });
                     continue;
                 }
 
-                // Create food
                 const newFood = new FoodModel({
-                    name: item.name,
-                    unitPrice: item.unitPrice ?? 0,
-                    unit: item.unit || 'Kg',
-                    gramConversion: item.gramConversion,
-                    categories: item.categories,
-                    wastePercentage: item.wastePercentage ?? 0,
-                    protein: item.protein ?? 0,
-                    lipid: item.lipid ?? 0,
-                    glucid: item.glucid ?? 0,
+                    ...foodData,
+                    name: normalizedName,
                     createdBy: userId,
                 });
 
                 await newFood.save();
-
-                results.created.push({
-                    name: newFood.name,
-                    unit: newFood.unit,
-                });
-
-                console.log(`✅ Created food: ${newFood.name}`);
+                results.created.push(newFood);
             } catch (error) {
-                console.error(`❌ Error at row ${index + 7}:`, error);
                 results.errors.push({
-                    row: index + 7,
-                    name: item.name || '(Chưa có tên)',
+                    row: foodData.rowNumber,
+                    name: foodData.name,
                     error: error.message,
                 });
             }

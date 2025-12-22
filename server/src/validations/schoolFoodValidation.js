@@ -6,11 +6,6 @@ import ApiError from '~/utils/ApiError.js';
 
 const update = async (req, res, next) => {
     const schema = Joi.object({
-        unitPrice: Joi.number().min(0).integer().messages({
-            'number.base': 'Đơn giá phải là số',
-            'number.min': 'Đơn giá phải lớn hơn hoặc bằng 0',
-            'number.integer': 'Đơn giá phải là số nguyên',
-        }),
         unit: Joi.string()
             .valid(
                 'Kg',

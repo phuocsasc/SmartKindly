@@ -5,6 +5,7 @@ import { FoodModel } from '~/models/foodModel.js';
 import { UserModel } from '~/models/userModel.js';
 import ApiError from '~/utils/ApiError.js';
 import { StatusCodes } from 'http-status-codes';
+import { removeVietnameseTones } from '~/utils/formatters.js'; // ✅ Named import
 
 /**
  * ✅ Đồng bộ toàn bộ thực phẩm từ FoodModel sang SchoolFoodModel cho 1 trường
@@ -71,7 +72,6 @@ const syncFoodsForSchool = async (schoolId) => {
                             schoolId,
                             foodId: food._id,
                             // Các field tùy chỉnh của trường (giữ nguyên nếu đã có)
-                            unitPrice: food.unitPrice,
                             unit: food.unit,
                             gramConversion: food.gramConversion,
                             wastePercentage: food.wastePercentage,
@@ -131,10 +131,15 @@ const getAll = async (query, userId) => {
 
         const filter = { schoolId: user.schoolId, _destroy: false };
 
-        // ✅ Search by name (có dấu hoặc không dấu)
+        // ✅ IMPROVED SEARCH: Trim, lowercase, bỏ dấu
         if (search) {
-            const searchRegex = new RegExp(search, 'i');
-            filter.$or = [{ name: searchRegex }, { nameWithoutAccent: searchRegex }];
+            const searchTrimmed = search.trim(); // Loại bỏ khoảng trắng đầu cuối
+            const searchNormalized = removeVietnameseTones(searchTrimmed).toLowerCase(); // Bỏ dấu + lowercase
+
+            filter.$or = [
+                { name: { $regex: searchTrimmed, $options: 'i' } }, // Tìm có dấu
+                { nameWithoutAccent: { $regex: searchNormalized, $options: 'i' } }, // Tìm không dấu
+            ];
         }
 
         // ✅ Filter by category
@@ -204,7 +209,7 @@ const getDetails = async (id, userId) => {
 };
 
 /**
- * ✅ Cập nhật thực phẩm (Chỉ BGH được update: unitPrice, unit, gramConversion, wastePercentage)
+ * ✅ Cập nhật thực phẩm (Chỉ BGH được update: unit, gramConversion, wastePercentage)
  */
 const update = async (id, data, userId) => {
     try {
@@ -230,8 +235,8 @@ const update = async (id, data, userId) => {
             throw new ApiError(StatusCodes.NOT_FOUND, 'Không tìm thấy thực phẩm');
         }
 
-        // ✅ Chỉ cho phép update các field: unitPrice, unit, gramConversion, wastePercentage
-        const allowedFields = ['unitPrice', 'unit', 'gramConversion', 'wastePercentage'];
+        // ✅ Chỉ cho phép update các field:  unit, gramConversion, wastePercentage
+        const allowedFields = ['unit', 'gramConversion', 'wastePercentage'];
         const updateData = {};
 
         allowedFields.forEach((field) => {

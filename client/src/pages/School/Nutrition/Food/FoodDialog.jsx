@@ -63,7 +63,6 @@ const UNITS = [
 
 function FoodDialog({ open, food, onClose, onSuccess }) {
     const [formData, setFormData] = useState({
-        unitPrice: 0,
         unit: 'Kg',
         gramConversion: '',
         wastePercentage: 0,
@@ -74,7 +73,6 @@ function FoodDialog({ open, food, onClose, onSuccess }) {
     useEffect(() => {
         if (food) {
             setFormData({
-                unitPrice: food.unitPrice ?? 0,
                 unit: food.unit || 'Kg',
                 gramConversion: food.gramConversion || '',
                 wastePercentage: food.wastePercentage ?? 0,
@@ -84,10 +82,6 @@ function FoodDialog({ open, food, onClose, onSuccess }) {
 
     const handleSubmit = async () => {
         // Validation
-        if (formData.unitPrice < 0) {
-            toast.error('Đơn giá phải lớn hơn hoặc bằng 0!');
-            return;
-        }
         if (!formData.unit) {
             toast.error('Vui lòng chọn đơn vị tính!');
             return;
@@ -263,18 +257,6 @@ function FoodDialog({ open, food, onClose, onSuccess }) {
                         </Typography>
 
                         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                            <TextField
-                                label="Đơn giá (VNĐ)"
-                                type="number"
-                                value={formData.unitPrice}
-                                onChange={(e) => setFormData({ ...formData, unitPrice: parseInt(e.target.value) || 0 })}
-                                required
-                                fullWidth
-                                size="small"
-                                inputProps={{ min: 0, step: 1 }}
-                                helperText="Nhập số nguyên ≥ 0"
-                            />
-
                             <Box sx={{ display: 'flex', gap: 2 }}>
                                 <FormControl required fullWidth size="small">
                                     <InputLabel>Đơn vị tính</InputLabel>

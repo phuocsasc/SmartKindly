@@ -1,0 +1,267 @@
+import { StatusCodes } from 'http-status-codes';
+import { SchoolMenuModel } from '~/models/schoolMenuModel.js';
+import { SchoolMealModel } from '~/models/schoolMealModel.js';
+import { SchoolNutritionalStandardModel } from '~/models/schoolNutritionalStandardModel.js';
+import { SchoolFoodModel } from '~/models/schoolFoodModel.js';
+import { UserModel } from '~/models/userModel.js';
+import ApiError from '~/utils/ApiError.js';
+import { removeVietnameseTones } from '~/utils/formatters.js';
+
+const ENERGY_FACTORS = { PROTEIN: 4, LIPID: 9, GLUCID: 4 };
+const MEAL_SESSIONS = ['Bữa sáng', 'Bữa trưa', 'Bữa xế', 'Bữa phụ'];
+
+// --- Helper Functions ---
+
+const evaluate = (value, min, max) => {
+    if (value < min) return 'Chưa đạt';
+    if (value > max) return 'Vượt quá định mức';
+    return 'Đạt';
+};
+
+const recalculateFromEditedItem = (editedItem, numberOfChildren) => {
+    let purchaseQuantityKg;
+    if (editedItem.unit.toLowerCase() === 'kg') {
+        purchaseQuantityKg = editedItem.purchaseQuantityByUnit;
+    } else {
+        purchaseQuantityKg = (editedItem.purchaseQuantityByUnit * editedItem.gramConversion) / 1000;
+    }
+    purchaseQuantityKg = parseFloat(purchaseQuantityKg.toFixed(1));
+
+    const totalQuantityKg = parseFloat((purchaseQuantityKg / (1 + editedItem.wastePercentage / 100)).toFixed(1));
+    const quantityPerChildGram = parseFloat(((totalQuantityKg * 1000) / numberOfChildren).toFixed(2));
+
+    return { ...editedItem, purchaseQuantityKg, totalQuantityKg, quantityPerChildGram };
+};
+
+const processMenuData = async (data, schoolId) => {
+    const { numberOfChildren, nutritionalStandardId, meals, aggregatedFoodTable } = data;
+
+    // 1. Fetch dependencies
+    const [standard, allMealsFromDb] = await Promise.all([
+        SchoolNutritionalStandardModel.findOne({ _id: nutritionalStandardId, schoolId }).lean(),
+        SchoolMealModel.find({ _id: { $in: Object.values(meals).flat() }, schoolId }).lean(),
+    ]);
+
+    if (!standard) throw new ApiError(StatusCodes.NOT_FOUND, 'Không tìm thấy định mức dinh dưỡng.');
+    const mealsMap = new Map(allMealsFromDb.map((m) => [m._id.toString(), m]));
+
+    // 2. Create meal snapshots
+    const mealSnapshots = {};
+    for (const session of MEAL_SESSIONS) {
+        mealSnapshots[session] = (meals[session] || []).map((mealId) => {
+            const mealData = mealsMap.get(mealId.toString());
+            if (!mealData) throw new ApiError(StatusCodes.NOT_FOUND, `Món ăn ID ${mealId} không tồn tại.`);
+            return {
+                mealId: mealData._id,
+                name: mealData.name,
+                ingredients: mealData.ingredients.map((ing) => ({ ...ing })),
+            };
+        });
+    }
+
+    // 3. Process aggregated food table
+    let finalAggregatedTable;
+    if (aggregatedFoodTable && aggregatedFoodTable.length > 0) {
+        finalAggregatedTable = aggregatedFoodTable.map((item) => recalculateFromEditedItem(item, numberOfChildren));
+    } else {
+        const foodMap = new Map();
+        Object.values(mealSnapshots)
+            .flat()
+            .forEach((meal) => {
+                meal.ingredients.forEach((ing) => {
+                    const existing = foodMap.get(ing.foodId.toString());
+                    if (existing) {
+                        existing.quantityPerChildGram += ing.quantityPerChildGram;
+                    } else {
+                        foodMap.set(ing.foodId.toString(), { ...ing });
+                    }
+                });
+            });
+        finalAggregatedTable = Array.from(foodMap.values()).map((item) => {
+            const quantityPerChildGram = parseFloat(item.quantityPerChildGram.toFixed(2));
+            const totalQuantityKg = parseFloat(((quantityPerChildGram * numberOfChildren) / 1000).toFixed(1));
+            const purchaseQuantityKg = parseFloat((totalQuantityKg * (1 + item.wastePercentage / 100)).toFixed(1));
+            const purchaseQuantityByUnit =
+                item.unit.toLowerCase() === 'kg'
+                    ? purchaseQuantityKg
+                    : parseFloat(((purchaseQuantityKg / item.gramConversion) * 1000).toFixed(1));
+            return { ...item, quantityPerChildGram, totalQuantityKg, purchaseQuantityKg, purchaseQuantityByUnit };
+        });
+    }
+
+    // 4. Perform nutritional analysis
+    const foodInfoMap = new Map(
+        finalAggregatedTable.map((i) => [i.foodId.toString(), { protein: 0, lipid: 0, glucid: 0 }]),
+    );
+    const foodDetails = await SchoolFoodModel.find({ _id: { $in: Array.from(foodInfoMap.keys()) } })
+        .select('protein lipid glucid')
+        .lean();
+    foodDetails.forEach((f) => foodInfoMap.set(f._id.toString(), f));
+
+    const totals = { protein: 0, lipid: 0, glucid: 0 };
+    finalAggregatedTable.forEach((item) => {
+        const foodInfo = foodInfoMap.get(item.foodId.toString());
+        totals.protein += item.quantityPerChildGram * (foodInfo.protein || 0);
+        totals.lipid += item.quantityPerChildGram * (foodInfo.lipid || 0);
+        totals.glucid += item.quantityPerChildGram * (foodInfo.glucid || 0);
+    });
+
+    const totalProtein = parseFloat(totals.protein.toFixed(2));
+    const totalLipid = parseFloat(totals.lipid.toFixed(2));
+    const totalGlucid = parseFloat(totals.glucid.toFixed(2));
+    const totalCalories = parseFloat(
+        (
+            totalProtein * ENERGY_FACTORS.PROTEIN +
+            totalLipid * ENERGY_FACTORS.LIPID +
+            totalGlucid * ENERGY_FACTORS.GLUCID
+        ).toFixed(2),
+    );
+
+    const proteinPercentage =
+        totalCalories > 0
+            ? parseFloat((((totalProtein * ENERGY_FACTORS.PROTEIN) / totalCalories) * 100).toFixed(2))
+            : 0;
+    const lipidPercentage =
+        totalCalories > 0 ? parseFloat((((totalLipid * ENERGY_FACTORS.LIPID) / totalCalories) * 100).toFixed(2)) : 0;
+    const glucidPercentage =
+        totalCalories > 0 ? parseFloat((((totalGlucid * ENERGY_FACTORS.GLUCID) / totalCalories) * 100).toFixed(2)) : 0;
+
+    const analysisResult = {
+        totalProtein,
+        totalLipid,
+        totalGlucid,
+        totalCalories,
+        caloriesEvaluation: evaluate(totalCalories, standard.recommendedCaloriesMin, standard.recommendedCaloriesMax),
+        proteinPercentage,
+        lipidPercentage,
+        glucidPercentage,
+        plgEvaluation: {
+            protein: evaluate(proteinPercentage, standard.plgStructure.proteinMin, standard.plgStructure.proteinMax),
+            lipid: evaluate(lipidPercentage, standard.plgStructure.lipidMin, standard.plgStructure.lipidMax),
+            glucid: evaluate(glucidPercentage, standard.plgStructure.glucidMin, standard.plgStructure.glucidMax),
+        },
+    };
+
+    return {
+        ...data,
+        ageGroup: standard.ageGroup,
+        meals: mealSnapshots,
+        aggregatedFoodTable: finalAggregatedTable,
+        analysis: analysisResult,
+    };
+};
+
+// --- Main Service Functions ---
+
+const createNew = async (data, userId) => {
+    const user = await UserModel.findById(userId).select('schoolId');
+    if (!user || !user.schoolId) throw new ApiError(StatusCodes.FORBIDDEN, 'Người dùng không thuộc trường học nào.');
+
+    const processedData = await processMenuData(data, user.schoolId);
+
+    const newMenu = new SchoolMenuModel({
+        ...processedData,
+        schoolId: user.schoolId,
+        createdBy: userId,
+        lastUpdatedBy: userId,
+    });
+
+    await newMenu.save();
+    return newMenu;
+};
+
+const getAll = async (query, userId) => {
+    const user = await UserModel.findById(userId).select('schoolId');
+    if (!user || !user.schoolId) throw new ApiError(StatusCodes.FORBIDDEN, 'Người dùng không thuộc trường học nào.');
+
+    const { page = 1, limit = 20, search = '' } = query;
+    const skip = (page - 1) * limit;
+
+    const filter = { schoolId: user.schoolId, _destroy: false };
+    if (search) {
+        filter.menuNameWithoutAccent = { $regex: removeVietnameseTones(search), $options: 'i' };
+    }
+
+    const [menus, total] = await Promise.all([
+        SchoolMenuModel.find(filter)
+            .select({
+                menuName: 1,
+                ageGroup: 1,
+                numberOfChildren: 1,
+                analysis: 1,
+                createdAt: 1,
+                'meals.Bữa sáng.name': 1,
+                'meals.Bữa sáng.mealId': 1,
+                'meals.Bữa trưa.name': 1,
+                'meals.Bữa trưa.mealId': 1,
+                'meals.Bữa xế.name': 1,
+                'meals.Bữa xế.mealId': 1,
+                'meals.Bữa phụ.name': 1,
+                'meals.Bữa phụ.mealId': 1,
+            })
+            .populate('nutritionalStandardId', 'ageGroup')
+            .populate('createdBy', 'fullName')
+            .sort({ createdAt: -1 })
+            .skip(skip)
+            .limit(Number(limit))
+            .lean(),
+        SchoolMenuModel.countDocuments(filter),
+    ]);
+
+    return {
+        items: menus,
+        pagination: {
+            currentPage: Number(page),
+            totalPages: Math.ceil(total / limit),
+            totalItems: total,
+            itemsPerPage: Number(limit),
+        },
+    };
+};
+
+const getDetails = async (id, userId) => {
+    const user = await UserModel.findById(userId).select('schoolId');
+    const menu = await SchoolMenuModel.findOne({ _id: id, schoolId: user.schoolId, _destroy: false })
+        .populate('nutritionalStandardId')
+        .lean();
+    if (!menu) throw new ApiError(StatusCodes.NOT_FOUND, 'Không tìm thấy thực đơn.');
+    return menu;
+};
+
+const update = async (id, data, userId) => {
+    const user = await UserModel.findById(userId).select('schoolId');
+    const existingMenu = await SchoolMenuModel.findOne({ _id: id, schoolId: user.schoolId, _destroy: false });
+    if (!existingMenu) throw new ApiError(StatusCodes.NOT_FOUND, 'Không tìm thấy thực đơn.');
+
+    const updatedData = {
+        menuName: data.menuName || existingMenu.menuName,
+        numberOfChildren: data.numberOfChildren || existingMenu.numberOfChildren,
+        nutritionalStandardId: data.nutritionalStandardId || existingMenu.nutritionalStandardId,
+        meals: data.meals || existingMenu.meals,
+        aggregatedFoodTable: data.aggregatedFoodTable || existingMenu.aggregatedFoodTable,
+    };
+
+    const processedData = await processMenuData(updatedData, user.schoolId);
+
+    Object.assign(existingMenu, { ...processedData, lastUpdatedBy: userId });
+    await existingMenu.save();
+    return existingMenu;
+};
+
+const deleteMenu = async (id, userId) => {
+    const user = await UserModel.findById(userId).select('schoolId');
+    const menu = await SchoolMenuModel.findOne({ _id: id, schoolId: user.schoolId });
+    if (!menu) throw new ApiError(StatusCodes.NOT_FOUND, 'Không tìm thấy thực đơn.');
+
+    menu._destroy = true;
+    await menu.save();
+    return { message: 'Xóa thực đơn thành công.' };
+};
+
+export const schoolMenuServices = {
+    createNew,
+    getAll,
+    getDetails,
+    update,
+    deleteMenu,
+};

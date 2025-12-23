@@ -1,0 +1,764 @@
+import { useState, useEffect, useMemo } from 'react';
+import {
+    Dialog,
+    DialogTitle,
+    DialogContent,
+    DialogActions,
+    Button,
+    Box,
+    TextField,
+    FormControl,
+    InputLabel,
+    Select,
+    MenuItem,
+    Typography,
+    IconButton,
+    Avatar,
+    Tabs,
+    Tab,
+    Divider,
+    Autocomplete,
+    Table,
+    TableBody,
+    TableCell,
+    TableContainer,
+    TableHead,
+    TableRow,
+    Paper,
+    Chip,
+    CircularProgress,
+    Grid,
+} from '@mui/material';
+import CloseIcon from '@mui/icons-material/Close';
+import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
+import EditIcon from '@mui/icons-material/Edit';
+import { schoolMenuApi, schoolNutritionalStandardApi, schoolMealApi } from '~/apis';
+import { toast } from 'react-toastify';
+
+const MEAL_SESSIONS = ['Bữa sáng', 'Bữa trưa', 'Bữa xế', 'Bữa phụ'];
+const ENERGY_FACTORS = { PROTEIN: 4, LIPID: 9, GLUCID: 4 };
+
+function MenuDialog({ open, mode, menuId, onClose, onSuccess }) {
+    const [activeTab, setActiveTab] = useState(0);
+    const [loading, setLoading] = useState(false);
+    const [loadingDetails, setLoadingDetails] = useState(false);
+
+    const [isDirty, setIsDirty] = useState(false);
+
+    // Form state
+    const [formData, setFormData] = useState({
+        menuName: '',
+        numberOfChildren: 1,
+        nutritionalStandardId: '',
+        meals: MEAL_SESSIONS.reduce((acc, session) => ({ ...acc, [session]: [] }), {}),
+    });
+
+    // Reference data
+    const [standardOptions, setStandardOptions] = useState([]);
+    const [mealOptions, setMealOptions] = useState([]);
+    const [loadingMeals, setLoadingMeals] = useState(false);
+    const [searchMealText, setSearchMealText] = useState('');
+
+    // Calculated nutrition data
+    const [nutritionData, setNutritionData] = useState({
+        aggregatedFoodTable: [],
+        analysis: {},
+        standard: null,
+    });
+
+    const isCreateMode = mode === 'create';
+
+    // --- Data Fetching ---
+    const fetchDependencies = async () => {
+        try {
+            const standardsRes = await schoolNutritionalStandardApi.getAll({ limit: 100 });
+            setStandardOptions(standardsRes.data.data.standards || []);
+        } catch (error) {
+            toast.error('Lỗi khi tải danh sách định mức dinh dưỡng!');
+        }
+    };
+
+    const searchMeals = async (search) => {
+        try {
+            setLoadingMeals(true);
+            const res = await schoolMealApi.getAll({ search, limit: 20 });
+            setMealOptions(res.data.data.meals || []);
+        } catch (error) {
+            console.error('Error searching meals:', error);
+        } finally {
+            setLoadingMeals(false);
+        }
+    };
+
+    useEffect(() => {
+        if (open) {
+            fetchDependencies();
+            setIsDirty(false);
+            setNutritionData({ aggregatedFoodTable: [], analysis: {}, standard: null });
+            // Reset form on open
+            setFormData({
+                menuName: '',
+                numberOfChildren: 1,
+                nutritionalStandardId: '',
+                meals: MEAL_SESSIONS.reduce((acc, session) => ({ ...acc, [session]: [] }), {}),
+            });
+            setActiveTab(0);
+        }
+    }, [open]);
+
+    useEffect(() => {
+        if (open && mode === 'edit' && menuId) {
+            const fetchDetails = async () => {
+                try {
+                    setLoadingDetails(true);
+                    const res = await schoolMenuApi.getDetails(menuId);
+                    const menu = res.data.data;
+                    setFormData({
+                        menuName: menu.menuName,
+                        numberOfChildren: menu.numberOfChildren,
+                        nutritionalStandardId: menu.nutritionalStandardId._id,
+                        meals: menu.meals,
+                    });
+                    // Set initial nutrition data from backend for edit mode
+                    setNutritionData({
+                        aggregatedFoodTable: menu.aggregatedFoodTable,
+                        analysis: menu.analysis,
+                        standard: menu.nutritionalStandardId,
+                    });
+                } catch (error) {
+                    toast.error('Lỗi khi tải chi tiết thực đơn!');
+                    onClose();
+                } finally {
+                    setLoadingDetails(false);
+                }
+            };
+            fetchDetails();
+        }
+    }, [open, mode, menuId, onClose]);
+
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            if (searchMealText.trim().length >= 1) {
+                searchMeals(searchMealText.trim());
+            } else {
+                setMealOptions([]);
+            }
+        }, 500);
+        return () => clearTimeout(timer);
+    }, [searchMealText]);
+
+    // --- Real-time Nutrition Calculation ---
+    const selectedStandard = useMemo(() => {
+        return standardOptions.find((s) => s._id === formData.nutritionalStandardId);
+    }, [formData.nutritionalStandardId, standardOptions]);
+
+    const recomputeNutrition = (currentMeals, currentNumberOfChildren, currentStandard, editedFoodTable = null) => {
+        if (!currentStandard || currentNumberOfChildren <= 0) {
+            setNutritionData({ aggregatedFoodTable: [], analysis: {}, standard: null });
+            return;
+        }
+
+        let finalAggregatedTable;
+
+        if (editedFoodTable) {
+            // If a food item was edited, use that as the source of truth
+            finalAggregatedTable = editedFoodTable;
+        } else {
+            // Otherwise, compute from scratch based on selected meals
+            const foodMap = new Map();
+            Object.values(currentMeals)
+                .flat()
+                .forEach((meal) => {
+                    meal.ingredients.forEach((ing) => {
+                        const key = ing.foodId.toString();
+                        if (foodMap.has(key)) {
+                            foodMap.get(key).quantityPerChildGram += ing.quantityPerChildGram;
+                        } else {
+                            foodMap.set(key, { ...ing, quantityPerChildGram: ing.quantityPerChildGram });
+                        }
+                    });
+                });
+
+            finalAggregatedTable = Array.from(foodMap.values()).map((item) => {
+                const quantityPerChildGram = parseFloat(item.quantityPerChildGram.toFixed(2));
+                const totalQuantityKg = parseFloat(
+                    ((quantityPerChildGram * currentNumberOfChildren) / 1000).toFixed(1),
+                );
+                const purchaseQuantityKg = parseFloat((totalQuantityKg * (1 + item.wastePercentage / 100)).toFixed(1));
+                const purchaseQuantityByUnit =
+                    item.unit.toLowerCase() === 'kg'
+                        ? purchaseQuantityKg
+                        : parseFloat(((purchaseQuantityKg / item.gramConversion) * 1000).toFixed(1));
+                return { ...item, quantityPerChildGram, totalQuantityKg, purchaseQuantityKg, purchaseQuantityByUnit };
+            });
+        }
+
+        // Perform nutritional analysis
+        const totals = { protein: 0, lipid: 0, glucid: 0 };
+        finalAggregatedTable.forEach((item) => {
+            totals.protein += item.quantityPerChildGram * (item.protein || 0);
+            totals.lipid += item.quantityPerChildGram * (item.lipid || 0);
+            totals.glucid += item.quantityPerChildGram * (item.glucid || 0);
+        });
+
+        const totalProtein = parseFloat(totals.protein.toFixed(2));
+        const totalLipid = parseFloat(totals.lipid.toFixed(2));
+        const totalGlucid = parseFloat(totals.glucid.toFixed(2));
+        const totalCalories = parseFloat(
+            (
+                totalProtein * ENERGY_FACTORS.PROTEIN +
+                totalLipid * ENERGY_FACTORS.LIPID +
+                totalGlucid * ENERGY_FACTORS.GLUCID
+            ).toFixed(2),
+        );
+
+        const evaluate = (val, min, max) => (val < min ? 'Chưa đạt' : val > max ? 'Vượt quá định mức' : 'Đạt');
+
+        const analysisResult = {
+            totalProtein,
+            totalLipid,
+            totalGlucid,
+            totalCalories,
+            caloriesEvaluation: evaluate(
+                totalCalories,
+                currentStandard.recommendedCaloriesMin,
+                currentStandard.recommendedCaloriesMax,
+            ),
+            proteinPercentage:
+                totalCalories > 0
+                    ? parseFloat((((totalProtein * ENERGY_FACTORS.PROTEIN) / totalCalories) * 100).toFixed(1))
+                    : 0,
+            lipidPercentage:
+                totalCalories > 0
+                    ? parseFloat((((totalLipid * ENERGY_FACTORS.LIPID) / totalCalories) * 100).toFixed(1))
+                    : 0,
+            glucidPercentage:
+                totalCalories > 0
+                    ? parseFloat((((totalGlucid * ENERGY_FACTORS.GLUCID) / totalCalories) * 100).toFixed(1))
+                    : 0,
+            plgEvaluation: {
+                protein: evaluate(
+                    totalCalories > 0 ? ((totalProtein * ENERGY_FACTORS.PROTEIN) / totalCalories) * 100 : 0,
+                    currentStandard.plgStructure.proteinMin,
+                    currentStandard.plgStructure.proteinMax,
+                ),
+                lipid: evaluate(
+                    totalCalories > 0 ? ((totalLipid * ENERGY_FACTORS.LIPID) / totalCalories) * 100 : 0,
+                    currentStandard.plgStructure.lipidMin,
+                    currentStandard.plgStructure.lipidMax,
+                ),
+                glucid: evaluate(
+                    totalCalories > 0 ? ((totalGlucid * ENERGY_FACTORS.GLUCID) / totalCalories) * 100 : 0,
+                    currentStandard.plgStructure.glucidMin,
+                    currentStandard.plgStructure.glucidMax,
+                ),
+            },
+        };
+
+        setNutritionData({
+            aggregatedFoodTable: finalAggregatedTable,
+            analysis: analysisResult,
+            standard: currentStandard,
+        });
+    };
+
+    useEffect(() => {
+        // Re-calculate when primary inputs change
+        const standardForCalc = selectedStandard || nutritionData.standard;
+
+        if (mode === 'create') {
+            recomputeNutrition(formData.meals, formData.numberOfChildren, standardForCalc);
+            return;
+        }
+
+        // ✅ Edit mode: chỉ re-calc khi người dùng có thay đổi (để không ghi đè dữ liệu đã lưu trong DB)
+        if (mode === 'edit' && !loadingDetails && isDirty) {
+            recomputeNutrition(formData.meals, formData.numberOfChildren, standardForCalc);
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [formData.meals, formData.numberOfChildren, selectedStandard, mode, loadingDetails, isDirty]);
+
+    // --- Handlers ---
+    const handleFormChange = (field, value) => {
+        setIsDirty(true);
+        setFormData((prev) => ({ ...prev, [field]: value }));
+    };
+
+    const handleAddMealItem = (session, meal) => {
+        setIsDirty(true);
+        if (formData.meals[session].some((m) => m.mealId === meal._id)) {
+            toast.warning(`Món "${meal.name}" đã có trong ${session}.`);
+            return;
+        }
+        const newMealItem = { mealId: meal._id, name: meal.name, ingredients: meal.ingredients };
+        const updatedMeals = { ...formData.meals, [session]: [...formData.meals[session], newMealItem] };
+        setFormData((prev) => ({ ...prev, meals: updatedMeals }));
+    };
+
+    const handleRemoveMealItem = (session, index) => {
+        setIsDirty(true);
+        const updatedSessionMeals = [...formData.meals[session]];
+        updatedSessionMeals.splice(index, 1);
+        const updatedMeals = { ...formData.meals, [session]: updatedSessionMeals };
+        setFormData((prev) => ({ ...prev, meals: updatedMeals }));
+    };
+
+    const handleChangePurchaseByUnit = (index, newValue) => {
+        const updatedTable = [...nutritionData.aggregatedFoodTable];
+        const item = updatedTable[index];
+        const newPurchaseQuantityByUnit = parseFloat(newValue) || 0;
+
+        // Recalculate other fields based on the user's edit
+        let purchaseQuantityKg;
+        if (item.unit.toLowerCase() === 'kg') {
+            purchaseQuantityKg = newPurchaseQuantityByUnit;
+        } else {
+            purchaseQuantityKg = (newPurchaseQuantityByUnit * item.gramConversion) / 1000;
+        }
+        const totalQuantityKg = purchaseQuantityKg / (1 + item.wastePercentage / 100);
+        const quantityPerChildGram = (totalQuantityKg * 1000) / formData.numberOfChildren;
+
+        updatedTable[index] = {
+            ...item,
+            purchaseQuantityByUnit: newPurchaseQuantityByUnit,
+            purchaseQuantityKg: parseFloat(purchaseQuantityKg.toFixed(1)),
+            totalQuantityKg: parseFloat(totalQuantityKg.toFixed(1)),
+            quantityPerChildGram: parseFloat(quantityPerChildGram.toFixed(2)),
+        };
+
+        // Trigger a full re-computation with the edited table as the source of truth
+        setIsDirty(true);
+        const standardForCalc = selectedStandard || nutritionData.standard;
+        recomputeNutrition(formData.meals, formData.numberOfChildren, standardForCalc, updatedTable);
+    };
+
+    const handleSubmit = async () => {
+        if (!formData.menuName.trim()) return toast.error('Vui lòng nhập tên thực đơn!');
+        if (!formData.nutritionalStandardId) return toast.error('Vui lòng chọn nhóm trẻ!');
+        if (formData.numberOfChildren <= 0) return toast.error('Số lượng trẻ phải lớn hơn 0!');
+
+        try {
+            setLoading(true);
+            const payload = {
+                menuName: formData.menuName,
+                numberOfChildren: formData.numberOfChildren,
+                nutritionalStandardId: formData.nutritionalStandardId,
+                meals: Object.keys(formData.meals).reduce((acc, session) => {
+                    acc[session] = formData.meals[session].map((m) => m.mealId);
+                    return acc;
+                }, {}),
+                // Send the final calculated table to backend
+                aggregatedFoodTable: nutritionData.aggregatedFoodTable.map((item) => ({
+                    foodId: item.foodId,
+                    foodName: item.foodName,
+                    unit: item.unit,
+                    gramConversion: item.gramConversion,
+                    wastePercentage: item.wastePercentage,
+                    isMainFood: item.isMainFood,
+                    purchaseQuantityByUnit: item.purchaseQuantityByUnit,
+                })),
+            };
+
+            if (isCreateMode) {
+                await schoolMenuApi.create(payload);
+                toast.success('Tạo thực đơn thành công!');
+            } else {
+                await schoolMenuApi.update(menuId, payload);
+                toast.success('Cập nhật thực đơn thành công!');
+            }
+            onSuccess();
+        } catch (error) {
+            toast.error(error?.response?.data?.message || 'Có lỗi xảy ra!');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const getStatusChip = (status) => {
+        switch (status) {
+            case 'Đạt':
+                return <Chip label="Đạt" color="success" size="small" variant="outlined" />;
+            case 'Chưa đạt':
+                return <Chip label="Chưa đạt" color="warning" size="small" variant="outlined" />;
+            case 'Vượt quá định mức':
+                return <Chip label="Vượt quá" color="error" size="small" variant="outlined" />;
+            default:
+                return <Chip label="N/A" size="small" />;
+        }
+    };
+
+    return (
+        <Dialog open={open} onClose={onClose} maxWidth="xl" fullWidth PaperProps={{ sx: { borderRadius: 3 } }}>
+            <DialogTitle
+                sx={{
+                    background: 'linear-gradient(135deg, #0071bc 0%, #aee2ff 100%)',
+                    color: '#fff',
+                    py: 1.5,
+                    position: 'relative',
+                }}
+            >
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                    <Avatar sx={{ bgcolor: 'rgba(255, 255, 255, 0.2)' }}>
+                        {isCreateMode ? <AddCircleOutlineIcon /> : <EditIcon />}
+                    </Avatar>
+                    <Typography variant="h6" fontWeight={600}>
+                        {isCreateMode ? 'Thêm thực đơn mới' : 'Chỉnh sửa thực đơn'}
+                    </Typography>
+                </Box>
+                <IconButton
+                    onClick={onClose}
+                    sx={{
+                        position: 'absolute',
+                        right: 8,
+                        top: 8,
+                        color: 'white',
+                        '&:hover': { bgcolor: 'rgba(255,255,255,0.1)' },
+                    }}
+                >
+                    <CloseIcon sx={{ color: 'red' }} />
+                </IconButton>
+            </DialogTitle>
+
+            <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
+                <Tabs value={activeTab} onChange={(e, val) => setActiveTab(val)} variant="fullWidth">
+                    <Tab label="THÔNG TIN THỰC ĐƠN" />
+                    <Tab label="CÂN ĐỐI DINH DƯỠNG" />
+                </Tabs>
+            </Box>
+
+            <DialogContent sx={{ minHeight: '70vh', bgcolor: '#f5f5f5' }}>
+                {loadingDetails ? (
+                    <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
+                        <CircularProgress />
+                    </Box>
+                ) : (
+                    <>
+                        {/* TAB 1 */}
+                        {activeTab === 0 && (
+                            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, py: 2 }}>
+                                <Grid container spacing={2}>
+                                    <Grid item xs={12} sm={6}>
+                                        <FormControl required fullWidth size="small">
+                                            <InputLabel>Nhóm trẻ</InputLabel>
+                                            <Select
+                                                value={formData.nutritionalStandardId}
+                                                onChange={(e) =>
+                                                    handleFormChange('nutritionalStandardId', e.target.value)
+                                                }
+                                                label="Nhóm trẻ"
+                                            >
+                                                {standardOptions.map((opt) => (
+                                                    <MenuItem key={opt._id} value={opt._id}>
+                                                        {opt.ageGroup}
+                                                    </MenuItem>
+                                                ))}
+                                            </Select>
+                                        </FormControl>
+                                    </Grid>
+                                    <Grid item xs={12} sm={6}>
+                                        <TextField
+                                            type="number"
+                                            label="Số lượng trẻ"
+                                            required
+                                            fullWidth
+                                            size="small"
+                                            value={formData.numberOfChildren}
+                                            onChange={(e) =>
+                                                handleFormChange('numberOfChildren', parseInt(e.target.value, 10) || 0)
+                                            }
+                                            inputProps={{ min: 1 }}
+                                        />
+                                    </Grid>
+                                    <Grid item xs={12}>
+                                        <TextField
+                                            label="Tên thực đơn"
+                                            required
+                                            fullWidth
+                                            size="small"
+                                            value={formData.menuName}
+                                            onChange={(e) => handleFormChange('menuName', e.target.value)}
+                                        />
+                                    </Grid>
+                                </Grid>
+
+                                <Typography variant="h6" fontWeight={600} sx={{ mt: 2 }}>
+                                    Các bữa ăn trong ngày
+                                </Typography>
+                                <TableContainer component={Paper} variant="outlined">
+                                    <Table>
+                                        <TableHead sx={{ bgcolor: '#e3f2fd' }}>
+                                            <TableRow>
+                                                <TableCell sx={{ width: '15%' }}>Bữa ăn</TableCell>
+                                                <TableCell>Các món ăn</TableCell>
+                                            </TableRow>
+                                        </TableHead>
+                                        <TableBody>
+                                            {MEAL_SESSIONS.map((session) => (
+                                                <TableRow key={session}>
+                                                    <TableCell>
+                                                        <Chip label={session} color="primary" variant="outlined" />
+                                                    </TableCell>
+                                                    <TableCell>
+                                                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                                                            {formData.meals[session].map((item, index) => (
+                                                                <Chip
+                                                                    key={item.mealId}
+                                                                    label={item.name}
+                                                                    onDelete={() =>
+                                                                        handleRemoveMealItem(session, index)
+                                                                    }
+                                                                />
+                                                            ))}
+                                                            <Autocomplete
+                                                                size="small"
+                                                                options={mealOptions}
+                                                                getOptionLabel={(option) => option.name}
+                                                                loading={loadingMeals}
+                                                                onInputChange={(e, val) => setSearchMealText(val)}
+                                                                onChange={(e, val) => {
+                                                                    if (val) handleAddMealItem(session, val);
+                                                                }}
+                                                                renderInput={(params) => (
+                                                                    <TextField
+                                                                        {...params}
+                                                                        label="Thêm món ăn..."
+                                                                        InputProps={{
+                                                                            ...params.InputProps,
+                                                                            endAdornment: (
+                                                                                <>
+                                                                                    {loadingMeals ? (
+                                                                                        <CircularProgress
+                                                                                            color="inherit"
+                                                                                            size={20}
+                                                                                        />
+                                                                                    ) : null}
+                                                                                    {params.InputProps.endAdornment}
+                                                                                </>
+                                                                            ),
+                                                                        }}
+                                                                    />
+                                                                )}
+                                                                noOptionsText="Không tìm thấy món ăn"
+                                                                filterOptions={(x) => x}
+                                                                value={null}
+                                                            />
+                                                        </Box>
+                                                    </TableCell>
+                                                </TableRow>
+                                            ))}
+                                        </TableBody>
+                                    </Table>
+                                </TableContainer>
+                            </Box>
+                        )}
+
+                        {/* TAB 2 */}
+                        {activeTab === 1 && (
+                            <Box sx={{ py: 2, display: 'flex', flexDirection: 'column', gap: 2 }}>
+                                <Typography variant="h6" fontWeight={600}>
+                                    Bảng thông tin các thực phẩm
+                                </Typography>
+                                <TableContainer component={Paper} variant="outlined">
+                                    <Table size="small">
+                                        <TableHead sx={{ bgcolor: '#e3f2fd' }}>
+                                            <TableRow>
+                                                <TableCell>STT</TableCell>
+                                                <TableCell>Tên thực phẩm</TableCell>
+                                                <TableCell align="right">Lượng ăn 1 trẻ (g)</TableCell>
+                                                <TableCell align="right">
+                                                    Lượng ăn {formData.numberOfChildren} trẻ (kg)
+                                                </TableCell>
+                                                <TableCell align="right">Hệ số thái bỏ</TableCell>
+                                                <TableCell align="right">Lượng mua (kg)</TableCell>
+                                                <TableCell>Lượng mua theo ĐVT</TableCell>
+                                                <TableCell>ĐVT</TableCell>
+                                                <TableCell>Quy đổi (g)</TableCell>
+                                                <TableCell>TP Chính</TableCell>
+                                            </TableRow>
+                                        </TableHead>
+                                        <TableBody>
+                                            {nutritionData.aggregatedFoodTable.map((item, index) => (
+                                                <TableRow key={item.foodId}>
+                                                    <TableCell>{index + 1}</TableCell>
+                                                    <TableCell>{item.foodName}</TableCell>
+                                                    <TableCell align="right">
+                                                        {item.quantityPerChildGram.toFixed(2)}
+                                                    </TableCell>
+                                                    <TableCell align="right">
+                                                        {item.totalQuantityKg.toFixed(1)}
+                                                    </TableCell>
+                                                    <TableCell align="right">{item.wastePercentage}%</TableCell>
+                                                    <TableCell align="right">
+                                                        {item.purchaseQuantityKg.toFixed(1)}
+                                                    </TableCell>
+                                                    <TableCell>
+                                                        <TextField
+                                                            type="number"
+                                                            size="small"
+                                                            sx={{ width: 100 }}
+                                                            value={item.purchaseQuantityByUnit}
+                                                            onChange={(e) =>
+                                                                handleChangePurchaseByUnit(index, e.target.value)
+                                                            }
+                                                            inputProps={{ min: 0, step: 0.1 }}
+                                                        />
+                                                    </TableCell>
+                                                    <TableCell>{item.unit}</TableCell>
+                                                    <TableCell>{item.gramConversion}</TableCell>
+                                                    <TableCell>
+                                                        {item.isMainFood && (
+                                                            <Chip label="Chính" size="small" color="warning" />
+                                                        )}
+                                                    </TableCell>
+                                                </TableRow>
+                                            ))}
+                                        </TableBody>
+                                    </Table>
+                                </TableContainer>
+
+                                <Grid container spacing={2} sx={{ mt: 1 }}>
+                                    <Grid item xs={12} md={6}>
+                                        <Paper variant="outlined" sx={{ p: 2, height: '100%' }}>
+                                            <Typography variant="h6" fontWeight={600} sx={{ mb: 1 }}>
+                                                Đánh giá về Lượng
+                                            </Typography>
+                                            <Grid container spacing={1}>
+                                                <Grid item xs={6}>
+                                                    <Typography>Protein (Đạm):</Typography>
+                                                </Grid>
+                                                <Grid item xs={6}>
+                                                    <Typography align="right">
+                                                        <strong>{nutritionData.analysis.totalProtein || 0}g</strong> /{' '}
+                                                        {nutritionData.standard?.protein || 0}g
+                                                    </Typography>
+                                                </Grid>
+                                                <Grid item xs={6}>
+                                                    <Typography>Lipid (Béo):</Typography>
+                                                </Grid>
+                                                <Grid item xs={6}>
+                                                    <Typography align="right">
+                                                        <strong>{nutritionData.analysis.totalLipid || 0}g</strong> /{' '}
+                                                        {nutritionData.standard?.lipid || 0}g
+                                                    </Typography>
+                                                </Grid>
+                                                <Grid item xs={6}>
+                                                    <Typography>Glucid (Đường):</Typography>
+                                                </Grid>
+                                                <Grid item xs={6}>
+                                                    <Typography align="right">
+                                                        <strong>{nutritionData.analysis.totalGlucid || 0}g</strong> /{' '}
+                                                        {nutritionData.standard?.glucid || 0}g
+                                                    </Typography>
+                                                </Grid>
+                                                <Grid item xs={12}>
+                                                    <Divider sx={{ my: 1 }} />
+                                                </Grid>
+                                                <Grid item xs={6}>
+                                                    <Typography fontWeight="bold">Tổng Calo (thực tế):</Typography>
+                                                </Grid>
+                                                <Grid item xs={6}>
+                                                    <Typography align="right" fontWeight="bold" color="error.main">
+                                                        {nutritionData.analysis.totalCalories || 0} kcal
+                                                    </Typography>
+                                                </Grid>
+                                                <Grid item xs={6}>
+                                                    <Typography>Năng lượng khuyến nghị:</Typography>
+                                                </Grid>
+                                                <Grid item xs={6}>
+                                                    <Typography align="right">
+                                                        {nutritionData.standard?.recommendedCaloriesMin} -{' '}
+                                                        {nutritionData.standard?.recommendedCaloriesMax} kcal
+                                                    </Typography>
+                                                </Grid>
+                                                <Grid item xs={6}>
+                                                    <Typography>Trạng thái:</Typography>
+                                                </Grid>
+                                                <Grid item xs={6} align="right">
+                                                    {getStatusChip(nutritionData.analysis.caloriesEvaluation)}
+                                                </Grid>
+                                            </Grid>
+                                        </Paper>
+                                    </Grid>
+                                    <Grid item xs={12} md={6}>
+                                        <Paper variant="outlined" sx={{ p: 2, height: '100%' }}>
+                                            <Typography variant="h6" fontWeight={600} sx={{ mb: 1 }}>
+                                                Đánh giá về Chất (PLG %)
+                                            </Typography>
+                                            <Grid container spacing={1}>
+                                                <Grid item xs={4}>
+                                                    <Typography align="center" fontWeight="bold">
+                                                        Chất
+                                                    </Typography>
+                                                </Grid>
+                                                <Grid item xs={4}>
+                                                    <Typography align="center" fontWeight="bold">
+                                                        Thực tế
+                                                    </Typography>
+                                                </Grid>
+                                                <Grid item xs={4}>
+                                                    <Typography align="center" fontWeight="bold">
+                                                        Chuẩn
+                                                    </Typography>
+                                                </Grid>
+                                                <Grid item xs={4}>
+                                                    <Typography>Protein (%):</Typography>
+                                                </Grid>
+                                                <Grid item xs={4} align="center">
+                                                    {nutritionData.analysis.proteinPercentage || 0}%{' '}
+                                                    {getStatusChip(nutritionData.analysis.plgEvaluation?.protein)}
+                                                </Grid>
+                                                <Grid item xs={4} align="center">
+                                                    {nutritionData.standard?.plgStructure.proteinMin}-
+                                                    {nutritionData.standard?.plgStructure.proteinMax}%
+                                                </Grid>
+                                                <Grid item xs={4}>
+                                                    <Typography>Lipid (%):</Typography>
+                                                </Grid>
+                                                <Grid item xs={4} align="center">
+                                                    {nutritionData.analysis.lipidPercentage || 0}%{' '}
+                                                    {getStatusChip(nutritionData.analysis.plgEvaluation?.lipid)}
+                                                </Grid>
+                                                <Grid item xs={4} align="center">
+                                                    {nutritionData.standard?.plgStructure.lipidMin}-
+                                                    {nutritionData.standard?.plgStructure.lipidMax}%
+                                                </Grid>
+                                                <Grid item xs={4}>
+                                                    <Typography>Glucid (%):</Typography>
+                                                </Grid>
+                                                <Grid item xs={4} align="center">
+                                                    {nutritionData.analysis.glucidPercentage || 0}%{' '}
+                                                    {getStatusChip(nutritionData.analysis.plgEvaluation?.glucid)}
+                                                </Grid>
+                                                <Grid item xs={4} align="center">
+                                                    {nutritionData.standard?.plgStructure.glucidMin}-
+                                                    {nutritionData.standard?.plgStructure.glucidMax}%
+                                                </Grid>
+                                            </Grid>
+                                        </Paper>
+                                    </Grid>
+                                </Grid>
+                            </Box>
+                        )}
+                    </>
+                )}
+            </DialogContent>
+
+            <Divider />
+            <DialogActions sx={{ px: 3, py: 1.5 }}>
+                <Button onClick={onClose} variant="outlined" color="inherit">
+                    Hủy bỏ
+                </Button>
+                <Button
+                    onClick={handleSubmit}
+                    variant="contained"
+                    disabled={loading || loadingDetails}
+                    startIcon={loading && <CircularProgress size={20} />}
+                >
+                    {loading ? 'Đang xử lý...' : isCreateMode ? 'Tạo thực đơn' : 'Cập nhật'}
+                </Button>
+            </DialogActions>
+        </Dialog>
+    );
+}
+
+export default MenuDialog;

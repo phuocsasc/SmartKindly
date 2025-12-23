@@ -90,10 +90,10 @@ const menuItems = [
         children: [
             // { text: 'Nhà cung cấp', path: '/nutrition/supplier' },
             { text: 'Định mức dinh dưỡng', path: '/nutrition/standards' },
-            { text: 'Tiền dịch vụ', path: '/nutrition/service-charge' },
+            // { text: 'Tiền dịch vụ', path: '/nutrition/service-charge' },
             { text: 'Thực phẩm', path: '/nutrition/food' },
             { text: 'Món ăn', path: '/nutrition/meal' },
-            { text: 'Thực đơn', path: '/nutrition/menu' },
+            { text: 'Thực đơn dự kiến', path: '/nutrition/menu' },
         ],
     },
     // {

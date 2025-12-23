@@ -28,6 +28,7 @@ import schoolMealRoute from './schoolMealRoute.js';
 import nutritionalStandardRoute from './nutritionalStandardRoute.js';
 import schoolNutritionalStandardRoute from './schoolNutritionalStandardRoute.js';
 import schoolServiceChargeRoute from './schoolServiceChargeRoute.js';
+import { schoolMenuRoute } from './schoolMenuRoute.js'; // Thêm dòng này
 
 const Router = express.Router();
 
@@ -100,5 +101,7 @@ Router.use('/nutritional-standards', nutritionalStandardRoute);
 Router.use('/school-nutritional-standards', schoolNutritionalStandardRoute);
 
 Router.use('/school-service-charges', schoolServiceChargeRoute);
+
+Router.use('/school-menus', schoolMenuRoute); // Thêm dòng này
 
 export const APIs_V1 = Router;

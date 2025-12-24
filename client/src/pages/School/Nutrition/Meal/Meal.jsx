@@ -15,10 +15,12 @@ import {
     CircularProgress,
 } from '@mui/material';
 import { DataGrid } from '@mui/x-data-grid';
+import { GridFooterContainer, GridPagination } from '@mui/x-data-grid';
 import AddCircleOutlineOutlinedIcon from '@mui/icons-material/AddCircleOutlineOutlined';
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
 import DeleteOutlineOutlinedIcon from '@mui/icons-material/DeleteOutlineOutlined';
 import RestaurantOutlinedIcon from '@mui/icons-material/RestaurantOutlined';
+import WarningAmberOutlinedIcon from '@mui/icons-material/WarningAmberOutlined';
 import MainLayout from '~/layouts/SchoolLayout';
 import PageContainer from '~/components/common/PageContainer';
 import PageBreadcrumb from '~/components/common/PageBreadcrumb';
@@ -177,6 +179,52 @@ function Meal() {
         );
     };
 
+    const CustomGridFooter = () => {
+        return (
+            <GridFooterContainer
+                sx={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    // px: 2,
+                    paddingTop: 1,
+                    borderTop: '1px solid',
+                    borderColor: 'divider',
+                    // bgcolor: '#fafafa',
+                }}
+            >
+                {/* 👈 Chú thích bên trái */}
+                <Box
+                    sx={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 1,
+                        // px: 2,
+                        py: 2,
+                        borderRadius: 1.5,
+                        // bgcolor: '#fff8e1',
+                        // border: '1px dashed #ffcc80',
+                    }}
+                >
+                    <WarningAmberOutlinedIcon fontSize="small" sx={{ color: '#f57c00', mt: -0.5 }} />
+                    <Typography
+                        variant="body2"
+                        sx={{
+                            color: '#e65100',
+                            fontWeight: 600,
+                            lineHeight: 1.4,
+                        }}
+                    >
+                        Các món ăn đã được thêm vào thực đơn sẽ không được chỉnh sửa hoặc xóa
+                    </Typography>
+                </Box>
+
+                {/* 👉 Pagination */}
+                <GridPagination />
+            </GridFooterContainer>
+        );
+    };
+
     // Columns
     const columns = [
         { field: 'stt', headerName: 'STT', width: 60, sortable: false },
@@ -220,7 +268,7 @@ function Meal() {
         },
         {
             field: 'totalCalories',
-            headerName: 'Tổng Calo / 1 trẻ',
+            headerName: 'Tổng Calo món ăn / 1 trẻ',
             minWidth: 260,
             sortable: false,
             align: 'center',
@@ -261,21 +309,38 @@ function Meal() {
             renderCell: (params) => (
                 <Box sx={{ display: 'flex', gap: 0.5 }}>
                     {hasPermission(PERMISSIONS.UPDATE_MEAL) && (
-                        <Tooltip title="Sửa">
-                            <IconButton size="small" color="primary" onClick={() => handleEdit(params.row)}>
-                                <EditOutlinedIcon fontSize="small" />
-                            </IconButton>
+                        <Tooltip
+                            title={
+                                params.row.isUsedInMenu ? 'Món ăn đang được dùng trong thực đơn' : 'Chỉnh sửa món ăn'
+                            }
+                        >
+                            {/* Bọc trong span để Tooltip hoạt động với nút bị disable */}
+                            <span>
+                                <IconButton
+                                    size="small"
+                                    color="primary"
+                                    onClick={() => handleEdit(params.row)}
+                                    disabled={params.row.isUsedInMenu}
+                                >
+                                    <EditOutlinedIcon fontSize="small" />
+                                </IconButton>
+                            </span>
                         </Tooltip>
                     )}
                     {hasPermission(PERMISSIONS.DELETE_MEAL) && (
-                        <Tooltip title="Xóa">
-                            <IconButton
-                                size="small"
-                                color="error"
-                                onClick={() => handleDelete(params.row.id, params.row.name)}
-                            >
-                                <DeleteOutlineOutlinedIcon fontSize="small" />
-                            </IconButton>
+                        <Tooltip
+                            title={params.row.isUsedInMenu ? 'Món ăn đang được dùng trong thực đơn' : 'Xóa món ăn'}
+                        >
+                            <span>
+                                <IconButton
+                                    size="small"
+                                    color="error"
+                                    onClick={() => handleDelete(params.row.id, params.row.name)}
+                                    disabled={params.row.isUsedInMenu}
+                                >
+                                    <DeleteOutlineOutlinedIcon fontSize="small" />
+                                </IconButton>
+                            </span>
                         </Tooltip>
                     )}
                 </Box>
@@ -394,6 +459,7 @@ function Meal() {
                             border: 'none',
                         }}
                         slots={{
+                            footer: CustomGridFooter, // ✅ GẮN FOOTER
                             noRowsOverlay: () => (
                                 <Box sx={{ p: 3, textAlign: 'center' }}>
                                     <Typography>Không tìm thấy dữ liệu!</Typography>

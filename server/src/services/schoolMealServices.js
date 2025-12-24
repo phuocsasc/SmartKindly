@@ -6,6 +6,7 @@ import { UserModel } from '~/models/userModel.js';
 import ApiError from '~/utils/ApiError.js';
 import { StatusCodes } from 'http-status-codes';
 import { removeVietnameseTones } from '~/utils/formatters.js'; // ✅ Named import
+import { SchoolMenuModel } from '~/models/schoolMenuModel.js'; // ✅ Thêm import
 
 /**
  * ✅ Tạo món ăn mới
@@ -117,6 +118,17 @@ const getAll = async (query, userId) => {
             filter.mealType = mealType;
         }
 
+        // ✅ Lấy danh sách ID các món ăn đang được sử dụng trong thực đơn
+        const activeMenus = await SchoolMenuModel.find({ schoolId: user.schoolId, _destroy: false }).select('meals');
+        const usedMealIds = new Set();
+        activeMenus.forEach((menu) => {
+            Object.values(menu.meals).forEach((mealSession) => {
+                mealSession.forEach((meal) => {
+                    usedMealIds.add(meal.mealId.toString());
+                });
+            });
+        });
+
         const [meals, total] = await Promise.all([
             SchoolMealModel.find(filter)
                 .populate('createdBy', 'fullName username')
@@ -128,8 +140,14 @@ const getAll = async (query, userId) => {
             SchoolMealModel.countDocuments(filter),
         ]);
 
+        // ✅ Thêm cờ isUsedInMenu vào mỗi món ăn
+        const mealsWithUsageInfo = meals.map((meal) => ({
+            ...meal,
+            isUsedInMenu: usedMealIds.has(meal._id.toString()),
+        }));
+
         return {
-            meals,
+            meals: mealsWithUsageInfo,
             pagination: {
                 page: Number(page),
                 limit: Number(limit),
@@ -190,6 +208,22 @@ const update = async (id, data, userId) => {
         // ✅ Chỉ BGH mới được update
         if (user.role !== 'ban_giam_hieu') {
             throw new ApiError(StatusCodes.FORBIDDEN, 'Chỉ Ban giám hiệu mới có quyền cập nhật món ăn');
+        }
+
+        // ✅ Kiểm tra xem món ăn có đang được sử dụng không
+        const usageCount = await SchoolMenuModel.countDocuments({
+            schoolId: user.schoolId,
+            _destroy: false,
+            $or: [
+                { 'meals.Bữa sáng.mealId': id },
+                { 'meals.Bữa trưa.mealId': id },
+                { 'meals.Bữa xế.mealId': id },
+                { 'meals.Bữa phụ.mealId': id },
+            ],
+        });
+
+        if (usageCount > 0) {
+            throw new ApiError(StatusCodes.CONFLICT, 'Món ăn đang được sử dụng trong thực đơn, không thể chỉnh sửa.');
         }
 
         const meal = await SchoolMealModel.findOne({
@@ -287,6 +321,22 @@ const deleteMeal = async (id, userId) => {
         // ✅ Chỉ BGH mới được xóa
         if (user.role !== 'ban_giam_hieu') {
             throw new ApiError(StatusCodes.FORBIDDEN, 'Chỉ Ban giám hiệu mới có quyền xóa món ăn');
+        }
+
+        // ✅ Kiểm tra xem món ăn có đang được sử dụng không
+        const usageCount = await SchoolMenuModel.countDocuments({
+            schoolId: user.schoolId,
+            _destroy: false,
+            $or: [
+                { 'meals.Bữa sáng.mealId': id },
+                { 'meals.Bữa trưa.mealId': id },
+                { 'meals.Bữa xế.mealId': id },
+                { 'meals.Bữa phụ.mealId': id },
+            ],
+        });
+
+        if (usageCount > 0) {
+            throw new ApiError(StatusCodes.CONFLICT, 'Món ăn đang được sử dụng trong thực đơn, không thể xóa.');
         }
 
         const meal = await SchoolMealModel.findOne({

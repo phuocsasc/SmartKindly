@@ -1,6 +1,6 @@
 // client/src/pages/School/Nutrition/Meal/MealDialog.jsx
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import {
     Dialog,
     DialogTitle,
@@ -67,21 +67,31 @@ function MealDialog({ open, mode, meal, onClose, onSuccess }) {
 
     // Load meal data for edit mode
     useEffect(() => {
-        if (mode === 'edit' && meal) {
+        if (open && mode === 'edit' && meal) {
             setFormData({
                 name: meal.name || '',
                 mealType: meal.mealType || '',
-                ingredients: meal.ingredients || [],
+                ingredients: meal.ingredients
+                    ? meal.ingredients.map((ing) => ({
+                          ...ing, // ✅ clone từng ingredient
+                      }))
+                    : [],
             });
-        } else {
+        }
+
+        if (open && mode === 'create') {
             setFormData({
                 name: '',
                 mealType: '',
                 ingredients: [],
             });
         }
-        setActiveTab(0);
-    }, [mode, meal, open]);
+
+        if (open) {
+            setActiveTab(0);
+            setSearchFoodText('');
+        }
+    }, [open, mode, meal]);
 
     // Search foods
     const searchFoods = async (search) => {
@@ -167,9 +177,16 @@ function MealDialog({ open, mode, meal, onClose, onSuccess }) {
 
     // Calculate calories
     const calculateCalories = (ingredient) => {
-        const { protein, lipid, glucid, quantityPerChildGram } = ingredient;
-        return ((protein * 4 + lipid * 9 + glucid * 4) * quantityPerChildGram).toFixed(2);
+        const { protein = 0, lipid = 0, glucid = 0, quantityPerChildGram = 0 } = ingredient;
+
+        return (protein * 4 + lipid * 9 + glucid * 4) * quantityPerChildGram;
+        // ✅ TRẢ VỀ NUMBER
     };
+
+    // ✅ Tính tổng calo của món ăn bằng useMemo
+    const totalMealCalories = useMemo(() => {
+        return formData.ingredients.reduce((total, ing) => total + calculateCalories(ing), 0);
+    }, [formData.ingredients]);
 
     // Calculate kg from gram
     const gramToKg = (gram) => {
@@ -330,6 +347,7 @@ function MealDialog({ open, mode, meal, onClose, onSuccess }) {
                                 – Chuyển sang tab "Nguyên liệu của món ăn" để thêm các thực phẩm cần thiết.
                                 <br />– Nhập "Lượng ăn của 1 trẻ (g)" cho mỗi nguyên liệu.
                                 <br />– Chọn thực phẩm chính (có thể chọn nhiều).
+                                <br />– Công thức tính Calo = Đạm (Protein) * 4 + Béo (Lipid) * 9 + Đường (Glucid) * 4.
                             </Typography>
                         </Box>
                         <Box
@@ -381,7 +399,7 @@ function MealDialog({ open, mode, meal, onClose, onSuccess }) {
                                 <br />• Rau củ: <strong>10 – 20g</strong>
                             </Typography>
 
-                            <Divider sx={{ my: 1 }} />
+                            {/* <Divider sx={{ my: 1 }} /> */}
 
                             {/* <Typography variant="caption" color="text.secondary">
                                 ⚠️ Lưu ý: Món xế dạng thực phẩm tươi hoặc soup nên phối hợp thêm nước trái cây (chanh,
@@ -441,107 +459,131 @@ function MealDialog({ open, mode, meal, onClose, onSuccess }) {
                                 <Typography>Chưa có nguyên liệu nào. Vui lòng tìm kiếm và thêm thực phẩm.</Typography>
                             </Box>
                         ) : (
-                            <TableContainer component={Paper} variant="outlined">
-                                <Table size="small">
-                                    <TableHead sx={{ bgcolor: '#e3f2fd' }}>
-                                        <TableRow>
-                                            <TableCell align="center" width={50}>
-                                                STT
-                                            </TableCell>
-                                            <TableCell>Tên thực phẩm</TableCell>
-                                            <TableCell align="center" width={140}>
-                                                Lượng ăn của 1 trẻ (g)
-                                            </TableCell>
-                                            <TableCell align="center" width={120}>
-                                                Lượng ăn của 1 trẻ (kg)
-                                            </TableCell>
-                                            <TableCell align="center" width={130}>
-                                                Calo / 1 trẻ
-                                            </TableCell>
-                                            <TableCell align="center" width={100}>
-                                                Đơn vị tính
-                                            </TableCell>
-                                            <TableCell align="center" width={130}>
-                                                Quy đổi sang (g)
-                                            </TableCell>
-                                            <TableCell align="center" width={120}>
-                                                Hệ số thái bỏ (%)
-                                            </TableCell>
-                                            <TableCell align="center" width={110}>
-                                                Thực phẩm chính
-                                            </TableCell>
-                                            <TableCell align="center" width={80}>
-                                                Thao tác
-                                            </TableCell>
-                                        </TableRow>
-                                    </TableHead>
-                                    <TableBody>
-                                        {formData.ingredients.map((ing, index) => (
-                                            <TableRow
-                                                key={index}
-                                                sx={{
-                                                    bgcolor: ing.isMainFood ? '#fff3e0' : 'inherit',
-                                                    '&:hover': { bgcolor: ing.isMainFood ? '#ffe0b2' : '#f5f5f5' },
-                                                }}
-                                            >
-                                                <TableCell align="center">{index + 1}</TableCell>
-                                                <TableCell>
-                                                    <Typography variant="body2" fontWeight={500}>
-                                                        {ing.foodName}
-                                                    </Typography>
+                            <>
+                                <TableContainer component={Paper} variant="outlined">
+                                    <Table size="small">
+                                        <TableHead sx={{ bgcolor: '#e3f2fd' }}>
+                                            <TableRow>
+                                                <TableCell align="center" width={50}>
+                                                    STT
                                                 </TableCell>
-                                                <TableCell align="center">
-                                                    <TextField
-                                                        type="number"
-                                                        value={ing.quantityPerChildGram}
-                                                        onChange={(e) => handleQuantityChange(index, e.target.value)}
-                                                        size="small"
-                                                        inputProps={{ min: 0, step: 0.1 }}
-                                                        sx={{ width: 100 }}
-                                                    />
+                                                <TableCell>Tên thực phẩm</TableCell>
+                                                <TableCell align="center" width={140}>
+                                                    Lượng ăn của 1 trẻ (g)
                                                 </TableCell>
-                                                <TableCell align="center">
-                                                    {gramToKg(ing.quantityPerChildGram)}
+                                                <TableCell align="center" width={120}>
+                                                    Lượng ăn của 1 trẻ (kg)
                                                 </TableCell>
-                                                <TableCell align="center">
-                                                    <Typography
-                                                        variant="body2"
-                                                        sx={{ color: '#d32f2f', fontWeight: 600 }}
-                                                    >
-                                                        {calculateCalories(ing)} kcal
-                                                    </Typography>
+                                                <TableCell align="center" width={130}>
+                                                    Calo / 1 trẻ
                                                 </TableCell>
-                                                <TableCell align="center">{ing.unit}</TableCell>
-                                                <TableCell align="center">{ing.gramConversion}g</TableCell>
-                                                <TableCell align="center">{ing.wastePercentage}%</TableCell>
-                                                <TableCell align="center">
-                                                    {/* ✅ Checkbox thay vì Radio */}
-                                                    <Checkbox
-                                                        checked={ing.isMainFood}
-                                                        onChange={() => handleToggleMainFood(index)}
-                                                        size="small"
-                                                        sx={{
-                                                            color: '#ff9800',
-                                                            '&.Mui-checked': {
-                                                                color: '#ff9800',
-                                                            },
-                                                        }}
-                                                    />
+                                                <TableCell align="center" width={100}>
+                                                    Đơn vị tính
                                                 </TableCell>
-                                                <TableCell align="center">
-                                                    <IconButton
-                                                        size="small"
-                                                        color="error"
-                                                        onClick={() => handleRemoveIngredient(index)}
-                                                    >
-                                                        <DeleteOutlineIcon fontSize="small" />
-                                                    </IconButton>
+                                                <TableCell align="center" width={130}>
+                                                    Quy đổi sang (g)
+                                                </TableCell>
+                                                <TableCell align="center" width={120}>
+                                                    Hệ số thái bỏ (%)
+                                                </TableCell>
+                                                <TableCell align="center" width={110}>
+                                                    Thực phẩm chính
+                                                </TableCell>
+                                                <TableCell align="center" width={80}>
+                                                    Thao tác
                                                 </TableCell>
                                             </TableRow>
-                                        ))}
-                                    </TableBody>
-                                </Table>
-                            </TableContainer>
+                                        </TableHead>
+                                        <TableBody>
+                                            {formData.ingredients.map((ing, index) => (
+                                                <TableRow
+                                                    key={index}
+                                                    sx={{
+                                                        bgcolor: ing.isMainFood ? '#fff3e0' : 'inherit',
+                                                        '&:hover': { bgcolor: ing.isMainFood ? '#ffe0b2' : '#f5f5f5' },
+                                                    }}
+                                                >
+                                                    <TableCell align="center">{index + 1}</TableCell>
+                                                    <TableCell>
+                                                        <Typography variant="body2" fontWeight={500}>
+                                                            {ing.foodName}
+                                                        </Typography>
+                                                    </TableCell>
+                                                    <TableCell align="center">
+                                                        <TextField
+                                                            type="number"
+                                                            value={ing.quantityPerChildGram}
+                                                            onChange={(e) =>
+                                                                handleQuantityChange(index, e.target.value)
+                                                            }
+                                                            size="small"
+                                                            inputProps={{ min: 0, step: 0.1 }}
+                                                            sx={{ width: 100 }}
+                                                        />
+                                                    </TableCell>
+                                                    <TableCell align="center">
+                                                        {gramToKg(ing.quantityPerChildGram)}
+                                                    </TableCell>
+                                                    <TableCell align="center">
+                                                        <Typography
+                                                            variant="body2"
+                                                            sx={{ color: '#d32f2f', fontWeight: 600 }}
+                                                        >
+                                                            {calculateCalories(ing).toFixed(2)} kcal
+                                                        </Typography>
+                                                    </TableCell>
+                                                    <TableCell align="center">{ing.unit}</TableCell>
+                                                    <TableCell align="center">{ing.gramConversion}g</TableCell>
+                                                    <TableCell align="center">{ing.wastePercentage}%</TableCell>
+                                                    <TableCell align="center">
+                                                        {/* ✅ Checkbox thay vì Radio */}
+                                                        <Checkbox
+                                                            checked={ing.isMainFood}
+                                                            onChange={() => handleToggleMainFood(index)}
+                                                            size="small"
+                                                            sx={{
+                                                                color: '#ff9800',
+                                                                '&.Mui-checked': {
+                                                                    color: '#ff9800',
+                                                                },
+                                                            }}
+                                                        />
+                                                    </TableCell>
+                                                    <TableCell align="center">
+                                                        <IconButton
+                                                            size="small"
+                                                            color="error"
+                                                            onClick={() => handleRemoveIngredient(index)}
+                                                        >
+                                                            <DeleteOutlineIcon fontSize="small" />
+                                                        </IconButton>
+                                                    </TableCell>
+                                                </TableRow>
+                                            ))}
+                                        </TableBody>
+                                    </Table>
+                                </TableContainer>
+                                <Paper
+                                    variant="outlined"
+                                    sx={{
+                                        mt: 2,
+                                        p: 1.5,
+                                        bgcolor: '#e3f2fd',
+                                        display: 'flex',
+                                        // justifyContent: 'flex-end',
+                                        alignItems: 'center',
+                                        gap: 2,
+                                        border: '1px solid #ffe0b2',
+                                    }}
+                                >
+                                    <Typography variant="body1" fontWeight={600}>
+                                        Tổng Calo của món ăn / 1 trẻ:
+                                    </Typography>
+                                    <Typography variant="h6" fontWeight={700} color="error.main">
+                                        {totalMealCalories.toFixed(2)} kcal
+                                    </Typography>
+                                </Paper>
+                            </>
                         )}
                     </Box>
                 )}

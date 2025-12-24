@@ -146,10 +146,35 @@ function Meal() {
         handleDialogClose();
     };
 
-    // ✅ Format datetime function
-    const formatDateTime = (dateString) => {
-        if (!dateString) return '—';
-        return dayjs(dateString).format('HH:mm:ss | DD/MM/YYYY');
+    const renderDateTimeCell = (value) => {
+        if (!value) {
+            return (
+                <Typography variant="caption" color="text.secondary">
+                    —
+                </Typography>
+            );
+        }
+
+        const time = dayjs(value).format('HH:mm:ss');
+        const date = dayjs(value).format('DD/MM/YYYY');
+
+        return (
+            <Box
+                sx={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    lineHeight: 1.2,
+                }}
+            >
+                <Typography variant="body2" fontWeight={600}>
+                    {time}
+                </Typography>
+                <Typography variant="caption" color="text.secondary">
+                    {date}
+                </Typography>
+            </Box>
+        );
     };
 
     // Columns
@@ -209,30 +234,22 @@ function Meal() {
         // ✅ CỘT THỜI GIAN TẠO
         {
             field: 'createdAt',
-            headerName: 'Thời gian tạo',
+            headerName: 'Ngày tạo',
             width: 180,
             sortable: false,
             align: 'center',
             headerAlign: 'center',
-            renderCell: (params) => (
-                <Typography variant="caption" color="text.secondary">
-                    {formatDateTime(params.value)}
-                </Typography>
-            ),
+            renderCell: (params) => renderDateTimeCell(params.value),
         },
         // ✅ CỘT THỜI GIAN SỬA
         {
             field: 'updatedAt',
-            headerName: 'Thời gian sửa',
+            headerName: 'Ngày sửa',
             width: 180,
             sortable: false,
             align: 'center',
             headerAlign: 'center',
-            renderCell: (params) => (
-                <Typography variant="caption" color="text.secondary">
-                    {formatDateTime(params.value)}
-                </Typography>
-            ),
+            renderCell: (params) => renderDateTimeCell(params.value),
         },
         {
             field: 'actions',

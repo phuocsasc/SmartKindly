@@ -17,7 +17,7 @@ import {
     Tabs,
     Tab,
     Divider,
-    Autocomplete,
+    Tooltip,
     Table,
     TableBody,
     TableCell,
@@ -28,10 +28,15 @@ import {
     Chip,
     CircularProgress,
     Grid,
+    Popover, // Thêm Popover
+    List, // Thêm List
+    ListItem, // Thêm ListItem
+    ListItemText, // Thêm ListItemText
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
 import EditIcon from '@mui/icons-material/Edit';
+import AddIcon from '@mui/icons-material/Add'; // Thêm icon Add
 import { schoolMenuApi, schoolNutritionalStandardApi, schoolMealApi } from '~/apis';
 import { toast } from 'react-toastify';
 
@@ -58,6 +63,10 @@ function MenuDialog({ open, mode, menuId, onClose, onSuccess }) {
     const [mealOptions, setMealOptions] = useState([]);
     const [loadingMeals, setLoadingMeals] = useState(false);
     const [searchMealText, setSearchMealText] = useState('');
+
+    // ✅ State cho Popover thêm món ăn
+    const [popoverAnchorEl, setPopoverAnchorEl] = useState(null);
+    const [currentSession, setCurrentSession] = useState(null);
 
     // Calculated nutrition data
     const [nutritionData, setNutritionData] = useState({
@@ -303,6 +312,24 @@ function MenuDialog({ open, mode, menuId, onClose, onSuccess }) {
         setFormData((prev) => ({ ...prev, meals: updatedMeals }));
     };
 
+    // ✅ Handlers cho Popover
+    const handleOpenPopover = (event, session) => {
+        setPopoverAnchorEl(event.currentTarget);
+        setCurrentSession(session);
+        // Reset search khi mở popover
+        setSearchMealText('');
+        // Tải danh sách món ăn ban đầu
+        searchMeals('');
+    };
+
+    const handleClosePopover = () => {
+        setPopoverAnchorEl(null);
+        setCurrentSession(null);
+    };
+
+    const isPopoverOpen = Boolean(popoverAnchorEl);
+    const popoverId = isPopoverOpen ? 'add-meal-popover' : undefined;
+
     const handleChangePurchaseByUnit = (index, newValue) => {
         const updatedTable = [...nutritionData.aggregatedFoodTable];
         const item = updatedTable[index];
@@ -436,9 +463,12 @@ function MenuDialog({ open, mode, menuId, onClose, onSuccess }) {
                         {/* TAB 1 */}
                         {activeTab === 0 && (
                             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, py: 2 }}>
-                                <Grid container spacing={2}>
+                                <Typography variant="h6" fontWeight={600} sx={{ mt: -2 }}>
+                                    Thông tin chung
+                                </Typography>
+                                <Grid container spacing={3}>
                                     <Grid item xs={12} sm={6}>
-                                        <FormControl required fullWidth size="small">
+                                        <FormControl required fullWidth size="medium">
                                             <InputLabel>Nhóm trẻ</InputLabel>
                                             <Select
                                                 value={formData.nutritionalStandardId}
@@ -461,7 +491,7 @@ function MenuDialog({ open, mode, menuId, onClose, onSuccess }) {
                                             label="Số lượng trẻ"
                                             required
                                             fullWidth
-                                            size="small"
+                                            size="medium"
                                             value={formData.numberOfChildren}
                                             onChange={(e) =>
                                                 handleFormChange('numberOfChildren', parseInt(e.target.value, 10) || 0)
@@ -474,74 +504,94 @@ function MenuDialog({ open, mode, menuId, onClose, onSuccess }) {
                                             label="Tên thực đơn"
                                             required
                                             fullWidth
-                                            size="small"
+                                            size="medium"
                                             value={formData.menuName}
                                             onChange={(e) => handleFormChange('menuName', e.target.value)}
                                         />
                                     </Grid>
                                 </Grid>
 
-                                <Typography variant="h6" fontWeight={600} sx={{ mt: 2 }}>
+                                <Typography variant="h6" fontWeight={600} sx={{ mt: 1 }}>
                                     Các bữa ăn trong ngày
                                 </Typography>
                                 <TableContainer component={Paper} variant="outlined">
                                     <Table>
                                         <TableHead sx={{ bgcolor: '#e3f2fd' }}>
                                             <TableRow>
-                                                <TableCell sx={{ width: '15%' }}>Bữa ăn</TableCell>
-                                                <TableCell>Các món ăn</TableCell>
+                                                <TableCell
+                                                    sx={{
+                                                        width: '20%',
+                                                        borderRight: '1px solid #ddd',
+                                                        fontSize: '1.2rem',
+                                                    }}
+                                                >
+                                                    <strong>Tên bữa ăn</strong>
+                                                </TableCell>
+                                                <TableCell sx={{ fontSize: '1.2rem' }}>
+                                                    {' '}
+                                                    <strong>Tên món ăn đã chọn</strong>
+                                                </TableCell>
                                             </TableRow>
                                         </TableHead>
                                         <TableBody>
                                             {MEAL_SESSIONS.map((session) => (
                                                 <TableRow key={session}>
-                                                    <TableCell>
-                                                        <Chip label={session} color="primary" variant="outlined" />
+                                                    <TableCell sx={{ borderRight: '1px solid #ddd' }}>
+                                                        <Box
+                                                            sx={{
+                                                                display: 'flex',
+                                                                justifyContent: 'space-between',
+                                                                alignItems: 'center',
+                                                                width: '100%',
+                                                            }}
+                                                        >
+                                                            <Typography variant="subtitle1" fontWeight={600}>
+                                                                {session}
+                                                            </Typography>
+                                                            <Tooltip title={`Thêm món cho ${session}`}>
+                                                                <IconButton
+                                                                    size="small"
+                                                                    onClick={(e) => handleOpenPopover(e, session)}
+                                                                    sx={{
+                                                                        bgcolor: 'primary.lighter',
+                                                                        color: 'primary.main',
+                                                                    }}
+                                                                >
+                                                                    <AddIcon fontSize="small" />
+                                                                </IconButton>
+                                                            </Tooltip>
+                                                        </Box>
                                                     </TableCell>
                                                     <TableCell>
-                                                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                                                            {formData.meals[session].map((item, index) => (
-                                                                <Chip
-                                                                    key={item.mealId}
-                                                                    label={item.name}
-                                                                    onDelete={() =>
-                                                                        handleRemoveMealItem(session, index)
-                                                                    }
-                                                                />
-                                                            ))}
-                                                            <Autocomplete
-                                                                size="small"
-                                                                options={mealOptions}
-                                                                getOptionLabel={(option) => option.name}
-                                                                loading={loadingMeals}
-                                                                onInputChange={(e, val) => setSearchMealText(val)}
-                                                                onChange={(e, val) => {
-                                                                    if (val) handleAddMealItem(session, val);
-                                                                }}
-                                                                renderInput={(params) => (
-                                                                    <TextField
-                                                                        {...params}
-                                                                        label="Thêm món ăn..."
-                                                                        InputProps={{
-                                                                            ...params.InputProps,
-                                                                            endAdornment: (
-                                                                                <>
-                                                                                    {loadingMeals ? (
-                                                                                        <CircularProgress
-                                                                                            color="inherit"
-                                                                                            size={20}
-                                                                                        />
-                                                                                    ) : null}
-                                                                                    {params.InputProps.endAdornment}
-                                                                                </>
-                                                                            ),
-                                                                        }}
+                                                        <Box
+                                                            sx={{
+                                                                display: 'flex',
+                                                                flexWrap: 'wrap', // Cho phép các chip xuống dòng
+                                                                gap: 1,
+                                                            }}
+                                                        >
+                                                            {formData.meals[session].length > 0 ? (
+                                                                formData.meals[session].map((item, index) => (
+                                                                    <Chip
+                                                                        key={item.mealId}
+                                                                        label={item.name}
+                                                                        onDelete={() =>
+                                                                            handleRemoveMealItem(session, index)
+                                                                        }
+                                                                        color="success"
+                                                                        variant="outlined"
+                                                                        sx={{ fontSize: '1.2rem' }}
                                                                     />
-                                                                )}
-                                                                noOptionsText="Không tìm thấy món ăn"
-                                                                filterOptions={(x) => x}
-                                                                value={null}
-                                                            />
+                                                                ))
+                                                            ) : (
+                                                                <Typography
+                                                                    variant="body2"
+                                                                    color="text.secondary"
+                                                                    sx={{ fontStyle: 'italic' }}
+                                                                >
+                                                                    Chưa có món ăn
+                                                                </Typography>
+                                                            )}
                                                         </Box>
                                                     </TableCell>
                                                 </TableRow>
@@ -743,16 +793,109 @@ function MenuDialog({ open, mode, menuId, onClose, onSuccess }) {
                 )}
             </DialogContent>
 
+            {/* ✅ Popover để thêm món ăn */}
+            <Popover
+                id={popoverId}
+                open={isPopoverOpen}
+                anchorEl={popoverAnchorEl}
+                onClose={handleClosePopover}
+                anchorOrigin={{
+                    vertical: 'bottom',
+                    horizontal: 'left',
+                }}
+                transformOrigin={{
+                    vertical: 'top',
+                    horizontal: 'left',
+                }}
+                PaperProps={{
+                    sx: { width: 350, mt: 1 },
+                }}
+            >
+                <Box sx={{ p: 1 }}>
+                    <TextField
+                        fullWidth
+                        size="small"
+                        variant="outlined"
+                        placeholder="Tìm món ăn..."
+                        value={searchMealText}
+                        onChange={(e) => setSearchMealText(e.target.value)}
+                        autoFocus
+                    />
+                </Box>
+                <Divider />
+                <List
+                    dense
+                    sx={{
+                        maxHeight: 300,
+                        overflowY: 'auto',
+                        mt: 0,
+                        '&::-webkit-scrollbar': { width: '6px' },
+                        '&::-webkit-scrollbar-track': { backgroundColor: '#e3f2fd' },
+                        '&::-webkit-scrollbar-thumb': { backgroundColor: '#0964a1a4', borderRadius: '4px' },
+                        '&::-webkit-scrollbar-thumb:hover': { backgroundColor: '#0071BC' },
+                        '& .MuiOutlinedInput-root': {
+                            borderRadius: 1.5,
+                            '&:hover fieldset': {
+                                borderColor: '#1976d2',
+                            },
+                            '&.Mui-focused fieldset': {
+                                borderColor: '#1976d2',
+                            },
+                        },
+                    }}
+                >
+                    {loadingMeals ? (
+                        <Box sx={{ display: 'flex', justifyContent: 'center', p: 2 }}>
+                            <CircularProgress size={24} />
+                        </Box>
+                    ) : mealOptions.length > 0 ? (
+                        mealOptions.map((meal) => (
+                            <ListItem
+                                button
+                                key={meal._id}
+                                onClick={() => handleAddMealItem(currentSession, meal)}
+                                disabled={formData.meals[currentSession]?.some((m) => m.mealId === meal._id)}
+                            >
+                                <ListItemText primary={meal.name} secondary={meal.mealType} />
+                            </ListItem>
+                        ))
+                    ) : (
+                        <ListItem>
+                            <ListItemText primary="Không tìm thấy món ăn" />
+                        </ListItem>
+                    )}
+                </List>
+            </Popover>
+
             <Divider />
-            <DialogActions sx={{ px: 3, py: 1.5 }}>
-                <Button onClick={onClose} variant="outlined" color="inherit">
+            <DialogActions sx={{ px: 3, py: 1.5, gap: 1 }}>
+                <Button
+                    onClick={onClose}
+                    variant="outlined"
+                    color="inherit"
+                    size="small"
+                    sx={{ borderRadius: 1.5, px: 2.5, textTransform: 'none', fontWeight: 600 }}
+                >
                     Hủy bỏ
                 </Button>
                 <Button
-                    onClick={handleSubmit}
                     variant="contained"
+                    onClick={handleSubmit}
                     disabled={loading || loadingDetails}
+                    size="small"
                     startIcon={loading && <CircularProgress size={20} />}
+                    sx={{
+                        borderRadius: 1.5,
+                        px: 3,
+                        textTransform: 'none',
+                        fontWeight: 600,
+                        boxShadow: 2,
+                        background: 'linear-gradient(135deg, #0071bc 100%, #aee2ff 100%)',
+                        '&:hover': {
+                            boxShadow: 3,
+                            background: 'linear-gradient(135deg, #1180caff 100%, #aee2ff 100%)',
+                        },
+                    }}
                 >
                     {loading ? 'Đang xử lý...' : isCreateMode ? 'Tạo thực đơn' : 'Cập nhật'}
                 </Button>

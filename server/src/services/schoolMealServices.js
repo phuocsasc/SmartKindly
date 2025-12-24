@@ -300,7 +300,17 @@ const deleteMeal = async (id, userId) => {
         }
 
         // ✅ Hard delete
-        await SchoolMealModel.findByIdAndDelete(id);
+        // await SchoolMealModel.findByIdAndDelete(id);
+
+        // ✅ SOFT DELETE
+        await SchoolMealModel.findByIdAndUpdate(
+            id,
+            {
+                _destroy: true,
+                deletedAt: new Date(), // (optional nhưng nên có)
+            },
+            { new: true },
+        );
 
         console.log('✅ [SchoolMeal delete] Deleted successfully');
         return { message: 'Xóa món ăn thành công' };

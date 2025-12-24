@@ -54,6 +54,8 @@ function Menu() {
     const canUpdate = hasPermission(PERMISSIONS.UPDATE_MENU);
     const canDelete = hasPermission(PERMISSIONS.DELETE_MENU);
 
+    const MEAL_SESSIONS = ['Bữa sáng', 'Bữa trưa', 'Bữa xế', 'Bữa phụ'];
+
     // Debounce search
     useEffect(() => {
         const handler = setTimeout(() => setDebounceSearch(searchText), 500);
@@ -153,17 +155,51 @@ function Menu() {
             case 'Chưa đạt':
                 return <Chip label="Chưa đạt" color="warning" size="small" />;
             case 'Vượt quá định mức':
-                return <Chip label="Vượt quá" color="error" size="small" />;
+                return <Chip label="Vượt quá định mức" color="error" size="small" />;
             default:
                 return <Chip label="N/A" size="small" />;
         }
     };
 
-    const getPlgOverallStatus = (plgEval) => {
-        if (!plgEval) return 'N/A';
-        if (Object.values(plgEval).some((s) => s === 'Vượt quá định mức')) return 'Vượt quá định mức';
-        if (Object.values(plgEval).some((s) => s === 'Chưa đạt')) return 'Chưa đạt';
-        return 'Đạt';
+    const getPlgStatusChip = (label, status) => {
+        let color = 'default';
+
+        if (status === 'Đạt') color = 'success';
+        if (status === 'Chưa đạt') color = 'warning';
+        if (status === 'Vượt quá định mức') color = 'error';
+
+        return <Chip label={`${label}: ${status}`} color={color} size="small" sx={{ minWidth: 140 }} />;
+    };
+
+    const renderDateTimeCell = (value) => {
+        if (!value) {
+            return (
+                <Typography variant="caption" color="text.secondary">
+                    —
+                </Typography>
+            );
+        }
+
+        const time = dayjs(value).format('HH:mm:ss');
+        const date = dayjs(value).format('DD/MM/YYYY');
+
+        return (
+            <Box
+                sx={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    lineHeight: 1.2,
+                }}
+            >
+                <Typography variant="body2" fontWeight={600}>
+                    {time}
+                </Typography>
+                <Typography variant="caption" color="text.secondary">
+                    {date}
+                </Typography>
+            </Box>
+        );
     };
 
     const columns = [
@@ -171,36 +207,67 @@ function Menu() {
         {
             field: 'menuName',
             headerName: 'Tên thực đơn',
+            sortable: false,
             minWidth: 200,
             flex: 1,
             renderCell: (params) => <Typography fontWeight={600}>{params.value}</Typography>,
         },
-        { field: 'ageGroup', headerName: 'Nhóm trẻ', width: 180 },
+        { field: 'ageGroup', headerName: 'Nhóm trẻ áp dụng', sortable: false, width: 180 },
         {
             field: 'meals',
             headerName: 'Các món ăn',
-            minWidth: 350,
+            minWidth: 200,
             flex: 1.5,
             sortable: false,
-            renderCell: (params) => (
-                <Box sx={{ py: 1, display: 'flex', flexDirection: 'column', gap: 0.5, width: '100%' }}>
-                    {params.value &&
-                        Object.entries(params.value).map(([session, items]) =>
-                            items.length > 0 ? (
-                                <Typography key={session} variant="body2" sx={{ whiteSpace: 'normal' }}>
+            renderCell: (params) => {
+                const meals = params.value || {};
+
+                return (
+                    <Box
+                        sx={{
+                            py: 1,
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: 0.5,
+                            width: '100%',
+                        }}
+                    >
+                        {MEAL_SESSIONS.map((session) => {
+                            const items = meals[session] || [];
+
+                            return (
+                                <Typography
+                                    key={session}
+                                    variant="body2"
+                                    sx={{
+                                        whiteSpace: 'normal',
+                                        color: items.length === 0 ? 'text.secondary' : 'text.primary',
+                                    }}
+                                >
                                     <strong>{session}:</strong>{' '}
-                                    {items.map((item, i) => `${i + 1}. ${item.name}`).join('; ')}
+                                    {items.length > 0
+                                        ? items.map((item, i) => `${i + 1}. ${item.name}`).join('; ')
+                                        : '—'}
                                 </Typography>
-                            ) : null,
-                        )}
-                </Box>
-            ),
+                            );
+                        })}
+                    </Box>
+                );
+            },
         },
-        { field: 'numberOfChildren', headerName: 'Số trẻ', width: 80, align: 'center', headerAlign: 'center' },
+
+        {
+            field: 'numberOfChildren',
+            headerName: 'Số trẻ áp dụng',
+            sortable: false,
+            width: 140,
+            align: 'center',
+            headerAlign: 'center',
+        },
         {
             field: 'analysis',
-            headerName: 'ĐG Lượng (Calo)',
-            width: 140,
+            headerName: 'Về Lượng (Calo)',
+            width: 160,
             sortable: false,
             align: 'center',
             headerAlign: 'center',
@@ -208,23 +275,56 @@ function Menu() {
         },
         {
             field: 'plgEvaluation',
-            headerName: 'ĐG Chất (PLG)',
-            width: 140,
+            headerName: 'Về Chất (PLG)',
+            minWidth: 180,
             sortable: false,
             align: 'center',
             headerAlign: 'center',
-            renderCell: (params) => getStatusChip(getPlgOverallStatus(params.row.analysis?.plgEvaluation)),
+            renderCell: (params) => {
+                const plg = params.row.analysis?.plgEvaluation;
+
+                if (!plg) {
+                    return <Typography variant="body2">N/A</Typography>;
+                }
+
+                return (
+                    <Box
+                        sx={{
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: 0.5,
+                            py: 0.5,
+                        }}
+                    >
+                        {getPlgStatusChip('P', plg.protein)}
+                        {getPlgStatusChip('L', plg.lipid)}
+                        {getPlgStatusChip('G', plg.glucid)}
+                    </Box>
+                );
+            },
         },
         {
             field: 'createdAt',
             headerName: 'Ngày tạo',
-            width: 160,
-            renderCell: (params) => dayjs(params.value).format('HH:mm | DD/MM/YYYY'),
+            sortable: false,
+            width: 120,
+            align: 'center',
+            headerAlign: 'center',
+            renderCell: (params) => renderDateTimeCell(params.value),
+        },
+        {
+            field: 'updatedAt',
+            headerName: 'Ngày sửa',
+            width: 120,
+            sortable: false,
+            align: 'center',
+            headerAlign: 'center',
+            renderCell: (params) => renderDateTimeCell(params.value),
         },
         {
             field: 'actions',
             headerName: 'Thao tác',
-            width: 100,
+            width: 90,
             sortable: false,
             align: 'center',
             headerAlign: 'center',
@@ -310,14 +410,49 @@ function Menu() {
                         rows={rows}
                         columns={columns}
                         loading={loading}
+                        disableColumnMenu
+                        disableColumnSort
                         paginationMode="server"
                         rowCount={totalRows}
                         paginationModel={paginationModel}
                         onPaginationModelChange={setPaginationModel}
-                        pageSizeOptions={[10, 20, 50]}
+                        pageSizeOptions={[5, 10, 20, 50]}
                         getRowHeight={() => 'auto'}
                         autoHeight
-                        disableColumnMenu
+                        sx={{
+                            '& .MuiDataGrid-columnHeaders': {
+                                backgroundColor: '#e3f2fd',
+                                color: '#1976d2',
+                                fontWeight: 900,
+                                borderBottom: '2px solid #bbdefb',
+                            },
+                            '& .MuiDataGrid-columnHeaderTitle': {
+                                fontWeight: 'bold',
+                                fontSize: '0.95rem',
+                            },
+                            '& .MuiDataGrid-columnHeader': {
+                                borderRight: '1px solid #bbdefb',
+                                textAlign: 'center',
+                            },
+                            '& .MuiDataGrid-cell': {
+                                borderRight: '1px solid #e0e0e0',
+                                borderBottom: '1px solid #f0f0f0',
+                                alignItems: 'center',
+                                whiteSpace: 'normal',
+                                wordBreak: 'break-word',
+                                color: '#000',
+                                py: 1,
+                            },
+                            '& .MuiDataGrid-cell:focus, & .MuiDataGrid-cell:focus-within': {
+                                outline: 'none',
+                            },
+                            '& .MuiDataGrid-row:hover': {
+                                backgroundColor: '#f5faff',
+                            },
+                            borderRadius: 2,
+                            boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+                            border: 'none',
+                        }}
                         slots={{
                             noRowsOverlay: () => (
                                 <Box sx={{ p: 3, textAlign: 'center' }}>
@@ -337,7 +472,6 @@ function Menu() {
                                 </Box>
                             ),
                         }}
-                        sx={{ '& .MuiDataGrid-columnHeaders': { backgroundColor: '#e3f2fd' } }}
                     />
                 </Paper>
             </PageContainer>

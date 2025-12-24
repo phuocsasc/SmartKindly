@@ -4,9 +4,9 @@ import { API_ROOT } from '~/utils/constants';
 export const schoolMenuApi = {
     // Lấy danh sách thực đơn
     getAll: async (params) => {
-        const { page = 1, limit = 20, search = '' } = params;
+        const { page = 1, limit = 20, search = '', ageGroup } = params;
         return await authorizedAxiosInstance.get(`${API_ROOT}/v1/school-menus`, {
-            params: { page, limit, search },
+            params: { page, limit, search, ageGroup },
         });
     },
 

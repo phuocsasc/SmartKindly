@@ -50,7 +50,16 @@ const processMenuData = async (data, schoolId) => {
     for (const session of MEAL_SESSIONS) {
         mealSnapshots[session] = (meals[session] || []).map((mealId) => {
             const mealData = mealsMap.get(mealId.toString());
-            if (!mealData) throw new ApiError(StatusCodes.NOT_FOUND, `Món ăn ID ${mealId} không tồn tại.`);
+            if (!mealData) {
+                throw new ApiError(StatusCodes.NOT_FOUND, 'Có món ăn trong thực đơn không tồn tại hoặc đã bị xóa');
+            }
+
+            if (mealData._destroy) {
+                throw new ApiError(
+                    StatusCodes.BAD_REQUEST,
+                    `Món ăn "${mealData.name}" đã bị xóa, vui lòng chọn món khác`,
+                );
+            }
             return {
                 mealId: mealData._id,
                 name: mealData.name,
@@ -174,12 +183,15 @@ const getAll = async (query, userId) => {
     const user = await UserModel.findById(userId).select('schoolId');
     if (!user || !user.schoolId) throw new ApiError(StatusCodes.FORBIDDEN, 'Người dùng không thuộc trường học nào.');
 
-    const { page = 1, limit = 20, search = '' } = query;
+    const { page = 1, limit = 20, search = '', ageGroup = '' } = query;
     const skip = (page - 1) * limit;
 
     const filter = { schoolId: user.schoolId, _destroy: false };
     if (search) {
         filter.menuNameWithoutAccent = { $regex: removeVietnameseTones(search), $options: 'i' };
+    }
+    if (ageGroup) {
+        filter.ageGroup = ageGroup;
     }
 
     const [menus, total] = await Promise.all([
@@ -190,6 +202,7 @@ const getAll = async (query, userId) => {
                 numberOfChildren: 1,
                 analysis: 1,
                 createdAt: 1,
+                updatedAt: 1, // Thêm dòng này
                 'meals.Bữa sáng.name': 1,
                 'meals.Bữa sáng.mealId': 1,
                 'meals.Bữa trưa.name': 1,

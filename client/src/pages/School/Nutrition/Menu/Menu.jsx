@@ -126,6 +126,9 @@ function Menu() {
         showConfirm({
             title: 'Xác nhận xóa thực đơn',
             message: `Bạn có chắc chắn muốn xóa thực đơn "${name}"?`,
+            severity: 'error',
+            confirmText: 'Xóa',
+            cancelText: 'Hủy',
             onConfirm: async () => {
                 try {
                     await schoolMenuApi.delete(id);

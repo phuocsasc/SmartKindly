@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import {
     Dialog,
     DialogTitle,
@@ -37,20 +37,19 @@ import CloseIcon from '@mui/icons-material/Close';
 import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
 import EditIcon from '@mui/icons-material/Edit';
 import AddIcon from '@mui/icons-material/Add'; // Thêm icon Add
-import { schoolMenuApi, schoolNutritionalStandardApi, schoolMealApi } from '~/apis';
+import { schoolMenuApi, schoolNutritionalStandardApi, schoolMealApi, schoolFoodApi } from '~/apis';
 import { toast } from 'react-toastify';
 
 const MEAL_SESSIONS = ['Bữa sáng', 'Bữa trưa', 'Bữa xế', 'Bữa phụ'];
 const ENERGY_FACTORS = { PROTEIN: 4, LIPID: 9, GLUCID: 4 };
 
 function MenuDialog({ open, mode, menuId, onClose, onSuccess }) {
+    // State điều khiển UI & loading
     const [activeTab, setActiveTab] = useState(0);
     const [loading, setLoading] = useState(false);
     const [loadingDetails, setLoadingDetails] = useState(false);
 
-    const [isDirty, setIsDirty] = useState(false);
-
-    // Form state
+    // Form state – dữ liệu người dùng nhập
     const [formData, setFormData] = useState({
         menuName: '',
         numberOfChildren: 1,
@@ -58,7 +57,7 @@ function MenuDialog({ open, mode, menuId, onClose, onSuccess }) {
         meals: MEAL_SESSIONS.reduce((acc, session) => ({ ...acc, [session]: [] }), {}),
     });
 
-    // Reference data
+    // Reference data - Dữ liệu tham chiếu
     const [standardOptions, setStandardOptions] = useState([]);
     const [mealOptions, setMealOptions] = useState([]);
     const [loadingMeals, setLoadingMeals] = useState(false);
@@ -68,22 +67,52 @@ function MenuDialog({ open, mode, menuId, onClose, onSuccess }) {
     const [popoverAnchorEl, setPopoverAnchorEl] = useState(null);
     const [currentSession, setCurrentSession] = useState(null);
 
-    // Calculated nutrition data
+    // Calculated nutrition data State kết quả tính toán dinh dưỡng
     const [nutritionData, setNutritionData] = useState({
         aggregatedFoodTable: [],
         analysis: {},
         standard: null,
     });
 
+    // ✅ Thêm các ref để kiểm soát việc tính toán lại
+    const isInitialLoadRef = useRef(false);
+    const shouldRecomputeRef = useRef(false);
+
+    // ✅ Thêm state để lưu thông tin dinh dưỡng của các thực phẩm
+    const [foodNutritionMap, setFoodNutritionMap] = useState(new Map());
+
     const isCreateMode = mode === 'create';
 
-    // --- Data Fetching ---
+    // --- Lấy danh sách chuẩn dinh dưỡng
     const fetchDependencies = async () => {
         try {
             const standardsRes = await schoolNutritionalStandardApi.getAll({ limit: 100 });
             setStandardOptions(standardsRes.data.data.standards || []);
         } catch (error) {
             toast.error('Lỗi khi tải danh sách định mức dinh dưỡng!');
+        }
+    };
+
+    // ✅ Hàm fetch thông tin dinh dưỡng của thực phẩm
+    const fetchFoodNutrition = async (foodIds) => {
+        try {
+            // Gọi API lấy thông tin chi tiết các thực phẩm
+            const promises = foodIds.map((id) => schoolFoodApi.getDetails(id));
+            const results = await Promise.all(promises);
+
+            const nutritionMap = new Map();
+            results.forEach((res) => {
+                const food = res.data.data;
+                nutritionMap.set(food._id.toString(), {
+                    protein: food.protein || 0,
+                    lipid: food.lipid || 0,
+                    glucid: food.glucid || 0,
+                });
+            });
+
+            setFoodNutritionMap(nutritionMap);
+        } catch (error) {
+            console.error('Error fetching food nutrition:', error);
         }
     };
 
@@ -99,12 +128,10 @@ function MenuDialog({ open, mode, menuId, onClose, onSuccess }) {
         }
     };
 
+    // Load dữ liệu khi mở Dialog
     useEffect(() => {
         if (open) {
             fetchDependencies();
-            setIsDirty(false);
-            setNutritionData({ aggregatedFoodTable: [], analysis: {}, standard: null });
-            // Reset form on open
             setFormData({
                 menuName: '',
                 numberOfChildren: 1,
@@ -112,9 +139,12 @@ function MenuDialog({ open, mode, menuId, onClose, onSuccess }) {
                 meals: MEAL_SESSIONS.reduce((acc, session) => ({ ...acc, [session]: [] }), {}),
             });
             setActiveTab(0);
+            isInitialLoadRef.current = false;
+            shouldRecomputeRef.current = false;
         }
     }, [open]);
 
+    // Lấy chi tiết thực đơn khi ở chế độ chỉnh sửa
     useEffect(() => {
         if (open && mode === 'edit' && menuId) {
             const fetchDetails = async () => {
@@ -128,12 +158,18 @@ function MenuDialog({ open, mode, menuId, onClose, onSuccess }) {
                         nutritionalStandardId: menu.nutritionalStandardId._id,
                         meals: menu.meals,
                     });
-                    // Set initial nutrition data from backend for edit mode
                     setNutritionData({
                         aggregatedFoodTable: menu.aggregatedFoodTable,
                         analysis: menu.analysis,
                         standard: menu.nutritionalStandardId,
                     });
+
+                    // ✅ Fetch thông tin dinh dưỡng cho tất cả các thực phẩm trong bảng
+                    const foodIds = menu.aggregatedFoodTable.map((item) => item.foodId.toString());
+                    await fetchFoodNutrition(foodIds);
+
+                    // ✅ Đánh dấu đã load xong dữ liệu ban đầu
+                    isInitialLoadRef.current = true;
                 } catch (error) {
                     toast.error('Lỗi khi tải chi tiết thực đơn!');
                     onClose();
@@ -170,10 +206,10 @@ function MenuDialog({ open, mode, menuId, onClose, onSuccess }) {
         let finalAggregatedTable;
 
         if (editedFoodTable) {
-            // If a food item was edited, use that as the source of truth
+            // Nếu một mục thực phẩm được chỉnh sửa, sử dụng nó làm nguồn dữ liệu chính
             finalAggregatedTable = editedFoodTable;
         } else {
-            // Otherwise, compute from scratch based on selected meals
+            // Ngược lại, tính toán từ đầu dựa trên các món ăn đã chọn
             const foodMap = new Map();
             Object.values(currentMeals)
                 .flat()
@@ -205,9 +241,12 @@ function MenuDialog({ open, mode, menuId, onClose, onSuccess }) {
         // Perform nutritional analysis
         const totals = { protein: 0, lipid: 0, glucid: 0 };
         finalAggregatedTable.forEach((item) => {
-            totals.protein += item.quantityPerChildGram * (item.protein || 0);
-            totals.lipid += item.quantityPerChildGram * (item.lipid || 0);
-            totals.glucid += item.quantityPerChildGram * (item.glucid || 0);
+            const foodId = item.foodId.toString();
+            const nutrition = foodNutritionMap.get(foodId) || { protein: 0, lipid: 0, glucid: 0 };
+
+            totals.protein += item.quantityPerChildGram * (nutrition.protein || 0);
+            totals.lipid += item.quantityPerChildGram * (nutrition.lipid || 0);
+            totals.glucid += item.quantityPerChildGram * (nutrition.glucid || 0);
         });
 
         const totalProtein = parseFloat(totals.protein.toFixed(2));
@@ -271,30 +310,42 @@ function MenuDialog({ open, mode, menuId, onClose, onSuccess }) {
         });
     };
 
+    // ✅ Effect này chỉ chạy khi CẦN THIẾT - tính toán có kiểm soát
     useEffect(() => {
-        // Re-calculate when primary inputs change
-        const standardForCalc = selectedStandard || nutritionData.standard;
-
-        if (mode === 'create') {
-            recomputeNutrition(formData.meals, formData.numberOfChildren, standardForCalc);
+        // Không chạy khi đang load dữ liệu ban đầu trong edit mode
+        if (mode === 'edit' && !isInitialLoadRef.current) {
             return;
         }
 
-        // ✅ Edit mode: chỉ re-calc khi người dùng có thay đổi (để không ghi đè dữ liệu đã lưu trong DB)
-        if (mode === 'edit' && !loadingDetails && isDirty) {
+        // Chỉ chạy khi được đánh dấu cần tính toán lại
+        if (mode === 'edit' && !shouldRecomputeRef.current) {
+            return;
+        }
+
+        const standardForCalc = selectedStandard || nutritionData.standard;
+
+        if (!standardForCalc) return;
+
+        // Trong create mode, luôn tính toán lại
+        if (mode === 'create' || shouldRecomputeRef.current) {
             recomputeNutrition(formData.meals, formData.numberOfChildren, standardForCalc);
+            shouldRecomputeRef.current = false; // Reset flag
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [formData.meals, formData.numberOfChildren, selectedStandard, mode, loadingDetails, isDirty]);
+    }, [formData.meals, formData.numberOfChildren, selectedStandard, mode, nutritionData.standard]);
 
     // --- Handlers ---
     const handleFormChange = (field, value) => {
-        setIsDirty(true);
         setFormData((prev) => ({ ...prev, [field]: value }));
+
+        // ✅ Chỉ đánh dấu cần tính toán lại khi thay đổi các trường ảnh hưởng
+        if (field === 'numberOfChildren' || field === 'nutritionalStandardId') {
+            shouldRecomputeRef.current = true;
+        }
+        // menuName không trigger tính toán lại
     };
 
     const handleAddMealItem = (session, meal) => {
-        setIsDirty(true);
         if (formData.meals[session].some((m) => m.mealId === meal._id)) {
             toast.warning(`Món "${meal.name}" đã có trong ${session}.`);
             return;
@@ -302,14 +353,16 @@ function MenuDialog({ open, mode, menuId, onClose, onSuccess }) {
         const newMealItem = { mealId: meal._id, name: meal.name, ingredients: meal.ingredients };
         const updatedMeals = { ...formData.meals, [session]: [...formData.meals[session], newMealItem] };
         setFormData((prev) => ({ ...prev, meals: updatedMeals }));
+        shouldRecomputeRef.current = true; // ✅ Đánh dấu cần tính toán lại
+        handleClosePopover();
     };
 
     const handleRemoveMealItem = (session, index) => {
-        setIsDirty(true);
         const updatedSessionMeals = [...formData.meals[session]];
         updatedSessionMeals.splice(index, 1);
         const updatedMeals = { ...formData.meals, [session]: updatedSessionMeals };
         setFormData((prev) => ({ ...prev, meals: updatedMeals }));
+        shouldRecomputeRef.current = true; // ✅ Đánh dấu cần tính toán lại
     };
 
     // ✅ Handlers cho Popover
@@ -353,9 +406,10 @@ function MenuDialog({ open, mode, menuId, onClose, onSuccess }) {
             quantityPerChildGram: parseFloat(quantityPerChildGram.toFixed(2)),
         };
 
-        // Trigger a full re-computation with the edited table as the source of truth
-        setIsDirty(true);
+        // ✅ Lấy chuẩn dinh dưỡng: ưu tiên selectedStandard, nếu chưa có thì dùng chuẩn đang lưu trong nutritionData.standard
         const standardForCalc = selectedStandard || nutritionData.standard;
+
+        // ✅ Tính toán lại với bảng đã chỉnh sửa, KHÔNG trigger useEffect
         recomputeNutrition(formData.meals, formData.numberOfChildren, standardForCalc, updatedTable);
     };
 
@@ -678,8 +732,7 @@ function MenuDialog({ open, mode, menuId, onClose, onSuccess }) {
                                                 </Grid>
                                                 <Grid item xs={6}>
                                                     <Typography align="right">
-                                                        <strong>{nutritionData.analysis.totalProtein || 0}g</strong> /{' '}
-                                                        {nutritionData.standard?.protein || 0}g
+                                                        <strong>{nutritionData.analysis.totalProtein || 0}g</strong>
                                                     </Typography>
                                                 </Grid>
                                                 <Grid item xs={6}>
@@ -687,8 +740,7 @@ function MenuDialog({ open, mode, menuId, onClose, onSuccess }) {
                                                 </Grid>
                                                 <Grid item xs={6}>
                                                     <Typography align="right">
-                                                        <strong>{nutritionData.analysis.totalLipid || 0}g</strong> /{' '}
-                                                        {nutritionData.standard?.lipid || 0}g
+                                                        <strong>{nutritionData.analysis.totalLipid || 0}g</strong>
                                                     </Typography>
                                                 </Grid>
                                                 <Grid item xs={6}>
@@ -696,8 +748,7 @@ function MenuDialog({ open, mode, menuId, onClose, onSuccess }) {
                                                 </Grid>
                                                 <Grid item xs={6}>
                                                     <Typography align="right">
-                                                        <strong>{nutritionData.analysis.totalGlucid || 0}g</strong> /{' '}
-                                                        {nutritionData.standard?.glucid || 0}g
+                                                        <strong>{nutritionData.analysis.totalGlucid || 0}g</strong>
                                                     </Typography>
                                                 </Grid>
                                                 <Grid item xs={12}>
@@ -751,7 +802,7 @@ function MenuDialog({ open, mode, menuId, onClose, onSuccess }) {
                                                     </Typography>
                                                 </Grid>
                                                 <Grid item xs={4}>
-                                                    <Typography>Protein (%):</Typography>
+                                                    <Typography>Protein (Đạm) (%):</Typography>
                                                 </Grid>
                                                 <Grid item xs={4} align="center">
                                                     {nutritionData.analysis.proteinPercentage || 0}%{' '}
@@ -762,7 +813,7 @@ function MenuDialog({ open, mode, menuId, onClose, onSuccess }) {
                                                     {nutritionData.standard?.plgStructure.proteinMax}%
                                                 </Grid>
                                                 <Grid item xs={4}>
-                                                    <Typography>Lipid (%):</Typography>
+                                                    <Typography>Lipid (Béo) (%):</Typography>
                                                 </Grid>
                                                 <Grid item xs={4} align="center">
                                                     {nutritionData.analysis.lipidPercentage || 0}%{' '}
@@ -773,7 +824,7 @@ function MenuDialog({ open, mode, menuId, onClose, onSuccess }) {
                                                     {nutritionData.standard?.plgStructure.lipidMax}%
                                                 </Grid>
                                                 <Grid item xs={4}>
-                                                    <Typography>Glucid (%):</Typography>
+                                                    <Typography>Glucid (Đường) (%):</Typography>
                                                 </Grid>
                                                 <Grid item xs={4} align="center">
                                                     {nutritionData.analysis.glucidPercentage || 0}%{' '}
@@ -823,27 +874,7 @@ function MenuDialog({ open, mode, menuId, onClose, onSuccess }) {
                     />
                 </Box>
                 <Divider />
-                <List
-                    dense
-                    sx={{
-                        maxHeight: 300,
-                        overflowY: 'auto',
-                        mt: 0,
-                        '&::-webkit-scrollbar': { width: '6px' },
-                        '&::-webkit-scrollbar-track': { backgroundColor: '#e3f2fd' },
-                        '&::-webkit-scrollbar-thumb': { backgroundColor: '#0964a1a4', borderRadius: '4px' },
-                        '&::-webkit-scrollbar-thumb:hover': { backgroundColor: '#0071BC' },
-                        '& .MuiOutlinedInput-root': {
-                            borderRadius: 1.5,
-                            '&:hover fieldset': {
-                                borderColor: '#1976d2',
-                            },
-                            '&.Mui-focused fieldset': {
-                                borderColor: '#1976d2',
-                            },
-                        },
-                    }}
-                >
+                <List dense sx={{ maxHeight: 300, overflow: 'auto' }}>
                     {loadingMeals ? (
                         <Box sx={{ display: 'flex', justifyContent: 'center', p: 2 }}>
                             <CircularProgress size={24} />

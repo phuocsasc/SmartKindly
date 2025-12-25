@@ -26,7 +26,19 @@ const createNew = async (req, res, next) => {
                 acc[session] = mealSessionSchema;
                 return acc;
             }, {}),
-        ).required(),
+        )
+            .required()
+            .custom((value, helpers) => {
+                // ✅ Kiểm tra phải có ít nhất 1 món ăn
+                const totalMeals = Object.values(value).reduce((sum, meals) => sum + meals.length, 0);
+                if (totalMeals === 0) {
+                    return helpers.error('any.invalid', { message: 'Phải có ít nhất 1 món ăn trong thực đơn' });
+                }
+                return value;
+            })
+            .messages({
+                'any.invalid': 'Phải có ít nhất 1 món ăn trong thực đơn',
+            }),
         aggregatedFoodTable: Joi.array()
             .items(
                 Joi.object({
@@ -36,7 +48,15 @@ const createNew = async (req, res, next) => {
                     gramConversion: Joi.number().required(),
                     wastePercentage: Joi.number().required(),
                     isMainFood: Joi.boolean(),
-                    purchaseQuantityByUnit: Joi.number().required().min(0),
+                    // ✅ Thêm validation cho thông tin dinh dưỡng
+                    protein: Joi.number().min(0),
+                    lipid: Joi.number().min(0),
+                    glucid: Joi.number().min(0),
+                    purchaseQuantityByUnit: Joi.number().required().min(0.1).messages({
+                        'number.base': 'Lượng mua theo ĐVT phải là số',
+                        'number.min': 'Lượng mua theo ĐVT của từng thực phẩm phải lớn hơn 0',
+                        'any.required': 'Lượng mua theo ĐVT là bắt buộc',
+                    }),
                 }),
             )
             .optional(),
@@ -62,7 +82,16 @@ const update = async (req, res, next) => {
                 acc[session] = mealSessionSchema;
                 return acc;
             }, {}),
-        ),
+        ).custom((value, helpers) => {
+            // ✅ Kiểm tra phải có ít nhất 1 món ăn nếu có trường meals
+            if (value) {
+                const totalMeals = Object.values(value).reduce((sum, meals) => sum + meals.length, 0);
+                if (totalMeals === 0) {
+                    return helpers.error('any.invalid', { message: 'Phải có ít nhất 1 món ăn trong thực đơn' });
+                }
+            }
+            return value;
+        }),
         aggregatedFoodTable: Joi.array().items(
             Joi.object({
                 foodId: Joi.string().pattern(OBJECT_ID_RULE).required(),
@@ -71,7 +100,15 @@ const update = async (req, res, next) => {
                 gramConversion: Joi.number().required(),
                 wastePercentage: Joi.number().required(),
                 isMainFood: Joi.boolean(),
-                purchaseQuantityByUnit: Joi.number().required().min(0),
+                // ✅ Thêm validation cho thông tin dinh dưỡng
+                protein: Joi.number().min(0),
+                lipid: Joi.number().min(0),
+                glucid: Joi.number().min(0),
+                purchaseQuantityByUnit: Joi.number().required().min(0.1).messages({
+                    'number.base': 'Lượng mua theo ĐVT phải là số',
+                    'number.min': 'Lượng mua theo ĐVT của từng thực phẩm phải lớn hơn 0',
+                    'any.required': 'Lượng mua theo ĐVT là bắt buộc',
+                }),
             }),
         ),
     });

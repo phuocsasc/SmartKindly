@@ -38,6 +38,11 @@ const AggregatedFoodItemSchema = new mongoose.Schema(
         gramConversion: { type: Number, required: true },
         wastePercentage: { type: Number, required: true },
         isMainFood: { type: Boolean, default: false },
+        // ✅ Thêm các field thông tin dinh dưỡng
+        protein: { type: Number, default: 0 },
+        lipid: { type: Number, default: 0 },
+        glucid: { type: Number, default: 0 },
+        // Các field tính toán
         quantityPerChildGram: { type: Number, required: true },
         totalQuantityKg: { type: Number, required: true },
         purchaseQuantityKg: { type: Number, required: true },

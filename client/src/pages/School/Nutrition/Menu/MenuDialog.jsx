@@ -37,7 +37,7 @@ import CloseIcon from '@mui/icons-material/Close';
 import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
 import EditIcon from '@mui/icons-material/Edit';
 import AddIcon from '@mui/icons-material/Add'; // Thêm icon Add
-import { schoolMenuApi, schoolNutritionalStandardApi, schoolMealApi, schoolFoodApi } from '~/apis';
+import { schoolMenuApi, schoolNutritionalStandardApi, schoolMealApi } from '~/apis';
 import { toast } from 'react-toastify';
 
 const MEAL_SESSIONS = ['Bữa sáng', 'Bữa trưa', 'Bữa xế', 'Bữa phụ'];
@@ -78,9 +78,6 @@ function MenuDialog({ open, mode, menuId, onClose, onSuccess }) {
     const isInitialLoadRef = useRef(false);
     const shouldRecomputeRef = useRef(false);
 
-    // ✅ Thêm state để lưu thông tin dinh dưỡng của các thực phẩm
-    const [foodNutritionMap, setFoodNutritionMap] = useState(new Map());
-
     const isCreateMode = mode === 'create';
 
     // --- Lấy danh sách chuẩn dinh dưỡng
@@ -90,29 +87,6 @@ function MenuDialog({ open, mode, menuId, onClose, onSuccess }) {
             setStandardOptions(standardsRes.data.data.standards || []);
         } catch (error) {
             toast.error('Lỗi khi tải danh sách định mức dinh dưỡng!');
-        }
-    };
-
-    // ✅ Hàm fetch thông tin dinh dưỡng của thực phẩm
-    const fetchFoodNutrition = async (foodIds) => {
-        try {
-            // Gọi API lấy thông tin chi tiết các thực phẩm
-            const promises = foodIds.map((id) => schoolFoodApi.getDetails(id));
-            const results = await Promise.all(promises);
-
-            const nutritionMap = new Map();
-            results.forEach((res) => {
-                const food = res.data.data;
-                nutritionMap.set(food._id.toString(), {
-                    protein: food.protein || 0,
-                    lipid: food.lipid || 0,
-                    glucid: food.glucid || 0,
-                });
-            });
-
-            setFoodNutritionMap(nutritionMap);
-        } catch (error) {
-            console.error('Error fetching food nutrition:', error);
         }
     };
 
@@ -163,10 +137,6 @@ function MenuDialog({ open, mode, menuId, onClose, onSuccess }) {
                         analysis: menu.analysis,
                         standard: menu.nutritionalStandardId,
                     });
-
-                    // ✅ Fetch thông tin dinh dưỡng cho tất cả các thực phẩm trong bảng
-                    const foodIds = menu.aggregatedFoodTable.map((item) => item.foodId.toString());
-                    await fetchFoodNutrition(foodIds);
 
                     // ✅ Đánh dấu đã load xong dữ liệu ban đầu
                     isInitialLoadRef.current = true;
@@ -241,12 +211,9 @@ function MenuDialog({ open, mode, menuId, onClose, onSuccess }) {
         // Perform nutritional analysis
         const totals = { protein: 0, lipid: 0, glucid: 0 };
         finalAggregatedTable.forEach((item) => {
-            const foodId = item.foodId.toString();
-            const nutrition = foodNutritionMap.get(foodId) || { protein: 0, lipid: 0, glucid: 0 };
-
-            totals.protein += item.quantityPerChildGram * (nutrition.protein || 0);
-            totals.lipid += item.quantityPerChildGram * (nutrition.lipid || 0);
-            totals.glucid += item.quantityPerChildGram * (nutrition.glucid || 0);
+            totals.protein += item.quantityPerChildGram * (item.protein || 0);
+            totals.lipid += item.quantityPerChildGram * (item.lipid || 0);
+            totals.glucid += item.quantityPerChildGram * (item.glucid || 0);
         });
 
         const totalProtein = parseFloat(totals.protein.toFixed(2));
@@ -418,10 +385,26 @@ function MenuDialog({ open, mode, menuId, onClose, onSuccess }) {
         if (!formData.nutritionalStandardId) return toast.error('Vui lòng chọn nhóm trẻ!');
         if (formData.numberOfChildren <= 0) return toast.error('Số lượng trẻ phải lớn hơn 0!');
 
+        // ✅ Kiểm tra phải có ít nhất 1 món ăn
+        const totalMeals = Object.values(formData.meals).reduce((sum, meals) => sum + meals.length, 0);
+        if (totalMeals === 0) {
+            return toast.error('Phải có ít nhất 1 món ăn trong thực đơn!');
+        }
+
+        // ✅ Kiểm tra Lượng mua theo ĐVT phải > 0
+        const invalidFoodItem = nutritionData.aggregatedFoodTable.find(
+            (item) => !item.purchaseQuantityByUnit || item.purchaseQuantityByUnit <= 0,
+        );
+        if (invalidFoodItem) {
+            toast.error(`Lượng mua theo ĐVT của "${invalidFoodItem.foodName}" phải lớn hơn 0!`);
+            setActiveTab(1); // Chuyển sang tab 2 để người dùng sửa
+            return;
+        }
+
         try {
             setLoading(true);
             const payload = {
-                menuName: formData.menuName,
+                menuName: formData.menuName.trim(),
                 numberOfChildren: formData.numberOfChildren,
                 nutritionalStandardId: formData.nutritionalStandardId,
                 meals: Object.keys(formData.meals).reduce((acc, session) => {
@@ -436,6 +419,9 @@ function MenuDialog({ open, mode, menuId, onClose, onSuccess }) {
                     gramConversion: item.gramConversion,
                     wastePercentage: item.wastePercentage,
                     isMainFood: item.isMainFood,
+                    protein: item.protein,
+                    lipid: item.lipid,
+                    glucid: item.glucid,
                     purchaseQuantityByUnit: item.purchaseQuantityByUnit,
                 })),
             };
@@ -673,8 +659,12 @@ function MenuDialog({ open, mode, menuId, onClose, onSuccess }) {
                                                     Lượng ăn {formData.numberOfChildren} trẻ (kg)
                                                 </TableCell>
                                                 <TableCell align="right">Hệ số thái bỏ</TableCell>
-                                                <TableCell align="right">Lượng mua (kg)</TableCell>
-                                                <TableCell>Lượng mua theo ĐVT</TableCell>
+                                                <TableCell align="right">
+                                                    Lượng mua {formData.numberOfChildren} trẻ (kg)
+                                                </TableCell>
+                                                <TableCell>
+                                                    Lượng mua {formData.numberOfChildren} trẻ theo ĐVT
+                                                </TableCell>
                                                 <TableCell>ĐVT</TableCell>
                                                 <TableCell>Quy đổi (g)</TableCell>
                                                 <TableCell>TP Chính</TableCell>

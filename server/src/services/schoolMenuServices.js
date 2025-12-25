@@ -166,6 +166,17 @@ const createNew = async (data, userId) => {
     const user = await UserModel.findById(userId).select('schoolId');
     if (!user || !user.schoolId) throw new ApiError(StatusCodes.FORBIDDEN, 'Người dùng không thuộc trường học nào.');
 
+    // ✅ Kiểm tra tên thực đơn đã tồn tại chưa
+    const existingMenu = await SchoolMenuModel.findOne({
+        schoolId: user.schoolId,
+        menuName: { $regex: new RegExp(`^${data.menuName.trim()}$`, 'i') },
+        _destroy: false,
+    });
+
+    if (existingMenu) {
+        throw new ApiError(StatusCodes.CONFLICT, `Tên thực đơn "${data.menuName}" đã tồn tại`);
+    }
+
     const processedData = await processMenuData(data, user.schoolId);
 
     const newMenu = new SchoolMenuModel({
@@ -245,6 +256,20 @@ const update = async (id, data, userId) => {
     const user = await UserModel.findById(userId).select('schoolId');
     const existingMenu = await SchoolMenuModel.findOne({ _id: id, schoolId: user.schoolId, _destroy: false });
     if (!existingMenu) throw new ApiError(StatusCodes.NOT_FOUND, 'Không tìm thấy thực đơn.');
+
+    // ✅ Kiểm tra tên thực đơn trùng lặp nếu có thay đổi tên
+    if (data.menuName && data.menuName.trim() !== existingMenu.menuName) {
+        const duplicateMenu = await SchoolMenuModel.findOne({
+            _id: { $ne: id },
+            schoolId: user.schoolId,
+            menuName: { $regex: new RegExp(`^${data.menuName.trim()}$`, 'i') },
+            _destroy: false,
+        });
+
+        if (duplicateMenu) {
+            throw new ApiError(StatusCodes.CONFLICT, `Tên thực đơn "${data.menuName}" đã tồn tại`);
+        }
+    }
 
     const updatedData = {
         menuName: data.menuName || existingMenu.menuName,

@@ -145,6 +145,12 @@ export const PERMISSIONS = {
     CREATE_MENU: 'create_menu',
     UPDATE_MENU: 'update_menu',
     DELETE_MENU: 'delete_menu',
+
+    // Quản lý thực đơn áp dụng
+    VIEW_MENU_APPLY: 'view_menu_apply',
+    CREATE_MENU_APPLY: 'create_menu_apply',
+    UPDATE_MENU_APPLY: 'update_menu_apply',
+    DELETE_MENU_APPLY: 'delete_menu_apply',
 };
 
 export const ROLE_PERMISSIONS = {
@@ -210,6 +216,7 @@ export const ROLE_PERMISSIONS = {
         PERMISSIONS.VIEW_FOOD,
         PERMISSIONS.VIEW_MEAL,
         PERMISSIONS.VIEW_MENU,
+        PERMISSIONS.VIEW_MENU_APPLY,
         PERMISSIONS.VIEW_NUTRITIONAL_STANDARDS,
         PERMISSIONS.VIEW_SERVICE_CHARGE,
     ],
@@ -264,6 +271,7 @@ export const ROLE_PERMISSIONS = {
         PERMISSIONS.VIEW_FOOD,
         PERMISSIONS.VIEW_MEAL,
         PERMISSIONS.VIEW_MENU,
+        PERMISSIONS.VIEW_MENU_APPLY,
         PERMISSIONS.VIEW_NUTRITIONAL_STANDARDS,
         PERMISSIONS.VIEW_SERVICE_CHARGE,
     ],

@@ -53,6 +53,7 @@ import ChildrenProgramComplete from '~/pages/School/Children/ChildrenProgramComp
 import Food from '~/pages/School/Nutrition/Food/Food';
 import Meal from '~/pages/School/Nutrition/Meal/Meal';
 import Menu from '~/pages/School/Nutrition/Menu/Menu';
+import MenuApply from '~/pages/School/Nutrition/MenuApply/MenuApply';
 import NutritionalStandards from '~/pages/School/Nutrition/Standard/NutritionalStandards';
 import ServiceCharge from '~/pages/School/Nutrition/ServiceCharge/ServiceCharge';
 
@@ -194,6 +195,9 @@ function AppContent() {
                     </Route>
                     <Route element={<RbacRoute requiredPermission={PERMISSIONS.VIEW_MENU} />}>
                         <Route path="/nutrition/menu" element={<Menu />} />
+                    </Route>
+                    <Route element={<RbacRoute requiredPermission={PERMISSIONS.VIEW_MENU_APPLY} />}>
+                        <Route path="/nutrition/menu-apply" element={<MenuApply />} />
                     </Route>
                 </Route>
 

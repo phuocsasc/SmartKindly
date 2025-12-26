@@ -94,6 +94,7 @@ const menuItems = [
             { text: 'Thực phẩm', path: '/nutrition/food' },
             { text: 'Món ăn', path: '/nutrition/meal' },
             { text: 'Thực đơn dự kiến', path: '/nutrition/menu' },
+            { text: 'Thực đơn áp dụng', path: '/nutrition/menu-apply' },
         ],
     },
     // {

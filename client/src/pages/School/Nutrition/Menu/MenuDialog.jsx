@@ -37,6 +37,8 @@ import CloseIcon from '@mui/icons-material/Close';
 import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
 import EditIcon from '@mui/icons-material/Edit';
 import AddIcon from '@mui/icons-material/Add'; // Thêm icon Add
+import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
+import { Alert, AlertTitle } from '@mui/material';
 import { schoolMenuApi, schoolNutritionalStandardApi, schoolMealApi } from '~/apis';
 import { toast } from 'react-toastify';
 
@@ -93,7 +95,7 @@ function MenuDialog({ open, mode, menuId, onClose, onSuccess }) {
     const searchMeals = async (search) => {
         try {
             setLoadingMeals(true);
-            const res = await schoolMealApi.getAll({ search, limit: 20 });
+            const res = await schoolMealApi.getAll({ search, limit: 10 });
             setMealOptions(res.data.data.meals || []);
         } catch (error) {
             console.error('Error searching meals:', error);
@@ -153,12 +155,17 @@ function MenuDialog({ open, mode, menuId, onClose, onSuccess }) {
 
     useEffect(() => {
         const timer = setTimeout(() => {
-            if (searchMealText.trim().length >= 1) {
-                searchMeals(searchMealText.trim());
+            const keyword = searchMealText.trim();
+
+            if (keyword.length >= 1) {
+                // 🔍 Có keyword → search
+                searchMeals(keyword);
             } else {
-                setMealOptions([]);
+                // ✅ Không keyword → load danh sách mặc định
+                searchMeals('');
             }
         }, 500);
+
         return () => clearTimeout(timer);
     }, [searchMealText]);
 
@@ -487,7 +494,23 @@ function MenuDialog({ open, mode, menuId, onClose, onSuccess }) {
             </DialogTitle>
 
             <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
-                <Tabs value={activeTab} onChange={(e, val) => setActiveTab(val)} variant="fullWidth">
+                <Tabs
+                    value={activeTab}
+                    onChange={(e, val) => setActiveTab(val)}
+                    variant="fullWidth"
+                    sx={{
+                        '& .MuiTab-root': {
+                            fontWeight: 500,
+                            color: 'text.secondary',
+                        },
+                        '& .Mui-selected': {
+                            fontWeight: 700,
+                            color: 'primary.main',
+                            bgcolor: 'rgba(25, 118, 210, 0.08)',
+                            borderRadius: 1,
+                        },
+                    }}
+                >
                     <Tab label="THÔNG TIN THỰC ĐƠN" />
                     <Tab label="CÂN ĐỐI DINH DƯỠNG" />
                 </Tabs>
@@ -502,13 +525,13 @@ function MenuDialog({ open, mode, menuId, onClose, onSuccess }) {
                     <>
                         {/* TAB 1 */}
                         {activeTab === 0 && (
-                            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, py: 2 }}>
-                                <Typography variant="h6" fontWeight={600} sx={{ mt: -2 }}>
-                                    Thông tin chung
-                                </Typography>
-                                <Grid container spacing={3}>
+                            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, py: 1 }}>
+                                {/* <Typography variant="h6" fontWeight={600} sx={{ mt: -2 }}>
+                                    Thông tin thực đơn
+                                </Typography> */}
+                                <Grid container spacing={2.5}>
                                     <Grid item xs={12} sm={6}>
-                                        <FormControl required fullWidth size="medium">
+                                        <FormControl required fullWidth size="small">
                                             <InputLabel>Nhóm trẻ</InputLabel>
                                             <Select
                                                 value={formData.nutritionalStandardId}
@@ -531,7 +554,7 @@ function MenuDialog({ open, mode, menuId, onClose, onSuccess }) {
                                             label="Số lượng trẻ"
                                             required
                                             fullWidth
-                                            size="medium"
+                                            size="small"
                                             value={formData.numberOfChildren}
                                             onChange={(e) =>
                                                 handleFormChange('numberOfChildren', parseInt(e.target.value, 10) || 0)
@@ -544,14 +567,40 @@ function MenuDialog({ open, mode, menuId, onClose, onSuccess }) {
                                             label="Tên thực đơn"
                                             required
                                             fullWidth
-                                            size="medium"
+                                            size="small"
                                             value={formData.menuName}
                                             onChange={(e) => handleFormChange('menuName', e.target.value)}
                                         />
                                     </Grid>
                                 </Grid>
+                                <Alert
+                                    severity="info"
+                                    icon={<InfoOutlinedIcon />}
+                                    sx={{
+                                        borderRadius: 2,
+                                        bgcolor: '#e3f2fd',
+                                        border: '1px solid #bbdefb',
+                                        mb: 1,
+                                    }}
+                                >
+                                    <AlertTitle sx={{ fontWeight: 600 }}>Hướng dẫn tạo thực đơn</AlertTitle>
 
-                                <Typography variant="h6" fontWeight={600} sx={{ mt: 1 }}>
+                                    <Box component="ul" sx={{ pl: 2, mb: 0 }}>
+                                        <li>
+                                            Chọn <strong>Nhóm trẻ</strong>, Nhập <strong>Số lượng trẻ</strong> sử dụng
+                                            thực đơn, và Nhập <strong>Tên thực đơn</strong>.
+                                        </li>
+                                        <li>
+                                            Thêm các <strong>Món ăn</strong> cho từng bữa (Sáng / Trưa / Xế / Phụ).
+                                        </li>
+                                        <li>
+                                            Chuyển sang tab <strong>“Cân đối dinh dưỡng”</strong> điều chỉnh Lượng mua
+                                            trẻ theo ĐVT để cân bằng Lượng &amp; Chất.
+                                        </li>
+                                    </Box>
+                                </Alert>
+
+                                <Typography variant="h6" fontWeight={600} sx={{ mt: -2 }}>
                                     Các bữa ăn trong ngày
                                 </Typography>
                                 <TableContainer component={Paper} variant="outlined">
@@ -562,13 +611,12 @@ function MenuDialog({ open, mode, menuId, onClose, onSuccess }) {
                                                     sx={{
                                                         width: '20%',
                                                         borderRight: '1px solid #ddd',
-                                                        fontSize: '1.2rem',
+                                                        fontSize: '1rem',
                                                     }}
                                                 >
                                                     <strong>Tên bữa ăn</strong>
                                                 </TableCell>
-                                                <TableCell sx={{ fontSize: '1.2rem' }}>
-                                                    {' '}
+                                                <TableCell sx={{ fontSize: '1rem' }}>
                                                     <strong>Tên món ăn đã chọn</strong>
                                                 </TableCell>
                                             </TableRow>
@@ -620,7 +668,7 @@ function MenuDialog({ open, mode, menuId, onClose, onSuccess }) {
                                                                         }
                                                                         color="success"
                                                                         variant="outlined"
-                                                                        sx={{ fontSize: '1.2rem' }}
+                                                                        sx={{ fontSize: '1rem' }}
                                                                     />
                                                                 ))
                                                             ) : (
@@ -644,52 +692,123 @@ function MenuDialog({ open, mode, menuId, onClose, onSuccess }) {
 
                         {/* TAB 2 */}
                         {activeTab === 1 && (
-                            <Box sx={{ py: 2, display: 'flex', flexDirection: 'column', gap: 2 }}>
-                                <Typography variant="h6" fontWeight={600}>
-                                    Bảng thông tin các thực phẩm
-                                </Typography>
-                                <TableContainer component={Paper} variant="outlined">
-                                    <Table size="small">
-                                        <TableHead sx={{ bgcolor: '#e3f2fd' }}>
+                            <Box sx={{ py: 1, display: 'flex', flexDirection: 'column', gap: 2 }}>
+                                <TableContainer
+                                    component={Paper}
+                                    variant="outlined"
+                                    sx={{
+                                        maxHeight: 400, // ✅ chiều cao cố định
+                                        overflowY: 'auto',
+
+                                        // ===== Custom Scrollbar =====
+                                        '&::-webkit-scrollbar': {
+                                            width: '6px',
+                                        },
+                                        '&::-webkit-scrollbar-track': {
+                                            backgroundColor: '#e3f2fd',
+                                        },
+                                        '&::-webkit-scrollbar-thumb': {
+                                            backgroundColor: '#0964a1a4',
+                                            borderRadius: '4px',
+                                        },
+                                        '&::-webkit-scrollbar-thumb:hover': {
+                                            backgroundColor: '#0071BC',
+                                        },
+
+                                        // ===== Style input trong bảng =====
+                                        '& .MuiOutlinedInput-root': {
+                                            borderRadius: 1.5,
+                                            '&:hover fieldset': {
+                                                borderColor: '#1976d2',
+                                            },
+                                            '&.Mui-focused fieldset': {
+                                                borderColor: '#1976d2',
+                                            },
+                                        },
+                                    }}
+                                >
+                                    <Table size="small" stickyHeader>
+                                        <TableHead>
                                             <TableRow>
-                                                <TableCell>STT</TableCell>
-                                                <TableCell>Tên thực phẩm</TableCell>
-                                                <TableCell align="right">Lượng ăn 1 trẻ (g)</TableCell>
-                                                <TableCell align="right">
-                                                    Lượng ăn {formData.numberOfChildren} trẻ (kg)
-                                                </TableCell>
-                                                <TableCell align="right">Hệ số thái bỏ</TableCell>
-                                                <TableCell align="right">
-                                                    Lượng mua {formData.numberOfChildren} trẻ (kg)
-                                                </TableCell>
-                                                <TableCell>
-                                                    Lượng mua {formData.numberOfChildren} trẻ theo ĐVT
-                                                </TableCell>
-                                                <TableCell>ĐVT</TableCell>
-                                                <TableCell>Quy đổi (g)</TableCell>
-                                                <TableCell>TP Chính</TableCell>
+                                                {[
+                                                    'STT',
+                                                    'Tên thực phẩm',
+                                                    'Lượng ăn 1 trẻ (g)',
+                                                    `Lượng ăn ${formData.numberOfChildren} trẻ (kg)`,
+                                                    'Hệ số thái bỏ',
+                                                    `Lượng mua ${formData.numberOfChildren} trẻ (kg)`,
+                                                    `Lượng mua ${formData.numberOfChildren} trẻ theo ĐVT`,
+                                                    'ĐVT',
+                                                    'Quy đổi (g)',
+                                                ].map((label) => (
+                                                    <TableCell
+                                                        key={label}
+                                                        sx={{
+                                                            borderRight: '1px solid #361818ff',
+                                                            fontWeight: 600,
+                                                            bgcolor: '#e3f2fd',
+                                                            whiteSpace: 'nowrap',
+                                                        }}
+                                                    >
+                                                        {label}
+                                                    </TableCell>
+                                                ))}
                                             </TableRow>
                                         </TableHead>
                                         <TableBody>
                                             {nutritionData.aggregatedFoodTable.map((item, index) => (
-                                                <TableRow key={item.foodId}>
-                                                    <TableCell>{index + 1}</TableCell>
-                                                    <TableCell>{item.foodName}</TableCell>
-                                                    <TableCell align="right">
+                                                <TableRow
+                                                    key={item.foodId}
+                                                    sx={{
+                                                        bgcolor: item.isMainFood ? '#fff3e0' : 'inherit', // ✅ highlight
+                                                        '&:hover': {
+                                                            bgcolor: item.isMainFood ? '#ffe0b2' : '#f5f5f5',
+                                                        },
+                                                    }}
+                                                >
+                                                    <TableCell sx={{ borderRight: '1px solid #361818ff' }}>
+                                                        {index + 1}
+                                                    </TableCell>
+                                                    <TableCell
+                                                        sx={{
+                                                            borderRight: '1px solid #361818ff',
+                                                            fontWeight: item.isMainFood ? 600 : 400,
+                                                        }}
+                                                    >
+                                                        {item.foodName}
+                                                    </TableCell>
+                                                    <TableCell
+                                                        align="center"
+                                                        sx={{ borderRight: '1px solid #361818ff' }}
+                                                    >
                                                         {item.quantityPerChildGram.toFixed(2)}
                                                     </TableCell>
-                                                    <TableCell align="right">
+                                                    <TableCell
+                                                        align="center"
+                                                        sx={{ borderRight: '1px solid #361818ff' }}
+                                                    >
                                                         {item.totalQuantityKg.toFixed(1)}
                                                     </TableCell>
-                                                    <TableCell align="right">{item.wastePercentage}%</TableCell>
-                                                    <TableCell align="right">
+                                                    <TableCell
+                                                        align="center"
+                                                        sx={{ borderRight: '1px solid #361818ff' }}
+                                                    >
+                                                        {item.wastePercentage}%
+                                                    </TableCell>
+                                                    <TableCell
+                                                        align="center"
+                                                        sx={{ borderRight: '1px solid #361818ff' }}
+                                                    >
                                                         {item.purchaseQuantityKg.toFixed(1)}
                                                     </TableCell>
-                                                    <TableCell>
+                                                    <TableCell
+                                                        align="center"
+                                                        sx={{ borderRight: '1px solid #361818ff' }}
+                                                    >
                                                         <TextField
                                                             type="number"
                                                             size="small"
-                                                            sx={{ width: 100 }}
+                                                            sx={{ width: 200 }}
                                                             value={item.purchaseQuantityByUnit}
                                                             onChange={(e) =>
                                                                 handleChangePurchaseByUnit(index, e.target.value)
@@ -697,134 +816,296 @@ function MenuDialog({ open, mode, menuId, onClose, onSuccess }) {
                                                             inputProps={{ min: 0, step: 0.1 }}
                                                         />
                                                     </TableCell>
-                                                    <TableCell>{item.unit}</TableCell>
-                                                    <TableCell>{item.gramConversion}</TableCell>
-                                                    <TableCell>
-                                                        {item.isMainFood && (
-                                                            <Chip label="Chính" size="small" color="warning" />
-                                                        )}
+                                                    <TableCell
+                                                        align="center"
+                                                        sx={{ borderRight: '1px solid #361818ff' }}
+                                                    >
+                                                        {item.unit}
+                                                    </TableCell>
+                                                    <TableCell
+                                                        align="center"
+                                                        sx={{ borderRight: '1px solid #361818ff' }}
+                                                    >
+                                                        {item.gramConversion}
                                                     </TableCell>
                                                 </TableRow>
                                             ))}
                                         </TableBody>
                                     </Table>
                                 </TableContainer>
+                                <Typography variant="h6" fontWeight={600}>
+                                    Thống kê thành phần dinh dưỡng
+                                </Typography>
+                                <Grid container spacing={1} sx={{ mt: 0 }}>
+                                    <Grid item xs={12} md={7}>
+                                        <Paper
+                                            variant="outlined"
+                                            sx={{
+                                                height: '100%',
+                                                borderRadius: 2,
+                                                overflow: 'hidden',
+                                            }}
+                                        >
+                                            {/* Header */}
+                                            <Box
+                                                sx={{
+                                                    px: 2,
+                                                    py: 1,
+                                                    bgcolor: '#e3f2fd',
+                                                    borderBottom: '1px solid #ddd',
+                                                }}
+                                            >
+                                                <Typography fontWeight={600}>Đánh giá về Lượng</Typography>
+                                            </Box>
 
-                                <Grid container spacing={2} sx={{ mt: 1 }}>
-                                    <Grid item xs={12} md={6}>
-                                        <Paper variant="outlined" sx={{ p: 2, height: '100%' }}>
-                                            <Typography variant="h6" fontWeight={600} sx={{ mb: 1 }}>
-                                                Đánh giá về Lượng
-                                            </Typography>
-                                            <Grid container spacing={1}>
-                                                <Grid item xs={6}>
-                                                    <Typography>Protein (Đạm):</Typography>
-                                                </Grid>
-                                                <Grid item xs={6}>
-                                                    <Typography align="right">
-                                                        <strong>{nutritionData.analysis.totalProtein || 0}g</strong>
-                                                    </Typography>
-                                                </Grid>
-                                                <Grid item xs={6}>
-                                                    <Typography>Lipid (Béo):</Typography>
-                                                </Grid>
-                                                <Grid item xs={6}>
-                                                    <Typography align="right">
-                                                        <strong>{nutritionData.analysis.totalLipid || 0}g</strong>
-                                                    </Typography>
-                                                </Grid>
-                                                <Grid item xs={6}>
-                                                    <Typography>Glucid (Đường):</Typography>
-                                                </Grid>
-                                                <Grid item xs={6}>
-                                                    <Typography align="right">
-                                                        <strong>{nutritionData.analysis.totalGlucid || 0}g</strong>
-                                                    </Typography>
-                                                </Grid>
-                                                <Grid item xs={12}>
-                                                    <Divider sx={{ my: 1 }} />
-                                                </Grid>
-                                                <Grid item xs={6}>
-                                                    <Typography fontWeight="bold">Tổng Calo (thực tế):</Typography>
-                                                </Grid>
-                                                <Grid item xs={6}>
-                                                    <Typography align="right" fontWeight="bold" color="error.main">
-                                                        {nutritionData.analysis.totalCalories || 0} kcal
-                                                    </Typography>
-                                                </Grid>
-                                                <Grid item xs={6}>
-                                                    <Typography>Năng lượng khuyến nghị:</Typography>
-                                                </Grid>
-                                                <Grid item xs={6}>
-                                                    <Typography align="right">
-                                                        {nutritionData.standard?.recommendedCaloriesMin} -{' '}
-                                                        {nutritionData.standard?.recommendedCaloriesMax} kcal
-                                                    </Typography>
-                                                </Grid>
-                                                <Grid item xs={6}>
-                                                    <Typography>Trạng thái:</Typography>
-                                                </Grid>
-                                                <Grid item xs={6} align="right">
-                                                    {getStatusChip(nutritionData.analysis.caloriesEvaluation)}
-                                                </Grid>
-                                            </Grid>
+                                            <Table size="small">
+                                                {/* ===== TABLE HEAD ===== */}
+                                                <TableHead>
+                                                    <TableRow sx={{ bgcolor: '#f5faff' }}>
+                                                        <TableCell
+                                                            sx={{ borderRight: '1px solid #ddd', fontWeight: 600 }}
+                                                        >
+                                                            Nội dung
+                                                        </TableCell>
+                                                        <TableCell
+                                                            align="center"
+                                                            sx={{ borderRight: '1px solid #ddd', fontWeight: 600 }}
+                                                        >
+                                                            Protein (Đạm)
+                                                        </TableCell>
+                                                        <TableCell
+                                                            align="center"
+                                                            sx={{ borderRight: '1px solid #ddd', fontWeight: 600 }}
+                                                        >
+                                                            Lipid (Béo)
+                                                        </TableCell>
+                                                        <TableCell
+                                                            align="center"
+                                                            sx={{ borderRight: '1px solid #ddd', fontWeight: 600 }}
+                                                        >
+                                                            Glucid (Đường)
+                                                        </TableCell>
+                                                        <TableCell align="center" sx={{ fontWeight: 600 }}>
+                                                            Tổng Calo
+                                                        </TableCell>
+                                                    </TableRow>
+                                                </TableHead>
+
+                                                {/* ===== TABLE BODY ===== */}
+                                                <TableBody>
+                                                    {/* ===== Tổng Calo (thực tế) ===== */}
+                                                    <TableRow>
+                                                        <TableCell
+                                                            sx={{ borderRight: '1px solid #eee', fontWeight: 500 }}
+                                                        >
+                                                            Tổng Calo (thực tế)
+                                                        </TableCell>
+
+                                                        <TableCell
+                                                            align="center"
+                                                            sx={{ borderRight: '1px solid #eee' }}
+                                                        >
+                                                            {nutritionData.analysis.totalProtein || 0} g
+                                                        </TableCell>
+
+                                                        <TableCell
+                                                            align="center"
+                                                            sx={{ borderRight: '1px solid #eee' }}
+                                                        >
+                                                            {nutritionData.analysis.totalLipid || 0} g
+                                                        </TableCell>
+
+                                                        <TableCell
+                                                            align="center"
+                                                            sx={{ borderRight: '1px solid #eee' }}
+                                                        >
+                                                            {nutritionData.analysis.totalGlucid || 0} g
+                                                        </TableCell>
+
+                                                        <TableCell
+                                                            align="center"
+                                                            sx={{
+                                                                bgcolor:
+                                                                    nutritionData.analysis.caloriesEvaluation ===
+                                                                    'Vượt quá định mức'
+                                                                        ? '#ffebee'
+                                                                        : nutritionData.analysis.caloriesEvaluation ===
+                                                                            'Chưa đạt'
+                                                                          ? '#fff0e1ff'
+                                                                          : '#c5f0d5ff',
+                                                            }}
+                                                        >
+                                                            <Typography
+                                                                component="span"
+                                                                fontWeight={700}
+                                                                // color="error.main"
+                                                                sx={{ mr: 1 }}
+                                                            >
+                                                                {nutritionData.analysis.totalCalories || 0} kcal
+                                                            </Typography>
+                                                            {getStatusChip(nutritionData.analysis.caloriesEvaluation)}
+                                                        </TableCell>
+                                                    </TableRow>
+
+                                                    {/* ===== Năng lượng khuyến nghị ===== */}
+                                                    <TableRow sx={{ bgcolor: '#fafafa' }}>
+                                                        <TableCell
+                                                            sx={{ borderRight: '1px solid #eee', fontWeight: 500 }}
+                                                        >
+                                                            Năng lượng khuyến nghị
+                                                        </TableCell>
+
+                                                        <TableCell
+                                                            align="center"
+                                                            sx={{ borderRight: '1px solid #eee' }}
+                                                        >
+                                                            —
+                                                        </TableCell>
+
+                                                        <TableCell
+                                                            align="center"
+                                                            sx={{ borderRight: '1px solid #eee' }}
+                                                        >
+                                                            —
+                                                        </TableCell>
+
+                                                        <TableCell
+                                                            align="center"
+                                                            sx={{ borderRight: '1px solid #eee' }}
+                                                        >
+                                                            —
+                                                        </TableCell>
+
+                                                        <TableCell align="center" fontWeight={600}>
+                                                            {nutritionData.standard?.recommendedCaloriesMin} –{' '}
+                                                            {nutritionData.standard?.recommendedCaloriesMax} kcal
+                                                        </TableCell>
+                                                    </TableRow>
+                                                </TableBody>
+                                            </Table>
                                         </Paper>
                                     </Grid>
-                                    <Grid item xs={12} md={6}>
-                                        <Paper variant="outlined" sx={{ p: 2, height: '100%' }}>
-                                            <Typography variant="h6" fontWeight={600} sx={{ mb: 1 }}>
-                                                Đánh giá về Chất (PLG %)
-                                            </Typography>
-                                            <Grid container spacing={1}>
-                                                <Grid item xs={4}>
-                                                    <Typography align="center" fontWeight="bold">
-                                                        Chất
-                                                    </Typography>
-                                                </Grid>
-                                                <Grid item xs={4}>
-                                                    <Typography align="center" fontWeight="bold">
-                                                        Thực tế
-                                                    </Typography>
-                                                </Grid>
-                                                <Grid item xs={4}>
-                                                    <Typography align="center" fontWeight="bold">
-                                                        Chuẩn
-                                                    </Typography>
-                                                </Grid>
-                                                <Grid item xs={4}>
-                                                    <Typography>Protein (Đạm) (%):</Typography>
-                                                </Grid>
-                                                <Grid item xs={4} align="center">
-                                                    {nutritionData.analysis.proteinPercentage || 0}%{' '}
-                                                    {getStatusChip(nutritionData.analysis.plgEvaluation?.protein)}
-                                                </Grid>
-                                                <Grid item xs={4} align="center">
-                                                    {nutritionData.standard?.plgStructure.proteinMin}-
-                                                    {nutritionData.standard?.plgStructure.proteinMax}%
-                                                </Grid>
-                                                <Grid item xs={4}>
-                                                    <Typography>Lipid (Béo) (%):</Typography>
-                                                </Grid>
-                                                <Grid item xs={4} align="center">
-                                                    {nutritionData.analysis.lipidPercentage || 0}%{' '}
-                                                    {getStatusChip(nutritionData.analysis.plgEvaluation?.lipid)}
-                                                </Grid>
-                                                <Grid item xs={4} align="center">
-                                                    {nutritionData.standard?.plgStructure.lipidMin}-
-                                                    {nutritionData.standard?.plgStructure.lipidMax}%
-                                                </Grid>
-                                                <Grid item xs={4}>
-                                                    <Typography>Glucid (Đường) (%):</Typography>
-                                                </Grid>
-                                                <Grid item xs={4} align="center">
-                                                    {nutritionData.analysis.glucidPercentage || 0}%{' '}
-                                                    {getStatusChip(nutritionData.analysis.plgEvaluation?.glucid)}
-                                                </Grid>
-                                                <Grid item xs={4} align="center">
-                                                    {nutritionData.standard?.plgStructure.glucidMin}-
-                                                    {nutritionData.standard?.plgStructure.glucidMax}%
-                                                </Grid>
-                                            </Grid>
+                                    <Grid item xs={12} md={5}>
+                                        <Paper
+                                            variant="outlined"
+                                            sx={{
+                                                height: '100%',
+                                                borderRadius: 2,
+                                                overflow: 'hidden',
+                                            }}
+                                        >
+                                            {/* Header */}
+                                            <Box
+                                                sx={{
+                                                    px: 2,
+                                                    py: 1,
+                                                    bgcolor: '#e3f2fd',
+                                                    borderBottom: '1px solid #ddd',
+                                                }}
+                                            >
+                                                <Typography fontWeight={600}>Đánh giá về Chất (PLG %)</Typography>
+                                            </Box>
+
+                                            <Table size="small">
+                                                {/* ===== TABLE HEAD ===== */}
+                                                <TableHead>
+                                                    <TableRow sx={{ bgcolor: '#f5faff' }}>
+                                                        <TableCell
+                                                            sx={{ borderRight: '1px solid #ddd', fontWeight: 600 }}
+                                                        >
+                                                            Nội dung
+                                                        </TableCell>
+                                                        <TableCell
+                                                            align="center"
+                                                            sx={{ borderRight: '1px solid #ddd', fontWeight: 600 }}
+                                                        >
+                                                            Protein (Đạm)
+                                                        </TableCell>
+                                                        <TableCell
+                                                            align="center"
+                                                            sx={{ borderRight: '1px solid #ddd', fontWeight: 600 }}
+                                                        >
+                                                            Lipid (Béo)
+                                                        </TableCell>
+                                                        <TableCell align="center" sx={{ fontWeight: 600 }}>
+                                                            Glucid (Đường)
+                                                        </TableCell>
+                                                    </TableRow>
+                                                </TableHead>
+
+                                                {/* ===== TABLE BODY ===== */}
+                                                <TableBody>
+                                                    {/* ===== Thực tế ===== */}
+                                                    <TableRow>
+                                                        <TableCell
+                                                            sx={{ borderRight: '1px solid #eee', fontWeight: 500 }}
+                                                        >
+                                                            Thực tế
+                                                        </TableCell>
+
+                                                        <TableCell
+                                                            align="center"
+                                                            sx={{ borderRight: '1px solid #eee' }}
+                                                        >
+                                                            <Typography component="span" fontWeight={600}>
+                                                                {nutritionData.analysis.proteinPercentage || 0}%
+                                                            </Typography>{' '}
+                                                            {getStatusChip(
+                                                                nutritionData.analysis.plgEvaluation?.protein,
+                                                            )}
+                                                        </TableCell>
+
+                                                        <TableCell
+                                                            align="center"
+                                                            sx={{ borderRight: '1px solid #eee' }}
+                                                        >
+                                                            <Typography component="span" fontWeight={600}>
+                                                                {nutritionData.analysis.lipidPercentage || 0}%
+                                                            </Typography>{' '}
+                                                            {getStatusChip(nutritionData.analysis.plgEvaluation?.lipid)}
+                                                        </TableCell>
+
+                                                        <TableCell align="center">
+                                                            <Typography component="span" fontWeight={600}>
+                                                                {nutritionData.analysis.glucidPercentage || 0}%
+                                                            </Typography>{' '}
+                                                            {getStatusChip(
+                                                                nutritionData.analysis.plgEvaluation?.glucid,
+                                                            )}
+                                                        </TableCell>
+                                                    </TableRow>
+
+                                                    {/* ===== Chuẩn ===== */}
+                                                    <TableRow sx={{ bgcolor: '#fafafa' }}>
+                                                        <TableCell
+                                                            sx={{ borderRight: '1px solid #eee', fontWeight: 500 }}
+                                                        >
+                                                            Chuẩn
+                                                        </TableCell>
+
+                                                        <TableCell
+                                                            align="center"
+                                                            sx={{ borderRight: '1px solid #eee' }}
+                                                        >
+                                                            {nutritionData.standard?.plgStructure.proteinMin} –{' '}
+                                                            {nutritionData.standard?.plgStructure.proteinMax} %
+                                                        </TableCell>
+
+                                                        <TableCell
+                                                            align="center"
+                                                            sx={{ borderRight: '1px solid #eee' }}
+                                                        >
+                                                            {nutritionData.standard?.plgStructure.lipidMin} –{' '}
+                                                            {nutritionData.standard?.plgStructure.lipidMax} %
+                                                        </TableCell>
+
+                                                        <TableCell align="center">
+                                                            {nutritionData.standard?.plgStructure.glucidMin} –{' '}
+                                                            {nutritionData.standard?.plgStructure.glucidMax} %
+                                                        </TableCell>
+                                                    </TableRow>
+                                                </TableBody>
+                                            </Table>
                                         </Paper>
                                     </Grid>
                                 </Grid>
@@ -849,15 +1130,49 @@ function MenuDialog({ open, mode, menuId, onClose, onSuccess }) {
                     horizontal: 'left',
                 }}
                 PaperProps={{
-                    sx: { width: 350, mt: 1 },
+                    sx: {
+                        width: 360,
+                        mt: 1,
+                        borderRadius: 2,
+                        overflow: 'hidden', // QUAN TRỌNG để header bo góc đẹp
+                    },
                 }}
             >
-                <Box sx={{ p: 1 }}>
+                {/* ===== HEADER ===== */}
+                <Box
+                    sx={{
+                        px: 2,
+                        py: 1.2,
+                        background: 'linear-gradient(135deg, #1976d2 0%, #42a5f5 100%)',
+                        color: '#fff',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                    }}
+                >
+                    <Typography fontWeight={600} fontSize="0.95rem">
+                        Thêm món ăn cho: {currentSession}
+                    </Typography>
+
+                    <IconButton
+                        size="small"
+                        onClick={handleClosePopover}
+                        sx={{
+                            color: '#fff',
+                            '&:hover': { bgcolor: 'rgba(255,255,255,0.2)' },
+                        }}
+                    >
+                        <CloseIcon fontSize="small" />
+                    </IconButton>
+                </Box>
+
+                {/* ===== SEARCH ===== */}
+                <Box sx={{ p: 1.2 }}>
                     <TextField
                         fullWidth
                         size="small"
                         variant="outlined"
-                        placeholder="Tìm món ăn..."
+                        placeholder="🔍 Tìm món ăn..."
                         value={searchMealText}
                         onChange={(e) => setSearchMealText(e.target.value)}
                         autoFocus

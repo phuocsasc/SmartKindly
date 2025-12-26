@@ -91,6 +91,12 @@ const SchoolMenuSchema = new mongoose.Schema(
         },
         aggregatedFoodTable: [AggregatedFoodItemSchema],
         analysis: NutritionalAnalysisSchema,
+        // ✅ Thêm field _ready
+        _ready: {
+            type: Boolean,
+            default: false,
+            index: true, // Để dễ dàng query các thực đơn sẵn sàng áp dụng
+        },
         createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
         lastUpdatedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
         _destroy: { type: Boolean, default: false },
@@ -102,9 +108,27 @@ SchoolMenuSchema.index({ schoolId: 1, menuName: 1, _destroy: 1 });
 SchoolMenuSchema.index({ menuNameWithoutAccent: 'text' });
 
 SchoolMenuSchema.pre('save', function (next) {
+    // 1. Tạo menuNameWithoutAccent
     if (this.isModified('menuName')) {
         this.menuNameWithoutAccent = removeVietnameseTones(this.menuName).toLowerCase();
     }
+
+    // 2. Tính toán _ready dựa trên analysis
+    if (this.analysis) {
+        const { caloriesEvaluation, plgEvaluation } = this.analysis;
+
+        // Kiểm tra tất cả các điều kiện phải "Đạt"
+        const isCaloriesReady = caloriesEvaluation === 'Đạt';
+        const isProteinReady = plgEvaluation?.protein === 'Đạt';
+        const isLipidReady = plgEvaluation?.lipid === 'Đạt';
+        const isGlucidReady = plgEvaluation?.glucid === 'Đạt';
+
+        // ✅ Chỉ khi TẤT CẢ đều "Đạt" thì _ready = true
+        this._ready = isCaloriesReady && isProteinReady && isLipidReady && isGlucidReady;
+    } else {
+        this._ready = false;
+    }
+
     next();
 });
 

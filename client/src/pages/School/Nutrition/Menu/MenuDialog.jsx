@@ -715,7 +715,7 @@ function MenuDialog({ open, mode, menuId, onClose, onSuccess }) {
                                     sx={{
                                         maxHeight: 400, // ✅ chiều cao cố định
                                         overflowY: 'auto',
-
+                                        borderRadius: 2,
                                         // ===== Custom Scrollbar =====
                                         '&::-webkit-scrollbar': {
                                             width: '6px',
@@ -743,8 +743,28 @@ function MenuDialog({ open, mode, menuId, onClose, onSuccess }) {
                                         },
                                     }}
                                 >
-                                    <Table size="small" stickyHeader>
-                                        <TableHead>
+                                    <Table
+                                        size="small"
+                                        stickyHeader
+                                        sx={{
+                                            '& th, & td': {
+                                                borderRight: '1px solid #c5bebeff',
+                                            },
+                                            '& th:last-child, & td:last-child': {
+                                                borderRight: 'none',
+                                            },
+                                        }}
+                                    >
+                                        <TableHead
+                                            sx={{
+                                                bgcolor: '#e3f2fd',
+                                                '& th': {
+                                                    fontWeight: 600,
+                                                    textAlign: 'center',
+                                                    whiteSpace: 'nowrap',
+                                                },
+                                            }}
+                                        >
                                             <TableRow>
                                                 {[
                                                     'STT',
@@ -760,7 +780,6 @@ function MenuDialog({ open, mode, menuId, onClose, onSuccess }) {
                                                     <TableCell
                                                         key={label}
                                                         sx={{
-                                                            borderRight: '1px solid #361818ff',
                                                             fontWeight: 600,
                                                             bgcolor: '#e3f2fd',
                                                             whiteSpace: 'nowrap',
@@ -782,9 +801,7 @@ function MenuDialog({ open, mode, menuId, onClose, onSuccess }) {
                                                         },
                                                     }}
                                                 >
-                                                    <TableCell sx={{ borderRight: '1px solid #361818ff' }}>
-                                                        {index + 1}
-                                                    </TableCell>
+                                                    <TableCell>{index + 1}</TableCell>
                                                     <TableCell
                                                         sx={{
                                                             borderRight: '1px solid #361818ff',
@@ -793,34 +810,17 @@ function MenuDialog({ open, mode, menuId, onClose, onSuccess }) {
                                                     >
                                                         {item.foodName}
                                                     </TableCell>
-                                                    <TableCell
-                                                        align="center"
-                                                        sx={{ borderRight: '1px solid #361818ff' }}
-                                                    >
+                                                    <TableCell align="center">
                                                         {item.quantityPerChildGram.toFixed(2)}
                                                     </TableCell>
-                                                    <TableCell
-                                                        align="center"
-                                                        sx={{ borderRight: '1px solid #361818ff' }}
-                                                    >
+                                                    <TableCell align="center">
                                                         {item.totalQuantityKg.toFixed(1)}
                                                     </TableCell>
-                                                    <TableCell
-                                                        align="center"
-                                                        sx={{ borderRight: '1px solid #361818ff' }}
-                                                    >
-                                                        {item.wastePercentage}%
-                                                    </TableCell>
-                                                    <TableCell
-                                                        align="center"
-                                                        sx={{ borderRight: '1px solid #361818ff' }}
-                                                    >
+                                                    <TableCell align="center">{item.wastePercentage}%</TableCell>
+                                                    <TableCell align="center">
                                                         {item.purchaseQuantityKg.toFixed(1)}
                                                     </TableCell>
-                                                    <TableCell
-                                                        align="center"
-                                                        sx={{ borderRight: '1px solid #361818ff' }}
-                                                    >
+                                                    <TableCell align="center">
                                                         <TextField
                                                             type="number"
                                                             size="small"
@@ -832,18 +832,8 @@ function MenuDialog({ open, mode, menuId, onClose, onSuccess }) {
                                                             inputProps={{ min: 0, step: 0.1 }}
                                                         />
                                                     </TableCell>
-                                                    <TableCell
-                                                        align="center"
-                                                        sx={{ borderRight: '1px solid #361818ff' }}
-                                                    >
-                                                        {item.unit}
-                                                    </TableCell>
-                                                    <TableCell
-                                                        align="center"
-                                                        sx={{ borderRight: '1px solid #361818ff' }}
-                                                    >
-                                                        {item.gramConversion}
-                                                    </TableCell>
+                                                    <TableCell align="center">{item.unit}</TableCell>
+                                                    <TableCell align="center">{item.gramConversion}</TableCell>
                                                 </TableRow>
                                             ))}
                                         </TableBody>
@@ -874,9 +864,27 @@ function MenuDialog({ open, mode, menuId, onClose, onSuccess }) {
                                                 <Typography fontWeight={600}>Đánh giá về Lượng</Typography>
                                             </Box>
 
-                                            <Table size="small">
+                                            <Table
+                                                size="small"
+                                                sx={{
+                                                    '& th, & td': {
+                                                        borderRight: '1px solid #e0e0e0',
+                                                    },
+                                                    '& th:last-child, & td:last-child': {
+                                                        borderRight: 'none',
+                                                    },
+                                                }}
+                                            >
                                                 {/* ===== TABLE HEAD ===== */}
-                                                <TableHead>
+                                                <TableHead
+                                                    sx={{
+                                                        bgcolor: '#e3f2fd',
+                                                        '& th': {
+                                                            fontWeight: 600,
+                                                            whiteSpace: 'nowrap',
+                                                        },
+                                                    }}
+                                                >
                                                     <TableRow sx={{ bgcolor: '#f5faff' }}>
                                                         <TableCell sx={{ borderRight: '1px solid #ddd' }}>
                                                             <Typography fontWeight={600}>Nội dung</Typography>
@@ -1032,9 +1040,27 @@ function MenuDialog({ open, mode, menuId, onClose, onSuccess }) {
                                                 <Typography fontWeight={600}>Đánh giá về Chất (PLG %)</Typography>
                                             </Box>
 
-                                            <Table size="small">
+                                            <Table
+                                                size="small"
+                                                sx={{
+                                                    '& th, & td': {
+                                                        borderRight: '1px solid #e0e0e0',
+                                                    },
+                                                    '& th:last-child, & td:last-child': {
+                                                        borderRight: 'none',
+                                                    },
+                                                }}
+                                            >
                                                 {/* ===== TABLE HEAD ===== */}
-                                                <TableHead>
+                                                <TableHead
+                                                    sx={{
+                                                        bgcolor: '#e3f2fd',
+                                                        '& th': {
+                                                            fontWeight: 600,
+                                                            whiteSpace: 'nowrap',
+                                                        },
+                                                    }}
+                                                >
                                                     <TableRow sx={{ bgcolor: '#f5faff' }}>
                                                         <TableCell
                                                             sx={{ borderRight: '1px solid #ddd', fontWeight: 600 }}

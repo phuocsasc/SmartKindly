@@ -212,6 +212,7 @@ const getAll = async (query, userId) => {
                 ageGroup: 1,
                 numberOfChildren: 1,
                 analysis: 1,
+                _ready: 1,
                 createdAt: 1,
                 updatedAt: 1, // Thêm dòng này
                 'meals.Bữa sáng.name': 1,

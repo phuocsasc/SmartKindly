@@ -460,10 +460,43 @@ function MealDialog({ open, mode, meal, onClose, onSuccess }) {
                             </Box>
                         ) : (
                             <>
-                                <TableContainer component={Paper} variant="outlined">
-                                    <Table size="small">
-                                        <TableHead sx={{ bgcolor: '#e3f2fd' }}>
-                                            <TableRow>
+                                <TableContainer
+                                    component={Paper}
+                                    variant="outlined"
+                                    sx={{
+                                        borderRadius: 2,
+                                        overflow: 'hidden',
+                                    }}
+                                >
+                                    <Table
+                                        size="small"
+                                        sx={{
+                                            '& th, & td': {
+                                                borderRight: '1px solid #e0e0e0',
+                                            },
+                                            '& th:last-child, & td:last-child': {
+                                                borderRight: 'none',
+                                            },
+                                        }}
+                                    >
+                                        <TableHead
+                                            sx={{
+                                                bgcolor: '#e3f2fd',
+                                                '& th': {
+                                                    fontWeight: 600,
+                                                    textAlign: 'center',
+                                                },
+                                            }}
+                                        >
+                                            <TableRow
+                                                sx={{
+                                                    bgcolor: '#e3f2fd',
+                                                    '& th': {
+                                                        fontWeight: 600,
+                                                        textAlign: 'center',
+                                                    },
+                                                }}
+                                            >
                                                 <TableCell align="center" width={50}>
                                                     STT
                                                 </TableCell>
@@ -564,16 +597,16 @@ function MealDialog({ open, mode, meal, onClose, onSuccess }) {
                                     </Table>
                                 </TableContainer>
                                 <Paper
-                                    variant="outlined"
+                                    elevation={0}
                                     sx={{
                                         mt: 2,
-                                        p: 1.5,
-                                        bgcolor: '#e3f2fd',
+                                        p: 2,
                                         display: 'flex',
-                                        // justifyContent: 'flex-end',
+                                        justifyContent: 'space-between',
                                         alignItems: 'center',
-                                        gap: 2,
-                                        border: '1px solid #ffe0b2',
+                                        borderRadius: 2,
+                                        background: 'linear-gradient(135deg, #e3f2fd, #ffffff)',
+                                        border: '1px solid #e0e0e0',
                                     }}
                                 >
                                     <Typography variant="body1" fontWeight={600}>

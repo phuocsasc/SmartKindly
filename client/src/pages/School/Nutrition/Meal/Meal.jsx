@@ -32,6 +32,8 @@ import ConfirmDialog from '~/components/common/ConfirmDialog';
 import { useConfirmDialog } from '~/hooks/useConfirmDialog';
 import { PERMISSIONS } from '~/config/rbacConfig';
 import { usePermission } from '~/hooks/usePermission';
+import VisibilityOutlinedIcon from '@mui/icons-material/VisibilityOutlined'; // ✅ Thêm icon
+import MealViewDialog from './MealViewDialog'; // ✅ Import dialog mới
 import dayjs from '~/config/dayjsConfig';
 
 const MEAL_TYPES = [
@@ -63,6 +65,10 @@ function Meal() {
     const [openDialog, setOpenDialog] = useState(false);
     const [dialogMode, setDialogMode] = useState('create');
     const [currentMeal, setCurrentMeal] = useState(null);
+
+    // ✅ Thêm state cho view dialog
+    const [openViewDialog, setOpenViewDialog] = useState(false);
+    const [viewMealId, setViewMealId] = useState(null);
 
     // Debounce search
     useEffect(() => {
@@ -146,6 +152,17 @@ function Meal() {
     const handleDialogSuccess = () => {
         fetchMeals();
         handleDialogClose();
+    };
+
+    // ✅ Handler xem chi tiết
+    const handleView = (meal) => {
+        setViewMealId(meal.id);
+        setOpenViewDialog(true);
+    };
+
+    const handleViewDialogClose = () => {
+        setOpenViewDialog(false);
+        setViewMealId(null);
     };
 
     const renderDateTimeCell = (value) => {
@@ -302,12 +319,20 @@ function Meal() {
         {
             field: 'actions',
             headerName: 'Thao tác',
-            width: 120,
+            width: 140,
             sortable: false,
             align: 'center',
             headerAlign: 'center',
             renderCell: (params) => (
                 <Box sx={{ display: 'flex', gap: 0.5 }}>
+                    {/* ✅ Icon xem chi tiết - Tất cả role đều có */}
+                    {hasPermission(PERMISSIONS.VIEW_MEAL) && (
+                        <Tooltip title="Xem chi tiết">
+                            <IconButton size="small" color="info" onClick={() => handleView(params.row)}>
+                                <VisibilityOutlinedIcon fontSize="small" />
+                            </IconButton>
+                        </Tooltip>
+                    )}
                     {hasPermission(PERMISSIONS.UPDATE_MEAL) && (
                         <Tooltip
                             title={
@@ -497,6 +522,9 @@ function Meal() {
                 onClose={handleDialogClose}
                 onSuccess={handleDialogSuccess}
             />
+
+            {/* ✅ Dialog xem chi tiết */}
+            <MealViewDialog open={openViewDialog} mealId={viewMealId} onClose={handleViewDialogClose} />
 
             {/* Confirm Dialog */}
             <ConfirmDialog {...dialogState} onCancel={handleCancel} />

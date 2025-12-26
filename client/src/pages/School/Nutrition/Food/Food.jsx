@@ -23,6 +23,8 @@ import SyncIcon from '@mui/icons-material/Sync';
 import MainLayout from '~/layouts/SchoolLayout';
 import PageContainer from '~/components/common/PageContainer';
 import PageBreadcrumb from '~/components/common/PageBreadcrumb';
+import { GridFooterContainer, GridPagination } from '@mui/x-data-grid';
+import WarningAmberOutlinedIcon from '@mui/icons-material/WarningAmberOutlined';
 import { useUser } from '~/contexts/UserContext';
 import { schoolFoodApi } from '~/apis/schoolFoodApi';
 import { toast } from 'react-toastify';
@@ -293,6 +295,53 @@ function Food() {
         },
     ];
 
+    const CustomGridFooter = () => {
+        return (
+            <GridFooterContainer
+                sx={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    // px: 2,
+                    paddingTop: 1,
+                    borderTop: '1px solid',
+                    borderColor: 'divider',
+                    // bgcolor: '#fafafa',
+                }}
+            >
+                {/* 👈 Chú thích bên trái */}
+                <Box
+                    sx={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 1,
+                        // px: 2,
+                        py: 2,
+                        borderRadius: 1.5,
+                        // bgcolor: '#fff8e1',
+                        // border: '1px dashed #ffcc80',
+                    }}
+                >
+                    <WarningAmberOutlinedIcon fontSize="small" sx={{ color: '#f57c00', mt: -0.5 }} />
+                    <Typography
+                        variant="body2"
+                        sx={{
+                            color: '#e65100',
+                            fontWeight: 600,
+                            lineHeight: 1.4,
+                        }}
+                    >
+                        Vui lòng chỉnh sửa Đơn vị tính, Quy đổi sang gam (hoặc ml) và Hệ số thái bỏ phù hợp với từng
+                        loại thực phẩm.
+                    </Typography>
+                </Box>
+
+                {/* 👉 Pagination */}
+                <GridPagination />
+            </GridFooterContainer>
+        );
+    };
+
     return (
         <MainLayout user={user}>
             <PageContainer>
@@ -413,6 +462,8 @@ function Food() {
                             border: 'none',
                         }}
                         slots={{
+                            footer: CustomGridFooter, // ✅ GẮN FOOTER
+
                             noRowsOverlay: () => (
                                 <Box sx={{ p: 3, textAlign: 'center' }}>
                                     <Typography>Không tìm thấy dữ liệu!</Typography>

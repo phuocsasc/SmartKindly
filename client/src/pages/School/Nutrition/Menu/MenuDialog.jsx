@@ -461,6 +461,22 @@ function MenuDialog({ open, mode, menuId, onClose, onSuccess }) {
         }
     };
 
+    const HeaderWithTooltip = ({ label, tooltip }) => (
+        <Tooltip title={tooltip} arrow placement="top">
+            <Box
+                sx={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 0.5,
+                    cursor: 'help',
+                }}
+            >
+                <Typography fontWeight={600}>{label}</Typography>
+                <InfoOutlinedIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
+            </Box>
+        </Tooltip>
+    );
+
     return (
         <Dialog open={open} onClose={onClose} maxWidth="xl" fullWidth PaperProps={{ sx: { borderRadius: 3 } }}>
             <DialogTitle
@@ -834,7 +850,7 @@ function MenuDialog({ open, mode, menuId, onClose, onSuccess }) {
                                     </Table>
                                 </TableContainer>
                                 <Typography variant="h6" fontWeight={600}>
-                                    Thống kê thành phần dinh dưỡng
+                                    Thống kê thành phần dinh dưỡng cho 1 trẻ
                                 </Typography>
                                 <Grid container spacing={1} sx={{ mt: 0 }}>
                                     <Grid item xs={12} md={7}>
@@ -862,31 +878,41 @@ function MenuDialog({ open, mode, menuId, onClose, onSuccess }) {
                                                 {/* ===== TABLE HEAD ===== */}
                                                 <TableHead>
                                                     <TableRow sx={{ bgcolor: '#f5faff' }}>
-                                                        <TableCell
-                                                            sx={{ borderRight: '1px solid #ddd', fontWeight: 600 }}
-                                                        >
-                                                            Nội dung
+                                                        <TableCell sx={{ borderRight: '1px solid #ddd' }}>
+                                                            <Typography fontWeight={600}>Nội dung</Typography>
                                                         </TableCell>
                                                         <TableCell
                                                             align="center"
-                                                            sx={{ borderRight: '1px solid #ddd', fontWeight: 600 }}
+                                                            sx={{ borderRight: '1px solid #ddd' }}
                                                         >
-                                                            Protein (Đạm)
+                                                            <HeaderWithTooltip
+                                                                label="Protein (Đạm)"
+                                                                tooltip="Tổng lượng Protein (Đạm) của tất cả thực phẩm trong thực đơn này"
+                                                            />
                                                         </TableCell>
                                                         <TableCell
                                                             align="center"
-                                                            sx={{ borderRight: '1px solid #ddd', fontWeight: 600 }}
+                                                            sx={{ borderRight: '1px solid #ddd' }}
                                                         >
-                                                            Lipid (Béo)
+                                                            <HeaderWithTooltip
+                                                                label="Lipid (Béo)"
+                                                                tooltip="Tổng lượng Lipid (Béo) của tất cả thực phẩm trong thực đơn này"
+                                                            />
                                                         </TableCell>
                                                         <TableCell
                                                             align="center"
-                                                            sx={{ borderRight: '1px solid #ddd', fontWeight: 600 }}
+                                                            sx={{ borderRight: '1px solid #ddd' }}
                                                         >
-                                                            Glucid (Đường)
+                                                            <HeaderWithTooltip
+                                                                label="Glucid (Đường)"
+                                                                tooltip="Tổng lượng Glucid (Đường) của tất cả thực phẩm trong thực đơn này"
+                                                            />
                                                         </TableCell>
-                                                        <TableCell align="center" sx={{ fontWeight: 600 }}>
-                                                            Tổng Calo
+                                                        <TableCell align="center">
+                                                            <HeaderWithTooltip
+                                                                label="Tổng Calo"
+                                                                tooltip="Công thức tính Calo: Protein × 4 + Lipid × 9 + Glucid × 4"
+                                                            />
                                                         </TableCell>
                                                     </TableRow>
                                                 </TableHead>
@@ -898,7 +924,7 @@ function MenuDialog({ open, mode, menuId, onClose, onSuccess }) {
                                                         <TableCell
                                                             sx={{ borderRight: '1px solid #eee', fontWeight: 500 }}
                                                         >
-                                                            Tổng Calo (thực tế)
+                                                            Tổng lượng (thực tế)
                                                         </TableCell>
 
                                                         <TableCell
@@ -1013,22 +1039,31 @@ function MenuDialog({ open, mode, menuId, onClose, onSuccess }) {
                                                         <TableCell
                                                             sx={{ borderRight: '1px solid #ddd', fontWeight: 600 }}
                                                         >
-                                                            Nội dung
+                                                            <Typography fontWeight={600}>Nội dung</Typography>
                                                         </TableCell>
                                                         <TableCell
                                                             align="center"
-                                                            sx={{ borderRight: '1px solid #ddd', fontWeight: 600 }}
+                                                            sx={{ borderRight: '1px solid #ddd' }}
                                                         >
-                                                            Protein (Đạm)
+                                                            <HeaderWithTooltip
+                                                                label="Protein (Đạm)"
+                                                                tooltip="Công thức tính tỷ lệ P %: (Tổng lượng Protein (Đạm) × 4) / Tổng Calo"
+                                                            />
                                                         </TableCell>
                                                         <TableCell
                                                             align="center"
-                                                            sx={{ borderRight: '1px solid #ddd', fontWeight: 600 }}
+                                                            sx={{ borderRight: '1px solid #ddd' }}
                                                         >
-                                                            Lipid (Béo)
+                                                            <HeaderWithTooltip
+                                                                label="Lipid (Béo)"
+                                                                tooltip="Công thức tính tỷ lệ L %: (Tổng lượng Lipid (Béo) × 9) / Tổng Calo"
+                                                            />
                                                         </TableCell>
-                                                        <TableCell align="center" sx={{ fontWeight: 600 }}>
-                                                            Glucid (Đường)
+                                                        <TableCell align="center">
+                                                            <HeaderWithTooltip
+                                                                label="Glucid (Đường)"
+                                                                tooltip="Công thức tính tỷ lệ G %: (Tổng lượng Glucid (Đường) × 4) / Tổng Calo"
+                                                            />
                                                         </TableCell>
                                                     </TableRow>
                                                 </TableHead>

@@ -26,7 +26,7 @@ import GroupsIcon from '@mui/icons-material/Groups';
 import { departmentApi } from '~/apis/departmentApi';
 import { toast } from 'react-toastify';
 
-const DEPARTMENT_NAMES = ['Cán bộ quản lý', 'Tổ Văn Phòng', 'Khối Nhà Trẻ', 'Khối Mầm', 'Khối Chồi', 'Khối Lá'];
+const DEPARTMENT_NAMES = ['Khối Nhà Trẻ', 'Khối Mầm', 'Khối Chồi', 'Khối Lá'];
 
 function DepartmentDialog({ open, mode, department, academicYearId, onClose, onSuccess }) {
     const [formData, setFormData] = useState({

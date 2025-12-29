@@ -101,6 +101,7 @@ function UserDialog({ open, mode, user, onClose, onSuccess }) {
     // ✅ Lọc role: Nếu không phải BGH root thì không hiển thị vai trò BGH
     const availableRoles = Object.entries(ROLE_DISPLAY).filter(([code]) => {
         if (code === ROLES.ADMIN) return false; // Luôn ẩn admin
+        if (code === ROLES.PHU_HUYNH) return false; // luôn ẩn phụ huynh
         if (code === ROLES.BAN_GIAM_HIEU && !isCurrentUserRoot) return false; // Chỉ BGH root mới thấy
         return true;
     });

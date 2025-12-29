@@ -3,7 +3,6 @@ export const ROLES = {
     BAN_GIAM_HIEU: 'ban_giam_hieu',
     TO_TRUONG: 'to_truong',
     GIAO_VIEN: 'giao_vien',
-    KE_TOAN: 'ke_toan',
     PHU_HUYNH: 'phu_huynh',
 };
 
@@ -274,7 +273,6 @@ export const ROLE_PERMISSIONS = {
         PERMISSIONS.VIEW_NUTRITIONAL_STANDARDS,
         PERMISSIONS.VIEW_SERVICE_CHARGE,
     ],
-    [ROLES.KE_TOAN]: [PERMISSIONS.VIEW_SCHOOL_INFO, PERMISSIONS.VIEW_CLASSROOM, PERMISSIONS.VIEW_DASHBOARD],
     [ROLES.PHU_HUYNH]: [PERMISSIONS.VIEW_SCHOOL_INFO, PERMISSIONS.VIEW_DASHBOARD],
 };
 
@@ -284,7 +282,6 @@ export const ROLE_DISPLAY = {
     [ROLES.BAN_GIAM_HIEU]: 'Ban giám hiệu',
     [ROLES.TO_TRUONG]: 'Tổ trưởng',
     [ROLES.GIAO_VIEN]: 'Giáo viên',
-    [ROLES.KE_TOAN]: 'Kế toán',
     [ROLES.PHU_HUYNH]: 'Phụ huynh',
 };
 
@@ -293,6 +290,5 @@ export const ROLE_CODE = {
     'Ban giám hiệu': ROLES.BAN_GIAM_HIEU,
     'Tổ trưởng': ROLES.TO_TRUONG,
     'Giáo viên': ROLES.GIAO_VIEN,
-    'Kế toán': ROLES.KE_TOAN,
     'Phụ huynh': ROLES.PHU_HUYNH,
 };

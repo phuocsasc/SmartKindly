@@ -1,7 +1,6 @@
 import SchoolIcon from '@mui/icons-material/School';
 import GroupsIcon from '@mui/icons-material/Groups';
 import PersonIcon from '@mui/icons-material/Person';
-import AccountBalanceIcon from '@mui/icons-material/AccountBalance';
 import FamilyRestroomIcon from '@mui/icons-material/FamilyRestroom';
 import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
 import { ROLES, ROLE_DISPLAY, PERMISSIONS } from './rbacConfig';
@@ -26,11 +25,6 @@ export const ROLE_CONFIG = {
         color: '#1976d2',
         bgColor: '#e3f2fd',
         icon: PersonIcon,
-    },
-    [ROLES.KE_TOAN]: {
-        color: '#388e3c',
-        bgColor: '#e8f5e9',
-        icon: AccountBalanceIcon,
     },
     [ROLES.PHU_HUYNH]: {
         color: '#7b1fa2',

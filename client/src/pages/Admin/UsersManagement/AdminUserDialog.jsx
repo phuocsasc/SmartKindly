@@ -113,11 +113,12 @@ function AdminUserDialog({ open, mode, user, schools, onClose, onSuccess }) {
     };
 
     const isCreateMode = mode === 'create';
+    const isEditParentUser = mode === 'edit' && user?.role === 'phu_huynh';
     const roleConfig = ROLE_CONFIG[formData.role] || {};
     const RoleIcon = roleConfig.icon || PersonIcon;
 
-    // Lọc role (không hiển thị admin)
-    const availableRoles = Object.entries(ROLE_DISPLAY).filter(([code]) => code !== 'admin');
+    // ❌ Không cho chọn admin & phụ huynh
+    const availableRoles = Object.entries(ROLE_DISPLAY).filter(([code]) => code !== 'admin' && code !== 'phu_huynh');
 
     return (
         <Dialog
@@ -395,6 +396,7 @@ function AdminUserDialog({ open, mode, user, schools, onClose, onSuccess }) {
                                 required
                                 fullWidth
                                 size="small"
+                                disabled={isEditParentUser} // ✅ disable khi là phụ huynh
                                 sx={{
                                     '& .MuiOutlinedInput-root': {
                                         borderRadius: 1.5,
@@ -443,6 +445,11 @@ function AdminUserDialog({ open, mode, user, schools, onClose, onSuccess }) {
                                     })}
                                 </Select>
                             </FormControl>
+                            {isEditParentUser && (
+                                <Typography variant="caption" color="text.secondary">
+                                    Vai trò Phụ huynh được hệ thống tự động quản lý và không thể thay đổi
+                                </Typography>
+                            )}
 
                             {/* Checkbox isRoot chỉ hiển thị khi role là ban_giam_hieu */}
                             {formData.role === 'ban_giam_hieu' && (

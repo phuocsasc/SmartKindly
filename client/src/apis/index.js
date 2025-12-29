@@ -76,3 +76,5 @@ export * from './schoolNutritionalStandardApi';
 export * from './schoolServiceChargeApi';
 
 export * from './schoolMenuApi'; // Thêm dòng này
+
+export * from './schoolMenuApplyApi';

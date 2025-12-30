@@ -76,6 +76,7 @@ const menuItems = [
         text: 'Quản lý trẻ em',
         icon: <ChildCareOutlinedIcon />,
         children: [
+            { text: 'Danh sách trẻ toàn trường', path: '/children/management' },
             { text: 'Hồ sơ trẻ em', path: '/children/profile' },
             { text: 'Điểm danh trẻ em', path: '/children/attendance' },
             { text: 'Đánh giá trẻ hằng ngày', path: '/children/assessment' },

@@ -1,0 +1,68 @@
+// utils/vietnamEthnicities.js
+
+/**
+ * Danh sách 54 dân tộc Việt Nam
+ * Source: Tổng cục Thống kê Việt Nam
+ */
+
+export const VIETNAM_ETHNICITIES = [
+    { code: 'kinh', name: 'Kinh' },
+    { code: 'tay', name: 'Tày' },
+    { code: 'thai', name: 'Thái' },
+    { code: 'muong', name: 'Mường' },
+    { code: 'hoa', name: 'Hoa (Hán)' },
+    { code: 'khmer', name: 'Khơ-me' },
+    { code: 'nung', name: 'Nùng' },
+    { code: 'hmong', name: 'HMông (Mèo)' },
+    { code: 'dao', name: 'Dao' },
+    { code: 'giarai', name: 'Gia-rai' },
+    { code: 'ede', name: 'Ê-đê' },
+    { code: 'bana', name: 'Ba-na' },
+    { code: 'sanchay', name: 'Sán Chay (Cao Lan - Sán Chỉ)' },
+    { code: 'cham', name: 'Chăm (Chàm)' },
+    { code: 'xodang', name: 'Xơ-đăng' },
+    { code: 'sandiu', name: 'Sán Dìu' },
+    { code: 'hre', name: 'Hrê' },
+    { code: 'coho', name: 'Cơ-ho' },
+    { code: 'raglai', name: 'Ra-glai' },
+    { code: 'mnong', name: 'Mnông' },
+    { code: 'tho', name: 'Thổ' },
+    { code: 'xtieng', name: 'Xtiêng' },
+    { code: 'khomu', name: 'Khơ-mú' },
+    { code: 'bruvan_kieu', name: 'Bru-Vân Kiều' },
+    { code: 'giay', name: 'Giáy' },
+    { code: 'cotu', name: 'Cơ-tu' },
+    { code: 'gietrieng', name: 'Gié-Triêng' },
+    { code: 'taoi', name: 'Ta-ôi' },
+    { code: 'ma', name: 'Mạ' },
+    { code: 'co', name: 'Co' },
+    { code: 'choro', name: 'Chơ-ro' },
+    { code: 'hani', name: 'Hà Nhì' },
+    { code: 'xinhmun', name: 'Xinh-mun' },
+    { code: 'churu', name: 'Chu-ru' },
+    { code: 'lao', name: 'Lào' },
+    { code: 'lachi', name: 'La-chí' },
+    { code: 'phula', name: 'Phù Lá' },
+    { code: 'lahu', name: 'La Hủ' },
+    { code: 'khang', name: 'Kháng' },
+    { code: 'lu', name: 'Lự' },
+    { code: 'pathe', name: 'Pà Thẻn' },
+    { code: 'lolo', name: 'Lô Lô' },
+    { code: 'chut', name: 'Chứt' },
+    { code: 'mang', name: 'Mảng' },
+    { code: 'colao', name: 'Cờ Lao' },
+    { code: 'boy', name: 'Bố Y' },
+    { code: 'laha', name: 'La Ha' },
+    { code: 'cong', name: 'Cống' },
+    { code: 'ngai', name: 'Ngái' },
+    { code: 'sila', name: 'Si La' },
+    { code: 'pupeo', name: 'Pu Péo' },
+    { code: 'brau', name: 'Brâu' },
+    { code: 'romam', name: 'Rơ-măm' },
+    { code: 'odu', name: 'Ơ-đu' },
+];
+
+// Dạng mảng string (dùng nhanh)
+export const VIETNAM_ETHNICITY_NAMES = VIETNAM_ETHNICITIES.map((ethnic) => ethnic.name);
+
+export default VIETNAM_ETHNICITIES;

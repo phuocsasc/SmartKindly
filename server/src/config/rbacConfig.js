@@ -93,6 +93,11 @@ export const PERMISSIONS = {
     UPDATE_CHILDREN_MANAGEMENT: 'update_children_management',
     DELETE_CHILDREN_MANAGEMENT: 'delete_children_management',
 
+    // Quản lý danh sách trẻ theo lớp
+    VIEW_CHILDREN_BY_CLASS: 'view_children_by_class',
+    CREATE_CHILDREN_BY_CLASS: 'create_children_by_class',
+    UPDATE_CHILDREN_BY_CLASS: 'update_children_by_class',
+
     //Quản lý hồ sơ trẻ em
     VIEW_CHILDREN_PROFILE: 'view_children_profile',
     CREATE_CHILDREN_PROFILE: 'create_children_profile',
@@ -186,6 +191,10 @@ export const ROLE_PERMISSIONS = {
         PERMISSIONS.VIEW_SCHEDULE,
         PERMISSIONS.VIEW_CHILDREN_MANAGEMENT, // ✅ Chỉ xem
 
+        PERMISSIONS.VIEW_CHILDREN_BY_CLASS,
+        PERMISSIONS.CREATE_CHILDREN_BY_CLASS,
+        PERMISSIONS.UPDATE_CHILDREN_BY_CLASS,
+
         PERMISSIONS.CREATE_HISTORY,
         PERMISSIONS.VIEW_HISTORY,
 
@@ -241,6 +250,10 @@ export const ROLE_PERMISSIONS = {
         PERMISSIONS.DELETE_EDUCATION_ACTIVITY,
         PERMISSIONS.VIEW_SCHEDULE,
         PERMISSIONS.VIEW_CHILDREN_MANAGEMENT, // ✅ Chỉ xem
+
+        PERMISSIONS.VIEW_CHILDREN_BY_CLASS,
+        PERMISSIONS.CREATE_CHILDREN_BY_CLASS,
+        PERMISSIONS.UPDATE_CHILDREN_BY_CLASS,
 
         PERMISSIONS.CREATE_HISTORY,
         PERMISSIONS.VIEW_HISTORY,

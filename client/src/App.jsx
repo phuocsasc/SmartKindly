@@ -44,6 +44,7 @@ import WeeklyPlan from './pages/School/EducationPlan/WeeklyPlan/WeeklyPlan';
 
 // Quản lý trẻ em
 import ChildrenManagement from '~/pages/School/Children/ChildrenManagement/ChildrenManagement';
+import ChildrenByClass from './pages/School/Children/ChildrenByClass/ChildrenByClass';
 import ChildrenProfile from '~/pages/School/Children/ChildrenProfile/ChildrenProfile';
 import ChildrenAttendance from '~/pages/School/Children/ChildrenAttendance/ChildrenAttendance';
 import ChildrenAssessment from '~/pages/School/Children/ChildrenAssessment/ChildrenAssessment';
@@ -167,6 +168,9 @@ function AppContent() {
                     {/* Quản lý trẻ em */}
                     <Route element={<RbacRoute requiredPermission={PERMISSIONS.VIEW_CHILDREN_MANAGEMENT} />}>
                         <Route path="/children/management" element={<ChildrenManagement />} />
+                    </Route>
+                    <Route element={<RbacRoute requiredPermission={PERMISSIONS.VIEW_CHILDREN_BY_CLASS} />}>
+                        <Route path="/children/class" element={<ChildrenByClass />} />
                     </Route>
                     <Route element={<RbacRoute requiredPermission={PERMISSIONS.VIEW_CHILDREN_PROFILE} />}>
                         <Route path="/children/profile" element={<ChildrenProfile />} />

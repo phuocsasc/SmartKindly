@@ -13,8 +13,8 @@ const createNew = async (req, res, next) => {
             .valid('12-24 tháng', '24-36 tháng', '3-4 tuổi', '4-5 tuổi', '5-6 tuổi')
             .required()
             .messages({
-                'any.required': 'Nhóm lớp là bắt buộc',
-                'any.only': 'Nhóm lớp không hợp lệ',
+                'any.required': 'Nhóm tuổi là bắt buộc',
+                'any.only': 'Nhóm tuổi không hợp lệ',
             }),
         name: Joi.string().required().min(2).max(100).trim().messages({
             'string.empty': 'Tên lớp không được để trống',
@@ -55,7 +55,7 @@ const update = async (req, res, next) => {
             'any.only': 'Khối không hợp lệ',
         }),
         ageGroup: Joi.string().valid('12-24 tháng', '24-36 tháng', '3-4 tuổi', '4-5 tuổi', '5-6 tuổi').messages({
-            'any.only': 'Nhóm lớp không hợp lệ',
+            'any.only': 'Nhóm tuổi không hợp lệ',
         }),
         name: Joi.string().min(2).max(100).trim().messages({
             'string.min': 'Tên lớp phải có ít nhất 2 ký tự',

@@ -99,7 +99,7 @@ const getAll = async (query, userId) => {
             throw new ApiError(StatusCodes.FORBIDDEN, 'Bạn không thuộc trường học nào');
         }
 
-        const { page = 1, limit = 10, search = '', status = '', hasClass = '' } = query;
+        const { page = 1, limit = 10, search = '', status = '', hasClass = '', ageGroup = '' } = query;
 
         const filter = {
             schoolId: user.schoolId,
@@ -114,6 +114,11 @@ const getAll = async (query, userId) => {
         // ✅ Filter theo đã có lớp chưa
         if (hasClass !== '') {
             filter.hasClass = hasClass === 'true';
+        }
+
+        // ✅ Filter theo nhóm tuổi
+        if (ageGroup) {
+            filter.currentAgeGroup = ageGroup;
         }
 
         // ✅ Tìm kiếm theo tên hoặc mã học sinh
@@ -218,6 +223,7 @@ const update = async (id, data, userId) => {
             'gender',
             'ethnicity',
             'enrollmentDate',
+            'currentAgeGroup',
             'status',
             'motherName',
             'motherBirthYear',
@@ -371,7 +377,7 @@ const resetHasClassForNewYear = async (schoolId) => {
 
         const result = await ChildrenManagementModel.updateMany(
             { schoolId, _destroy: false },
-            { $set: { hasClass: false, currentClassName: 'Chưa có', currentAgeGroup: 'Chưa có' } },
+            { $set: { hasClass: false } },
         );
 
         console.log(`✅ [ChildrenManagement resetHasClassForNewYear] Reset ${result.modifiedCount} children`);
@@ -423,6 +429,7 @@ const importBulk = async (data, userId) => {
                             gender: row.gender,
                             ethnicity: row.ethnicity,
                             enrollmentDate: row.enrollmentDate,
+                            currentAgeGroup: row.currentAgeGroup, // ✅ THÊM
                             status: row.status,
                             motherName: row.motherName || '',
                             motherBirthYear: row.motherBirthYear || null,

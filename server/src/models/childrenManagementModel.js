@@ -66,7 +66,11 @@ const ChildrenManagementSchema = new mongoose.Schema(
         },
         currentAgeGroup: {
             type: String,
-            default: 'Chưa có',
+            required: [true, 'Nhóm tuổi hiện tại là bắt buộc'],
+            enum: {
+                values: ['12-24 tháng', '24-36 tháng', '3-4 tuổi', '4-5 tuổi', '5-6 tuổi'],
+                message: 'Nhóm tuổi hiện tại không hợp lệ',
+            },
             trim: true,
         },
         currentClassName: {

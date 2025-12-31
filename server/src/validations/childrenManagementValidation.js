@@ -2,6 +2,8 @@ import Joi from 'joi';
 import { StatusCodes } from 'http-status-codes';
 import ApiError from '~/utils/ApiError.js';
 
+const AGE_GROUPS = ['12-24 tháng', '24-36 tháng', '3-4 tuổi', '4-5 tuổi', '5-6 tuổi'];
+
 const create = async (req, res, next) => {
     const currentYear = new Date().getFullYear();
 
@@ -35,6 +37,14 @@ const create = async (req, res, next) => {
             'any.required': 'Ngày nhập học là bắt buộc',
             'date.base': 'Ngày nhập học không hợp lệ',
         }),
+        // ✅ THÊM: Validation cho currentAgeGroup
+        currentAgeGroup: Joi.string()
+            .valid(...AGE_GROUPS)
+            .required()
+            .messages({
+                'any.only': 'Nhóm tuổi hiện tại không hợp lệ',
+                'any.required': 'Nhóm tuổi hiện tại là bắt buộc',
+            }),
         status: Joi.string().valid('Đang học', 'Nghỉ học').default('Đang học'),
 
         // Thông tin gia đình
@@ -93,6 +103,12 @@ const update = async (req, res, next) => {
         gender: Joi.string().valid('Nam', 'Nữ'),
         ethnicity: Joi.string().max(50).trim(),
         enrollmentDate: Joi.date(),
+        // ✅ THÊM: Validation cho update
+        currentAgeGroup: Joi.string()
+            .valid(...AGE_GROUPS)
+            .messages({
+                'any.only': 'Nhóm tuổi hiện tại không hợp lệ',
+            }),
         status: Joi.string().valid('Đang học', 'Nghỉ học'),
         motherName: Joi.string().max(100).trim().allow(''),
         motherBirthYear: Joi.number().integer().min(1940).max(currentYear).allow(null),

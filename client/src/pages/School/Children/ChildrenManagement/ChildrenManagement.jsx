@@ -49,6 +49,7 @@ function ChildrenManagement() {
     const [searchText, setSearchText] = useState('');
     const [filterStatus, setFilterStatus] = useState('Đang học'); // ✅ Mặc định "Đang học"
     const [filterHasClass, setFilterHasClass] = useState(''); // '' | 'true' | 'false'
+    const [filterAgeGroup, setFilterAgeGroup] = useState(''); // ✅ THÊM: Bộ lọc nhóm tuổi
     const [paginationModel, setPaginationModel] = useState({ page: 0, pageSize: 10 });
     const [totalRows, setTotalRows] = useState(0);
     const [openDialog, setOpenDialog] = useState(false);
@@ -63,6 +64,15 @@ function ChildrenManagement() {
     const canUpdate = hasPermission(PERMISSIONS.UPDATE_CHILDREN_MANAGEMENT);
     const canDelete = hasPermission(PERMISSIONS.DELETE_CHILDREN_MANAGEMENT);
 
+    // ✅ Constants cho age groups
+    const AGE_GROUPS = [
+        { value: '12-24 tháng', label: '12-24 tháng' },
+        { value: '24-36 tháng', label: '24-36 tháng' },
+        { value: '3-4 tuổi', label: '3-4 tuổi' },
+        { value: '4-5 tuổi', label: '4-5 tuổi' },
+        { value: '5-6 tuổi', label: '5-6 tuổi' },
+    ];
+
     // Fetch children
     const fetchChildren = async () => {
         try {
@@ -73,6 +83,7 @@ function ChildrenManagement() {
                 search: searchText,
                 status: filterStatus,
                 hasClass: filterHasClass,
+                ageGroup: filterAgeGroup, // ✅ THÊM param
             });
 
             const children = res.data.data.children.map((child, index) => ({
@@ -98,7 +109,7 @@ function ChildrenManagement() {
     useEffect(() => {
         fetchChildren();
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [paginationModel, searchText, filterStatus, filterHasClass]);
+    }, [paginationModel, searchText, filterStatus, filterHasClass, filterAgeGroup]);
 
     // Handlers
     const handleCreate = () => {
@@ -262,7 +273,7 @@ function ChildrenManagement() {
         },
         {
             field: 'currentAgeGroup',
-            headerName: 'Đã/ Từng ở Khối nhóm tuổi',
+            headerName: 'Nhóm tuổi hiện tại',
             flex: 1,
             minWidth: 150,
             sortable: false,
@@ -379,6 +390,22 @@ function ChildrenManagement() {
                                     <MenuItem value="">Tất cả</MenuItem>
                                     <MenuItem value="Đang học">Đang học</MenuItem>
                                     <MenuItem value="Nghỉ học">Nghỉ học</MenuItem>
+                                </Select>
+                            </FormControl>
+                            {/* Filter Age Group */}
+                            <FormControl size="small" sx={{ minWidth: 140 }}>
+                                <InputLabel>Nhóm tuổi</InputLabel>
+                                <Select
+                                    value={filterAgeGroup}
+                                    onChange={(e) => setFilterAgeGroup(e.target.value)}
+                                    label="Nhóm tuổi"
+                                >
+                                    <MenuItem value="">Tất cả</MenuItem>
+                                    {AGE_GROUPS.map((group) => (
+                                        <MenuItem key={group.value} value={group.value}>
+                                            {group.label}
+                                        </MenuItem>
+                                    ))}
                                 </Select>
                             </FormControl>
 

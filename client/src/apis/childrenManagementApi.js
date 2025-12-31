@@ -4,9 +4,9 @@ import { API_ROOT } from '~/utils/constants';
 export const childrenManagementApi = {
     // Lấy danh sách trẻ toàn trường
     getAll: async (params) => {
-        const { page = 1, limit = 10, search = '', status = '', hasClass = '' } = params;
+        const { page = 1, limit = 10, search = '', status = '', hasClass = '', ageGroup = '' } = params;
         return await authorizedAxiosInstance.get(`${API_ROOT}/v1/children-managements`, {
-            params: { page, limit, search, status, hasClass },
+            params: { page, limit, search, status, hasClass, ageGroup },
         });
     },
 

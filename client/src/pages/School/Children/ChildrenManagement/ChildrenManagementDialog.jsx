@@ -13,7 +13,6 @@ import {
     MenuItem,
     Typography,
     IconButton,
-    Divider,
     Grid,
     Accordion,
     AccordionSummary,
@@ -33,6 +32,15 @@ import { toast } from 'react-toastify';
 import dayjs from '~/config/dayjsConfig';
 import { VIETNAM_ETHNICITIES } from '~/utils/vietnamEthnicities';
 
+// ✅ THÊM: Constants cho age groups
+const AGE_GROUPS = [
+    { value: '12-24 tháng', label: '12-24 tháng' },
+    { value: '24-36 tháng', label: '24-36 tháng' },
+    { value: '3-4 tuổi', label: '3-4 tuổi' },
+    { value: '4-5 tuổi', label: '4-5 tuổi' },
+    { value: '5-6 tuổi', label: '5-6 tuổi' },
+];
+
 function ChildrenManagementDialog({ open, mode, childData, onClose, onSuccess }) {
     const [loading, setLoading] = useState(false);
 
@@ -46,6 +54,7 @@ function ChildrenManagementDialog({ open, mode, childData, onClose, onSuccess })
 
         // Thông tin học tập
         enrollmentDate: null,
+        currentAgeGroup: '', // ✅ THÊM
         status: 'Đang học',
 
         // Thông tin gia đình
@@ -74,6 +83,7 @@ function ChildrenManagementDialog({ open, mode, childData, onClose, onSuccess })
                 gender: childData.gender || '',
                 ethnicity: childData.ethnicity || 'Kinh',
                 enrollmentDate: childData.enrollmentDate ? dayjs(childData.enrollmentDate) : null,
+                currentAgeGroup: childData.currentAgeGroup || '', // ✅ THÊM
                 status: childData.status || 'Đang học',
                 motherName: childData.motherName || '',
                 motherBirthYear: childData.motherBirthYear || '',
@@ -94,6 +104,7 @@ function ChildrenManagementDialog({ open, mode, childData, onClose, onSuccess })
                 gender: '',
                 ethnicity: 'Kinh',
                 enrollmentDate: null,
+                currentAgeGroup: '', // ✅ THÊM
                 status: 'Đang học',
                 motherName: '',
                 motherBirthYear: '',
@@ -129,6 +140,11 @@ function ChildrenManagementDialog({ open, mode, childData, onClose, onSuccess })
         }
         if (!formData.enrollmentDate) {
             toast.error('Vui lòng chọn ngày nhập học!');
+            return;
+        }
+        // ✅ THÊM: Validate currentAgeGroup
+        if (!formData.currentAgeGroup) {
+            toast.error('Vui lòng chọn nhóm tuổi hiện tại!');
             return;
         }
         if (!formData.permanentAddress.trim()) {
@@ -337,6 +353,27 @@ function ChildrenManagementDialog({ open, mode, childData, onClose, onSuccess })
                                     />
                                 </Grid>
 
+                                {/* ✅ THÊM: Nhóm tuổi hiện tại */}
+                                <Grid item xs={12} md={6}>
+                                    <FormControl fullWidth size="small" required>
+                                        <InputLabel>Nhóm tuổi hiện tại *</InputLabel>
+                                        <Select
+                                            value={formData.currentAgeGroup}
+                                            onChange={(e) =>
+                                                setFormData({ ...formData, currentAgeGroup: e.target.value })
+                                            }
+                                            label="Nhóm tuổi hiện tại *"
+                                        >
+                                            <MenuItem value="">-- Chọn --</MenuItem>
+                                            {AGE_GROUPS.map((group) => (
+                                                <MenuItem key={group.value} value={group.value}>
+                                                    {group.label}
+                                                </MenuItem>
+                                            ))}
+                                        </Select>
+                                    </FormControl>
+                                </Grid>
+
                                 {/* Trạng thái */}
                                 <Grid item xs={12} md={6}>
                                     <FormControl fullWidth size="small" required>
@@ -414,7 +451,7 @@ function ChildrenManagementDialog({ open, mode, childData, onClose, onSuccess })
 
                                 {/* Bố */}
                                 <Grid item xs={12}>
-                                    <Divider sx={{ my: 1 }} />
+                                    <Box sx={{ borderTop: '1px solid #e0e0e0', my: 1 }} />
                                     <Typography variant="body2" fontWeight={600} color="text.secondary" gutterBottom>
                                         Thông tin bố
                                     </Typography>
@@ -502,7 +539,7 @@ function ChildrenManagementDialog({ open, mode, childData, onClose, onSuccess })
                     </Accordion>
                 </DialogContent>
 
-                <Divider />
+                <Box sx={{ borderTop: '1px solid #e0e0e0' }} />
 
                 <DialogActions sx={{ px: 3, py: 1.5, gap: 1 }}>
                     <Button onClick={onClose} variant="outlined" color="inherit" size="small">

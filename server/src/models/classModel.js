@@ -30,7 +30,7 @@ const ClassSchema = new mongoose.Schema(
         },
         ageGroup: {
             type: String,
-            required: [true, 'Nhóm lớp là bắt buộc'],
+            required: [true, 'Nhóm tuổi là bắt buộc'],
             enum: {
                 values: [
                     // Nhà trẻ
@@ -43,7 +43,7 @@ const ClassSchema = new mongoose.Schema(
                     // Lá
                     '5-6 tuổi',
                 ],
-                message: 'Nhóm lớp không hợp lệ',
+                message: 'Nhóm tuổi không hợp lệ',
             },
         },
         name: {
@@ -117,7 +117,7 @@ ClassSchema.pre('save', function (next) {
 
     const validAgeGroups = ageGroupsByGrade[this.grade];
     if (!validAgeGroups || !validAgeGroups.includes(this.ageGroup)) {
-        next(new Error(`Nhóm lớp "${this.ageGroup}" không phù hợp với khối "${this.grade}"`));
+        next(new Error(`Nhóm tuổi "${this.ageGroup}" không phù hợp với khối "${this.grade}"`));
     }
     next();
 });
@@ -156,7 +156,7 @@ ClassSchema.statics.generateClassId = async function () {
     return classId;
 };
 
-// Helper method: Lấy danh sách nhóm lớp theo khối
+// Helper method: Lấy danh sách Nhóm tuổi theo khối
 ClassSchema.statics.getAgeGroupsByGrade = function (grade) {
     const ageGroupMapping = {
         'Nhà trẻ': ['12-24 tháng', '24-36 tháng'],

@@ -37,7 +37,7 @@ export const classApi = {
         });
     },
 
-    // Lấy danh sách nhóm lớp theo khối
+    // Lấy danh sách Nhóm tuổi theo khối
     getAgeGroupsByGrade: async (grade) => {
         return await authorizedAxiosInstance.get(`${API_ROOT}/v1/classes/age-groups`, {
             params: { grade },

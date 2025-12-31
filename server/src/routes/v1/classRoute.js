@@ -16,7 +16,7 @@ Router.route('/available-teachers').get(
     classController.getAvailableTeachers,
 );
 
-// API lấy danh sách nhóm lớp theo khối
+// API lấy danh sách Nhóm tuổi theo khối
 Router.route('/age-groups').get(
     authMiddleware.isAuthorized,
     rbacMiddleware.isValidPermission([PERMISSIONS.VIEW_CLASSROOM]),

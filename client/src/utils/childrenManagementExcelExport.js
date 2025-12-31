@@ -11,8 +11,14 @@ import { VIETNAM_ETHNICITIES } from '~/utils/vietnamEthnicities';
 const DROPDOWN_VALUES = {
     gender: ['Nam', 'Nữ'],
     status: ['Đang học', 'Nghỉ học'],
+    ageGroup: ['12-24 tháng', '24-36 tháng', '3-4 tuổi', '4-5 tuổi', '5-6 tuổi'], // ✅ THÊM
     ethnicity: VIETNAM_ETHNICITIES.map((e) => e.name),
 };
+
+/**
+ * Thứ tự dropdown (QUAN TRỌNG – không được đổi lung tung)
+ */
+const DROPDOWN_KEYS = ['gender', 'status', 'ethnicity', 'ageGroup'];
 
 /**
  * ===============================
@@ -27,6 +33,13 @@ const COLUMNS_CONFIG = [
     { key: 'gender', header: 'Giới tính', width: 12, required: true, dropdown: true },
     { key: 'ethnicity', header: 'Dân tộc', width: 15, required: true, dropdown: true },
     { key: 'enrollmentDate', header: 'Ngày nhập học', width: 15, required: true, format: 'date' },
+    {
+        key: 'currentAgeGroup',
+        header: 'Nhóm tuổi hiện tại',
+        width: 18,
+        required: true,
+        dropdown: true,
+    },
     { key: 'status', header: 'Trạng thái', width: 15, required: true, dropdown: true },
     { key: 'permanentAddress', header: 'Địa chỉ thường trú', width: 40, required: true },
     { key: 'currentAddress', header: 'Địa chỉ hiện tại', width: 40, required: true },
@@ -118,7 +131,7 @@ export const exportChildrenManagementToExcel = async (children = [], schoolName 
     worksheet.getCell('B3').font = { bold: true, size: 16 };
     worksheet.getCell('B3').alignment = { horizontal: 'center' };
 
-    worksheet.mergeCells('A4:R4');
+    worksheet.mergeCells('A4:S4');
     worksheet.getCell('A4').value = `📌 LƯU Ý:\n• Các cột có tiêu đề màu ĐỎ là BẮT BUỘC phải nhập
 • Cột "Mã học sinh": Để trống = Thêm mới (Hệ thống tự tạo mã theo công thức mã trường-HS0001)
 • Cột "Mã học sinh": Có mã học sinh = Cập nhật thông tin trẻ có mã học sinh đó
@@ -127,7 +140,7 @@ export const exportChildrenManagementToExcel = async (children = [], schoolName 
 • Định dạng ngày: dd/mm/yyyy (VD: 15/05/2020)`;
     worksheet.getCell('A4').font = { size: 10, color: { argb: 'FF0066CC' } };
     worksheet.getCell('A4').alignment = { wrapText: true, vertical: 'top' };
-    worksheet.getRow(4).height = 90;
+    worksheet.getRow(4).height = 100;
 
     worksheet.addRow([]);
 
@@ -187,7 +200,8 @@ export const exportChildrenManagementToExcel = async (children = [], schoolName 
     const dropdownSheet = workbook.addWorksheet('_dropdowns');
     dropdownSheet.state = 'hidden';
 
-    Object.values(DROPDOWN_VALUES).forEach((values, colIndex) => {
+    DROPDOWN_KEYS.forEach((key, colIndex) => {
+        const values = DROPDOWN_VALUES[key];
         values.forEach((v, rowIndex) => {
             dropdownSheet.getCell(rowIndex + 1, colIndex + 1).value = v;
         });
@@ -198,6 +212,7 @@ export const exportChildrenManagementToExcel = async (children = [], schoolName 
         gender: '_dropdowns!$A$1:$A$2',
         status: '_dropdowns!$B$1:$B$2',
         ethnicity: `_dropdowns!$C$1:$C$${DROPDOWN_VALUES.ethnicity.length}`,
+        currentAgeGroup: `_dropdowns!$D$1:$D$${DROPDOWN_VALUES.ageGroup.length}`,
     };
 
     // Active sheet chính

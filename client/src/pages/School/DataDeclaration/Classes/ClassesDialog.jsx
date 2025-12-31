@@ -118,7 +118,7 @@ function ClassDialog({ open, mode, classData, academicYearId, onClose, onSuccess
             console.log('✅ [fetchAgeGroupsByGrade] Loaded:', ageGroups);
         } catch (error) {
             console.error('Error fetching age groups:', error);
-            toast.error('Lỗi khi tải danh sách nhóm lớp!');
+            toast.error('Lỗi khi tải danh sách Nhóm tuổi!');
             setAgeGroups([]); // ✅ Set empty array on error
         } finally {
             setLoadingAgeGroups(false);
@@ -176,7 +176,7 @@ function ClassDialog({ open, mode, classData, academicYearId, onClose, onSuccess
             return;
         }
         if (!formData.ageGroup) {
-            toast.error('Vui lòng chọn nhóm lớp!');
+            toast.error('Vui lòng chọn Nhóm tuổi!');
             return;
         }
         if (!formData.name.trim()) {
@@ -345,15 +345,15 @@ function ClassDialog({ open, mode, classData, academicYearId, onClose, onSuccess
                                 </Select>
                             </FormControl>
 
-                            {/* Nhóm lớp */}
+                            {/* Nhóm tuổi */}
                             <FormControl fullWidth size="small" disabled={!formData.grade || loadingAgeGroups}>
-                                <InputLabel>Nhóm lớp *</InputLabel>
+                                <InputLabel>Nhóm tuổi *</InputLabel>
                                 <Select
                                     value={formData.ageGroup}
                                     onChange={(e) => setFormData({ ...formData, ageGroup: e.target.value })}
-                                    label="Nhóm lớp *"
+                                    label="Nhóm tuổi *"
                                 >
-                                    <MenuItem value="">-- Chọn nhóm lớp --</MenuItem>
+                                    <MenuItem value="">-- Chọn Nhóm tuổi --</MenuItem>
                                     {ageGroups.map((group) => (
                                         <MenuItem key={group} value={group}>
                                             {group}

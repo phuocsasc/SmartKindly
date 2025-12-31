@@ -95,7 +95,7 @@ const getAgeGroupsByGrade = async (req, res, next) => {
         }
         const ageGroups = classServices.getAgeGroupsByGrade(grade); // ✅ Returns array
         res.status(StatusCodes.OK).json({
-            message: 'Lấy danh sách nhóm lớp thành công!',
+            message: 'Lấy danh sách Nhóm tuổi thành công!',
             data: { ageGroups }, // ✅ Wrap in object
         });
     } catch (error) {

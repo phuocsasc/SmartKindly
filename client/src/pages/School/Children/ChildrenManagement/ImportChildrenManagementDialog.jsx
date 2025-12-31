@@ -146,17 +146,18 @@ function ImportChildrenManagementDialog({ open, onClose, onSuccess }) {
                             gender: String(row[4] || '').trim(),
                             ethnicity: String(row[5] || '').trim(),
                             enrollmentDate: parseExcelDate(row[6]),
-                            status: String(row[7] || '').trim(),
-                            permanentAddress: String(row[8] || '').trim(),
-                            currentAddress: String(row[9] || '').trim(),
-                            motherName: String(row[10] || '').trim(),
-                            motherBirthYear: parseYear(row[11]),
-                            motherPhone: String(row[12] || '').trim(),
-                            motherEmail: String(row[13] || '').trim(),
-                            fatherName: String(row[14] || '').trim(),
-                            fatherBirthYear: parseYear(row[15]),
-                            fatherPhone: String(row[16] || '').trim(),
-                            fatherEmail: String(row[17] || '').trim(),
+                            currentAgeGroup: String(row[7] || '').trim(),
+                            status: String(row[8] || '').trim(),
+                            permanentAddress: String(row[9] || '').trim(),
+                            currentAddress: String(row[10] || '').trim(),
+                            motherName: String(row[11] || '').trim(),
+                            motherBirthYear: parseYear(row[12]),
+                            motherPhone: String(row[13] || '').trim(),
+                            motherEmail: String(row[14] || '').trim(),
+                            fatherName: String(row[15] || '').trim(),
+                            fatherBirthYear: parseYear(row[16]),
+                            fatherPhone: String(row[17] || '').trim(),
+                            fatherEmail: String(row[18] || '').trim(),
                         };
                     })
                     .filter((row) => {
@@ -219,6 +220,9 @@ function ImportChildrenManagementDialog({ open, onClose, onSuccess }) {
             }
             if (!row.enrollmentDate) {
                 rowErrors.push('Thiếu ngày nhập học');
+            }
+            if (!row.currentAgeGroup || row.currentAgeGroup.trim() === '') {
+                rowErrors.push('Thiếu nhóm tuổi hiện tại');
             }
             if (!row.permanentAddress || row.permanentAddress.trim() === '') {
                 rowErrors.push('Thiếu địa chỉ thường trú');

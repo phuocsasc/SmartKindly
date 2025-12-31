@@ -241,7 +241,7 @@ function Classes() {
         },
         {
             field: 'ageGroup',
-            headerName: 'Nhóm lớp',
+            headerName: 'Nhóm tuổi',
             flex: 0.8,
             minWidth: 100,
             sortable: false,

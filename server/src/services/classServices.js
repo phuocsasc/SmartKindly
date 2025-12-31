@@ -65,7 +65,7 @@ const createNew = async (data, userId) => {
         if (!validAgeGroups.includes(data.ageGroup)) {
             throw new ApiError(
                 StatusCodes.BAD_REQUEST,
-                `Nhóm lớp "${data.ageGroup}" không phù hợp với khối "${data.grade}"`,
+                `Nhóm tuổi "${data.ageGroup}" không phù hợp với khối "${data.grade}"`,
             );
         }
 
@@ -347,7 +347,10 @@ const update = async (id, data, userId) => {
 
             const validAgeGroups = ClassModel.getAgeGroupsByGrade(grade);
             if (!validAgeGroups.includes(ageGroup)) {
-                throw new ApiError(StatusCodes.BAD_REQUEST, `Nhóm lớp "${ageGroup}" không phù hợp với khối "${grade}"`);
+                throw new ApiError(
+                    StatusCodes.BAD_REQUEST,
+                    `Nhóm tuổi "${ageGroup}" không phù hợp với khối "${grade}"`,
+                );
             }
         }
 
@@ -641,7 +644,7 @@ const getAvailableTeachers = async (academicYearId, userId, currentClassId = nul
     }
 };
 
-// ✅ API lấy danh sách nhóm lớp theo khối
+// ✅ API lấy danh sách Nhóm tuổi theo khối
 const getAgeGroupsByGrade = (grade) => {
     return ClassModel.getAgeGroupsByGrade(grade);
 };

@@ -61,8 +61,3 @@ export const VIETNAM_ETHNICITIES = [
     { code: 'romam', name: 'Rơ-măm' },
     { code: 'odu', name: 'Ơ-đu' },
 ];
-
-// Dạng mảng string (dùng nhanh)
-export const VIETNAM_ETHNICITY_NAMES = VIETNAM_ETHNICITIES.map((ethnic) => ethnic.name);
-
-export default VIETNAM_ETHNICITIES;

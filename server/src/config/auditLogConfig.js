@@ -16,6 +16,7 @@ export const AUDIT_LOG_RESOURCES = {
     ACADEMIC_YEAR: 'Năm học',
     DEPARTMENT: 'Tổ bộ môn',
     CLASS: 'Lớp học',
+    CHILDREN_MANAGEMENT: 'Danh sách trẻ toàn trường',
     CHILDREN_PROFILE: 'Hồ sơ trẻ',
     CHILDREN_ATTENDANCE: 'Điểm danh trẻ',
     CHILDREN_ASSESSMENT: 'Đánh giá trẻ',

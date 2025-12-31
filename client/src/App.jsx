@@ -165,8 +165,10 @@ function AppContent() {
                     </Route>
 
                     {/* Quản lý trẻ em */}
-                    <Route element={<RbacRoute requiredPermission={PERMISSIONS.VIEW_CHILDREN_PROFILE} />}>
+                    <Route element={<RbacRoute requiredPermission={PERMISSIONS.VIEW_CHILDREN_MANAGEMENT} />}>
                         <Route path="/children/management" element={<ChildrenManagement />} />
+                    </Route>
+                    <Route element={<RbacRoute requiredPermission={PERMISSIONS.VIEW_CHILDREN_PROFILE} />}>
                         <Route path="/children/profile" element={<ChildrenProfile />} />
                     </Route>
                     <Route element={<RbacRoute requiredPermission={PERMISSIONS.VIEW_CHILDREN_ATTENDANCE} />}>

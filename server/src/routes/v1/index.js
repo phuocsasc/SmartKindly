@@ -30,6 +30,7 @@ import schoolNutritionalStandardRoute from './schoolNutritionalStandardRoute.js'
 import schoolServiceChargeRoute from './schoolServiceChargeRoute.js';
 import { schoolMenuRoute } from './schoolMenuRoute.js'; // Thêm dòng này
 import { schoolMenuApplyRoute } from './schoolMenuApplyRoute.js';
+import { childrenManagementRoute } from '~/routes/v1/childrenManagementRoute.js';
 
 const Router = express.Router();
 
@@ -106,5 +107,7 @@ Router.use('/school-service-charges', schoolServiceChargeRoute);
 Router.use('/school-menus', schoolMenuRoute); // Thêm dòng này
 
 Router.use('/school-menu-applies', schoolMenuApplyRoute);
+
+Router.use('/children-managements', childrenManagementRoute);
 
 export const APIs_V1 = Router;

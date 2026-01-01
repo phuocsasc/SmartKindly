@@ -436,7 +436,7 @@ const resetHasClassForNewYear = async (schoolId) => {
                 },
                 {
                     $set: {
-                        currentAgeGroup: nextAgeGroup,
+                        // currentAgeGroup: nextAgeGroup,
                         hasClass: false,
                         currentClassName: 'Chưa có',
                     },

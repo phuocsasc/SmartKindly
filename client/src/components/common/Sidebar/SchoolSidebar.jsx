@@ -18,7 +18,7 @@ import KeyboardDoubleArrowRightOutlinedIcon from '@mui/icons-material/KeyboardDo
 import HistoryEduOutlinedIcon from '@mui/icons-material/HistoryEduOutlined';
 import RestaurantOutlinedIcon from '@mui/icons-material/RestaurantOutlined';
 // import MonetizationOnOutlinedIcon from '@mui/icons-material/MonetizationOnOutlined';
-import MedicalServicesOutlinedIcon from '@mui/icons-material/MedicalServicesOutlined';
+// import MedicalServicesOutlinedIcon from '@mui/icons-material/MedicalServicesOutlined';
 import StorageOutlinedIcon from '@mui/icons-material/StorageOutlined';
 import SwitchAccountOutlinedIcon from '@mui/icons-material/SwitchAccountOutlined';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -78,7 +78,7 @@ const menuItems = [
         children: [
             { text: 'Danh sách trẻ toàn trường', path: '/children/management' },
             { text: 'Danh sách trẻ theo lớp', path: '/children/class' },
-            { text: 'Hồ sơ trẻ em', path: '/children/profile' },
+            // { text: 'Hồ sơ trẻ em', path: '/children/profile' },
             { text: 'Điểm danh trẻ em', path: '/children/attendance' },
             { text: 'Đánh giá trẻ hằng ngày', path: '/children/assessment' },
             { text: 'Phiếu bé ngoan', path: '/children/certificate' },
@@ -110,15 +110,15 @@ const menuItems = [
     //         { text: 'Báo cáo thống kê thu chi', path: '/fee/report' },
     //     ],
     // },
-    {
-        text: 'Y tế',
-        icon: <MedicalServicesOutlinedIcon />,
-        children: [
-            { text: 'Bảo hiểm y tế', path: '/health/insurance' },
-            { text: 'Sổ khám sức khỏe', path: '/health/medical-book' },
-            { text: 'Tiêm chủng', path: '/health/vaccination' },
-        ],
-    },
+    // {
+    //     text: 'Y tế',
+    //     icon: <MedicalServicesOutlinedIcon />,
+    //     children: [
+    //         { text: 'Bảo hiểm y tế', path: '/health/insurance' },
+    //         { text: 'Sổ khám sức khỏe', path: '/health/medical-book' },
+    //         { text: 'Tiêm chủng', path: '/health/vaccination' },
+    //     ],
+    // },
 ];
 
 function SchoolSidebar({ collapsed, onToggle, mobileOpen, onCloseMobile }) {

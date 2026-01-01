@@ -368,20 +368,95 @@ const deleteMany = async (ids, userId) => {
 };
 
 /**
- * ✅ Reset hasClass = false cho tất cả trẻ khi tạo năm học mới
- * (Được gọi từ AcademicYear service khi tạo năm học mới)
+ * ✅ Auto-upgrade age group và reset hasClass khi tạo năm học mới
+ * - Tăng nhóm tuổi lên 1 bậc cho tất cả trẻ "Đang học"
+ * - Reset hasClass = false cho trẻ "Đang học" có hasClass = true
+ * - Không thay đổi gì với trẻ "Nghỉ học"
  */
 const resetHasClassForNewYear = async (schoolId) => {
     try {
         console.log('🔄 [ChildrenManagement resetHasClassForNewYear] Starting for school:', schoolId);
 
-        const result = await ChildrenManagementModel.updateMany(
-            { schoolId, _destroy: false },
-            { $set: { hasClass: false } },
-        );
+        // ✅ Mapping nhóm tuổi: current → next
+        const AGE_GROUP_UPGRADE = {
+            '12-24 tháng': '24-36 tháng',
+            '24-36 tháng': '3-4 tuổi',
+            '3-4 tuổi': '4-5 tuổi',
+            '4-5 tuổi': '5-6 tuổi',
+            '5-6 tuổi': '5-6 tuổi', // Giữ nguyên
+        };
 
-        console.log(`✅ [ChildrenManagement resetHasClassForNewYear] Reset ${result.modifiedCount} children`);
-        return result;
+        // ✅ FIX: Lấy snapshot danh sách trẻ TRƯỚC KHI update để tránh trùng lặp
+        const childrenToUpdate = await ChildrenManagementModel.find({
+            schoolId,
+            status: 'Đang học',
+            _destroy: false,
+        })
+            .select('_id currentAgeGroup fullName')
+            .lean();
+
+        console.log(`📋 Found ${childrenToUpdate.length} children with status "Đang học"`);
+
+        // ✅ Nhóm children theo currentAgeGroup
+        const groupedByAgeGroup = childrenToUpdate.reduce((acc, child) => {
+            if (!acc[child.currentAgeGroup]) {
+                acc[child.currentAgeGroup] = [];
+            }
+            acc[child.currentAgeGroup].push(child._id);
+            return acc;
+        }, {});
+
+        console.log('📊 Grouped by age group:', {
+            '12-24 tháng': groupedByAgeGroup['12-24 tháng']?.length || 0,
+            '24-36 tháng': groupedByAgeGroup['24-36 tháng']?.length || 0,
+            '3-4 tuổi': groupedByAgeGroup['3-4 tuổi']?.length || 0,
+            '4-5 tuổi': groupedByAgeGroup['4-5 tuổi']?.length || 0,
+            '5-6 tuổi': groupedByAgeGroup['5-6 tuổi']?.length || 0,
+        });
+
+        let totalUpdated = 0;
+
+        // ✅ Update từng nhóm với danh sách _id cố định
+        for (const [currentAgeGroup, nextAgeGroup] of Object.entries(AGE_GROUP_UPGRADE)) {
+            const childIds = groupedByAgeGroup[currentAgeGroup] || [];
+
+            if (childIds.length === 0) {
+                console.log(`  ⏭️ [${currentAgeGroup}]: No children to update`);
+                continue;
+            }
+
+            console.log(`📋 Processing: ${currentAgeGroup} → ${nextAgeGroup} (${childIds.length} children)`);
+
+            // ✅ Update bằng _id cụ thể, không dùng filter currentAgeGroup
+            const result = await ChildrenManagementModel.updateMany(
+                {
+                    _id: { $in: childIds }, // ✅ CHỈ UPDATE ĐÚNG CÁC ID ĐÃ XÁC ĐỊNH
+                    schoolId, // Safety check
+                    _destroy: false,
+                },
+                {
+                    $set: {
+                        currentAgeGroup: nextAgeGroup,
+                        hasClass: false,
+                        currentClassName: 'Chưa có',
+                    },
+                },
+            );
+
+            console.log(
+                `  ✅ [${currentAgeGroup}] → [${nextAgeGroup}]: Updated ${result.modifiedCount}/${childIds.length} students`,
+            );
+            totalUpdated += result.modifiedCount;
+        }
+
+        console.log('✅ [ChildrenManagement resetHasClassForNewYear] Summary:');
+        console.log(`   - Total children (Đang học): ${childrenToUpdate.length}`);
+        console.log(`   - Total updated: ${totalUpdated} students`);
+
+        return {
+            totalUpdated,
+            status: 'success',
+        };
     } catch (error) {
         console.error('❌ [ChildrenManagement resetHasClassForNewYear] Error:', error);
         throw error;

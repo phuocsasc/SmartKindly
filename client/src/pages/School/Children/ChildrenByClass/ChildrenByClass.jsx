@@ -449,7 +449,7 @@ function ChildrenByClass() {
                                         <Button
                                             variant="outlined"
                                             color="error"
-                                            size="small"
+                                            size="large"
                                             startIcon={<DeleteSweepOutlinedIcon />}
                                             onClick={handleDeleteManyStudents}
                                             disabled={!isActiveYear}
@@ -474,7 +474,7 @@ function ChildrenByClass() {
                                         <Button
                                             variant="outlined"
                                             color="warning"
-                                            size="small"
+                                            size="large"
                                             startIcon={<SwapHorizOutlinedIcon />}
                                             onClick={handleTransferStudents}
                                             disabled={!isActiveYear || selectedRows.length === 0}

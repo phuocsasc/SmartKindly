@@ -2,6 +2,7 @@ import { AcademicYearModel } from '~/models/academicYearModel.js';
 import { UserModel } from '~/models/userModel.js';
 import ApiError from '~/utils/ApiError.js';
 import { StatusCodes } from 'http-status-codes';
+import { childrenManagementServices } from '~/services/childrenManagementServices.js';
 
 const createNew = async (data, userId) => {
     try {
@@ -56,11 +57,25 @@ const createNew = async (data, userId) => {
             createdBy: userId,
         });
 
-        console.log('💾 [createNew] Saving new academic year:', newAcademicYear);
-        const savedYear = await newAcademicYear.save();
-        console.log('✅ [createNew] Academic year saved successfully:', savedYear);
+        // console.log('💾 [createNew] Saving new academic year:', newAcademicYear);
+        // const savedYear = await newAcademicYear.save();
+        // console.log('✅ [createNew] Academic year saved successfully:', savedYear);
 
-        return savedYear;
+        // return savedYear;
+
+        await newAcademicYear.save();
+        console.log('✅ [createNew] Academic Year created:', newAcademicYear._id);
+
+        // ✅ Reset hasClass + Auto-upgrade age group cho tất cả trẻ
+        try {
+            const resetResult = await childrenManagementServices.resetHasClassForNewYear(schoolId);
+            console.log('✅ [createNew] Reset children data:', resetResult);
+        } catch (resetError) {
+            console.error('❌ [createNew] Error resetting children data:', resetError);
+            // Không throw error để không ảnh hưởng việc tạo năm học
+        }
+
+        return newAcademicYear;
     } catch (error) {
         console.error('❌ [createNew] Error occurred:', error);
         console.error('❌ [createNew] Error stack:', error.stack);

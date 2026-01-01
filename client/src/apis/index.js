@@ -80,3 +80,5 @@ export * from './schoolMenuApi'; // Thêm dòng này
 export * from './schoolMenuApplyApi';
 
 export * from './childrenManagementApi';
+
+export * from './childrenByClassApi';

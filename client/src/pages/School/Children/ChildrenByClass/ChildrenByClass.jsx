@@ -152,7 +152,7 @@ function ChildrenByClass() {
                 studentCode: child.studentId?.studentCode || '---',
                 birthDate: child.studentId?.birthDate ? dayjs(child.studentId.birthDate).format('DD/MM/YYYY') : '---',
                 gender: child.studentId?.gender || '---',
-                status: child.studentId?.status || '---',
+                status: child.managementStatus || '---', // ✅ Hiển thị managementStatus từ ChildrenByClassModel
             }));
 
             setRows(mappedChildren);

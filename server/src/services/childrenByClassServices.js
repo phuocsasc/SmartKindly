@@ -53,7 +53,7 @@ const getAll = async (query, userId) => {
         const classData = await ClassModel.findOne({
             _id: classId,
             schoolId: user.schoolId,
-            academicYearId: academicYearId,
+            academicYearId,
             _destroy: false,
         })
             .populate('homeRoomTeacher', 'fullName')
@@ -66,46 +66,40 @@ const getAll = async (query, userId) => {
         // ✅ Build filter
         const filter = {
             schoolId: user.schoolId,
-            academicYearId: academicYearId,
-            classId: classId,
+            academicYearId,
+            classId,
             _destroy: false,
         };
 
-        const skip = (page - 1) * limit;
-
-        // ✅ Get children by class
-        let childrenByClass = await ChildrenByClassModel.find(filter)
-            .populate({
-                path: 'studentId',
-                select: 'fullName fullNameWithoutAccent studentCode birthDate gender currentAgeGroup status',
-            })
-            .populate('createdBy', 'fullName')
-            .populate('lastUpdatedBy', 'fullName')
-            .sort({ createdAt: -1 })
-            .lean();
-
-        // ✅ Filter by search (sau khi populate)
         if (search) {
-            const searchNormalized = removeVietnameseTones(search.trim()).toLowerCase();
-            childrenByClass = childrenByClass.filter((item) => {
-                const student = item.studentId;
-                if (!student) return false;
+            const students = await ChildrenManagementModel.find({
+                schoolId: user.schoolId,
+                _destroy: false,
+                $or: [
+                    { fullName: { $regex: search, $options: 'i' } },
+                    { fullNameWithoutAccent: { $regex: removeVietnameseTones(search), $options: 'i' } },
+                    { studentCode: { $regex: search, $options: 'i' } },
+                ],
+            }).select('_id');
 
-                const nameMatch = student.fullNameWithoutAccent?.toLowerCase().includes(searchNormalized);
-                const codeMatch = student.studentCode?.toLowerCase().includes(search.toLowerCase());
-
-                return nameMatch || codeMatch;
-            });
+            const studentIds = students.map((s) => s._id);
+            filter.studentId = { $in: studentIds };
         }
 
-        // ✅ Pagination after filtering
-        const total = childrenByClass.length;
-        const paginatedData = childrenByClass.slice(skip, skip + Number(limit));
+        const total = await ChildrenByClassModel.countDocuments(filter);
 
-        console.log('✅ [ChildrenByClass getAll] Found:', total, 'items');
+        const children = await ChildrenByClassModel.find(filter)
+            .populate('studentId', 'fullName studentCode birthDate gender status')
+            .select('studentId managementStatus createdAt') // ✅ Select managementStatus
+            .sort({ createdAt: 1 })
+            .skip((page - 1) * limit)
+            .limit(Number(limit))
+            .lean();
+
+        console.log('📋 [ChildrenByClass getAll] Found:', children.length, 'children');
 
         return {
-            children: paginatedData,
+            children,
             classInfo: {
                 className: classData.name,
                 grade: classData.grade,
@@ -233,7 +227,7 @@ const addStudentsToClass = async (data, userId) => {
             throw new ApiError(StatusCodes.NOT_FOUND, 'Không tìm thấy lớp học');
         }
 
-        // ✅ Validate students
+        // ✅ Validate students và lấy status từ ChildrenManagementModel
         const students = await ChildrenManagementModel.find({
             _id: { $in: studentIds },
             schoolId: user.schoolId,
@@ -241,38 +235,39 @@ const addStudentsToClass = async (data, userId) => {
             status: 'Đang học',
             currentAgeGroup: classData.ageGroup,
             _destroy: false,
-        });
+        }).select('_id status');
 
         if (students.length === 0) {
-            throw new ApiError(StatusCodes.BAD_REQUEST, 'Không tìm thấy học sinh phù hợp');
-        }
-
-        if (students.length !== studentIds.length) {
             throw new ApiError(
-                StatusCodes.BAD_REQUEST,
-                'Một số học sinh không phù hợp (đã có lớp hoặc không đúng nhóm tuổi)',
+                StatusCodes.NOT_FOUND,
+                'Không tìm thấy học sinh phù hợp (chưa có lớp, đang học, và cùng nhóm tuổi)',
             );
         }
 
-        // ✅ Check duplicate
+        if (students.length !== studentIds.length) {
+            throw new ApiError(StatusCodes.BAD_REQUEST, 'Một số học sinh không đủ điều kiện để thêm vào lớp');
+        }
+
+        // ✅ Kiểm tra duplicate
         const existingRecords = await ChildrenByClassModel.find({
             schoolId: user.schoolId,
             academicYearId: academicYearId,
+            classId: classId,
             studentId: { $in: studentIds },
             _destroy: false,
-        });
+        }).select('studentId');
 
         if (existingRecords.length > 0) {
-            const duplicateNames = existingRecords.map((r) => r.studentId).join(', ');
-            throw new ApiError(StatusCodes.BAD_REQUEST, `Học sinh đã có trong lớp: ${duplicateNames}`);
+            throw new ApiError(StatusCodes.CONFLICT, 'Một số học sinh đã có trong lớp học này');
         }
 
-        // ✅ Create records
-        const records = studentIds.map((studentId) => ({
+        // ✅ Tạo records với managementStatus từ ChildrenManagementModel.status
+        const records = students.map((student) => ({
             schoolId: user.schoolId,
             academicYearId: academicYearId,
             classId: classId,
-            studentId: studentId,
+            studentId: student._id,
+            managementStatus: student.status, // ✅ Copy từ ChildrenManagementModel
             createdBy: userId,
             lastUpdatedBy: userId,
         }));
@@ -411,15 +406,6 @@ const transferStudents = async (data, userId) => {
 
         const { academicYearId, fromClassId, toClassId, studentIds } = data;
 
-        console.log('📋 [transferStudents] Input params:', {
-            academicYearId,
-            fromClassId,
-            toClassId,
-            studentIds,
-            studentIdsType: typeof studentIds,
-            studentIdsIsArray: Array.isArray(studentIds),
-        });
-
         // ✅ Validate năm học active
         const academicYear = await AcademicYearModel.findOne({
             _id: academicYearId,
@@ -444,11 +430,6 @@ const transferStudents = async (data, userId) => {
             throw new ApiError(StatusCodes.NOT_FOUND, 'Không tìm thấy lớp cũ');
         }
 
-        console.log('📋 [transferStudents] From class:', {
-            name: fromClass.name,
-            ageGroup: fromClass.ageGroup,
-        });
-
         // ✅ Validate to class
         const toClass = await ClassModel.findOne({
             _id: toClassId,
@@ -461,11 +442,6 @@ const transferStudents = async (data, userId) => {
             throw new ApiError(StatusCodes.NOT_FOUND, 'Không tìm thấy lớp mới');
         }
 
-        console.log('📋 [transferStudents] To class:', {
-            name: toClass.name,
-            ageGroup: toClass.ageGroup,
-        });
-
         // ✅ Check cùng nhóm tuổi
         if (fromClass.ageGroup !== toClass.ageGroup) {
             throw new ApiError(
@@ -474,36 +450,27 @@ const transferStudents = async (data, userId) => {
             );
         }
 
-        // ✅ FIX: Validate students trong lớp cũ - Chuyển đổi ObjectId sang string để so sánh
+        // ✅ Validate students trong lớp cũ
         const existingRecords = await ChildrenByClassModel.find({
             _id: { $in: studentIds },
             schoolId: user.schoolId,
             academicYearId: academicYearId,
             classId: fromClassId,
             _destroy: false,
-        }).lean();
+        }).select('studentId managementStatus');
 
-        console.log('📋 [transferStudents] Existing records found:', existingRecords.length);
-        console.log('📋 [transferStudents] Expected count:', studentIds.length);
+        const existingIds = existingRecords.map((r) => r._id.toString());
+        const missingIds = studentIds.filter((id) => !existingIds.includes(id));
 
-        if (existingRecords.length === 0) {
-            throw new ApiError(StatusCodes.NOT_FOUND, 'Không tìm thấy học sinh nào trong lớp này');
-        }
-
-        if (existingRecords.length !== studentIds.length) {
-            console.log('❌ [transferStudents] Mismatch:', {
-                foundIds: existingRecords.map((r) => r._id.toString()),
-                requestedIds: studentIds,
-            });
+        if (missingIds.length > 0) {
             throw new ApiError(
                 StatusCodes.BAD_REQUEST,
-                `Chỉ tìm thấy ${existingRecords.length}/${studentIds.length} học sinh thuộc lớp "${fromClass.name}"`,
+                `${missingIds.length} học sinh không thuộc lớp cũ hoặc đã bị xóa`,
             );
         }
 
-        // ✅ Lấy thông tin students để validate ageGroup
-        const studentObjectIds = existingRecords.map((record) => record.studentId);
-
+        // ✅ Validate students từ ChildrenManagementModel
+        const studentObjectIds = existingRecords.map((r) => r.studentId);
         const students = await ChildrenManagementModel.find({
             _id: { $in: studentObjectIds },
             schoolId: user.schoolId,
@@ -511,13 +478,12 @@ const transferStudents = async (data, userId) => {
             _destroy: false,
         }).select('currentAgeGroup fullName');
 
-        console.log('📋 [transferStudents] Students with correct age group:', students.length);
-
         if (students.length !== studentIds.length) {
             throw new ApiError(StatusCodes.BAD_REQUEST, 'Một số học sinh không phù hợp với nhóm tuổi của lớp mới');
         }
 
         // ✅ Update records: chuyển từ fromClassId sang toClassId
+        // ✅ KHÔNG CẬP NHẬT managementStatus (giữ nguyên trạng thái hiện tại)
         const updateResult = await ChildrenByClassModel.updateMany(
             {
                 _id: { $in: studentIds },

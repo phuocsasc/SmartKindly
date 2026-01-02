@@ -32,6 +32,16 @@ const ChildrenByClassSchema = new mongoose.Schema(
             required: [true, 'Học sinh là bắt buộc'],
             index: true,
         },
+        // ✅ THÊM: Trạng thái quản lý riêng cho từng năm học
+        managementStatus: {
+            type: String,
+            enum: {
+                values: ['Đang học', 'Nghỉ học'],
+                message: 'Trạng thái không hợp lệ',
+            },
+            required: [true, 'Trạng thái quản lý là bắt buộc'],
+            default: 'Đang học',
+        },
 
         // ===== METADATA =====
         createdBy: {

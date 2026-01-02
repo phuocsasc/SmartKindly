@@ -1,6 +1,7 @@
 import { ChildrenManagementModel } from '~/models/childrenManagementModel.js';
 import { UserModel } from '~/models/userModel.js';
-// import { AcademicYearModel } from '~/models/academicYearModel.js';
+import { AcademicYearModel } from '~/models/academicYearModel.js';
+import { ChildrenByClassModel } from '~/models/childrenByClassModel.js';
 import ApiError from '~/utils/ApiError.js';
 import { StatusCodes } from 'http-status-codes';
 import { removeVietnameseTones } from '~/utils/formatters.js';
@@ -202,7 +203,6 @@ const update = async (id, data, userId) => {
             throw new ApiError(StatusCodes.FORBIDDEN, 'Bạn không thuộc trường học nào');
         }
 
-        // ✅ Chỉ BGH mới được cập nhật
         checkPermission(user);
 
         const child = await ChildrenManagementModel.findOne({
@@ -214,6 +214,9 @@ const update = async (id, data, userId) => {
         if (!child) {
             throw new ApiError(StatusCodes.NOT_FOUND, 'Không tìm thấy thông tin trẻ');
         }
+
+        // ✅ Lưu lại status cũ để so sánh
+        const oldStatus = child.status;
 
         // ✅ Cập nhật các field được phép
         const allowedFields = [
@@ -245,6 +248,41 @@ const update = async (id, data, userId) => {
 
         child.lastUpdatedBy = userId;
         await child.save();
+
+        // ✅ Nếu status thay đổi → Đồng bộ managementStatus trong ChildrenByClassModel (CHỈ NĂM ACTIVE)
+        if (oldStatus !== child.status) {
+            console.log(`🔄 [update] Status changed from "${oldStatus}" to "${child.status}"`);
+
+            // Tìm năm học đang active
+            const activeYear = await AcademicYearModel.findOne({
+                schoolId: user.schoolId,
+                status: 'active',
+                _destroy: false,
+            }).select('_id');
+
+            if (activeYear) {
+                const updateResult = await ChildrenByClassModel.updateMany(
+                    {
+                        schoolId: user.schoolId,
+                        academicYearId: activeYear._id,
+                        studentId: id,
+                        _destroy: false,
+                    },
+                    {
+                        $set: {
+                            managementStatus: child.status,
+                            lastUpdatedBy: userId,
+                        },
+                    },
+                );
+
+                console.log(
+                    `✅ [update] Updated managementStatus in ${updateResult.modifiedCount} records (year: ${activeYear._id})`,
+                );
+            } else {
+                console.log('⚠️ [update] No active year found, skip updating ChildrenByClassModel');
+            }
+        }
 
         const updated = await ChildrenManagementModel.findById(child._id)
             .populate('createdBy', 'fullName username')

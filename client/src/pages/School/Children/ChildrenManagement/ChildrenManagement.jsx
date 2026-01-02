@@ -285,7 +285,7 @@ function ChildrenManagement() {
         },
         {
             field: 'currentClassName',
-            headerName: 'Đã/ Từng ở Lớp học',
+            headerName: 'Lớp học hiện tại',
             flex: 1,
             minWidth: 120,
             sortable: false,

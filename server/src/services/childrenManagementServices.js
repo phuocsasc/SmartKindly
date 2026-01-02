@@ -468,16 +468,16 @@ const importBulk = async (data, userId) => {
             const row = data[i];
 
             try {
-                // ✅ Nếu có studentCode: Cập nhật
+                // ✅ CASE 1: Có mã học sinh trong Excel → CHỈ CẬP NHẬT, KHÔNG TẠO MỚI
                 if (row.studentCode && row.studentCode.trim() !== '') {
                     const existing = await ChildrenManagementModel.findOne({
                         schoolId: user.schoolId,
-                        studentCode: row.studentCode,
+                        studentCode: row.studentCode.trim(),
                         _destroy: false,
                     });
 
                     if (existing) {
-                        // Update
+                        // ✅ Tìm thấy → Cập nhật
                         Object.assign(existing, {
                             fullName: row.fullName,
                             nickname: row.nickname || '',
@@ -485,7 +485,7 @@ const importBulk = async (data, userId) => {
                             gender: row.gender,
                             ethnicity: row.ethnicity,
                             enrollmentDate: row.enrollmentDate,
-                            currentAgeGroup: row.currentAgeGroup, // ✅ THÊM
+                            currentAgeGroup: row.currentAgeGroup,
                             status: row.status,
                             motherName: row.motherName || '',
                             motherBirthYear: row.motherBirthYear || null,
@@ -502,32 +502,28 @@ const importBulk = async (data, userId) => {
 
                         await existing.save();
                         updated.push({ fullName: existing.fullName, studentCode: existing.studentCode });
+                        console.log(`✅ [importBulk] Updated: ${existing.studentCode}`);
                     } else {
-                        // Tạo mới với mã student code có sẵn
-                        const newChild = new ChildrenManagementModel({
-                            ...row,
-                            schoolId: user.schoolId,
-                            studentCode: row.studentCode,
-                            createdBy: userId,
-                            lastUpdatedBy: userId,
-                        });
-                        await newChild.save();
-                        created.push({ fullName: newChild.fullName, studentCode: newChild.studentCode });
+                        // ❌ KHÔNG tìm thấy mã học sinh → BÁO LỖI
+                        throw new Error(
+                            `Mã học sinh "${row.studentCode.trim()}" không tồn tại trong hệ thống. Không thể cập nhật học sinh này.`,
+                        );
                     }
                 } else {
-                    // ✅ Không có studentCode: Thêm mới (hệ thống tự tạo mã)
+                    // ✅ CASE 2: KHÔNG có mã học sinh → Tạo mới (hệ thống tự tạo mã)
                     const studentCode = await generateStudentCode(user.schoolId);
 
                     const newChild = new ChildrenManagementModel({
                         ...row,
                         schoolId: user.schoolId,
-                        studentCode,
+                        studentCode, // ✅ Hệ thống tự tạo
                         createdBy: userId,
                         lastUpdatedBy: userId,
                     });
 
                     await newChild.save();
                     created.push({ fullName: newChild.fullName, studentCode: newChild.studentCode });
+                    console.log(`✅ [importBulk] Created NEW: ${newChild.studentCode}`);
                 }
             } catch (err) {
                 console.error(`❌ Error processing row ${i + 1}:`, err);

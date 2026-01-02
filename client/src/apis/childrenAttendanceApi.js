@@ -18,9 +18,9 @@ export const childrenAttendanceApi = {
 
     // Lấy dữ liệu điểm danh theo lớp và tuần
     getAttendanceByClass: async (params) => {
-        const { classId, date, weekNumber, academicYearId } = params;
+        const { academicYearId, classId, weekNumber, page = 1, limit = 10, search = '' } = params;
         return await authorizedAxiosInstance.get(`${API_ROOT}/v1/children-attendances`, {
-            params: { classId, date, weekNumber, academicYearId },
+            params: { academicYearId, classId, weekNumber, page, limit, search },
         });
     },
 

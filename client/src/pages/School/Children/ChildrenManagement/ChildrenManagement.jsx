@@ -223,6 +223,7 @@ function ChildrenManagement() {
             flex: 1.2,
             minWidth: 180,
             sortable: false,
+            renderCell: (params) => <Typography sx={{ fontWeight: 600 }}>{params.value}</Typography>,
         },
         {
             field: 'studentCode',

@@ -269,7 +269,7 @@ const bulkAttendance = async (data, userId) => {
  */
 const getAttendanceByClass = async (query, userId) => {
     const user = await ensureUserSchool(userId);
-    const { academicYearId, classId, date, weekNumber } = query;
+    const { academicYearId, classId, weekNumber, page = 1, limit = 10, search = '' } = query;
 
     const classData = await ClassModel.findOne({
         _id: classId,
@@ -290,19 +290,12 @@ const getAttendanceByClass = async (query, userId) => {
     const schedule = await getScheduleOrThrow(user.schoolId, academicYearId);
     const { weeks, holidays } = getWeeksFromSchedule(schedule);
 
-    let targetWeekNumber = weekNumber ? Number(weekNumber) : null;
-    if (date) {
-        const d = new Date(date);
-        targetWeekNumber = findWeekNumberByDate(weeks, d);
-        if (!targetWeekNumber && targetWeekNumber !== 0) {
-            throw new ApiError(StatusCodes.BAD_REQUEST, 'Ngày không thuộc tuần nào đã khai báo');
-        }
-    }
+    const targetWeekNumber = weekNumber ? Number(weekNumber) : null;
     if (targetWeekNumber == null) {
-        throw new ApiError(StatusCodes.BAD_REQUEST, 'Cần truyền date hoặc weekNumber');
+        throw new ApiError(StatusCodes.BAD_REQUEST, 'Cần truyền weekNumber');
     }
 
-    // Tạo danh sách ngày trong tuần (Thứ 2 -> Thứ 6, KHÔNG loại bỏ ngày nghỉ)
+    // Tạo danh sách ngày trong tuần (Thứ 2 -> Thứ 6)
     const week = weeks.find((w) => w.weekNumber === targetWeekNumber);
     if (!week) throw new ApiError(StatusCodes.NOT_FOUND, 'Không tìm thấy tuần đã khai báo');
 
@@ -310,33 +303,49 @@ const getAttendanceByClass = async (query, userId) => {
     const daysInWeek = [];
     while (cur <= week.endDate) {
         if (isMondayToFriday(cur)) {
-            const key = dayjs(cur).format('YYYY-MM-DD'); // ✅ Format theo local
-            daysInWeek.push(key); // ✅ Thêm tất cả Mon-Fri, kể cả ngày nghỉ
+            const key = dayjs(cur).format('YYYY-MM-DD');
+            daysInWeek.push(key);
         }
         cur.setDate(cur.getDate() + 1);
     }
 
-    // Lấy danh sách trẻ trong lớp
-    const children = await getChildrenByClass(user.schoolId, academicYearId, classId);
+    // ✅ Lấy tất cả học sinh trong lớp
+    let children = await getChildrenByClass(user.schoolId, academicYearId, classId);
 
-    // Lấy attendance trong tuần
+    // ✅ Filter theo search (tên hoặc mã HS)
+    if (search && search.trim()) {
+        const searchLower = search.toLowerCase();
+        children = children.filter(
+            (c) => c.fullName.toLowerCase().includes(searchLower) || c.studentCode.toLowerCase().includes(searchLower),
+        );
+    }
+
+    const total = children.length;
+
+    // ✅ Phân trang
+    const skip = (Number(page) - 1) * Number(limit);
+    const paginatedChildren = children.slice(skip, skip + Number(limit));
+
+    // Lấy attendance trong tuần (chỉ cho học sinh trong trang hiện tại)
+    const studentIds = paginatedChildren.map((c) => c.studentId);
     const attDocs = await ChildrenAttendanceModel.find({
         schoolId: user.schoolId,
         academicYearId,
         classId,
         weekNumber: targetWeekNumber,
+        studentId: { $in: studentIds },
         _destroy: false,
     })
         .select('_id studentId date status note')
         .lean();
 
     const attendanceMap = {};
-    for (const stu of children) {
+    for (const stu of paginatedChildren) {
         attendanceMap[stu.studentId] = {};
     }
     for (const doc of attDocs) {
         const sId = doc.studentId.toString();
-        const dayKey = dayjs(doc.date).format('YYYY-MM-DD'); // ✅ Format theo local
+        const dayKey = dayjs(doc.date).format('YYYY-MM-DD');
         if (!attendanceMap[sId]) attendanceMap[sId] = {};
         attendanceMap[sId][dayKey] = {
             _id: doc._id.toString(),
@@ -347,7 +356,7 @@ const getAttendanceByClass = async (query, userId) => {
 
     // Tính tổng vắng tuần/năm
     const totals = {};
-    for (const stu of children) {
+    for (const stu of paginatedChildren) {
         const [weekAbsent, yearAbsent] = await Promise.all([
             countAbsentInWeek(user.schoolId, academicYearId, classId, stu.studentId, targetWeekNumber),
             countAbsentInYear(user.schoolId, academicYearId, classId, stu.studentId),
@@ -368,11 +377,17 @@ const getAttendanceByClass = async (query, userId) => {
             yearStatus: classData.academicYearId.status,
         },
         weekNumber: targetWeekNumber,
-        days: daysInWeek, // ✅ yyyy-MM-dd (Mon-Fri, bao gồm cả ngày nghỉ) - format theo local
-        holidays, // mảng ngày nghỉ yyyy-MM-dd - format theo local
-        students: children, // gồm "Đang học" & "Nghỉ học"
-        attendanceMap, // chỉ học sinh "Đang học" mới được chỉnh sửa/ghi mới
+        days: daysInWeek,
+        holidays,
+        students: paginatedChildren,
+        attendanceMap,
         totals,
+        pagination: {
+            currentPage: Number(page),
+            totalPages: Math.ceil(total / Number(limit)),
+            totalItems: total,
+            itemsPerPage: Number(limit),
+        },
     };
 };
 

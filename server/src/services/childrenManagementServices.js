@@ -215,7 +215,23 @@ const update = async (id, data, userId) => {
             throw new ApiError(StatusCodes.NOT_FOUND, 'Không tìm thấy thông tin trẻ');
         }
 
-        // ✅ Lưu lại status cũ để so sánh
+        // ✅ CHẶN: Nếu học sinh đã có lớp → KHÔNG cho phép sửa status và currentAgeGroup
+        if (child.hasClass === true) {
+            if (data.status !== undefined && data.status !== child.status) {
+                throw new ApiError(
+                    StatusCodes.FORBIDDEN,
+                    `Không thể thay đổi trạng thái của học sinh "${child.fullName}" (${child.studentCode}) vì đã có lớp học. Vui lòng xóa khỏi lớp trước khi chỉnh sửa.`,
+                );
+            }
+            if (data.currentAgeGroup !== undefined && data.currentAgeGroup !== child.currentAgeGroup) {
+                throw new ApiError(
+                    StatusCodes.FORBIDDEN,
+                    `Không thể thay đổi nhóm tuổi của học sinh "${child.fullName}" (${child.studentCode}) vì đã có lớp học. Vui lòng xóa khỏi lớp trước khi chỉnh sửa.`,
+                );
+            }
+        }
+
+        // ✅ Lưu lại status cũ để so sánh (cho logic sync managementStatus)
         const oldStatus = child.status;
 
         // ✅ Cập nhật các field được phép
@@ -226,8 +242,8 @@ const update = async (id, data, userId) => {
             'gender',
             'ethnicity',
             'enrollmentDate',
-            'currentAgeGroup',
-            'status',
+            'currentAgeGroup', // ✅ Chỉ update khi hasClass = false (đã check ở trên)
+            'status', // ✅ Chỉ update khi hasClass = false (đã check ở trên)
             'motherName',
             'motherBirthYear',
             'motherPhone',
@@ -515,7 +531,21 @@ const importBulk = async (data, userId) => {
                     });
 
                     if (existing) {
-                        // ✅ Tìm thấy → Cập nhật
+                        // ✅ CHẶN: Nếu học sinh đã có lớp → KHÔNG cho phép sửa status và currentAgeGroup
+                        if (existing.hasClass === true) {
+                            if (row.status && row.status !== existing.status) {
+                                throw new Error(
+                                    `Học sinh "${existing.fullName}" (${existing.studentCode}) đã có lớp học. Không thể thay đổi trạng thái qua import. Vui lòng xóa khỏi lớp trước.`,
+                                );
+                            }
+                            if (row.currentAgeGroup && row.currentAgeGroup !== existing.currentAgeGroup) {
+                                throw new Error(
+                                    `Học sinh "${existing.fullName}" (${existing.studentCode}) đã có lớp học. Không thể thay đổi nhóm tuổi qua import. Vui lòng xóa khỏi lớp trước.`,
+                                );
+                            }
+                        }
+
+                        // ✅ Tìm thấy → Cập nhật (trừ status và currentAgeGroup nếu hasClass = true)
                         Object.assign(existing, {
                             fullName: row.fullName,
                             nickname: row.nickname || '',
@@ -523,6 +553,7 @@ const importBulk = async (data, userId) => {
                             gender: row.gender,
                             ethnicity: row.ethnicity,
                             enrollmentDate: row.enrollmentDate,
+                            // ✅ Chỉ update nếu hasClass = false (đã check ở trên)
                             currentAgeGroup: row.currentAgeGroup,
                             status: row.status,
                             motherName: row.motherName || '',

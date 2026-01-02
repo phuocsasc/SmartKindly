@@ -6,7 +6,7 @@ import { UserModel } from '~/models/userModel.js';
 import ApiError from '~/utils/ApiError.js';
 import { StatusCodes } from 'http-status-codes';
 import { removeVietnameseTones } from '~/utils/formatters.js';
-
+import { ChildrenAttendanceModel } from '~/models/childrenAttendanceModel.js';
 /**
  * ✅ Helper: Check permission - Chỉ BGH mới được thao tác
  */
@@ -482,8 +482,7 @@ const transferStudents = async (data, userId) => {
             throw new ApiError(StatusCodes.BAD_REQUEST, 'Một số học sinh không phù hợp với nhóm tuổi của lớp mới');
         }
 
-        // ✅ Update records: chuyển từ fromClassId sang toClassId
-        // ✅ KHÔNG CẬP NHẬT managementStatus (giữ nguyên trạng thái hiện tại)
+        // ✅ Update ChildrenByClassModel: chuyển từ fromClassId sang toClassId
         const updateResult = await ChildrenByClassModel.updateMany(
             {
                 _id: { $in: studentIds },
@@ -500,7 +499,7 @@ const transferStudents = async (data, userId) => {
             },
         );
 
-        console.log('📋 [transferStudents] Update result:', updateResult);
+        console.log('📋 [transferStudents] Updated ChildrenByClassModel:', updateResult.modifiedCount);
 
         // ✅ Update ChildrenManagement: currentClassName = toClass.name
         await ChildrenManagementModel.updateMany(
@@ -512,6 +511,29 @@ const transferStudents = async (data, userId) => {
             },
         );
 
+        console.log('📋 [transferStudents] Updated ChildrenManagement');
+
+        // ✅ UPDATE ATTENDANCE DATA: Chuyển classId sang lớp mới
+        const attendanceUpdateResult = await ChildrenAttendanceModel.updateMany(
+            {
+                schoolId: user.schoolId,
+                academicYearId: academicYearId,
+                classId: fromClassId,
+                studentId: { $in: studentObjectIds },
+                _destroy: false,
+            },
+            {
+                $set: {
+                    classId: toClassId,
+                    lastUpdatedBy: userId,
+                },
+            },
+        );
+
+        console.log(
+            `✅ [transferStudents] Updated ${attendanceUpdateResult.modifiedCount} attendance records from class "${fromClass.name}" to "${toClass.name}"`,
+        );
+
         console.log('✅ [ChildrenByClass transferStudents] Transferred:', studentIds.length, 'students');
 
         return {
@@ -519,6 +541,7 @@ const transferStudents = async (data, userId) => {
             count: studentIds.length,
             fromClassName: fromClass.name,
             toClassName: toClass.name,
+            attendanceUpdated: attendanceUpdateResult.modifiedCount,
         };
     } catch (error) {
         console.error('❌ [ChildrenByClass transferStudents] Error:', error);
@@ -573,10 +596,22 @@ const removeStudentFromClass = async (id, userId) => {
             studentId: record.studentId._id,
         };
 
-        // ✅ HARD DELETE - Xóa cứng record khỏi database
+        // ✅ BƯỚC 1: Xóa cứng dữ liệu điểm danh của học sinh này trong năm học hiện tại
+        const attendanceDeleteResult = await ChildrenAttendanceModel.deleteMany({
+            schoolId: user.schoolId,
+            academicYearId: record.academicYearId._id,
+            classId: record.classId._id,
+            studentId: studentInfo.studentId,
+        });
+
+        console.log(
+            `🗑️ [removeStudentFromClass] Deleted ${attendanceDeleteResult.deletedCount} attendance records for student ${studentInfo.studentCode}`,
+        );
+
+        // ✅ BƯỚC 2: Xóa cứng record khỏi ChildrenByClassModel
         await ChildrenByClassModel.findByIdAndDelete(id);
 
-        // ✅ Update ChildrenManagement
+        // ✅ BƯỚC 3: Update ChildrenManagement
         await ChildrenManagementModel.findByIdAndUpdate(studentInfo.studentId, {
             $set: {
                 hasClass: false,
@@ -587,12 +622,13 @@ const removeStudentFromClass = async (id, userId) => {
         console.log('✅ [ChildrenByClass removeStudentFromClass] Hard deleted successfully');
 
         return {
-            message: `Đã xóa học sinh "${studentInfo.fullName}" ra khỏi lớp "${studentInfo.className}"`,
+            message: `Đã xóa học sinh "${studentInfo.fullName}" ra khỏi lớp "${studentInfo.className}" và xóa ${attendanceDeleteResult.deletedCount} bản ghi điểm danh`,
             studentInfo: {
                 fullName: studentInfo.fullName,
                 studentCode: studentInfo.studentCode,
                 className: studentInfo.className,
             },
+            attendanceDeleted: attendanceDeleteResult.deletedCount,
         };
     } catch (error) {
         console.error('❌ [ChildrenByClass removeStudentFromClass] Error:', error);
@@ -624,34 +660,43 @@ const removeStudentsFromClass = async (ids, userId) => {
         })
             .populate({
                 path: 'academicYearId',
-                select: 'status',
+                select: 'status fromYear toYear',
             })
-            .populate('studentId', '_id')
+            .populate('classId', 'name')
+            .populate('studentId', 'fullName studentCode')
             .lean();
 
         if (records.length === 0) {
             throw new ApiError(StatusCodes.NOT_FOUND, 'Không tìm thấy học sinh nào trong lớp');
         }
 
-        if (records.length !== ids.length) {
-            throw new ApiError(StatusCodes.BAD_REQUEST, 'Một số học sinh không tồn tại hoặc đã bị xóa');
-        }
-
-        // ✅ Kiểm tra năm học active
         const inactiveRecords = records.filter((r) => r.academicYearId.status !== 'active');
         if (inactiveRecords.length > 0) {
             throw new ApiError(StatusCodes.FORBIDDEN, 'Chỉ được xóa học sinh trong năm học đang hoạt động');
         }
 
-        // ✅ Lấy danh sách studentIds
         const studentIds = records.map((r) => r.studentId._id);
+        const academicYearId = records[0].academicYearId._id;
+        const classId = records[0].classId._id;
 
-        // ✅ HARD DELETE - Xóa cứng records khỏi database
+        // ✅ BƯỚC 1: Xóa cứng dữ liệu điểm danh của tất cả học sinh trong năm học hiện tại
+        const attendanceDeleteResult = await ChildrenAttendanceModel.deleteMany({
+            schoolId: user.schoolId,
+            academicYearId: academicYearId,
+            classId: classId,
+            studentId: { $in: studentIds },
+        });
+
+        console.log(
+            `🗑️ [removeStudentsFromClass] Deleted ${attendanceDeleteResult.deletedCount} attendance records for ${ids.length} students`,
+        );
+
+        // ✅ BƯỚC 2: Xóa cứng records khỏi ChildrenByClassModel
         const deleteResult = await ChildrenByClassModel.deleteMany({ _id: { $in: ids } });
 
         console.log('📋 [removeStudentsFromClass] Deleted count:', deleteResult.deletedCount);
 
-        // ✅ Update ChildrenManagement
+        // ✅ BƯỚC 3: Update ChildrenManagement
         const updateResult = await ChildrenManagementModel.updateMany(
             { _id: { $in: studentIds } },
             {
@@ -667,12 +712,15 @@ const removeStudentsFromClass = async (ids, userId) => {
         console.log(
             '✅ [ChildrenByClass removeStudentsFromClass] Hard deleted:',
             deleteResult.deletedCount,
-            'students',
+            'students and',
+            attendanceDeleteResult.deletedCount,
+            'attendance records',
         );
 
         return {
-            message: `Đã xóa ${deleteResult.deletedCount} học sinh ra khỏi lớp`,
+            message: `Đã xóa ${deleteResult.deletedCount} học sinh ra khỏi lớp và xóa ${attendanceDeleteResult.deletedCount} bản ghi điểm danh`,
             count: deleteResult.deletedCount,
+            attendanceDeleted: attendanceDeleteResult.deletedCount,
         };
     } catch (error) {
         console.error('❌ [ChildrenByClass removeStudentsFromClass] Error:', error);

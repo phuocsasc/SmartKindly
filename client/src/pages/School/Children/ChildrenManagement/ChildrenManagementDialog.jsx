@@ -14,6 +14,7 @@ import {
     Typography,
     IconButton,
     Grid,
+    Alert,
     Accordion,
     AccordionSummary,
     AccordionDetails,
@@ -73,6 +74,8 @@ function ChildrenManagementDialog({ open, mode, childData, onClose, onSuccess })
     });
 
     const isCreateMode = mode === 'create';
+    // ✅ THÊM: Check xem học sinh đã có lớp chưa (chỉ khi edit)
+    const hasClass = mode === 'edit' && childData?.hasClass === true;
 
     useEffect(() => {
         if (mode === 'edit' && childData) {
@@ -250,7 +253,19 @@ function ChildrenManagementDialog({ open, mode, childData, onClose, onSuccess })
                     </IconButton>
                 </DialogTitle>
 
-                <DialogContent sx={{ pt: 3 }}>
+                <DialogContent sx={{ mt: 3, pb: 0, overflowY: 'auto' }}>
+                    {/* ✅ THÊM: Cảnh báo khi học sinh đã có lớp */}
+                    {hasClass && (
+                        <Alert severity="warning" sx={{ mb: 2 }}>
+                            <Typography variant="body2" fontWeight={600}>
+                                Học sinh đã có lớp
+                            </Typography>
+                            <Typography variant="body2">
+                                Không thể thay đổi <strong>Trạng thái</strong> và <strong>Nhóm tuổi hiện tại</strong>{' '}
+                                khi học sinh đã có lớp học.
+                            </Typography>
+                        </Alert>
+                    )}
                     {/* Section 1: Thông tin học sinh */}
                     <Accordion defaultExpanded>
                         <AccordionSummary expandIcon={<ExpandMoreIcon />}>
@@ -353,9 +368,9 @@ function ChildrenManagementDialog({ open, mode, childData, onClose, onSuccess })
                                     />
                                 </Grid>
 
-                                {/* ✅ THÊM: Nhóm tuổi hiện tại */}
+                                {/* ✅ Nhóm tuổi hiện tại - DISABLE khi hasClass */}
                                 <Grid item xs={12} md={6}>
-                                    <FormControl fullWidth size="small" required>
+                                    <FormControl fullWidth size="small" required disabled={hasClass}>
                                         <InputLabel>Nhóm tuổi hiện tại *</InputLabel>
                                         <Select
                                             value={formData.currentAgeGroup}
@@ -372,11 +387,20 @@ function ChildrenManagementDialog({ open, mode, childData, onClose, onSuccess })
                                             ))}
                                         </Select>
                                     </FormControl>
+                                    {hasClass && (
+                                        <Typography
+                                            variant="caption"
+                                            color="text.secondary"
+                                            sx={{ mt: 0.5, display: 'block' }}
+                                        >
+                                            Không thể thay đổi (Nhóm tuổi) khi học sinh đã có lớp
+                                        </Typography>
+                                    )}
                                 </Grid>
 
-                                {/* Trạng thái */}
+                                {/* ✅ Trạng thái - DISABLE khi hasClass */}
                                 <Grid item xs={12} md={6}>
-                                    <FormControl fullWidth size="small" required>
+                                    <FormControl fullWidth size="small" required disabled={hasClass}>
                                         <InputLabel>Trạng thái *</InputLabel>
                                         <Select
                                             value={formData.status}
@@ -387,6 +411,15 @@ function ChildrenManagementDialog({ open, mode, childData, onClose, onSuccess })
                                             <MenuItem value="Nghỉ học">Nghỉ học</MenuItem>
                                         </Select>
                                     </FormControl>
+                                    {hasClass && (
+                                        <Typography
+                                            variant="caption"
+                                            color="text.secondary"
+                                            sx={{ mt: 0.5, display: 'block' }}
+                                        >
+                                            Không thể thay đổi (Trạng thái) khi học sinh đã có lớp
+                                        </Typography>
+                                    )}
                                 </Grid>
                             </Grid>
                         </AccordionDetails>

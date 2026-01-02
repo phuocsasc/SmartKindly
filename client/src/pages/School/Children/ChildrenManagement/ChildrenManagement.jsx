@@ -274,31 +274,23 @@ function ChildrenManagement() {
         {
             field: 'currentAgeGroup',
             headerName: 'Nhóm tuổi hiện tại',
-            flex: 1,
-            minWidth: 150,
+            flex: 0.8,
+            minWidth: 120,
             sortable: false,
-            renderCell: (params) => (
-                <Typography variant="body2" color="text.secondary">
-                    {params.value || 'Chưa có'}
-                </Typography>
-            ),
+            renderCell: (params) => <Typography variant="body2">{params.value || 'Chưa có'}</Typography>,
         },
         {
             field: 'currentClassName',
             headerName: 'Lớp học hiện tại',
-            flex: 1,
+            flex: 0.8,
             minWidth: 120,
             sortable: false,
-            renderCell: (params) => (
-                <Typography variant="body2" color="text.secondary">
-                    {params.value || 'Chưa có'}
-                </Typography>
-            ),
+            renderCell: (params) => <Typography variant="body2">{params.value || 'Chưa có'}</Typography>,
         },
         {
             field: 'hasClass',
             headerName: 'Đã có lớp',
-            flex: 0.7,
+            flex: 0.6,
             minWidth: 100,
             sortable: false,
             align: 'center',

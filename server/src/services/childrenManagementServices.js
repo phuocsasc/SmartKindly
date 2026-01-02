@@ -368,100 +368,81 @@ const deleteMany = async (ids, userId) => {
 };
 
 /**
- * ✅ Auto-upgrade age group và reset hasClass khi tạo năm học mới
- * - Tăng nhóm tuổi lên 1 bậc cho tất cả trẻ "Đang học"
- * - Reset hasClass = false cho trẻ "Đang học" có hasClass = true
- * - Không thay đổi gì với trẻ "Nghỉ học"
+ * ✅ Auto reset hasClass khi tạo năm học mới
+ * - Trẻ "Đang học": reset hasClass, có thể upgrade age group
+ * - Trẻ "Nghỉ học": reset hasClass = false (KHÔNG upgrade age group)
  */
 const resetHasClassForNewYear = async (schoolId) => {
     try {
         console.log('🔄 [ChildrenManagement resetHasClassForNewYear] Starting for school:', schoolId);
 
-        // ✅ Mapping nhóm tuổi: current → next
-        const AGE_GROUP_UPGRADE = {
-            '12-24 tháng': '24-36 tháng',
-            '24-36 tháng': '3-4 tuổi',
-            '3-4 tuổi': '4-5 tuổi',
-            '4-5 tuổi': '5-6 tuổi',
-            '5-6 tuổi': '5-6 tuổi', // Giữ nguyên
-        };
-
-        // ✅ FIX: Lấy snapshot danh sách trẻ TRƯỚC KHI update để tránh trùng lặp
-        const childrenToUpdate = await ChildrenManagementModel.find({
+        /**
+         * ============================
+         * 1️⃣ XỬ LÝ TRẺ "ĐANG HỌC"
+         * ============================
+         */
+        const studyingChildren = await ChildrenManagementModel.find({
             schoolId,
             status: 'Đang học',
             _destroy: false,
         })
-            .select('_id currentAgeGroup fullName')
+            .select('_id currentAgeGroup')
             .lean();
 
-        console.log(`📋 Found ${childrenToUpdate.length} children with status "Đang học"`);
+        console.log(`📋 Found ${studyingChildren.length} children with status "Đang học"`);
 
-        // ✅ Nhóm children theo currentAgeGroup
-        const groupedByAgeGroup = childrenToUpdate.reduce((acc, child) => {
-            if (!acc[child.currentAgeGroup]) {
-                acc[child.currentAgeGroup] = [];
-            }
-            acc[child.currentAgeGroup].push(child._id);
-            return acc;
-        }, {});
+        if (studyingChildren.length > 0) {
+            const studyingIds = studyingChildren.map((c) => c._id);
 
-        console.log('📊 Grouped by age group:', {
-            '12-24 tháng': groupedByAgeGroup['12-24 tháng']?.length || 0,
-            '24-36 tháng': groupedByAgeGroup['24-36 tháng']?.length || 0,
-            '3-4 tuổi': groupedByAgeGroup['3-4 tuổi']?.length || 0,
-            '4-5 tuổi': groupedByAgeGroup['4-5 tuổi']?.length || 0,
-            '5-6 tuổi': groupedByAgeGroup['5-6 tuổi']?.length || 0,
-        });
-
-        let totalUpdated = 0;
-
-        // ✅ Update từng nhóm với danh sách _id cố định
-        for (const [currentAgeGroup, nextAgeGroup] of Object.entries(AGE_GROUP_UPGRADE)) {
-            const childIds = groupedByAgeGroup[currentAgeGroup] || [];
-
-            if (childIds.length === 0) {
-                console.log(`  ⏭️ [${currentAgeGroup}]: No children to update`);
-                continue;
-            }
-
-            console.log(`📋 Processing: ${currentAgeGroup} → ${nextAgeGroup} (${childIds.length} children)`);
-
-            // ✅ Update bằng _id cụ thể, không dùng filter currentAgeGroup
-            const result = await ChildrenManagementModel.updateMany(
+            const resultStudying = await ChildrenManagementModel.updateMany(
                 {
-                    _id: { $in: childIds }, // ✅ CHỈ UPDATE ĐÚNG CÁC ID ĐÃ XÁC ĐỊNH
-                    schoolId, // Safety check
+                    _id: { $in: studyingIds },
+                    schoolId,
                     _destroy: false,
                 },
                 {
                     $set: {
-                        // currentAgeGroup: nextAgeGroup,
                         hasClass: false,
                         currentClassName: 'Chưa có',
+                        // currentAgeGroup: nextAgeGroup (nếu sau này bạn mở lại)
                     },
                 },
             );
 
-            console.log(
-                `  ✅ [${currentAgeGroup}] → [${nextAgeGroup}]: Updated ${result.modifiedCount}/${childIds.length} students`,
-            );
-            totalUpdated += result.modifiedCount;
+            console.log(`✅ Reset hasClass for ${resultStudying.modifiedCount} studying children`);
         }
 
-        console.log('✅ [ChildrenManagement resetHasClassForNewYear] Summary:');
-        console.log(`   - Total children (Đang học): ${childrenToUpdate.length}`);
-        console.log(`   - Total updated: ${totalUpdated} students`);
+        /**
+         * ============================
+         * 2️⃣ XỬ LÝ TRẺ "NGHỈ HỌC"
+         * ============================
+         */
+        const resultStopped = await ChildrenManagementModel.updateMany(
+            {
+                schoolId,
+                status: 'Nghỉ học',
+                _destroy: false,
+            },
+            {
+                $set: {
+                    hasClass: false,
+                },
+            },
+        );
+
+        console.log(`🚫 Reset hasClass for ${resultStopped.modifiedCount} stopped children`);
 
         return {
-            totalUpdated,
             status: 'success',
+            studyingUpdated: studyingChildren.length,
+            stoppedUpdated: resultStopped.modifiedCount,
         };
     } catch (error) {
         console.error('❌ [ChildrenManagement resetHasClassForNewYear] Error:', error);
         throw error;
     }
 };
+
 /**
  * ✅ Import bulk children
  */

@@ -26,11 +26,18 @@ const ATTENDANCE_STATUS = [
     { value: 'Có mặt', label: 'Có mặt', color: 'success' },
     { value: 'Vắng có phép', label: 'Vắng có phép', color: 'warning' },
     { value: 'Vắng không phép', label: 'Vắng không phép', color: 'error' },
-    { value: 'Đi trễ', label: 'Đi trễ', color: 'info' },
-    { value: 'Chưa điểm danh', label: 'Chưa điểm danh', color: 'default' },
 ];
 
-function ChildrenAttendanceDialog({ open, studentInfo, classId, date, existingAttendance, onClose, onSuccess }) {
+function ChildrenAttendanceDialog({
+    open,
+    studentInfo,
+    classId,
+    academicYearId,
+    date,
+    existingAttendance,
+    onClose,
+    onSuccess,
+}) {
     const [loading, setLoading] = useState(false);
     const [formData, setFormData] = useState({
         status: 'Có mặt',
@@ -56,17 +63,20 @@ function ChildrenAttendanceDialog({ open, studentInfo, classId, date, existingAt
             setLoading(true);
 
             if (existingAttendance && existingAttendance._id) {
-                // Update existing attendance
-                await childrenAttendanceApi.update(existingAttendance._id, formData);
+                await childrenAttendanceApi.update(existingAttendance._id, {
+                    status: formData.status,
+                    note: formData.note,
+                });
                 toast.success('Cập nhật điểm danh thành công!');
             } else {
-                // ✅ FIX: Sử dụng classId từ props thay vì studentInfo.classId
+                // Tạo mới bằng bulk với 1 học sinh (đúng payload server: items)
                 await childrenAttendanceApi.bulkAttendance({
-                    classId: classId, // ✅ Sử dụng classId từ props
-                    date: date,
-                    attendances: [
+                    academicYearId,
+                    classId,
+                    date,
+                    items: [
                         {
-                            studentId: studentInfo._id,
+                            studentId: studentInfo.studentId, // server trả studentId
                             status: formData.status,
                             note: formData.note,
                         },
@@ -75,11 +85,11 @@ function ChildrenAttendanceDialog({ open, studentInfo, classId, date, existingAt
                 toast.success('Điểm danh thành công!');
             }
 
-            onSuccess();
-            onClose();
+            onSuccess?.();
+            onClose?.();
         } catch (error) {
             console.error('Error saving attendance:', error);
-            toast.error(error.response?.data?.message || 'Lỗi khi điểm danh!');
+            toast.error(error?.response?.data?.message || 'Lỗi khi lưu điểm danh!');
         } finally {
             setLoading(false);
         }
@@ -87,18 +97,15 @@ function ChildrenAttendanceDialog({ open, studentInfo, classId, date, existingAt
 
     const handleDelete = async () => {
         if (!existingAttendance || !existingAttendance._id) return;
-
-        // if (!window.confirm('Bạn có chắc muốn xóa điểm danh này?')) return;
-
         try {
             setLoading(true);
             await childrenAttendanceApi.delete(existingAttendance._id);
             toast.success('Xóa điểm danh thành công!');
-            onSuccess();
-            onClose();
+            onSuccess?.();
+            onClose?.();
         } catch (error) {
             console.error('Error deleting attendance:', error);
-            toast.error(error.response?.data?.message || 'Lỗi khi xóa điểm danh!');
+            toast.error(error?.response?.data?.message || 'Lỗi khi xóa điểm danh!');
         } finally {
             setLoading(false);
         }
@@ -195,9 +202,8 @@ function ChildrenAttendanceDialog({ open, studentInfo, classId, date, existingAt
             </DialogContent>
 
             {/* Actions */}
-            <DialogActions sx={{ px: 3, py: 2, gap: 1, justifyContent: 'space-between' }}>
-                {/* Delete button (only if editing) */}
-                {existingAttendance && existingAttendance._id && (
+            <DialogActions sx={{ px: 3, py: 2, gap: 1 }}>
+                {existingAttendance?._id && (
                     <Button
                         variant="outlined"
                         color="error"

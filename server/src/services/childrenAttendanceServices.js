@@ -1,36 +1,39 @@
 import { StatusCodes } from 'http-status-codes';
 import ApiError from '~/utils/ApiError.js';
 import { ChildrenAttendanceModel } from '~/models/childrenAttendanceModel.js';
-import { ChildrenProfileModel } from '~/models/childrenProfileModel.js';
+import { ChildrenByClassModel } from '~/models/childrenByClassModel.js';
 import { ClassModel } from '~/models/classModel.js';
 import { AcademicYearModel } from '~/models/academicYearModel.js';
 import { DepartmentModel } from '~/models/departmentModel.js';
 import { ScheduleModel } from '~/models/scheduleModel.js';
 import { UserModel } from '~/models/userModel.js';
-import dayjs from 'dayjs';
-import isoWeek from 'dayjs/plugin/isoWeek';
-import { logAction } from '~/middlewares/auditLogMiddleware.js';
-import { AUDIT_LOG_ACTIONS, AUDIT_LOG_RESOURCES } from '~/config/auditLogConfig.js';
+import dayjs from 'dayjs'; // ✅ Import dayjs
 
-dayjs.extend(isoWeek);
+const ALLOWED_STATUSES = ['Có mặt', 'Vắng có phép', 'Vắng không phép'];
 
-/**
- * ✅ Helper: Normalize department name to grade
- */
-const normalizeDepartmentToGrade = (departmentName) => {
-    const mapping = {
-        'Khối Nhà Trẻ': 'Nhà trẻ',
-        'Khối Mầm': 'Mầm',
-        'Khối Chồi': 'Chồi',
-        'Khối Lá': 'Lá',
-    };
-    return mapping[departmentName] || departmentName;
+// Map tên tổ -> tên khối (Class.grade)
+const DEPT_TO_GRADE = {
+    'Khối Nhà Trẻ': 'Nhà trẻ',
+    'Khối Mầm': 'Mầm',
+    'Khối Chồi': 'Chồi',
+    'Khối Lá': 'Lá',
 };
 
-/**
- * ✅ Helper: Get accessible classes for user
- */
-const getAccessibleClasses = async (user, academicYearId) => {
+const ensureUserSchool = async (userId) => {
+    const user = await UserModel.findById(userId).select('schoolId role _id');
+    if (!user || !user.schoolId) {
+        throw new ApiError(StatusCodes.FORBIDDEN, 'Bạn không thuộc trường học nào');
+    }
+    return user;
+};
+
+const getAcademicYearOrThrow = async (schoolId, academicYearId) => {
+    const year = await AcademicYearModel.findOne({ _id: academicYearId, schoolId, _destroy: false });
+    if (!year) throw new ApiError(StatusCodes.NOT_FOUND, 'Không tìm thấy năm học');
+    return year;
+};
+
+const getAccessibleClassIds = async (user, academicYearId) => {
     if (user.role === 'ban_giam_hieu') {
         const classes = await ClassModel.find({
             schoolId: user.schoolId,
@@ -47,664 +50,437 @@ const getAccessibleClasses = async (user, academicYearId) => {
             managers: user._id,
             _destroy: false,
         }).select('name');
-
-        const grades = departments.map((dept) => normalizeDepartmentToGrade(dept.name));
+        const managedGrades = departments.map((d) => DEPT_TO_GRADE[d.name] || d.name);
         const classes = await ClassModel.find({
             schoolId: user.schoolId,
             academicYearId,
-            grade: { $in: grades.map((g) => new RegExp(`^${g}$`, 'i')) },
+            grade: { $in: managedGrades },
             _destroy: false,
         }).select('_id');
         return classes.map((c) => c._id.toString());
     }
 
     if (user.role === 'giao_vien') {
-        const assignedClass = await ClassModel.findOne({
+        const classes = await ClassModel.find({
             schoolId: user.schoolId,
             academicYearId,
             homeRoomTeacher: user._id,
             _destroy: false,
         }).select('_id');
-        return assignedClass ? [assignedClass._id.toString()] : [];
+        return classes.map((c) => c._id.toString());
     }
 
+    // Vai trò khác: không có quyền
     return [];
 };
 
-/**
- * ✅ Lấy danh sách tuần từ schedule (Thứ 2-6) - FIX: Generate days từ startDate/endDate
- */
-const getWeeksFromSchedule = async (schoolId, academicYearId) => {
-    try {
-        const schedule = await ScheduleModel.findOne({
-            schoolId,
-            academicYearId,
-            _destroy: false,
-        }).lean();
-
-        if (!schedule || !schedule.weeks) {
-            return [];
-        }
-
-        // ✅ Generate days array (Mon-Fri) từ startDate và endDate của mỗi tuần
-        return schedule.weeks.map((week) => {
-            const days = [];
-            const startDate = dayjs(week.startDate);
-            const endDate = dayjs(week.endDate);
-
-            let currentDate = startDate;
-            const dayNames = ['Chủ Nhật', 'Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7'];
-
-            // Generate days từ startDate đến endDate
-            while (currentDate.isBefore(endDate) || currentDate.isSame(endDate, 'day')) {
-                const dayOfWeek = currentDate.day(); // 0=Sunday, 1=Monday, ..., 6=Saturday
-
-                // Chỉ lấy thứ 2-6 (Monday=1 to Friday=5)
-                if (dayOfWeek >= 1 && dayOfWeek <= 5) {
-                    days.push({
-                        dayOfWeek: dayNames[dayOfWeek],
-                        date: currentDate.toDate(),
-                    });
-                }
-
-                currentDate = currentDate.add(1, 'day');
-            }
-
-            return {
-                weekNumber: week.weekNumber,
-                startDate: week.startDate,
-                endDate: week.endDate,
-                days,
-            };
-        });
-    } catch (error) {
-        console.error('❌ [getWeeksFromSchedule] Error:', error);
-        return [];
+const getScheduleOrThrow = async (schoolId, academicYearId) => {
+    const schedule = await ScheduleModel.findOne({
+        schoolId,
+        academicYearId,
+        _destroy: false,
+    }).lean();
+    if (!schedule) {
+        throw new ApiError(StatusCodes.NOT_FOUND, 'Chưa khai báo thời khóa biểu năm học này');
     }
+    return schedule;
+};
+
+// ✅ FIX: Lấy danh sách tuần (thứ 2 - thứ 6), holidays (mảng date ISO) từ schedule - normalize đúng timezone
+const getWeeksFromSchedule = (schedule) => {
+    const weeks = (schedule.weeks || []).map((w) => ({
+        weekNumber: w.weekNumber,
+        startDate: new Date(w.startDate),
+        endDate: new Date(w.endDate),
+    }));
+
+    // ✅ FIX: Normalize holidays về yyyy-MM-dd theo LOCAL DATE (không dùng UTC)
+    const holidays = (schedule.holidays || []).map((h) => {
+        const d = h.date ? new Date(h.date) : new Date(h);
+        // Dùng dayjs để format theo timezone local thay vì UTC
+        return dayjs(d).format('YYYY-MM-DD');
+    });
+
+    return { weeks, holidays };
+};
+
+const isMondayToFriday = (dateObj) => {
+    const day = dateObj.getDay(); // 0 CN, 1 T2 ... 6 T7
+    return day >= 1 && day <= 5;
+};
+
+const isHoliday = (dateObj, holidaysSet) => {
+    // ✅ FIX: So sánh theo local date
+    const key = dayjs(dateObj).format('YYYY-MM-DD');
+    return holidaysSet.has(key);
+};
+
+const findWeekNumberByDate = (weeks, dateObj) => {
+    const ts = dateObj.getTime();
+    const week = weeks.find((w) => ts >= w.startDate.getTime() && ts <= w.endDate.getTime());
+    return week ? week.weekNumber : null;
+};
+
+// Lấy danh sách trẻ theo lớp từ ChildrenByClassModel (bao gồm "Đang học" và "Nghỉ học")
+const getChildrenByClass = async (schoolId, academicYearId, classId) => {
+    const list = await ChildrenByClassModel.find({
+        schoolId,
+        academicYearId,
+        classId,
+        _destroy: false,
+    })
+        .populate('studentId', 'fullName studentCode status')
+        .select('studentId')
+        .lean();
+
+    return list
+        .filter((r) => r.studentId) // loại record lỗi
+        .map((r) => ({
+            studentId: r.studentId._id.toString(),
+            fullName: r.studentId.fullName,
+            studentCode: r.studentId.studentCode,
+            managementStatus: r.studentId.status, // "Đang học" / "Nghỉ học"
+        }));
+};
+
+// Đếm vắng theo tuần (Mon-Fri, loại trừ holidays)
+const countAbsentInWeek = async (schoolId, academicYearId, classId, studentId, weekNumber) => {
+    const absentStatuses = ['Vắng có phép', 'Vắng không phép'];
+    const records = await ChildrenAttendanceModel.find({
+        schoolId,
+        academicYearId,
+        classId,
+        studentId,
+        weekNumber,
+        status: { $in: absentStatuses },
+        _destroy: false,
+    }).select('date status');
+    return records.length;
+};
+
+// Đếm vắng theo năm (loại trừ holidays – dữ liệu đã chặn tạo vào ngày nghỉ nên mặc định không có)
+const countAbsentInYear = async (schoolId, academicYearId, classId, studentId) => {
+    const absentStatuses = ['Vắng có phép', 'Vắng không phép'];
+    const records = await ChildrenAttendanceModel.countDocuments({
+        schoolId,
+        academicYearId,
+        classId,
+        studentId,
+        status: { $in: absentStatuses },
+        _destroy: false,
+    });
+    return records;
 };
 
 /**
- * ✅ Điểm danh hàng loạt trong ngày
+ * Bulk điểm danh 1 ngày cho 1 lớp
  */
 const bulkAttendance = async (data, userId) => {
-    try {
-        console.log('📋 [bulkAttendance] Starting with data:', data);
+    const user = await ensureUserSchool(userId);
+    const { academicYearId, classId, date, items } = data;
 
-        const { classId, date, attendances } = data;
+    const year = await getAcademicYearOrThrow(user.schoolId, academicYearId);
+    if (year.status !== 'active') {
+        throw new ApiError(StatusCodes.FORBIDDEN, 'Chỉ được điểm danh trong năm học đang hoạt động');
+    }
 
-        const user = await UserModel.findById(userId).select('schoolId role _id');
-        if (!user || !user.schoolId) {
-            throw new ApiError(StatusCodes.FORBIDDEN, 'Bạn không thuộc trường học nào');
-        }
+    const classData = await ClassModel.findOne({
+        _id: classId,
+        schoolId: user.schoolId,
+        academicYearId,
+        _destroy: false,
+    }).select('_id name');
+    if (!classData) throw new ApiError(StatusCodes.NOT_FOUND, 'Không tìm thấy lớp học');
 
-        // ✅ Verify active year
-        const activeYear = await AcademicYearModel.findOne({
-            schoolId: user.schoolId,
-            status: 'active',
-            _destroy: false,
-        });
+    const accessible = await getAccessibleClassIds(user, academicYearId);
+    if (!accessible.includes(classId)) {
+        throw new ApiError(StatusCodes.FORBIDDEN, 'Bạn không có quyền điểm danh lớp này');
+    }
 
-        if (!activeYear) {
-            throw new ApiError(StatusCodes.BAD_REQUEST, 'Không có năm học đang hoạt động');
-        }
+    const schedule = await getScheduleOrThrow(user.schoolId, academicYearId);
+    const { weeks, holidays } = getWeeksFromSchedule(schedule);
+    const holidaysSet = new Set(holidays);
 
-        // ✅ Verify class exists và lấy thông tin để audit log
-        const classData = await ClassModel.findOne({
-            _id: classId,
-            schoolId: user.schoolId,
-            academicYearId: activeYear._id,
-            _destroy: false,
-        }).populate('academicYearId', 'fromYear toYear');
+    const dateObj = new Date(date);
+    if (!isMondayToFriday(dateObj)) {
+        throw new ApiError(StatusCodes.BAD_REQUEST, 'Chỉ điểm danh từ Thứ 2 đến Thứ 6');
+    }
+    if (isHoliday(dateObj, holidaysSet)) {
+        throw new ApiError(StatusCodes.BAD_REQUEST, 'Không được điểm danh vào ngày nghỉ');
+    }
 
-        if (!classData) {
-            throw new ApiError(StatusCodes.NOT_FOUND, 'Không tìm thấy lớp học');
-        }
+    const weekNumber = findWeekNumberByDate(weeks, dateObj);
+    if (!weekNumber && weekNumber !== 0) {
+        throw new ApiError(StatusCodes.BAD_REQUEST, 'Ngày điểm danh không thuộc bất kỳ tuần nào đã khai báo');
+    }
 
-        // ✅ Check permission
-        const accessibleClassIds = await getAccessibleClasses(user, activeYear._id);
-        if (!accessibleClassIds.includes(classId)) {
-            throw new ApiError(StatusCodes.FORBIDDEN, 'Bạn không có quyền điểm danh lớp này');
-        }
+    // Lấy danh sách trẻ trong lớp (bao gồm cả nghỉ học nhưng chỉ "Đang học" mới được điểm danh)
+    const children = await getChildrenByClass(user.schoolId, academicYearId, classId);
+    const activeStudentIds = new Set(children.filter((c) => c.managementStatus === 'Đang học').map((c) => c.studentId));
 
-        // ✅ Validate date (must be Monday-Friday)
-        const targetDate = dayjs(date);
-        const dayOfWeek = targetDate.day(); // 0=Sunday, 1=Monday, ..., 6=Saturday
-        if (dayOfWeek === 0 || dayOfWeek === 6) {
-            throw new ApiError(StatusCodes.BAD_REQUEST, 'Chỉ được điểm danh từ thứ 2 đến thứ 6');
-        }
+    // Lọc items chỉ còn học sinh đang học, và trạng thái hợp lệ
+    const validPayload = (items || [])
+        .filter((it) => activeStudentIds.has(it.studentId))
+        .filter((it) => ALLOWED_STATUSES.includes(it.status));
 
-        // ✅ Get week number từ Schedule (KHÔNG dùng isoWeek)
-        const schedule = await ScheduleModel.findOne({
-            schoolId: user.schoolId,
-            academicYearId: activeYear._id,
-            _destroy: false,
-        }).lean();
-
-        let weekNumber = null;
-        if (schedule && schedule.weeks) {
-            const targetDateObj = targetDate.toDate();
-            const week = schedule.weeks.find((w) => {
-                return targetDateObj >= w.startDate && targetDateObj <= w.endDate;
-            });
-            weekNumber = week ? week.weekNumber : null;
-        }
-
-        if (!weekNumber) {
-            throw new ApiError(StatusCodes.BAD_REQUEST, 'Không tìm thấy tuần học phù hợp với ngày điểm danh');
-        }
-
-        // ✅ Map day of week
-        const dayNames = ['Chủ Nhật', 'Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7'];
-        const dayName = dayNames[dayOfWeek];
-
-        // ✅ Bulk operations
-        const bulkOps = attendances.map((item) => ({
-            updateOne: {
-                filter: {
-                    schoolId: user.schoolId,
-                    academicYearId: activeYear._id,
-                    classId,
-                    studentId: item.studentId,
-                    date: targetDate.toDate(),
-                    _destroy: false,
-                },
-                update: {
-                    $set: {
-                        status: item.status,
-                        note: item.note || '',
-                        weekNumber,
-                        dayOfWeek: dayName,
-                        lastUpdatedBy: user._id,
-                    },
-                    $setOnInsert: {
-                        schoolId: user.schoolId,
-                        academicYearId: activeYear._id,
-                        classId,
-                        studentId: item.studentId,
-                        date: targetDate.toDate(),
-                        createdBy: user._id,
-                    },
-                },
-                upsert: true,
-            },
-        }));
-
-        const result = await ChildrenAttendanceModel.bulkWrite(bulkOps);
-
-        console.log('✅ [bulkAttendance] Success:', {
-            inserted: result.upsertedCount,
-            updated: result.modifiedCount,
-        });
-
-        await logAction(
-            userId,
-            user.schoolId,
-            AUDIT_LOG_ACTIONS.CREATE,
-            AUDIT_LOG_RESOURCES.CHILDREN_ATTENDANCE,
-            `Điểm danh hàng loạt ${attendances.length} học sinh - ${dayName} - Tuần ${weekNumber} - Lớp "${classData.name}" - Năm học ${classData.academicYearId.fromYear}-${classData.academicYearId.toYear}`,
+    // Upsert từng bản ghi
+    const ops = validPayload.map((it) =>
+        ChildrenAttendanceModel.updateOne(
             {
-                classId,
-                className: classData.name,
-                date: targetDate.format('DD/MM/YYYY'),
-                dayName,
-                weekNumber,
-                academicYearId: activeYear._id,
-                academicYear: `${classData.academicYearId.fromYear}-${classData.academicYearId.toYear}`,
-                studentsCount: attendances.length,
-                inserted: result.upsertedCount,
-                updated: result.modifiedCount,
-            },
-        );
-
-        return {
-            message: 'Điểm danh thành công',
-            inserted: result.upsertedCount,
-            updated: result.modifiedCount,
-        };
-    } catch (error) {
-        console.error('❌ [bulkAttendance] Error:', error);
-        if (error instanceof ApiError) throw error;
-        throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, 'Lỗi khi điểm danh: ' + error.message);
-    }
-};
-
-/**
- * ✅ Tính tổng số ngày vắng của học sinh trong năm học
- */
-const getAbsentSummaryByStudent = async (studentId, academicYearId, schoolId) => {
-    try {
-        // ✅ Lấy danh sách ngày nghỉ từ schedule
-        const schedule = await ScheduleModel.findOne({
-            schoolId,
-            academicYearId,
-            _destroy: false,
-        }).lean();
-
-        const holidays = schedule?.holidays || [];
-        const holidayDates = holidays.map((date) => dayjs(date).format('YYYY-MM-DD'));
-
-        console.log('📅 [getAbsentSummaryByStudent] Holidays:', holidayDates.length);
-
-        // ✅ Lấy tất cả attendance của học sinh trong năm học
-        const attendances = await ChildrenAttendanceModel.find({
-            schoolId,
-            academicYearId,
-            studentId,
-            status: { $in: ['Vắng có phép', 'Vắng không phép'] },
-            _destroy: false,
-        }).lean();
-
-        // ✅ Lọc bỏ những ngày trùng với ngày nghỉ
-        const validAbsences = attendances.filter((attendance) => {
-            const dateStr = dayjs(attendance.date).format('YYYY-MM-DD');
-            return !holidayDates.includes(dateStr);
-        });
-
-        return {
-            totalAbsent: validAbsences.length,
-            absentWithPermission: validAbsences.filter((a) => a.status === 'Vắng có phép').length,
-            absentWithoutPermission: validAbsences.filter((a) => a.status === 'Vắng không phép').length,
-        };
-    } catch (error) {
-        console.error('❌ [getAbsentSummaryByStudent] Error:', error);
-        return {
-            totalAbsent: 0,
-            absentWithPermission: 0,
-            absentWithoutPermission: 0,
-        };
-    }
-};
-
-/**
- * ✅ Lấy danh sách điểm danh theo lớp và ngày/tuần
- */
-const getAttendanceByClass = async (query, userId) => {
-    try {
-        console.log('📋 [getAttendanceByClass] Query:', query);
-
-        const { classId, date, weekNumber, academicYearId } = query;
-
-        const user = await UserModel.findById(userId).select('schoolId role _id');
-        if (!user || !user.schoolId) {
-            throw new ApiError(StatusCodes.FORBIDDEN, 'Bạn không thuộc trường học nào');
-        }
-
-        // ✅ Verify academic year
-        const academicYear = await AcademicYearModel.findOne({
-            _id: academicYearId,
-            schoolId: user.schoolId,
-            _destroy: false,
-        });
-
-        if (!academicYear) {
-            throw new ApiError(StatusCodes.NOT_FOUND, 'Không tìm thấy năm học');
-        }
-
-        // ✅ Verify class
-        const classData = await ClassModel.findOne({
-            _id: classId,
-            schoolId: user.schoolId,
-            academicYearId,
-            _destroy: false,
-        });
-
-        if (!classData) {
-            throw new ApiError(StatusCodes.NOT_FOUND, 'Không tìm thấy lớp học');
-        }
-
-        // ✅ Check permission
-        const accessibleClassIds = await getAccessibleClasses(user, academicYearId);
-        if (!accessibleClassIds.includes(classId)) {
-            throw new ApiError(StatusCodes.FORBIDDEN, 'Bạn không có quyền xem điểm danh lớp này');
-        }
-
-        // ✅ Build filter
-        let filter = {
-            schoolId: user.schoolId,
-            academicYearId,
-            classId,
-            _destroy: false,
-        };
-
-        // ✅ FIX: Query theo date range của tuần thay vì chỉ weekNumber
-        if (weekNumber) {
-            // Lấy thông tin tuần từ Schedule
-            const schedule = await ScheduleModel.findOne({
                 schoolId: user.schoolId,
                 academicYearId,
+                classId,
+                studentId: it.studentId,
+                date: dateObj,
                 _destroy: false,
-            }).lean();
-
-            if (schedule) {
-                const weekData = schedule.weeks.find((w) => w.weekNumber === parseInt(weekNumber));
-
-                if (weekData) {
-                    // Query theo date range của tuần
-                    filter.date = {
-                        $gte: dayjs(weekData.startDate).startOf('day').toDate(),
-                        $lte: dayjs(weekData.endDate).endOf('day').toDate(),
-                    };
-
-                    console.log('🔍 [getAttendanceByClass] Week date range:', {
-                        weekNumber,
-                        startDate: dayjs(weekData.startDate).format('YYYY-MM-DD'),
-                        endDate: dayjs(weekData.endDate).format('YYYY-MM-DD'),
-                    });
-                } else {
-                    console.log('⚠️ [getAttendanceByClass] Week not found in schedule');
-                }
-            }
-        } else if (date) {
-            const targetDate = dayjs(date).startOf('day');
-            filter.date = {
-                $gte: targetDate.toDate(),
-                $lt: targetDate.add(1, 'day').toDate(),
-            };
-        }
-
-        console.log('🔍 [getAttendanceByClass] Filter:', JSON.stringify(filter, null, 2));
-
-        // ✅ Get attendances - KHÔNG populate studentId để giữ nguyên ObjectId
-        const attendances = await ChildrenAttendanceModel.find(filter).sort({ date: 1 }).lean();
-
-        console.log('📊 [getAttendanceByClass] Found attendances:', attendances.length);
-
-        if (attendances.length > 0) {
-            console.log('📄 Sample attendance:', {
-                studentId: attendances[0].studentId,
-                date: attendances[0].date,
-                status: attendances[0].status,
-                weekNumber: attendances[0].weekNumber,
-            });
-        }
-
-        // ✅ Get all students in class
-        const allStudents = await ChildrenProfileModel.find({
-            schoolId: user.schoolId,
-            academicYearId,
-            classId,
-            status: 'Đang học',
-            _destroy: false,
-        })
-            .select('fullName studentCode')
-            .sort({ fullName: 1 })
-            .lean();
-
-        console.log('📊 [getAttendanceByClass] Found students:', allStudents.length);
-
-        // ✅ Tạo attendanceMap với key chính xác
-        const attendanceMap = {};
-
-        attendances.forEach((att) => {
-            const studentIdStr = att.studentId.toString();
-            const dateStr = dayjs(att.date).format('YYYY-MM-DD');
-            const key = `${studentIdStr}-${dateStr}`;
-
-            attendanceMap[key] = {
-                _id: att._id,
-                status: att.status,
-                note: att.note || '',
-                date: att.date,
-                studentId: att.studentId,
-                weekNumber: att.weekNumber,
-                dayOfWeek: att.dayOfWeek,
-            };
-
-            console.log(`✅ [attendanceMap] Key: ${key} | Status: ${att.status}`);
-        });
-
-        console.log('📊 [getAttendanceByClass] Summary:', {
-            totalStudents: allStudents.length,
-            totalAttendances: attendances.length,
-            attendanceMapKeys: Object.keys(attendanceMap).length,
-            sampleKeys: Object.keys(attendanceMap).slice(0, 3),
-        });
-        // ✅ NEW: Tính tổng số ngày vắng cho mỗi học sinh, và chi tiết mỗi buổi vắng
-        const studentsWithAbsentSummary = await Promise.all(
-            allStudents.map(async (student) => {
-                const absentSummary = await getAbsentSummaryByStudent(student._id, academicYearId, user.schoolId);
-                return {
-                    ...student,
-                    absentSummary,
-                    absentWithPermission: absentSummary.absentWithPermission,
-                    absentWithoutPermission: absentSummary.absentWithoutPermission,
-                };
-            }),
-        );
-
-        return {
-            classInfo: {
-                _id: classData._id,
-                name: classData.name,
-                grade: classData.grade,
-                ageGroup: classData.ageGroup,
             },
-            students: studentsWithAbsentSummary,
-            attendances,
-            attendanceMap,
-        };
-    } catch (error) {
-        console.error('❌ [getAttendanceByClass] Error:', error);
-        if (error instanceof ApiError) throw error;
-        throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, 'Lỗi khi lấy dữ liệu điểm danh: ' + error.message);
-    }
+            {
+                $set: {
+                    weekNumber,
+                    status: it.status,
+                    note: it.note || '',
+                    lastUpdatedBy: user._id,
+                },
+                $setOnInsert: {
+                    createdBy: user._id,
+                },
+            },
+            { upsert: true },
+        ),
+    );
+    await Promise.all(ops);
+
+    return {
+        message: 'Điểm danh hàng loạt thành công',
+        date: dayjs(dateObj).format('YYYY-MM-DD'), // ✅ Format theo local
+        classId,
+        academicYearId,
+        weekNumber,
+        totalProcessed: validPayload.length,
+    };
 };
 
 /**
- * ✅ Cập nhật điểm danh 1 học sinh
+ * Lấy dữ liệu điểm danh theo lớp theo tuần hoặc theo ngày
+ * - Trả về danh sách học sinh (bao gồm Đang học & Nghỉ học)
+ * - attendanceMap: { [studentId]: { [yyyy-mm-dd]: { _id, status, note } } }
+ * - totals: vắng trong tuần/năm cho từng học sinh
+ * - days: TẤT CẢ ngày Mon-Fri (không loại trừ holidays)
+ */
+const getAttendanceByClass = async (query, userId) => {
+    const user = await ensureUserSchool(userId);
+    const { academicYearId, classId, date, weekNumber } = query;
+
+    const classData = await ClassModel.findOne({
+        _id: classId,
+        schoolId: user.schoolId,
+        academicYearId,
+        _destroy: false,
+    })
+        .select('_id name grade ageGroup academicYearId')
+        .populate('academicYearId', 'fromYear toYear status')
+        .lean();
+    if (!classData) throw new ApiError(StatusCodes.NOT_FOUND, 'Không tìm thấy lớp học');
+
+    const accessible = await getAccessibleClassIds(user, academicYearId);
+    if (!accessible.includes(classId)) {
+        throw new ApiError(StatusCodes.FORBIDDEN, 'Bạn không có quyền xem lớp này');
+    }
+
+    const schedule = await getScheduleOrThrow(user.schoolId, academicYearId);
+    const { weeks, holidays } = getWeeksFromSchedule(schedule);
+
+    let targetWeekNumber = weekNumber ? Number(weekNumber) : null;
+    if (date) {
+        const d = new Date(date);
+        targetWeekNumber = findWeekNumberByDate(weeks, d);
+        if (!targetWeekNumber && targetWeekNumber !== 0) {
+            throw new ApiError(StatusCodes.BAD_REQUEST, 'Ngày không thuộc tuần nào đã khai báo');
+        }
+    }
+    if (targetWeekNumber == null) {
+        throw new ApiError(StatusCodes.BAD_REQUEST, 'Cần truyền date hoặc weekNumber');
+    }
+
+    // Tạo danh sách ngày trong tuần (Thứ 2 -> Thứ 6, KHÔNG loại bỏ ngày nghỉ)
+    const week = weeks.find((w) => w.weekNumber === targetWeekNumber);
+    if (!week) throw new ApiError(StatusCodes.NOT_FOUND, 'Không tìm thấy tuần đã khai báo');
+
+    const cur = new Date(week.startDate);
+    const daysInWeek = [];
+    while (cur <= week.endDate) {
+        if (isMondayToFriday(cur)) {
+            const key = dayjs(cur).format('YYYY-MM-DD'); // ✅ Format theo local
+            daysInWeek.push(key); // ✅ Thêm tất cả Mon-Fri, kể cả ngày nghỉ
+        }
+        cur.setDate(cur.getDate() + 1);
+    }
+
+    // Lấy danh sách trẻ trong lớp
+    const children = await getChildrenByClass(user.schoolId, academicYearId, classId);
+
+    // Lấy attendance trong tuần
+    const attDocs = await ChildrenAttendanceModel.find({
+        schoolId: user.schoolId,
+        academicYearId,
+        classId,
+        weekNumber: targetWeekNumber,
+        _destroy: false,
+    })
+        .select('_id studentId date status note')
+        .lean();
+
+    const attendanceMap = {};
+    for (const stu of children) {
+        attendanceMap[stu.studentId] = {};
+    }
+    for (const doc of attDocs) {
+        const sId = doc.studentId.toString();
+        const dayKey = dayjs(doc.date).format('YYYY-MM-DD'); // ✅ Format theo local
+        if (!attendanceMap[sId]) attendanceMap[sId] = {};
+        attendanceMap[sId][dayKey] = {
+            _id: doc._id.toString(),
+            status: doc.status,
+            note: doc.note || '',
+        };
+    }
+
+    // Tính tổng vắng tuần/năm
+    const totals = {};
+    for (const stu of children) {
+        const [weekAbsent, yearAbsent] = await Promise.all([
+            countAbsentInWeek(user.schoolId, academicYearId, classId, stu.studentId, targetWeekNumber),
+            countAbsentInYear(user.schoolId, academicYearId, classId, stu.studentId),
+        ]);
+        totals[stu.studentId] = {
+            absentInWeek: weekAbsent,
+            absentInYear: yearAbsent,
+        };
+    }
+
+    return {
+        classInfo: {
+            _id: classData._id.toString(),
+            name: classData.name,
+            grade: classData.grade,
+            ageGroup: classData.ageGroup,
+            academicYear: `${classData.academicYearId.fromYear}-${classData.academicYearId.toYear}`,
+            yearStatus: classData.academicYearId.status,
+        },
+        weekNumber: targetWeekNumber,
+        days: daysInWeek, // ✅ yyyy-MM-dd (Mon-Fri, bao gồm cả ngày nghỉ) - format theo local
+        holidays, // mảng ngày nghỉ yyyy-MM-dd - format theo local
+        students: children, // gồm "Đang học" & "Nghỉ học"
+        attendanceMap, // chỉ học sinh "Đang học" mới được chỉnh sửa/ghi mới
+        totals,
+    };
+};
+
+/**
+ * Cập nhật 1 bản ghi điểm danh
  */
 const updateAttendance = async (id, data, userId) => {
-    try {
-        const user = await UserModel.findById(userId).select('schoolId role _id');
-        if (!user || !user.schoolId) {
-            throw new ApiError(StatusCodes.FORBIDDEN, 'Bạn không thuộc trường học nào');
-        }
+    const user = await ensureUserSchool(userId);
 
-        const attendance = await ChildrenAttendanceModel.findOne({
-            _id: id,
-            schoolId: user.schoolId,
-            _destroy: false,
-        });
+    const doc = await ChildrenAttendanceModel.findOne({
+        _id: id,
+        schoolId: user.schoolId,
+        _destroy: false,
+    });
+    if (!doc) throw new ApiError(StatusCodes.NOT_FOUND, 'Không tìm thấy bản ghi điểm danh');
 
-        if (!attendance) {
-            throw new ApiError(StatusCodes.NOT_FOUND, 'Không tìm thấy bản ghi điểm danh');
-        }
-
-        // ✅ Verify active year
-        const activeYear = await AcademicYearModel.findOne({
-            _id: attendance.academicYearId,
-            status: 'active',
-            _destroy: false,
-        });
-
-        if (!activeYear) {
-            throw new ApiError(StatusCodes.BAD_REQUEST, 'Chỉ được sửa điểm danh trong năm học đang hoạt động');
-        }
-
-        // ✅ Check permission
-        const accessibleClassIds = await getAccessibleClasses(user, activeYear._id);
-        if (!accessibleClassIds.includes(attendance.classId.toString())) {
-            throw new ApiError(StatusCodes.FORBIDDEN, 'Bạn không có quyền sửa điểm danh lớp này');
-        }
-
-        // ✅ Update
-        attendance.status = data.status || attendance.status;
-        attendance.note = data.note !== undefined ? data.note : attendance.note;
-        attendance.lastUpdatedBy = user._id;
-
-        await attendance.save();
-
-        const populated = await ChildrenAttendanceModel.findById(attendance._id)
-            .populate('studentId', 'fullName studentCode')
-            .populate({
-                path: 'classId',
-                select: 'name',
-                populate: {
-                    path: 'academicYearId',
-                    select: 'fromYear toYear',
-                },
-            })
-            .populate('lastUpdatedBy', 'fullName username')
-            .lean();
-
-        return populated;
-    } catch (error) {
-        console.error('❌ [updateAttendance] Error:', error);
-        if (error instanceof ApiError) throw error;
-        throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, 'Lỗi khi cập nhật điểm danh: ' + error.message);
+    const year = await getAcademicYearOrThrow(user.schoolId, doc.academicYearId);
+    if (year.status !== 'active') {
+        throw new ApiError(StatusCodes.FORBIDDEN, 'Chỉ được sửa điểm danh trong năm học đang hoạt động');
     }
+
+    // Kiểm tra quyền theo lớp
+    const accessible = await getAccessibleClassIds(user, doc.academicYearId.toString());
+    if (!accessible.includes(doc.classId.toString())) {
+        throw new ApiError(StatusCodes.FORBIDDEN, 'Bạn không có quyền sửa điểm danh lớp này');
+    }
+
+    // Không cho chỉnh sửa nếu là ngày nghỉ (an toàn)
+    const schedule = await getScheduleOrThrow(user.schoolId, doc.academicYearId.toString());
+    const { holidays } = getWeeksFromSchedule(schedule);
+    const holidaysSet = new Set(holidays);
+    const dayKey = dayjs(doc.date).format('YYYY-MM-DD'); // ✅ Format theo local
+    if (holidaysSet.has(dayKey)) {
+        throw new ApiError(StatusCodes.BAD_REQUEST, 'Không được sửa điểm danh vào ngày nghỉ');
+    }
+
+    if (data.status && !ALLOWED_STATUSES.includes(data.status)) {
+        throw new ApiError(StatusCodes.UNPROCESSABLE_ENTITY, 'Trạng thái điểm danh không hợp lệ');
+    }
+
+    if (data.status) doc.status = data.status;
+    if (data.note !== undefined) doc.note = data.note;
+    doc.lastUpdatedBy = user._id;
+    await doc.save();
+
+    return doc.toObject();
 };
 
 /**
- * ✅ Xóa điểm danh
+ * Xóa 1 bản ghi điểm danh
  */
 const deleteAttendance = async (id, userId) => {
-    try {
-        const user = await UserModel.findById(userId).select('schoolId role _id');
-        if (!user || !user.schoolId) {
-            throw new ApiError(StatusCodes.FORBIDDEN, 'Bạn không thuộc trường học nào');
-        }
+    const user = await ensureUserSchool(userId);
 
-        const attendance = await ChildrenAttendanceModel.findOne({
-            _id: id,
-            schoolId: user.schoolId,
-            _destroy: false,
-        })
-            .populate('studentId', 'fullName studentCode')
-            .populate({
-                path: 'classId',
-                select: 'name',
-                populate: {
-                    path: 'academicYearId',
-                    select: 'fromYear toYear',
-                },
-            });
+    const doc = await ChildrenAttendanceModel.findOne({
+        _id: id,
+        schoolId: user.schoolId,
+        _destroy: false,
+    });
+    if (!doc) throw new ApiError(StatusCodes.NOT_FOUND, 'Không tìm thấy bản ghi điểm danh');
 
-        if (!attendance) {
-            throw new ApiError(StatusCodes.NOT_FOUND, 'Không tìm thấy bản ghi điểm danh');
-        }
-
-        // ✅ Verify active year
-        const activeYear = await AcademicYearModel.findOne({
-            _id: attendance.academicYearId,
-            status: 'active',
-            _destroy: false,
-        });
-
-        if (!activeYear) {
-            throw new ApiError(StatusCodes.BAD_REQUEST, 'Chỉ được xóa điểm danh trong năm học đang hoạt động');
-        }
-
-        // ✅ Check permission
-        const accessibleClassIds = await getAccessibleClasses(user, activeYear._id);
-        if (!accessibleClassIds.includes(attendance.classId._id.toString())) {
-            throw new ApiError(StatusCodes.FORBIDDEN, 'Bạn không có quyền xóa điểm danh lớp này');
-        }
-
-        // ✅ Get week number từ Schedule (KHÔNG dùng isoWeek)
-        const targetDate = dayjs(attendance.date);
-        const dayOfWeek = targetDate.day();
-
-        const schedule = await ScheduleModel.findOne({
-            schoolId: user.schoolId,
-            academicYearId: attendance.academicYearId,
-            _destroy: false,
-        }).lean();
-
-        let weekNumber = null;
-        if (schedule && schedule.weeks) {
-            const targetDateObj = targetDate.toDate();
-            const week = schedule.weeks.find((w) => {
-                return targetDateObj >= w.startDate && targetDateObj <= w.endDate;
-            });
-            weekNumber = week ? week.weekNumber : null;
-        }
-
-        // ✅ Lưu thông tin trước khi xóa
-        const attendanceInfo = {
-            studentName: attendance.studentId.fullName,
-            studentCode: attendance.studentId.studentCode,
-            className: attendance.classId.name,
-            academicYear: `${attendance.classId.academicYearId.fromYear}-${attendance.classId.academicYearId.toYear}`,
-            date: targetDate.format('DD/MM/YYYY'),
-            dayOfWeek: attendance.dayOfWeek,
-            weekNumber: weekNumber || null,
-        };
-
-        // ✅ Soft delete
-        await ChildrenAttendanceModel.findByIdAndUpdate(id, { _destroy: true });
-
-        return {
-            message: 'Xóa điểm danh thành công',
-            attendanceInfo, // ✅ Trả về thông tin cho audit log
-        };
-    } catch (error) {
-        console.error('❌ [deleteAttendance] Error:', error);
-        if (error instanceof ApiError) throw error;
-        throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, 'Lỗi khi xóa điểm danh: ' + error.message);
+    const year = await getAcademicYearOrThrow(user.schoolId, doc.academicYearId);
+    if (year.status !== 'active') {
+        throw new ApiError(StatusCodes.FORBIDDEN, 'Chỉ được xóa điểm danh trong năm học đang hoạt động');
     }
+
+    const accessible = await getAccessibleClassIds(user, doc.academicYearId.toString());
+    if (!accessible.includes(doc.classId.toString())) {
+        throw new ApiError(StatusCodes.FORBIDDEN, 'Bạn không có quyền xóa điểm danh lớp này');
+    }
+
+    await ChildrenAttendanceModel.deleteOne({ _id: id });
+    return { message: 'Xóa điểm danh thành công' };
 };
 
 /**
- * ✅ Lấy danh sách lớp accessible theo năm học
+ * Danh sách lớp accessible theo quyền (BGH/Tổ trưởng/Giáo viên chủ nhiệm)
  */
 const getAccessibleClassesList = async (academicYearId, userId) => {
-    try {
-        const user = await UserModel.findById(userId).select('schoolId role _id');
-        if (!user || !user.schoolId) {
-            throw new ApiError(StatusCodes.FORBIDDEN, 'Bạn không thuộc trường học nào');
-        }
+    const user = await ensureUserSchool(userId);
+    const year = await getAcademicYearOrThrow(user.schoolId, academicYearId);
+    const accessibleClassIds = await getAccessibleClassIds(user, academicYearId);
 
-        // ✅ Verify academic year exists
-        const academicYear = await AcademicYearModel.findOne({
-            _id: academicYearId,
-            schoolId: user.schoolId,
-            _destroy: false,
-        });
+    const classes = await ClassModel.find({
+        _id: { $in: accessibleClassIds },
+        schoolId: user.schoolId,
+        academicYearId,
+        _destroy: false,
+    })
+        .select('name grade ageGroup')
+        .sort({ grade: 1, name: 1 })
+        .lean();
 
-        if (!academicYear) {
-            console.log('❌ Academic year not found');
-            return { classes: [] };
-        }
-
-        // ✅ Get accessible classes for this academic year
-        const classIds = await getAccessibleClasses(user, academicYearId);
-
-        const classes = await ClassModel.find({
-            _id: { $in: classIds },
-            academicYearId: academicYearId, // ✅ Filter by selected academic year
-            _destroy: false,
-        })
-            .select('name grade ageGroup')
-            .sort({ grade: 1, name: 1 })
-            .lean();
-
-        return { classes };
-    } catch (error) {
-        console.error('❌ [getAccessibleClassesList] Error:', error);
-        if (error instanceof ApiError) throw error;
-        throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, 'Lỗi khi lấy danh sách lớp: ' + error.message);
-    }
+    return {
+        yearStatus: year.status,
+        classes,
+    };
 };
 
 /**
- * ✅ Lấy danh sách tuần trong năm học
+ * Danh sách tuần theo schedule (Mon-Fri) + holidays
  */
 const getWeeksList = async (academicYearId, userId) => {
-    try {
-        const user = await UserModel.findById(userId).select('schoolId');
-        if (!user || !user.schoolId) {
-            throw new ApiError(StatusCodes.FORBIDDEN, 'Bạn không thuộc trường học nào');
-        }
-
-        const weeks = await getWeeksFromSchedule(user.schoolId, academicYearId);
-
-        return { weeks };
-    } catch (error) {
-        console.error('❌ [getWeeksList] Error:', error);
-        if (error instanceof ApiError) throw error;
-        throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, 'Lỗi khi lấy danh sách tuần: ' + error.message);
-    }
+    const user = await ensureUserSchool(userId);
+    await getAcademicYearOrThrow(user.schoolId, academicYearId);
+    const schedule = await getScheduleOrThrow(user.schoolId, academicYearId);
+    const { weeks, holidays } = getWeeksFromSchedule(schedule);
+    return { weeks, holidays };
 };
 
 export const childrenAttendanceServices = {

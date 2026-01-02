@@ -31,25 +31,25 @@ const ATTENDANCE_STATUS = [
     { value: 'Có mặt', label: 'Có mặt', color: 'success' },
     { value: 'Vắng có phép', label: 'Vắng có phép', color: 'warning' },
     { value: 'Vắng không phép', label: 'Vắng không phép', color: 'error' },
-    { value: 'Đi trễ', label: 'Đi trễ', color: 'info' },
-    { value: 'Chưa điểm danh', label: 'Chưa điểm danh', color: 'default' },
 ];
 
-function BulkAttendanceDialog({ open, classId, students, date, onClose, onSuccess }) {
+function BulkAttendanceDialog({ open, classId, academicYearId, students, date, onClose, onSuccess }) {
     const [loading, setLoading] = useState(false);
     const [attendances, setAttendances] = useState([]);
 
     useEffect(() => {
-        if (open && students.length > 0) {
-            setAttendances(
-                students.map((student) => ({
-                    studentId: student._id,
-                    fullName: student.fullName,
-                    studentCode: student.studentCode,
+        if (open && students?.length > 0) {
+            // Chỉ học sinh "Đang học" mới được điểm danh
+            const list = students
+                .filter((s) => s.managementStatus === 'Đang học')
+                .map((s) => ({
+                    studentId: s.studentId,
+                    fullName: s.fullName,
+                    studentCode: s.studentCode,
                     status: 'Có mặt',
                     note: '',
-                })),
-            );
+                }));
+            setAttendances(list);
         }
     }, [open, students]);
 
@@ -64,9 +64,10 @@ function BulkAttendanceDialog({ open, classId, students, date, onClose, onSucces
             setLoading(true);
 
             await childrenAttendanceApi.bulkAttendance({
+                academicYearId,
                 classId,
                 date,
-                attendances: attendances.map((att) => ({
+                items: attendances.map((att) => ({
                     studentId: att.studentId,
                     status: att.status,
                     note: att.note,
@@ -74,11 +75,11 @@ function BulkAttendanceDialog({ open, classId, students, date, onClose, onSucces
             });
 
             toast.success('Điểm danh hàng loạt thành công!');
-            onSuccess();
-            onClose();
+            onSuccess?.();
+            onClose?.();
         } catch (error) {
             console.error('Error bulk attendance:', error);
-            toast.error(error.response?.data?.message || 'Lỗi khi điểm danh hàng loạt!');
+            toast.error(error?.response?.data?.message || 'Lỗi khi điểm danh hàng loạt!');
         } finally {
             setLoading(false);
         }

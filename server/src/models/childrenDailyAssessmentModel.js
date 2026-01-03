@@ -2,11 +2,17 @@
 
 import mongoose from 'mongoose';
 
+/**
+ * Schema: Đánh giá trẻ hằng ngày
+ * - Chỉ đánh giá trẻ đã điểm danh "Có mặt" trong ngày
+ * - 1 trẻ chỉ có 1 đánh giá/ngày
+ * - Chỉ thao tác trong năm học "đang hoạt động"
+ */
 const ChildrenDailyAssessmentSchema = new mongoose.Schema(
     {
         schoolId: {
             type: String,
-            required: [true, 'School ID là bắt buộc'],
+            required: [true, 'Mã trường là bắt buộc'],
             ref: 'School',
             index: true,
         },
@@ -22,9 +28,10 @@ const ChildrenDailyAssessmentSchema = new mongoose.Schema(
             required: [true, 'Lớp học là bắt buộc'],
             index: true,
         },
+        // ✅ Tham chiếu đến ChildrenManagement (không phải ChildrenProfile)
         studentId: {
             type: mongoose.Schema.Types.ObjectId,
-            ref: 'ChildrenProfile',
+            ref: 'ChildrenManagement',
             required: [true, 'Học sinh là bắt buộc'],
             index: true,
         },
@@ -33,30 +40,39 @@ const ChildrenDailyAssessmentSchema = new mongoose.Schema(
             required: [true, 'Ngày đánh giá là bắt buộc'],
             index: true,
         },
-        // ✅ 1. Tình trạng sức khỏe
+        weekNumber: {
+            type: Number,
+            required: [true, 'Số tuần là bắt buộc'],
+            index: true,
+        },
+
+        // ===== 4 MỤC ĐÁNH GIÁ =====
+        // 1. Tình trạng sức khỏe
         healthStatus: {
             type: String,
             required: [true, 'Tình trạng sức khỏe là bắt buộc'],
             trim: true,
         },
-        // ✅ 2. Trạng thái cảm xúc, thái độ hành vi
+        // 2. Trạng thái cảm xúc, thái độ hành vi
         emotionalBehavior: {
             type: String,
             required: [true, 'Trạng thái cảm xúc, thái độ hành vi là bắt buộc'],
             trim: true,
         },
-        // ✅ 3. Kiến thức kỹ năng
+        // 3. Kiến thức kỹ năng
         skillsKnowledge: {
             type: String,
             required: [true, 'Kiến thức kỹ năng là bắt buộc'],
             trim: true,
         },
-        // ✅ 4. Lưu ý (optional)
+        // 4. Ghi chú lưu ý cần quan tâm hơn (không bắt buộc)
         notes: {
             type: String,
             default: '',
             trim: true,
         },
+
+        // ===== METADATA =====
         createdBy: {
             type: mongoose.Schema.Types.ObjectId,
             ref: 'User',
@@ -81,7 +97,7 @@ const ChildrenDailyAssessmentSchema = new mongoose.Schema(
 ChildrenDailyAssessmentSchema.index({ schoolId: 1, academicYearId: 1, classId: 1, _destroy: 1 });
 ChildrenDailyAssessmentSchema.index({ studentId: 1, date: 1, _destroy: 1 });
 
-// ✅ Unique constraint: 1 học sinh chỉ có 1 đánh giá/ngày
+// ✅ Unique: 1 học sinh chỉ có 1 đánh giá/ngày
 ChildrenDailyAssessmentSchema.index(
     {
         schoolId: 1,

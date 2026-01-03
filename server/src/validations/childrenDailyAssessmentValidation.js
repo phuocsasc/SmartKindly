@@ -39,7 +39,7 @@ const createNew = async (req, res, next) => {
     });
 
     try {
-        await schema.validateAsync(req.body, { abortEarly: false });
+        await schema.validateAsync(req.body, { abortEarly: false, allowUnknown: true });
         next();
     } catch (err) {
         const errorMessage = err.details.map((detail) => detail.message).join(', ');

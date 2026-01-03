@@ -11,11 +11,11 @@ export const childrenDailyAssessmentApi = {
         });
     },
 
-    // Lấy danh sách đánh giá theo lớp và tuần
+    // ✅ Lấy danh sách đánh giá theo lớp và tuần (CÓ PHÂN TRANG)
     getAssessmentsByClass: async (params) => {
-        const { classId, weekNumber, academicYearId, search } = params;
+        const { academicYearId, classId, weekNumber, page = 1, limit = 10, search = '' } = params;
         return await authorizedAxiosInstance.get(`${API_ROOT}/v1/children-daily-assessments`, {
-            params: { classId, weekNumber, academicYearId, search, page: 1, limit: 1000 },
+            params: { academicYearId, classId, weekNumber, page, limit, search },
         });
     },
 

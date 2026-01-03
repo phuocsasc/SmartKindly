@@ -63,19 +63,7 @@ function ChildrenAssessmentDialog({
                 });
             }
         }
-    }, [open, existingAssessment, studentInfo?._id, date]);
-
-    // ✅ Reset form khi đóng dialog
-    useEffect(() => {
-        if (!open) {
-            setFormData({
-                healthStatus: '',
-                emotionalBehavior: '',
-                skillsKnowledge: '',
-                notes: '',
-            });
-        }
-    }, [open]);
+    }, [open, existingAssessment]);
 
     // ✅ Handle submit
     const handleSubmit = async () => {
@@ -100,11 +88,12 @@ function ChildrenAssessmentDialog({
                 await childrenDailyAssessmentApi.update(existingAssessment._id, formData);
                 toast.success('Cập nhật đánh giá thành công!');
             } else {
+                // ✅ DEBUG: Log payload
                 const payload = {
                     academicYearId,
                     classId,
-                    studentId: studentInfo._id,
-                    date: dayjs(date).toISOString(),
+                    studentId: studentInfo.studentId,
+                    date: dayjs(date).format('YYYY-MM-DD'),
                     ...formData,
                 };
                 await childrenDailyAssessmentApi.create(payload);
@@ -114,7 +103,8 @@ function ChildrenAssessmentDialog({
             onSuccess();
             onClose();
         } catch (error) {
-            console.error('Error saving assessment:', error);
+            console.error('❌ [Error saving assessment]:', error);
+            console.error('❌ [Error response]:', error.response?.data);
             toast.error(error.response?.data?.message || 'Lỗi khi lưu đánh giá!');
         } finally {
             setLoading(false);
@@ -259,7 +249,7 @@ function ChildrenAssessmentDialog({
                         fullWidth
                         multiline
                         rows={3}
-                        placeholder="Ví dụ: Trẻ đã biết đếm từ 1-10, nhận diện được các màu cơ bản..."
+                        placeholder="Ví dụ: Hoàn thành tốt bài tập về màu sắc, chữ số, kỹ năng cầm bút..."
                         value={formData.skillsKnowledge}
                         onChange={(e) => setFormData({ ...formData, skillsKnowledge: e.target.value })}
                         sx={{
@@ -279,7 +269,7 @@ function ChildrenAssessmentDialog({
                         fullWidth
                         multiline
                         rows={2}
-                        placeholder="Ví dụ: Cần khuyến khích trẻ tự tin hơn khi phát biểu..."
+                        placeholder="Ví dụ: Cần chú ý thêm về kỹ năng giao tiếp, tập trung khi học..."
                         value={formData.notes}
                         onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
                         sx={{
@@ -293,7 +283,7 @@ function ChildrenAssessmentDialog({
 
             {/* Actions */}
             <DialogActions sx={{ px: 3, py: 2, gap: 1, justifyContent: 'space-between' }}>
-                {/* ✅ Delete button - Only show in edit mode */}
+                {/* Delete button - Only show in edit mode */}
                 {isEditMode && existingAssessment?._id && (
                     <Button
                         variant="outlined"

@@ -16,10 +16,11 @@ const createNew = async (req, res, next) => {
     }
 };
 
-const getAll = async (req, res, next) => {
+// ✅ FIX: Đổi từ getAll() → getAssessmentsByClass()
+const getAssessmentsByClass = async (req, res, next) => {
     try {
         const userId = req.jwtDecoded.id;
-        const result = await childrenDailyAssessmentServices.getAll(req.query, userId);
+        const result = await childrenDailyAssessmentServices.getAssessmentsByClass(req.query, userId);
         res.status(StatusCodes.OK).json({
             message: 'Lấy danh sách đánh giá thành công!',
             data: result,
@@ -83,7 +84,7 @@ const getAccessibleClassesList = async (req, res, next) => {
 
 export const childrenDailyAssessmentController = {
     createNew,
-    getAll,
+    getAssessmentsByClass,
     getDetails,
     update,
     deleteAssessment,

@@ -521,6 +521,7 @@ function UserManagement() {
                         columns={columns}
                         loading={loading}
                         checkboxSelection={hasPermission(PERMISSIONS.DELETE_USER)}
+                        disableRowSelectionOnClick
                         // ✅ Disable checkbox cho tài khoản của chính mình
                         isRowSelectable={(params) => params.row._id !== user?.id}
                         disableColumnMenu

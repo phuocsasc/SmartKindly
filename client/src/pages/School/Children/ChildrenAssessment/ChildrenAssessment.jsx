@@ -1,5 +1,3 @@
-// client/src/pages/School/Children/ChildrenAssessment/ChildrenAssessment.jsx
-
 import { useState, useEffect } from 'react';
 import {
     Box,
@@ -9,25 +7,16 @@ import {
     InputLabel,
     Select,
     MenuItem,
-    CircularProgress,
     Chip,
     TextField,
     IconButton,
     Tooltip,
-    Table,
-    TableBody,
-    TableCell,
-    TableContainer,
-    TableHead,
-    TableRow,
     Alert,
 } from '@mui/material';
+import { DataGrid } from '@mui/x-data-grid';
 import PeopleIcon from '@mui/icons-material/People';
 import RateReviewIcon from '@mui/icons-material/RateReview';
 import DoneOutlinedIcon from '@mui/icons-material/DoneOutlined';
-import HealthAndSafetyOutlinedIcon from '@mui/icons-material/HealthAndSafetyOutlined';
-import AddReactionOutlinedIcon from '@mui/icons-material/AddReactionOutlined';
-import LightbulbOutlinedIcon from '@mui/icons-material/LightbulbOutlined';
 import MainLayout from '~/layouts/SchoolLayout';
 import PageContainer from '~/components/common/PageContainer';
 import PageBreadcrumb from '~/components/common/PageBreadcrumb';
@@ -43,15 +32,13 @@ import ChildrenAssessmentDialog from './ChildrenAssessmentDialog';
 const getAttendanceChipProps = (status) => {
     switch (status) {
         case 'Có mặt':
-            return { color: 'success', label: 'Có mặt' };
-        case 'Đi trễ':
-            return { color: 'info', label: 'Đi trễ' };
+            return { color: 'success', label: '✓' };
         case 'Vắng có phép':
-            return { color: 'warning', label: 'Vắng có phép' };
+            return { color: 'warning', label: 'P' };
         case 'Vắng không phép':
-            return { color: 'error', label: 'Vắng không phép' };
+            return { color: 'error', label: 'K' };
         default:
-            return { color: 'default', label: 'Chưa điểm danh' };
+            return { color: 'default', label: '-' };
     }
 };
 
@@ -69,14 +56,13 @@ function ChildrenAssessment() {
     const [weeks, setWeeks] = useState([]);
     const [selectedWeek, setSelectedWeek] = useState('');
     const [searchText, setSearchText] = useState('');
+    const [holidays, setHolidays] = useState([]);
 
     // Assessment data
-    const [students, setStudents] = useState([]);
-    const [assessmentData, setAssessmentData] = useState({});
-    const [attendanceData, setAttendanceData] = useState({});
+    const [rows, setRows] = useState([]);
     const [weekDays, setWeekDays] = useState([]);
-    const [holidays, setHolidays] = useState([]);
-    const [highlightStudents, setHighlightStudents] = useState({}); // { [studentId]: true }
+    const [paginationModel, setPaginationModel] = useState({ page: 0, pageSize: 10 });
+    const [totalRows, setTotalRows] = useState(0);
 
     // Dialog state
     const [openDialog, setOpenDialog] = useState(false);
@@ -113,15 +99,11 @@ function ChildrenAssessment() {
             const classList = res.data.data.classes;
             setClasses(classList);
 
-            // ✅ ALWAYS reset selectedClass when year changes
             if (classList.length > 0) {
                 setSelectedClass(classList[0]._id);
             } else {
                 setSelectedClass('');
-                // ✅ Clear dependent data when no classes
-                setStudents([]);
-                setAssessmentData({});
-                setAttendanceData({});
+                setRows([]);
                 setWeekDays([]);
             }
         } catch (error) {
@@ -129,38 +111,38 @@ function ChildrenAssessment() {
             toast.error('Lỗi khi tải danh sách lớp học!');
             setClasses([]);
             setSelectedClass('');
-            // ✅ Clear dependent data on error
-            setStudents([]);
-            setAssessmentData({});
-            setAttendanceData({});
-            setWeekDays([]);
         }
     };
 
-    // ✅ Fetch weeks
+    // ✅ Fetch weeks from schedule
     const fetchWeeks = async () => {
         if (!selectedYear) return;
 
         try {
-            const res = await childrenAttendanceApi.getWeeks(selectedYear);
-            const weeksData = res.data.data.weeks;
+            const scheduleRes = await scheduleApi.getByAcademicYear(selectedYear);
+            const schedule = scheduleRes.data.data;
+
+            if (!schedule) {
+                setWeeks([]);
+                setSelectedWeek('');
+                return;
+            }
+
+            const weeksData = schedule.weeks || [];
             setWeeks(weeksData);
 
             if (weeksData.length > 0) {
                 setSelectedWeek(weeksData[0].weekNumber.toString());
             } else {
                 setSelectedWeek('');
-                setWeekDays([]);
             }
         } catch (error) {
             console.error('Error fetching weeks:', error);
-            // ✅ Only show toast if not 404/500 (schedule not found)
-            if (error?.response?.status !== 404 && error?.response?.status !== 500) {
+            if (error?.response?.status !== 404) {
                 toast.error('Lỗi khi tải danh sách tuần!');
             }
             setWeeks([]);
             setSelectedWeek('');
-            setWeekDays([]);
         }
     };
 
@@ -178,7 +160,7 @@ function ChildrenAssessment() {
             }
         } catch (error) {
             console.error('Error fetching holidays:', error);
-            if (error?.response?.status !== 404 && error?.response?.status !== 500) {
+            if (error?.response?.status !== 404) {
                 toast.error('Lỗi khi tải danh sách ngày nghỉ!');
             }
         }
@@ -191,100 +173,67 @@ function ChildrenAssessment() {
         return holidays.some((holiday) => dayjs(holiday).format('YYYY-MM-DD') === dateStr);
     };
 
-    // ✅ Fetch assessment data
+    // ✅ Fetch assessment data (CÓ PHÂN TRANG) - FIXED
     const fetchAssessmentData = async () => {
         if (!selectedYear || !selectedClass || !selectedWeek) return;
 
         try {
             setLoading(true);
 
-            // 1. Get assessments
-            const assessmentRes = await childrenDailyAssessmentApi.getAssessmentsByClass({
+            // 1. Get assessments with pagination
+            const res = await childrenDailyAssessmentApi.getAssessmentsByClass({
                 academicYearId: selectedYear,
                 classId: selectedClass,
                 weekNumber: selectedWeek,
+                page: paginationModel.page + 1,
+                limit: paginationModel.pageSize,
                 search: searchText,
             });
 
-            const { assessments } = assessmentRes.data.data;
+            const { days = [], students = [], assessmentMap = {}, pagination } = res.data.data;
 
-            // 2. Get attendance data
-            const weeksRes = await childrenAttendanceApi.getAttendanceByClass({
-                academicYearId: selectedYear,
-                classId: selectedClass,
-                weekNumber: selectedWeek,
-            });
+            // ✅ Convert days to weekDayObjs (giống ChildrenAttendance)
+            const weekDayObjs = (days || []).map((d) => ({
+                date: d,
+                dayOfWeek: dayjs(d).format('dddd'),
+            }));
 
-            const { students: studentsData } = weeksRes.data.data;
+            setWeekDays(weekDayObjs);
+            setTotalRows(pagination.totalItems);
 
-            // 3. Get week info
-            const currentWeek = weeks.find((w) => w.weekNumber === parseInt(selectedWeek));
-            if (currentWeek) {
-                setWeekDays(currentWeek.days);
-            }
-
-            // 4. Map assessments by studentId-date
-            const assessmentMap = {};
-            assessments.forEach((assessment) => {
-                const key = `${assessment.studentId._id}-${dayjs(assessment.date).format('YYYY-MM-DD')}`;
-                assessmentMap[key] = assessment;
-            });
-
-            // 5. Get attendance data
+            // 2. Get attendance data for displayed students
             const attendanceRes = await childrenAttendanceApi.getAttendanceByClass({
                 academicYearId: selectedYear,
                 classId: selectedClass,
                 weekNumber: selectedWeek,
+                page: 1,
+                limit: 1000,
             });
 
-            const { attendanceMap } = attendanceRes.data.data;
+            const { attendanceMap: attMap = {} } = attendanceRes.data.data;
 
-            // ✅ 6. Calculate highlightStudents - FIX: Dùng assessmentMap + weekDays
-            const highlightMap = {};
+            // ✅ Map rows (giống ChildrenAttendance)
+            const mappedRows = students.map((s, index) => ({
+                id: s.studentId,
+                stt: paginationModel.page * paginationModel.pageSize + index + 1,
+                studentId: s.studentId,
+                fullName: s.fullName,
+                studentCode: s.studentCode,
+                managementStatus: s.managementStatus,
+                // ✅ Attendance map by date
+                attendanceMap: attMap[s.studentId] || {},
+                // ✅ Assessment map by date
+                assessmentMap: assessmentMap[s.studentId] || {},
+            }));
 
-            if (currentWeek && currentWeek.days) {
-                studentsData.forEach((student) => {
-                    const hasNotes = currentWeek.days.some((day) => {
-                        const key = `${student._id}-${dayjs(day.date).format('YYYY-MM-DD')}`;
-                        const assessment = assessmentMap[key];
-
-                        // ✅ Check if this day has notes
-                        return assessment && assessment.notes && assessment.notes.trim().length > 0;
-                    });
-
-                    if (hasNotes) {
-                        highlightMap[student._id] = true;
-                    }
-                });
-            }
-
-            setStudents(studentsData);
-            setAssessmentData(assessmentMap);
-            setAttendanceData(attendanceMap);
-            setHighlightStudents(highlightMap); // ✅ Set highlight map
-
-            console.log('✅ Assessment data loaded:', {
-                studentsCount: studentsData.length,
-                assessmentsCount: assessments.length,
-                weekDays: currentWeek?.days.length || 0,
-                highlightedStudents: Object.keys(highlightMap).length, // ✅ Debug log
-            });
+            setRows(mappedRows);
         } catch (error) {
             console.error('Error fetching assessment data:', error);
-
-            // ✅ Only show toast if not 404 (class not found during year switch)
-            if (error?.response?.status === 404) {
-                console.log('⚠️  Class not found - may be switching years, will auto-reload');
-            } else {
+            if (error?.response?.status !== 404) {
                 toast.error('Lỗi khi tải dữ liệu đánh giá!');
             }
-
-            // ✅ Clear data on error
-            setStudents([]);
-            setAssessmentData({});
-            setAttendanceData({});
+            setRows([]);
             setWeekDays([]);
-            setHighlightStudents({}); // ✅ Reset highlight
         } finally {
             setLoading(false);
         }
@@ -293,6 +242,7 @@ function ChildrenAssessment() {
     // ✅ Load initial data
     useEffect(() => {
         fetchAcademicYears();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     // ✅ When year changes: reload classes, weeks, holidays
@@ -300,18 +250,21 @@ function ChildrenAssessment() {
         if (selectedYear) {
             fetchClasses();
             fetchWeeks();
-            fetchHolidays(); // ✅ Fetch holidays khi đổi năm học
+            fetchHolidays();
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [selectedYear]);
 
-    // ✅ IMPORTANT: Only fetch when ALL filters are ready AND valid
+    // ✅ When filters change: reload data
     useEffect(() => {
-        if (selectedYear && selectedClass && selectedWeek && weeks.length > 0) {
+        if (selectedYear && selectedClass && selectedWeek) {
             fetchAssessmentData();
+        } else {
+            setRows([]);
+            setWeekDays([]);
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [selectedClass, selectedWeek]);
+    }, [paginationModel, selectedClass, selectedWeek, searchText]);
 
     // ✅ Format week label
     const formatWeekLabel = (week) => {
@@ -321,41 +274,121 @@ function ChildrenAssessment() {
     };
 
     // ✅ Handle assessment dialog
-    const handleOpenAssessment = (student, day) => {
-        if (isHoliday(day.date)) {
+    const handleOpenAssessment = (student, dayObj) => {
+        if (isHoliday(dayObj.date)) {
             toast.warning('Không thể đánh giá cho ngày nghỉ!');
             return;
         }
 
-        const attendanceKey = `${student._id}-${dayjs(day.date).format('YYYY-MM-DD')}`;
-        const attendance = attendanceData[attendanceKey];
-
-        if (!attendance || !['Có mặt', 'Đi trễ'].includes(attendance.status)) {
-            toast.warning('Chỉ được đánh giá học sinh đã điểm danh [Có mặt] hoặc [Đi trễ]!');
+        const attendance = student.attendanceMap[dayObj.date];
+        if (!attendance || attendance.status !== 'Có mặt') {
+            toast.warning('Chỉ được đánh giá học sinh đã điểm danh [Có mặt]!');
             return;
         }
 
         if (!isActiveYear && !canUpdate) return;
 
-        const assessmentKey = `${student._id}-${dayjs(day.date).format('YYYY-MM-DD')}`;
-        const assessment = assessmentData[assessmentKey] || null;
+        const assessment = student.assessmentMap[dayObj.date] || null;
+
+        // ✅ DEBUG: Log data trước khi mở dialog
+        console.log('🔍 [Open Assessment Dialog]', {
+            studentId: student.studentId,
+            studentName: student.fullName,
+            date: dayObj.date,
+            dateFormat: dayjs(dayObj.date).format('YYYY-MM-DD'),
+            attendance: attendance,
+            assessment: assessment,
+        });
 
         setDialogData({
             studentInfo: student,
             classId: selectedClass,
             academicYearId: selectedYear,
-            date: day.date,
+            date: dayObj.date, // ✅ Đảm bảo format "YYYY-MM-DD"
             existingAssessment: assessment,
         });
         setOpenDialog(true);
     };
 
-    // ✅ Filter students by search
-    const filteredStudents = students.filter(
-        (student) =>
-            student.fullName.toLowerCase().includes(searchText.toLowerCase()) ||
-            student.studentCode.toLowerCase().includes(searchText.toLowerCase()),
-    );
+    // ✅ DataGrid columns (giống ChildrenAttendance)
+    const columns = [
+        { field: 'stt', headerName: 'STT', width: 60, sortable: false },
+        {
+            field: 'fullName',
+            headerName: 'Họ tên học sinh',
+            flex: 1,
+            minWidth: 180,
+            sortable: false,
+            renderCell: (params) => <Typography sx={{ fontWeight: 600 }}>{params.value}</Typography>,
+        },
+        { field: 'studentCode', headerName: 'Mã học sinh', flex: 0.8, minWidth: 120, sortable: false },
+        // ✅ Dynamic columns cho từng ngày trong tuần
+        ...weekDays.map((day) => ({
+            field: `day_${day.date}`,
+            headerName: `${day.dayOfWeek} (${dayjs(day.date).format('DD/MM')})`,
+            flex: 0.6,
+            minWidth: 150,
+            align: 'center',
+            sortable: false,
+            renderCell: (params) => {
+                const holiday = isHoliday(day.date);
+                const attendance = params.row.attendanceMap[day.date];
+                const assessment = params.row.assessmentMap[day.date];
+
+                const chipProps = getAttendanceChipProps(attendance?.status);
+                const canAssess = attendance?.status === 'Có mặt';
+
+                return (
+                    <Box
+                        sx={{
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'center',
+                            gap: 0.5,
+                            py: 0.5,
+                        }}
+                    >
+                        {holiday ? (
+                            <Chip label="Ngày Nghỉ" color="error" size="small" />
+                        ) : !canAssess ? (
+                            <Chip label={chipProps.label} color={chipProps.color} size="small" />
+                        ) : (
+                            <>
+                                {(isActiveYear && canCreate) || canUpdate ? (
+                                    <Tooltip title="Đánh giá trẻ">
+                                        <IconButton
+                                            size="small"
+                                            color={assessment ? 'primary' : 'default'}
+                                            onClick={() => handleOpenAssessment(params.row, day)}
+                                        >
+                                            <RateReviewIcon fontSize="small" />
+                                        </IconButton>
+                                    </Tooltip>
+                                ) : null}
+
+                                {assessment ? (
+                                    <Chip
+                                        label="Đã đánh giá"
+                                        color="success"
+                                        size="small"
+                                        variant="outlined"
+                                        sx={{ fontSize: '0.7rem' }}
+                                    />
+                                ) : (
+                                    <Chip
+                                        label="Chưa đánh giá"
+                                        color="default"
+                                        size="small"
+                                        sx={{ fontSize: '0.7rem' }}
+                                    />
+                                )}
+                            </>
+                        )}
+                    </Box>
+                );
+            },
+        })),
+    ];
 
     return (
         <MainLayout user={user}>
@@ -385,7 +418,7 @@ function ChildrenAssessment() {
                             />
 
                             {/* Academic Year */}
-                            <FormControl size="small" sx={{ minWidth: 100 }}>
+                            <FormControl size="small" sx={{ minWidth: 150 }}>
                                 <InputLabel>Năm học</InputLabel>
                                 <Select
                                     value={selectedYear}
@@ -408,7 +441,7 @@ function ChildrenAssessment() {
                             </FormControl>
 
                             {/* Class */}
-                            <FormControl size="small" sx={{ minWidth: 150 }}>
+                            <FormControl size="small" sx={{ minWidth: 160 }}>
                                 <InputLabel>Lớp học</InputLabel>
                                 <Select
                                     value={selectedClass}
@@ -425,7 +458,7 @@ function ChildrenAssessment() {
                             </FormControl>
 
                             {/* Week */}
-                            <FormControl size="small" sx={{ minWidth: 180 }}>
+                            <FormControl size="small" sx={{ minWidth: 200 }}>
                                 <InputLabel>Tuần</InputLabel>
                                 <Select
                                     value={selectedWeek}
@@ -443,9 +476,9 @@ function ChildrenAssessment() {
                         </Box>
                     </Box>
 
-                    {/* Active year indicator */}
+                    {/* Status Alert */}
                     {selectedYear && (
-                        <Alert severity={isActiveYear ? 'success' : 'warning'} sx={{ mb: 2 }}>
+                        <Alert severity={isActiveYear ? 'success' : 'warning'} sx={{ mb: 2, borderRadius: 1 }}>
                             {isActiveYear ? (
                                 <strong>Năm học đang hoạt động - Có thể đánh giá</strong>
                             ) : (
@@ -465,495 +498,84 @@ function ChildrenAssessment() {
                         </Alert>
                     )}
 
-                    {/* Assessment Table */}
-                    {/* Assessment Table */}
-                    {loading ? (
-                        <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
-                            <CircularProgress />
-                        </Box>
-                    ) : !selectedYear || !selectedClass || !selectedWeek ? (
+                    {/* DataGrid */}
+                    {!selectedYear || !selectedClass || !selectedWeek ? (
                         <Alert severity="info">Vui lòng chọn năm học, lớp học và tuần để xem đánh giá.</Alert>
                     ) : weekDays.length === 0 ? (
                         <Alert severity="warning">Tuần này chưa có lịch học (Thứ 2-6).</Alert>
                     ) : (
-                        <TableContainer
-                            sx={{
-                                maxHeight: 450,
-                                overflowY: 'auto',
-                                overflowX: 'auto',
-                                position: 'relative',
-                                '&::-webkit-scrollbar': { width: '6px', height: '8px' },
-                                '&::-webkit-scrollbar-track': { backgroundColor: '#e3f2fd' },
-                                '&::-webkit-scrollbar-thumb': {
-                                    backgroundColor: '#0964a1a4',
-                                    borderRadius: '4px',
-                                },
-                                '&::-webkit-scrollbar-thumb:hover': { backgroundColor: '#0071BC' },
-                                borderRadius: 2,
-                                boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
-                            }}
-                        >
-                            <Table
-                                stickyHeader
-                                size="small"
+                        <>
+                            <DataGrid
+                                rows={rows}
+                                columns={columns}
+                                loading={loading}
+                                paginationMode="server"
+                                paginationModel={paginationModel}
+                                onPaginationModelChange={setPaginationModel}
+                                rowCount={totalRows}
+                                pageSizeOptions={[5, 10, 20, 50]}
+                                disableRowSelectionOnClick
+                                disableColumnMenu
+                                autoHeight
                                 sx={{
-                                    // 💠 HEADER STYLE – giống bảng Điểm danh
-                                    '& .MuiTableHead-root .MuiTableCell-head': {
+                                    '& .MuiDataGrid-columnHeaders': {
                                         backgroundColor: '#e3f2fd',
                                         color: '#1976d2',
-                                        fontWeight: 600,
+                                        fontWeight: 900,
                                         borderBottom: '2px solid #bbdefb',
-                                        borderRight: '1px solid #bbdefb',
-                                        fontSize: '0.95rem',
-                                        textAlign: 'center',
-                                        zIndex: 2,
                                     },
-
-                                    // 💠 BODY STYLE
-                                    '& .MuiTableBody-root .MuiTableCell-body': {
+                                    '& .MuiDataGrid-columnHeaderTitle': {
+                                        fontWeight: 'bold',
+                                        fontSize: '0.95rem',
+                                    },
+                                    '& .MuiDataGrid-columnHeader': {
+                                        borderRight: '1px solid #bbdefb',
+                                        textAlign: 'center',
+                                    },
+                                    '& .MuiDataGrid-cell': {
                                         borderRight: '1px solid #e0e0e0',
                                         borderBottom: '1px solid #f0f0f0',
+                                        alignItems: 'center',
                                         whiteSpace: 'normal',
                                         wordBreak: 'break-word',
                                         color: '#000',
-                                        padding: '6px 8px',
-                                        fontSize: '0.9rem',
+                                        py: 1,
                                     },
-
-                                    // 💠 ROW HOVER
-                                    '& .MuiTableRow-root:hover': {
+                                    '& .MuiDataGrid-cell:focus, & .MuiDataGrid-cell:focus-within': {
+                                        outline: 'none',
+                                    },
+                                    '& .MuiDataGrid-row:hover': {
                                         backgroundColor: '#f5faff',
                                     },
-
-                                    // 💠 FIXED COLUMNS (STT, Họ tên, Mã HS)
-                                    '& .MuiTableCell-root': {
-                                        '&.sticky-col-stt': {
-                                            position: 'sticky',
-                                            left: 0,
-                                            zIndex: 3,
-                                            backgroundColor: '#e3f2fd',
-                                            minWidth: 50, // 👈 giảm từ 40 → 30
-                                            maxWidth: 50,
-                                            width: 50,
-                                            textAlign: 'center',
-                                        },
-                                        '&.sticky-col-stt.body-cell': {
-                                            backgroundColor: '#fff',
-                                            zIndex: 2,
-                                        },
-                                        '&.sticky-col-name': {
-                                            position: 'sticky',
-                                            left: 50,
-                                            zIndex: 3,
-                                            backgroundColor: '#e3f2fd',
-                                            minWidth: 140, // 👈 nhỏ hơn 200
-                                            maxWidth: 160, // 👈 thêm maxWidth để kiểm soát an toàn
-                                            width: 160, // 👈 ép width về đúng giá trị mong muốn
-                                            overflow: 'hidden',
-                                            textOverflow: 'ellipsis',
-                                            whiteSpace: 'nowrap',
-                                        },
-                                        '&.sticky-col-name.body-cell': {
-                                            backgroundColor: '#fff',
-                                            zIndex: 2,
-                                            fontWeight: 600,
-                                        },
-                                        '&.sticky-col-code': {
-                                            position: 'sticky',
-                                            left: 180,
-                                            zIndex: 3,
-                                            backgroundColor: '#e3f2fd',
-                                            minWidth: 120,
-                                        },
-                                        '&.sticky-col-code.body-cell': {
-                                            backgroundColor: '#fff',
-                                            zIndex: 2,
-                                        },
-                                    },
-
                                     borderRadius: 2,
                                     boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
-                                    overflow: 'hidden',
+                                    border: 'none',
                                 }}
-                            >
-                                <TableHead>
-                                    <TableRow>
-                                        <TableCell className="sticky-col-stt">STT</TableCell>
-                                        <TableCell className="sticky-col-name">Họ tên học sinh</TableCell>
-                                        <TableCell className="sticky-col-code">Mã học sinh</TableCell>
+                                slots={{
+                                    noRowsOverlay: () => (
+                                        <Box sx={{ p: 3, textAlign: 'center' }}>
+                                            <Typography>Không có học sinh nào trong lớp này!</Typography>
+                                        </Box>
+                                    ),
+                                }}
+                                slotProps={{
+                                    pagination: {
+                                        labelRowsPerPage: 'Số dòng mỗi trang:',
+                                        labelDisplayedRows: ({ from, to, count }) =>
+                                            `${from} - ${to} của ${count !== -1 ? count : `hơn ${to}`}`,
+                                    },
+                                }}
+                            />
 
-                                        {weekDays.map((day) => {
-                                            const holiday = isHoliday(day.date);
-
-                                            return (
-                                                <TableCell
-                                                    key={day.date}
-                                                    align="center"
-                                                    sx={{
-                                                        minWidth: 160,
-                                                        bgcolor: holiday ? '#ffebee' : 'inherit',
-                                                    }}
-                                                >
-                                                    <Typography variant="caption" fontWeight={600}>
-                                                        {day.dayOfWeek} ({dayjs(day.date).format('DD/MM')})
-                                                    </Typography>
-                                                </TableCell>
-                                            );
-                                        })}
-                                    </TableRow>
-                                </TableHead>
-
-                                <TableBody>
-                                    {filteredStudents.map((student, index) => {
-                                        const hasNotesThisWeek = !!highlightStudents[student._id]; // ✅ Check from highlightStudents
-                                        return (
-                                            <TableRow key={student._id} hover>
-                                                <TableCell className="sticky-col-stt body-cell">{index + 1}</TableCell>
-                                                {/* ✅ Họ tên học sinh - Đổi màu đỏ nếu có "Lưu ý" */}
-                                                <TableCell
-                                                    className="sticky-col-name body-cell"
-                                                    sx={{
-                                                        color: hasNotesThisWeek ? '#d32f2f' : 'inherit', // ✅ Đỏ nếu có lưu ý
-                                                        fontWeight: hasNotesThisWeek ? 700 : 600,
-                                                        transition: 'color 0.3s',
-                                                    }}
-                                                >
-                                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                                                        <Typography
-                                                            variant="body2"
-                                                            sx={{
-                                                                fontWeight: 'inherit',
-                                                                color: 'inherit',
-                                                            }}
-                                                        >
-                                                            {student.fullName}
-                                                        </Typography>
-                                                        {/* ✅ Icon indicator */}
-                                                        {hasNotesThisWeek && (
-                                                            <Tooltip
-                                                                title="Học sinh có ghi chú lưu ý trong tuần này"
-                                                                arrow
-                                                            >
-                                                                <Box
-                                                                    sx={{
-                                                                        display: 'inline-flex',
-                                                                        alignItems: 'center',
-                                                                        justifyContent: 'center',
-                                                                        width: 18,
-                                                                        height: 18,
-                                                                        borderRadius: '50%',
-                                                                        bgcolor: '#d32f2f',
-                                                                        color: 'white',
-                                                                        fontSize: '0.65rem',
-                                                                        fontWeight: 700,
-                                                                    }}
-                                                                >
-                                                                    !
-                                                                </Box>
-                                                            </Tooltip>
-                                                        )}
-                                                    </Box>
-                                                </TableCell>
-                                                <TableCell className="sticky-col-code body-cell">
-                                                    {student.studentCode}
-                                                </TableCell>
-
-                                                {weekDays.map((day) => {
-                                                    const attendanceKey = `${student._id}-${dayjs(day.date).format('YYYY-MM-DD')}`;
-                                                    const assessmentKey = attendanceKey;
-                                                    const attendance = attendanceData[attendanceKey];
-                                                    const assessment = assessmentData[assessmentKey];
-                                                    const holiday = isHoliday(day.date);
-
-                                                    const chipProps = getAttendanceChipProps(attendance?.status);
-                                                    const canAssess = ['Có mặt', 'Đi trễ'].includes(attendance?.status);
-
-                                                    return (
-                                                        <TableCell
-                                                            key={day.date}
-                                                            align="center"
-                                                            sx={{
-                                                                verticalAlign: 'middle',
-                                                                py: 0.5,
-                                                                px: 1,
-                                                                bgcolor: holiday ? '#ffebee' : 'inherit',
-                                                            }}
-                                                        >
-                                                            {holiday ? (
-                                                                <Chip label="Ngày Nghỉ" color="error" size="small" />
-                                                            ) : !attendance || !canAssess ? (
-                                                                <Chip
-                                                                    label={chipProps.label}
-                                                                    color={chipProps.color}
-                                                                    size="small"
-                                                                    sx={{ fontSize: '0.7rem' }}
-                                                                />
-                                                            ) : (
-                                                                <Box
-                                                                    sx={{
-                                                                        display: 'flex',
-                                                                        flexDirection: 'row', // 👈 để nằm ngang
-                                                                        alignItems: 'center',
-                                                                        gap: 1,
-                                                                        py: 1,
-                                                                        justifyContent: 'center',
-                                                                    }}
-                                                                >
-                                                                    {(isActiveYear && canCreate) || canUpdate ? (
-                                                                        <Tooltip title="Đánh giá trẻ">
-                                                                            <IconButton
-                                                                                size="small"
-                                                                                color={
-                                                                                    assessment ? 'primary' : 'default'
-                                                                                }
-                                                                                onClick={() =>
-                                                                                    handleOpenAssessment(student, day)
-                                                                                }
-                                                                                sx={{ p: 0.5 }}
-                                                                            >
-                                                                                <RateReviewIcon fontSize="small" />
-                                                                            </IconButton>
-                                                                        </Tooltip>
-                                                                    ) : null}
-
-                                                                    {assessment ? (
-                                                                        <Tooltip
-                                                                            arrow
-                                                                            placement="top"
-                                                                            title={
-                                                                                <Box
-                                                                                    sx={{
-                                                                                        display: 'flex',
-                                                                                        flexDirection: 'column',
-                                                                                        // gap: 1,
-                                                                                        p: 0.5,
-                                                                                    }}
-                                                                                >
-                                                                                    {/* Tình trạng sức khỏe */}
-                                                                                    <Box>
-                                                                                        <Typography
-                                                                                            variant="caption"
-                                                                                            sx={{
-                                                                                                fontWeight: 700,
-                                                                                                color: '#bfdbfe', // xanh nhạt cho label
-                                                                                                display: 'flex',
-                                                                                                alignItems: 'center',
-                                                                                                gap: 0.5,
-                                                                                                mb: 0.25,
-                                                                                            }}
-                                                                                        >
-                                                                                            <HealthAndSafetyOutlinedIcon
-                                                                                                sx={{
-                                                                                                    color: '#e43333ff',
-                                                                                                    mr: 1,
-                                                                                                }}
-                                                                                            />
-                                                                                            Tình trạng sức khỏe
-                                                                                        </Typography>
-                                                                                        <Typography
-                                                                                            variant="caption"
-                                                                                            sx={{
-                                                                                                color: '#e5e7eb',
-                                                                                                whiteSpace: 'pre-line',
-                                                                                                ml: 0.5,
-                                                                                            }}
-                                                                                        >
-                                                                                            {assessment.healthStatus ||
-                                                                                                'Chưa nhập'}
-                                                                                        </Typography>
-                                                                                    </Box>
-
-                                                                                    {/* Trạng thái cảm xúc, thái độ hành vi */}
-                                                                                    <Box>
-                                                                                        <Typography
-                                                                                            variant="caption"
-                                                                                            sx={{
-                                                                                                fontWeight: 700,
-                                                                                                color: '#bfdbfe',
-                                                                                                display: 'flex',
-                                                                                                alignItems: 'center',
-                                                                                                gap: 0.5,
-                                                                                                mb: 0.25,
-                                                                                            }}
-                                                                                        >
-                                                                                            <AddReactionOutlinedIcon
-                                                                                                sx={{
-                                                                                                    color: '#ebde2dff',
-                                                                                                    mr: 1,
-                                                                                                }}
-                                                                                            />
-                                                                                            Trạng thái cảm xúc, thái độ
-                                                                                            hành vi
-                                                                                        </Typography>
-                                                                                        <Typography
-                                                                                            variant="caption"
-                                                                                            sx={{
-                                                                                                color: '#e5e7eb',
-                                                                                                whiteSpace: 'pre-line',
-                                                                                                ml: 0.5,
-                                                                                            }}
-                                                                                        >
-                                                                                            {assessment.emotionalBehavior ||
-                                                                                                'Chưa nhập'}
-                                                                                        </Typography>
-                                                                                    </Box>
-
-                                                                                    {/* Kiến thức kỹ năng */}
-                                                                                    <Box>
-                                                                                        <Typography
-                                                                                            variant="caption"
-                                                                                            sx={{
-                                                                                                fontWeight: 700,
-                                                                                                color: '#bfdbfe',
-                                                                                                display: 'flex',
-                                                                                                alignItems: 'center',
-                                                                                                gap: 0.5,
-                                                                                                mb: 0.25,
-                                                                                            }}
-                                                                                        >
-                                                                                            <LightbulbOutlinedIcon
-                                                                                                sx={{
-                                                                                                    color: '#7ce4b0ff',
-                                                                                                    mr: 1,
-                                                                                                }}
-                                                                                            />
-                                                                                            Kiến thức kỹ năng
-                                                                                        </Typography>
-                                                                                        <Typography
-                                                                                            variant="caption"
-                                                                                            sx={{
-                                                                                                color: '#e5e7eb',
-                                                                                                whiteSpace: 'pre-line',
-                                                                                                ml: 0.5,
-                                                                                            }}
-                                                                                        >
-                                                                                            {assessment.skillsKnowledge ||
-                                                                                                'Chưa nhập'}
-                                                                                        </Typography>
-                                                                                    </Box>
-
-                                                                                    {/* Lưu ý */}
-                                                                                    <Box
-                                                                                        sx={{
-                                                                                            mt: 0.5,
-                                                                                            pt: 0.5,
-                                                                                            borderTop:
-                                                                                                '1px dashed rgba(148, 163, 184, 0.6)',
-                                                                                        }}
-                                                                                    >
-                                                                                        <Typography
-                                                                                            variant="caption"
-                                                                                            sx={{
-                                                                                                fontWeight: 700,
-                                                                                                color: '#fee2e2',
-                                                                                                display: 'flex',
-                                                                                                alignItems: 'center',
-                                                                                                gap: 0.5,
-                                                                                                mb: 0.25,
-                                                                                            }}
-                                                                                        >
-                                                                                            Lưu ý
-                                                                                        </Typography>
-                                                                                        <Typography
-                                                                                            variant="caption"
-                                                                                            sx={{
-                                                                                                color: '#e5e7eb',
-                                                                                                fontStyle:
-                                                                                                    assessment.notes
-                                                                                                        ? 'normal'
-                                                                                                        : 'italic',
-                                                                                                whiteSpace: 'pre-line',
-                                                                                            }}
-                                                                                        >
-                                                                                            {assessment.notes ||
-                                                                                                'Không có'}
-                                                                                        </Typography>
-                                                                                    </Box>
-                                                                                </Box>
-                                                                            }
-                                                                            slotProps={{
-                                                                                tooltip: {
-                                                                                    sx: {
-                                                                                        maxWidth: 420,
-                                                                                        bgcolor: '#0f172a', // nền xanh đậm
-                                                                                        color: '#e5e7eb',
-                                                                                        borderRadius: 2,
-                                                                                        border: '1px solid #1d4ed8',
-                                                                                        boxShadow:
-                                                                                            '0 8px 24px rgba(15,23,42,0.7)',
-                                                                                        p: 1.5,
-                                                                                        whiteSpace: 'normal',
-                                                                                        '& .MuiTooltip-arrow': {
-                                                                                            color: '#0f172a',
-                                                                                        },
-                                                                                    },
-                                                                                },
-                                                                            }}
-                                                                        >
-                                                                            <Chip
-                                                                                label="Đã đánh giá"
-                                                                                color="success"
-                                                                                size="small"
-                                                                                variant="outlined"
-                                                                                sx={{
-                                                                                    fontSize: '0.7rem',
-                                                                                    cursor: 'pointer',
-                                                                                    fontWeight: 600,
-                                                                                }}
-                                                                            />
-                                                                        </Tooltip>
-                                                                    ) : (
-                                                                        <Chip
-                                                                            label="Chưa đánh giá"
-                                                                            color="default"
-                                                                            size="small"
-                                                                            sx={{ fontSize: '0.7rem' }}
-                                                                        />
-                                                                    )}
-                                                                </Box>
-                                                            )}
-                                                        </TableCell>
-                                                    );
-                                                })}
-                                            </TableRow>
-                                        );
-                                    })}
-                                </TableBody>
-                            </Table>
-                        </TableContainer>
-                    )}
-
-                    {/* Legend */}
-                    {weekDays.length > 0 && (
-                        <Box sx={{ mt: 2, display: 'flex', gap: 2, flexWrap: 'wrap', justifyContent: 'center' }}>
-                            <Chip label="Đã đánh giá" color="success" size="small" variant="outlined" />
-                            <Chip label="Chưa đánh giá" color="default" size="small" />
-                            {/* <Chip label="Vắng có phép" color="warning" size="small" /> */}
-                            {/* <Chip label="Vắng không phép" color="error" size="small" /> */}
-                            {/* <Chip label="Chưa điểm danh" color="default" size="small" /> */}
-                            {/* ✅ Legend cho học sinh có "Lưu ý" */}
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                                <Box
-                                    sx={{
-                                        width: 18,
-                                        height: 18,
-                                        borderRadius: '50%',
-                                        bgcolor: '#d32f2f',
-                                        color: 'white',
-                                        fontSize: '0.65rem',
-                                        fontWeight: 700,
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                    }}
-                                >
-                                    !
-                                </Box>
-                                <Typography variant="caption" color="#d32f2f" fontWeight={600}>
-                                    Có ghi chú Lưu ý
-                                </Typography>
+                            {/* Legend */}
+                            <Box sx={{ mt: 2, display: 'flex', gap: 1, flexWrap: 'wrap', justifyContent: 'center' }}>
+                                {/* <Chip label="✓ Có mặt" color="success" size="small" /> */}
+                                <Chip label="- Chưa điểm danh" color="default" size="small" />
+                                <Chip label="P Vắng có phép" color="warning" size="small" />
+                                <Chip label="K Vắng không phép" color="error" size="small" />
+                                <Chip label="Đã đánh giá" color="success" size="small" variant="outlined" />
                             </Box>
-                        </Box>
+                        </>
                     )}
                 </Paper>
             </PageContainer>

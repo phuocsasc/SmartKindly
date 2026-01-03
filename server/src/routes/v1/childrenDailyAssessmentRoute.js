@@ -16,36 +16,41 @@ Router.route('/accessible-classes').get(
     childrenDailyAssessmentController.getAccessibleClassesList,
 );
 
-// ✅ CRUD routes
-Router.route('/')
-    .get(
-        authMiddleware.isAuthorized,
-        rbacMiddleware.isValidPermission([PERMISSIONS.VIEW_CHILDREN_ASSESSMENT]),
-        childrenDailyAssessmentController.getAll,
-    )
-    .post(
-        authMiddleware.isAuthorized,
-        rbacMiddleware.isValidPermission([PERMISSIONS.CREATE_CHILDREN_ASSESSMENT]),
-        childrenDailyAssessmentValidation.createNew,
-        childrenDailyAssessmentController.createNew,
-    );
+// ✅ Lấy danh sách đánh giá theo lớp và tuần
+Router.route('/').get(
+    authMiddleware.isAuthorized,
+    rbacMiddleware.isValidPermission([PERMISSIONS.VIEW_CHILDREN_ASSESSMENT]),
+    childrenDailyAssessmentController.getAssessmentsByClass,
+);
 
-Router.route('/:id')
-    .get(
-        authMiddleware.isAuthorized,
-        rbacMiddleware.isValidPermission([PERMISSIONS.VIEW_CHILDREN_ASSESSMENT]),
-        childrenDailyAssessmentController.getDetails,
-    )
-    .put(
-        authMiddleware.isAuthorized,
-        rbacMiddleware.isValidPermission([PERMISSIONS.UPDATE_CHILDREN_ASSESSMENT]),
-        childrenDailyAssessmentValidation.update,
-        childrenDailyAssessmentController.update,
-    )
-    .delete(
-        authMiddleware.isAuthorized,
-        rbacMiddleware.isValidPermission([PERMISSIONS.DELETE_CHILDREN_ASSESSMENT]),
-        childrenDailyAssessmentController.deleteAssessment,
-    );
+// ✅ Tạo đánh giá mới
+Router.route('/').post(
+    authMiddleware.isAuthorized,
+    rbacMiddleware.isValidPermission([PERMISSIONS.CREATE_CHILDREN_ASSESSMENT]),
+    childrenDailyAssessmentValidation.createNew,
+    childrenDailyAssessmentController.createNew,
+);
+
+// ✅ Lấy chi tiết đánh giá
+Router.route('/:id').get(
+    authMiddleware.isAuthorized,
+    rbacMiddleware.isValidPermission([PERMISSIONS.VIEW_CHILDREN_ASSESSMENT]),
+    childrenDailyAssessmentController.getDetails,
+);
+
+// ✅ Cập nhật đánh giá
+Router.route('/:id').put(
+    authMiddleware.isAuthorized,
+    rbacMiddleware.isValidPermission([PERMISSIONS.UPDATE_CHILDREN_ASSESSMENT]),
+    childrenDailyAssessmentValidation.update,
+    childrenDailyAssessmentController.update,
+);
+
+// ✅ Xóa đánh giá
+Router.route('/:id').delete(
+    authMiddleware.isAuthorized,
+    rbacMiddleware.isValidPermission([PERMISSIONS.DELETE_CHILDREN_ASSESSMENT]),
+    childrenDailyAssessmentController.deleteAssessment,
+);
 
 export const childrenDailyAssessmentRoute = Router;

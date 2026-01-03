@@ -103,19 +103,20 @@ function Classes() {
                     .join(', ');
 
                 return {
-                    // ✅ FIX: Thêm homeRoomTeacherId để dùng trong edit dialog
                     id: cls._id,
                     stt: paginationModel.page * paginationModel.pageSize + index + 1,
                     name: cls.name,
                     grade: cls.grade,
                     ageGroup: cls.ageGroup,
                     homeRoomTeacher: cls.homeRoomTeacher?.fullName || '---',
-                    homeRoomTeacherId: cls.homeRoomTeacher?._id || '', // ✅ Thêm ID
+                    homeRoomTeacherId: cls.homeRoomTeacher?._id || '',
                     description: cls.description,
                     sessions: cls.sessions,
                     sessionsDisplay,
-                    childrenCount: cls.childrenCount || 0,
-                    hasChildren: cls.hasChildren || false,
+                    totalStudents: cls.totalStudents || 0, // ✅ Số học sinh trong ChildrenByClassModel
+                    childrenCount: cls.childrenCount || 0, // ✅ Số hồ sơ trẻ trong ChildrenProfileModel
+                    hasChildren: cls.hasChildren || false, // ✅ Có hồ sơ trẻ
+                    hasStudents: cls.hasStudents || false, // ✅ CÓ HỌC SINH (disable edit/delete)
                 };
             });
 
@@ -158,8 +159,9 @@ function Classes() {
             return;
         }
 
-        if (classData.hasChildren) {
-            toast.error('Không thể chỉnh sửa lớp đã có hồ sơ trẻ em. Vui lòng xóa tất cả hồ sơ trước.');
+        // ✅ Check hasStudents thay vì hasChildren
+        if (classData.hasStudents) {
+            toast.error('Không thể chỉnh sửa lớp đã có học sinh. Vui lòng xóa tất cả học sinh trước.');
             return;
         }
 
@@ -168,14 +170,15 @@ function Classes() {
         setOpenDialog(true);
     };
 
-    const handleDelete = async (id, className, hasChildren) => {
+    const handleDelete = async (id, className, hasStudents) => {
         if (selectedYear !== activeYearId) {
             toast.warning('Chỉ có thể xóa lớp học trong năm học đang hoạt động!');
             return;
         }
 
-        if (hasChildren) {
-            toast.error('Không thể xóa lớp đã có hồ sơ trẻ em. Vui lòng xóa tất cả hồ sơ trước.');
+        // ✅ Check hasStudents
+        if (hasStudents) {
+            toast.error('Không thể xóa lớp đã có học sinh!');
             return;
         }
 
@@ -210,7 +213,7 @@ function Classes() {
             renderCell: (params) => (
                 <Typography
                     sx={{
-                        fontWeight: 500,
+                        fontWeight: 600,
                         color: '#000',
                         whiteSpace: 'normal',
                         wordBreak: 'break-word',
@@ -296,22 +299,35 @@ function Classes() {
             },
         },
         {
-            field: 'childrenCount',
-            headerName: 'Số học sinh',
+            field: 'totalStudents',
+            headerName: 'Tổng số trẻ',
             flex: 0.4,
             minWidth: 120,
             sortable: false,
             align: 'center',
             headerAlign: 'center',
-            renderCell: (params) => (
-                <Chip
-                    label={params.value}
-                    size="medium"
-                    variant="filled"
-                    color={params.value > 0 ? 'info' : 'default'}
-                    sx={{ fontWeight: 600 }}
-                />
-            ),
+            renderCell: (params) => {
+                const value = params.value || 0;
+
+                return (
+                    <Box
+                        sx={{
+                            px: 1.5,
+                            py: 0.5,
+                            borderRadius: '12px',
+                            bgcolor: value > 0 ? '#e3f2fd' : '#f5f5f5', // xanh nhạt / xám nhạt
+                            color: value > 0 ? '#1976d2' : '#120f0fff',
+                            fontSize: 12,
+                            fontWeight: 600,
+                            whiteSpace: 'nowrap',
+                            minWidth: 60,
+                            textAlign: 'center',
+                        }}
+                    >
+                        {value} bé
+                    </Box>
+                );
+            },
         },
         {
             field: 'description',
@@ -334,40 +350,47 @@ function Classes() {
             disableColumnMenu: true,
             renderCell: (params) => {
                 const isActiveYear = selectedYear === activeYearId;
-                const hasChildren = params.row.hasChildren;
+                const hasStudents = params.row.hasStudents; // ✅ ĐÚNG LOGIC
+
+                const disableAction = !isActiveYear || hasStudents;
 
                 return (
                     <Box sx={{ display: 'flex', justifyContent: 'center', gap: 0.5 }}>
+                        {/* ✏️ EDIT */}
                         {canUpdate && (
                             <Tooltip
                                 title={
                                     !isActiveYear
-                                        ? 'Chỉ xem'
-                                        : hasChildren
-                                          ? 'Không thể sửa - Lớp đã có hồ sơ trẻ'
-                                          : 'Sửa thông tin'
+                                        ? 'Chỉ xem - Năm học đã kết thúc'
+                                        : hasStudents
+                                          ? 'Không thể sửa - Lớp đã có học sinh'
+                                          : 'Sửa thông tin lớp'
                                 }
                             >
                                 <span>
                                     <IconButton
                                         color="primary"
                                         size="small"
-                                        disabled={!isActiveYear || hasChildren}
+                                        disabled={disableAction}
                                         onClick={() => handleEdit(params.row)}
-                                        sx={{ opacity: !isActiveYear || hasChildren ? 0.5 : 1 }}
+                                        sx={{
+                                            opacity: disableAction ? 0.4 : 1,
+                                        }}
                                     >
                                         <EditOutlinedIcon />
                                     </IconButton>
                                 </span>
                             </Tooltip>
                         )}
+
+                        {/* 🗑 DELETE */}
                         {canDelete && (
                             <Tooltip
                                 title={
                                     !isActiveYear
-                                        ? 'Không thể xóa'
-                                        : hasChildren
-                                          ? 'Không thể xóa - Lớp đã có hồ sơ trẻ'
+                                        ? 'Không thể xóa - Năm học đã kết thúc'
+                                        : hasStudents
+                                          ? 'Không thể xóa - Lớp đã có học sinh'
                                           : 'Xóa lớp học'
                                 }
                             >
@@ -375,9 +398,11 @@ function Classes() {
                                     <IconButton
                                         color="error"
                                         size="small"
-                                        disabled={!isActiveYear || hasChildren}
-                                        onClick={() => handleDelete(params.row.id, params.row.name, hasChildren)}
-                                        sx={{ opacity: !isActiveYear || hasChildren ? 0.5 : 1 }}
+                                        disabled={disableAction}
+                                        onClick={() => handleDelete(params.row.id, params.row.name, hasStudents)}
+                                        sx={{
+                                            opacity: disableAction ? 0.4 : 1,
+                                        }}
                                     >
                                         <DeleteOutlineOutlinedIcon />
                                     </IconButton>

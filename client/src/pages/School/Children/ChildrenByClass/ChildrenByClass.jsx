@@ -167,6 +167,12 @@ function ChildrenByClass() {
         }
     };
 
+    // ✅ Handler: Refresh both classes and children (để cập nhật totalStudents realtime)
+    const handleRefreshData = async () => {
+        await fetchClasses(); // ✅ Cập nhật lại danh sách classes (bao gồm totalStudents)
+        await fetchChildren(); // ✅ Cập nhật lại danh sách trẻ trong lớp hiện tại
+    };
+
     useEffect(() => {
         fetchAcademicYears();
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -233,7 +239,7 @@ function ChildrenByClass() {
                     try {
                         await childrenByClassApi.removeStudentFromClass(id);
                         toast.success('Xóa học sinh ra khỏi lớp thành công!');
-                        fetchChildren();
+                        await handleRefreshData(); // ✅ Refresh cả classes và children
                         setSelectedRows([]);
                     } catch (error) {
                         toast.error(error.response?.data?.message || 'Lỗi khi xóa học sinh!');
@@ -268,7 +274,7 @@ function ChildrenByClass() {
                     try {
                         await childrenByClassApi.removeStudentsFromClass(selectedRows);
                         toast.success(`Đã xóa ${selectedRows.length} học sinh ra khỏi lớp!`);
-                        fetchChildren();
+                        await handleRefreshData(); // ✅ Refresh cả classes và children
                         setSelectedRows([]);
                     } catch (error) {
                         toast.error(error.response?.data?.message || 'Lỗi khi xóa học sinh!');
@@ -537,7 +543,7 @@ function ChildrenByClass() {
                                     minHeight: 420,
                                     p: 1.5,
                                     bgcolor: '#f8fafc',
-                                    borderRadius: 3,
+                                    borderRadius: 2,
                                     border: '1px solid #e0e7ef',
                                     overflow: 'hidden', // ✅ QUAN TRỌNG
                                 }}
@@ -592,8 +598,8 @@ function ChildrenByClass() {
                                                             }}
                                                         >
                                                             GVCN:{' '}
-                                                            {cls.homeroomTeacher?.fullName ||
-                                                                cls.homeroomTeacher ||
+                                                            {cls.homeRoomTeacher?.fullName ||
+                                                                cls.homeRoomTeacher ||
                                                                 '---'}
                                                         </Typography>
                                                     </Box>
@@ -604,7 +610,7 @@ function ChildrenByClass() {
                                                             ml: 1, // Khoảng cách với text
                                                             px: 1,
                                                             py: 0.5,
-                                                            borderRadius: '12px',
+                                                            borderRadius: 4,
                                                             bgcolor: '#e3f2fd', // Màu nền xanh nhạt
                                                             color: '#1976d2', // Chữ màu xanh đậm
                                                             fontSize: 12,
@@ -624,7 +630,7 @@ function ChildrenByClass() {
                                                 textAlign: 'left',
                                                 justifyContent: 'flex-start',
                                                 textTransform: 'none',
-                                                borderRadius: 3,
+                                                borderRadius: 4,
                                                 mb: 1,
                                                 px: 2,
                                                 py: 1.5,
@@ -641,7 +647,8 @@ function ChildrenByClass() {
                                                 '&.Mui-selected': {
                                                     bgcolor: '#5692cdff',
                                                     color: '#fff',
-                                                    boxShadow: '0 6px 16px rgba(25,118,210,0.35)',
+                                                    boxShadow:
+                                                        'rgba(50, 50, 93, 0.25) 0px 30px 60px -12px inset, rgba(0, 0, 0, 0.3) 0px 18px 36px -18px inset;',
                                                     borderColor: '#1976d2',
 
                                                     '& .MuiTypography-root': {
@@ -761,9 +768,9 @@ function ChildrenByClass() {
                     className={currentClass.name}
                     ageGroup={currentClass.ageGroup}
                     onClose={() => setOpenAddDialog(false)}
-                    onSuccess={() => {
+                    onSuccess={async () => {
                         setOpenAddDialog(false);
-                        fetchChildren();
+                        await handleRefreshData(); // ✅ Refresh cả classes và children
                     }}
                 />
             )}
@@ -778,10 +785,10 @@ function ChildrenByClass() {
                     studentIds={selectedRows}
                     students={rows.filter((row) => selectedRows.includes(row.id))}
                     onClose={() => setOpenTransferDialog(false)}
-                    onSuccess={() => {
+                    onSuccess={async () => {
                         setOpenTransferDialog(false);
                         setSelectedRows([]);
-                        fetchChildren();
+                        await handleRefreshData(); // ✅ Refresh cả classes và children
                     }}
                 />
             )}

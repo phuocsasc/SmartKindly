@@ -224,14 +224,14 @@ const getAll = async (query, userId) => {
         // ✅ Thêm thông tin số lượng học sinh trong mỗi lớp
         const classesWithStudentCount = await Promise.all(
             classes.map(async (cls) => {
-                // ✅ Đếm số học sinh trong ChildrenByClassModel
+                // ✅ Đếm số học sinh TRONG ChildrenByClassModel (học sinh đã được thêm vào lớp)
                 const totalStudents = await ChildrenByClassModel.countDocuments({
                     classId: cls._id,
                     academicYearId: cls.academicYearId._id,
                     _destroy: false,
                 });
 
-                // ✅ Đếm số hồ sơ trẻ (để check hasChildren)
+                // ✅ Đếm số hồ sơ trẻ (để check hasChildren cho ChildrenProfile)
                 const childrenCount = await ChildrenProfileModel.countDocuments({
                     classId: cls._id,
                     _destroy: false,
@@ -239,11 +239,11 @@ const getAll = async (query, userId) => {
 
                 return {
                     ...cls,
-                    totalStudents, // ✅ Tổng số học sinh hiện tại trong lớp
-                    childrenCount,
-                    hasChildren: childrenCount > 0,
-                    // ✅ Format homeRoomTeacher để frontend dễ dùng
-                    homeroomTeacher: cls.homeRoomTeacher
+                    totalStudents, // ✅ Số học sinh hiện tại trong lớp (từ ChildrenByClassModel)
+                    childrenCount, // ✅ Số hồ sơ trẻ (từ ChildrenProfileModel)
+                    hasChildren: childrenCount > 0, // ✅ Có hồ sơ trẻ không
+                    hasStudents: totalStudents > 0, // ✅ CÓ HỌC SINH KHÔNG (dùng để disable edit/delete)
+                    homeRoomTeacher: cls.homeRoomTeacher
                         ? {
                               _id: cls.homeRoomTeacher._id,
                               fullName: cls.homeRoomTeacher.fullName,
@@ -520,11 +520,13 @@ const update = async (id, data, userId) => {
 
 const deleteClass = async (id, userId) => {
     try {
+        // 1️⃣ Lấy schoolId của người thao tác
         const user = await UserModel.findById(userId).select('schoolId');
         if (!user || !user.schoolId) {
             throw new ApiError(StatusCodes.FORBIDDEN, 'Bạn không thuộc trường học nào');
         }
 
+        // 2️⃣ Lấy lớp học
         const classData = await ClassModel.findOne({
             _id: id,
             schoolId: user.schoolId,
@@ -537,12 +539,12 @@ const deleteClass = async (id, userId) => {
             throw new ApiError(StatusCodes.NOT_FOUND, 'Không tìm thấy lớp học');
         }
 
-        // ✅ Chỉ cho phép xóa lớp trong năm học đang "active"
+        // 3️⃣ Chỉ cho phép xóa trong năm học active
         if (classData.academicYearId.status !== 'active') {
             throw new ApiError(StatusCodes.FORBIDDEN, 'Chỉ có thể xóa lớp trong năm học đang hoạt động');
         }
 
-        // ✅ KIỂM TRA: Lớp có hồ sơ trẻ không
+        // 4️⃣ Kiểm tra lớp đã có hồ sơ trẻ / học sinh
         const hasChildren = await hasChildrenProfiles(id);
         if (hasChildren) {
             throw new ApiError(
@@ -554,15 +556,17 @@ const deleteClass = async (id, userId) => {
         // ✅ Lưu lại tên lớp trước khi xóa
         const className = classData.name;
 
-        // ✅ Xóa classId của giáo viên chủ nhiệm
-        await UserModel.findByIdAndUpdate(classData.homeRoomTeacher._id, {
-            $unset: { classId: 1 },
-        });
+        // 5️⃣ Gỡ liên kết classId của giáo viên chủ nhiệm (nếu có)
+        if (classData.homeRoomTeacher?._id) {
+            await UserModel.findByIdAndUpdate(classData.homeRoomTeacher._id, {
+                $unset: { classId: 1 },
+            });
+        }
 
         // Soft delete
-        await ClassModel.findByIdAndUpdate(id, { _destroy: true });
+        // await ClassModel.findByIdAndUpdate(id, { _destroy: true });
 
-        // ✅ Thông báo cho giáo viên chủ nhiệm
+        // 6️⃣ Gửi notification TRƯỚC KHI XÓA (vì sau đó không còn classId)
         if (classData.homeRoomTeacher) {
             const deleterUser = await UserModel.findById(userId).select('fullName');
             const deleterName = deleterUser?.fullName || 'Ban giám hiệu';
@@ -582,6 +586,8 @@ const deleteClass = async (id, userId) => {
                 },
             });
         }
+        // 🔥 7️⃣ XÓA CỨNG KHỎI DATABASE
+        await ClassModel.deleteOne({ _id: id });
 
         return { message: 'Xóa lớp học thành công', className: className };
     } catch (error) {

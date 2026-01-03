@@ -585,7 +585,7 @@ function ChildrenByClass() {
                                                                 color: 'inherit',
                                                             }}
                                                         >
-                                                            {cls.name} ({cls.ageGroup})
+                                                            {cls.name} - ({cls.ageGroup})
                                                         </Typography>
 
                                                         {/* Dòng 2: GVCN */}

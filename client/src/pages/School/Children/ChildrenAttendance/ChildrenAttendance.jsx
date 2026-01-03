@@ -464,7 +464,7 @@ function ChildrenAttendance() {
                                 </Select>
                             </FormControl>
 
-                            <FormControl size="small" sx={{ minWidth: 160 }}>
+                            <FormControl size="small" sx={{ minWidth: 200 }}>
                                 <InputLabel>Lớp học</InputLabel>
                                 <Select
                                     value={selectedClass}
@@ -474,7 +474,7 @@ function ChildrenAttendance() {
                                 >
                                     {classes.map((cls) => (
                                         <MenuItem key={cls._id} value={cls._id}>
-                                            {cls.name}
+                                            {cls.name} - ({cls.ageGroup})
                                         </MenuItem>
                                     ))}
                                 </Select>

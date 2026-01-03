@@ -131,7 +131,7 @@ function TransferStudentsDialog({
                 </IconButton>
             </DialogTitle>
 
-            <DialogContent sx={{ pt: 3 }}>
+            <DialogContent sx={{ pt: 3, mt: 2 }}>
                 <Alert severity="info" sx={{ mb: 2 }}>
                     Chuyển <strong>{students.length} trẻ</strong> từ lớp <strong>"{fromClassName}"</strong> sang lớp mới
                 </Alert>

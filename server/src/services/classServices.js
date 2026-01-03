@@ -1,6 +1,7 @@
 import { ClassModel } from '~/models/classModel.js';
 import { AcademicYearModel } from '~/models/academicYearModel.js';
 import { DepartmentModel } from '~/models/departmentModel.js';
+import { ChildrenByClassModel } from '/models/childrenByClassModel.js';
 import { UserModel } from '~/models/userModel.js';
 import { ChildrenProfileModel } from '~/models/childrenProfileModel.js'; // ✅ Import model
 import ApiError from '~/utils/ApiError.js';
@@ -189,57 +190,72 @@ const createNew = async (data, userId) => {
 
 const getAll = async (query, userId) => {
     try {
-        const user = await UserModel.findById(userId).select('schoolId role').lean();
+        const user = await UserModel.findById(userId).select('schoolId role _id');
         if (!user || !user.schoolId) {
             throw new ApiError(StatusCodes.FORBIDDEN, 'Bạn không thuộc trường học nào');
         }
 
-        const { page = 1, limit = 10, academicYearId = '', grade = '', search = '' } = query;
-        const skip = (page - 1) * limit;
+        const { page = 1, limit = 10, academicYearId = '', search = '' } = query;
 
-        let filter = {
+        const filter = {
             schoolId: user.schoolId,
             _destroy: false,
         };
 
         if (academicYearId) filter.academicYearId = academicYearId;
-        if (grade) filter.grade = grade;
-        if (search) filter.name = { $regex: search, $options: 'i' };
+        if (search) {
+            filter.$or = [{ name: { $regex: search, $options: 'i' } }, { grade: { $regex: search, $options: 'i' } }];
+        }
 
-        // const skip = (parseInt(page) - 1) * parseInt(limit);
+        const skip = (parseInt(page) - 1) * parseInt(limit);
 
         const [classes, totalItems] = await Promise.all([
             ClassModel.find(filter)
-                .select(
-                    'classId name grade ageGroup description sessions homeRoomTeacher academicYearId createdBy createdAt',
-                ) // ✅ Select only needed fields
                 .populate('academicYearId', 'fromYear toYear status')
-                .populate('homeRoomTeacher', 'fullName username email phone')
+                .populate('homeRoomTeacher', 'fullName username email phone') // ✅ Populate teacher info
                 .populate('createdBy', 'fullName username')
                 .skip(skip)
                 .limit(parseInt(limit))
                 .sort({ createdAt: -1 })
-                .lean(), // ✅ lean() để tăng tốc
+                .lean(),
             ClassModel.countDocuments(filter),
         ]);
 
-        // ✅ Thêm thông tin số lượng hồ sơ trẻ cho mỗi lớp
-        const classesWithChildrenCount = await Promise.all(
+        // ✅ Thêm thông tin số lượng học sinh trong mỗi lớp
+        const classesWithStudentCount = await Promise.all(
             classes.map(async (cls) => {
+                // ✅ Đếm số học sinh trong ChildrenByClassModel
+                const totalStudents = await ChildrenByClassModel.countDocuments({
+                    classId: cls._id,
+                    academicYearId: cls.academicYearId._id,
+                    _destroy: false,
+                });
+
+                // ✅ Đếm số hồ sơ trẻ (để check hasChildren)
                 const childrenCount = await ChildrenProfileModel.countDocuments({
                     classId: cls._id,
                     _destroy: false,
                 });
+
                 return {
                     ...cls,
+                    totalStudents, // ✅ Tổng số học sinh hiện tại trong lớp
                     childrenCount,
                     hasChildren: childrenCount > 0,
+                    // ✅ Format homeRoomTeacher để frontend dễ dùng
+                    homeroomTeacher: cls.homeRoomTeacher
+                        ? {
+                              _id: cls.homeRoomTeacher._id,
+                              fullName: cls.homeRoomTeacher.fullName,
+                              username: cls.homeRoomTeacher.username,
+                          }
+                        : null,
                 };
             }),
         );
 
         return {
-            classes: classesWithChildrenCount,
+            classes: classesWithStudentCount,
             pagination: {
                 currentPage: parseInt(page),
                 totalPages: Math.ceil(totalItems / parseInt(limit)),
@@ -248,6 +264,7 @@ const getAll = async (query, userId) => {
             },
         };
     } catch (error) {
+        console.error('❌ [Class getAll] Error:', error);
         if (error instanceof ApiError) throw error;
         throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, 'Lỗi khi lấy danh sách lớp học');
     }

@@ -530,39 +530,125 @@ function ChildrenByClass() {
                     {classes.length > 0 && (
                         <Box sx={{ display: 'flex', gap: 2 }}>
                             {/* Left: Class Tabs */}
-                            <Paper sx={{ width: 280, minHeight: 400, p: 1, bgcolor: '#f5f5f5' }}>
+                            <Paper
+                                elevation={0}
+                                sx={{
+                                    minWidth: 300,
+                                    minHeight: 420,
+                                    p: 1.5,
+                                    bgcolor: '#f8fafc',
+                                    borderRadius: 3,
+                                    border: '1px solid #e0e7ef',
+                                    overflow: 'hidden', // ✅ QUAN TRỌNG
+                                }}
+                            >
                                 <Tabs
                                     orientation="vertical"
                                     value={selectedClassTab}
                                     onChange={handleClassTabChange}
+                                    variant="scrollable"
+                                    scrollButtons={false}
                                     sx={{
-                                        '& .MuiTab-root': {
-                                            alignItems: 'flex-start',
-                                            textAlign: 'left',
-                                            minHeight: 60,
-                                            borderRadius: 1,
-                                            mb: 0.5,
-                                            '&:hover': {
-                                                bgcolor: '#e3f2fd',
-                                            },
-                                        },
-                                        '& .Mui-selected': {
-                                            bgcolor: '#1976d2 !important',
-                                            color: '#fff !important',
+                                        '& .MuiTabs-indicator': {
+                                            display: 'none', // ❌ bỏ gạch xanh mặc định
                                         },
                                     }}
                                 >
-                                    {classes.map((cls, index) => (
+                                    {classes.map((cls) => (
                                         <Tab
                                             key={cls._id}
+                                            disableRipple
                                             label={
-                                                <Box>
-                                                    <Typography variant="body2" fontWeight={600}>
-                                                        {cls.name}
-                                                    </Typography>
-                                                    <Typography variant="caption">({cls.ageGroup})</Typography>
+                                                <Box
+                                                    sx={{
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        justifyContent: 'space-between',
+                                                        width: '100%',
+                                                        textAlign: 'left', // Reset text align về trái
+                                                    }}
+                                                >
+                                                    {/* Phần bên trái: Tên lớp + GVCN */}
+                                                    <Box>
+                                                        {/* Dòng 1: Tên lớp + Nhóm tuổi */}
+                                                        <Typography
+                                                            sx={{
+                                                                fontWeight: 700, // Đậm hơn chút để nổi bật
+                                                                fontSize: 14,
+                                                                lineHeight: 1.3,
+                                                                color: 'inherit',
+                                                            }}
+                                                        >
+                                                            {cls.name} ({cls.ageGroup})
+                                                        </Typography>
+
+                                                        {/* Dòng 2: GVCN */}
+                                                        <Typography
+                                                            sx={{
+                                                                fontSize: 12,
+                                                                fontWeight: 400,
+                                                                color: 'text.secondary', // Màu xám nhạt hơn
+                                                                mt: 0.5, // Khoảng cách nhỏ với dòng trên
+                                                            }}
+                                                        >
+                                                            GVCN:{' '}
+                                                            {cls.homeroomTeacher?.fullName ||
+                                                                cls.homeroomTeacher ||
+                                                                '---'}
+                                                        </Typography>
+                                                    </Box>
+
+                                                    {/* Phần bên phải: Tổng số trẻ */}
+                                                    <Box
+                                                        sx={{
+                                                            ml: 1, // Khoảng cách với text
+                                                            px: 1,
+                                                            py: 0.5,
+                                                            borderRadius: '12px',
+                                                            bgcolor: '#e3f2fd', // Màu nền xanh nhạt
+                                                            color: '#1976d2', // Chữ màu xanh đậm
+                                                            fontSize: 12,
+                                                            fontWeight: 600,
+                                                            whiteSpace: 'nowrap', // Không xuống dòng
+                                                            minWidth: '60px', // Độ rộng tối thiểu để đẹp hơn
+                                                            textAlign: 'center',
+                                                        }}
+                                                    >
+                                                        {cls.totalStudents || 0} bé
+                                                    </Box>
                                                 </Box>
                                             }
+                                            sx={{
+                                                boxSizing: 'border-box', // ✅
+                                                alignItems: 'flex-start',
+                                                textAlign: 'left',
+                                                justifyContent: 'flex-start',
+                                                textTransform: 'none',
+                                                borderRadius: 3,
+                                                mb: 1,
+                                                px: 2,
+                                                py: 1.5,
+                                                minHeight: 64,
+                                                bgcolor: '#fff',
+                                                border: '1px solid #e5e7eb',
+                                                transition: 'all 0.25s ease',
+
+                                                '&:hover': {
+                                                    bgcolor: '#e3f2fd',
+                                                    boxShadow: 'inset 4px 0 0 #1976d2',
+                                                },
+
+                                                '&.Mui-selected': {
+                                                    bgcolor: '#5692cdff',
+                                                    color: '#fff',
+                                                    boxShadow: '0 6px 16px rgba(25,118,210,0.35)',
+                                                    borderColor: '#1976d2',
+
+                                                    '& .MuiTypography-root': {
+                                                        color: '#fff',
+                                                    },
+                                                },
+                                            }}
                                         />
                                     ))}
                                 </Tabs>
@@ -571,7 +657,7 @@ function ChildrenByClass() {
                             {/* Right: DataGrid */}
                             <Box sx={{ flex: 1 }}>
                                 {/* Class Info */}
-                                {classInfo && (
+                                {/* {classInfo && (
                                     <Box sx={{ mb: 2, p: 1.5, bgcolor: '#f9f9f9', borderRadius: 1 }}>
                                         <Typography variant="subtitle1" fontWeight={600} color="primary.main">
                                             {classInfo.className} - ({classInfo.ageGroup})
@@ -580,7 +666,7 @@ function ChildrenByClass() {
                                             Khối: {classInfo.grade} | GVCN: {classInfo.homeRoomTeacher}
                                         </Typography>
                                     </Box>
-                                )}
+                                )} */}
 
                                 {/* DataGrid */}
                                 <DataGrid

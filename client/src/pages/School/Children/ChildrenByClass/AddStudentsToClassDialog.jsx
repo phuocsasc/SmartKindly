@@ -179,7 +179,7 @@ function AddStudentsToClassDialog({ open, academicYearId, classId, className, ag
                 </IconButton>
             </DialogTitle>
 
-            <DialogContent sx={{ pt: 3 }}>
+            <DialogContent sx={{ pt: 3, mt: 2 }}>
                 <Alert severity="info" sx={{ mb: 2 }}>
                     Chỉ hiển thị trẻ <strong>chưa có lớp</strong>, <strong>đang học</strong> và có{' '}
                     <strong>nhóm tuổi "{ageGroup}"</strong>

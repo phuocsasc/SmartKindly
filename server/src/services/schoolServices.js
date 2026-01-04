@@ -279,17 +279,14 @@ const updateSchoolInfo = async (schoolId, data, requestUser) => {
         console.log('🔍 User check:', {
             exists: !!user,
             role: user?.role,
-            isRoot: user?.isRoot,
+            // isRoot: user?.isRoot,
             userSchoolId: user?.schoolId,
             targetSchoolId: schoolId,
         });
 
-        if (!user || user.role !== 'ban_giam_hieu' || !user.isRoot || user.schoolId !== schoolId) {
+        if (!user || user.role !== 'ban_giam_hieu' || user.schoolId !== schoolId) {
             console.log('❌ Permission denied');
-            throw new ApiError(
-                StatusCodes.FORBIDDEN,
-                'Chỉ Ban giám hiệu Root mới có quyền cập nhật thông tin trường học',
-            );
+            throw new ApiError(StatusCodes.FORBIDDEN, 'Chỉ Ban giám hiệu mới có quyền cập nhật thông tin trường học');
         }
 
         // ✅ Không cho phép thay đổi status, abbreviation, schoolId

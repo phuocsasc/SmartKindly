@@ -32,8 +32,7 @@ function SchoolInfo() {
     const [schoolData, setSchoolData] = useState(null);
 
     // ✅ Kiểm tra quyền cập nhật
-    const canUpdate =
-        hasPermission(PERMISSIONS.UPDATE_SCHOOL_INFO) && user?.role === 'ban_giam_hieu' && user?.isRoot === true;
+    const canUpdate = hasPermission(PERMISSIONS.UPDATE_SCHOOL_INFO) && user?.role === 'ban_giam_hieu';
 
     const [formData, setFormData] = useState({
         name: '',

@@ -76,6 +76,7 @@ function Menu() {
             const data = response.data.data;
             const formattedRows = data.items.map((item, index) => ({
                 id: item._id,
+                isApplied: item.isApplied, // ✅ Flag từ backend
                 stt: paginationModel.page * paginationModel.pageSize + index + 1,
                 ...item,
             }));
@@ -331,28 +332,54 @@ function Menu() {
             sortable: false,
             align: 'center',
             headerAlign: 'center',
-            renderCell: (params) => (
-                <Box>
-                    {canUpdate && (
-                        <Tooltip title="Sửa">
-                            <IconButton color="primary" size="small" onClick={() => handleEdit(params.id)}>
-                                <EditOutlinedIcon fontSize="small" />
-                            </IconButton>
-                        </Tooltip>
-                    )}
-                    {canDelete && (
-                        <Tooltip title="Xóa">
-                            <IconButton
-                                color="error"
-                                size="small"
-                                onClick={() => handleDelete(params.id, params.row.menuName)}
+            renderCell: (params) => {
+                const isApplied = params.row.isApplied; // ✅ Check flag
+
+                return (
+                    <Box>
+                        {canUpdate && (
+                            <Tooltip
+                                title={
+                                    isApplied
+                                        ? 'Thực đơn đã được áp dụng trong năm học hiện tại, không thể chỉnh sửa'
+                                        : 'Chỉnh sửa thực đơn'
+                                }
                             >
-                                <DeleteOutlineOutlinedIcon fontSize="small" />
-                            </IconButton>
-                        </Tooltip>
-                    )}
-                </Box>
-            ),
+                                <span>
+                                    <IconButton
+                                        color="primary"
+                                        size="small"
+                                        onClick={() => handleEdit(params.id)}
+                                        disabled={isApplied} // ✅ Disable nếu đã áp dụng
+                                    >
+                                        <EditOutlinedIcon fontSize="small" />
+                                    </IconButton>
+                                </span>
+                            </Tooltip>
+                        )}
+                        {canDelete && (
+                            <Tooltip
+                                title={
+                                    isApplied
+                                        ? 'Thực đơn đã được áp dụng trong năm học hiện tại, không thể xóa'
+                                        : 'Xóa thực đơn'
+                                }
+                            >
+                                <span>
+                                    <IconButton
+                                        color="error"
+                                        size="small"
+                                        onClick={() => handleDelete(params.id, params.row.menuName)}
+                                        disabled={isApplied} // ✅ Disable nếu đã áp dụng
+                                    >
+                                        <DeleteOutlineOutlinedIcon fontSize="small" />
+                                    </IconButton>
+                                </span>
+                            </Tooltip>
+                        )}
+                    </Box>
+                );
+            },
         },
     ];
 

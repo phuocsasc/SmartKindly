@@ -21,6 +21,7 @@ import RestaurantOutlinedIcon from '@mui/icons-material/RestaurantOutlined';
 // import MedicalServicesOutlinedIcon from '@mui/icons-material/MedicalServicesOutlined';
 import StorageOutlinedIcon from '@mui/icons-material/StorageOutlined';
 import SwitchAccountOutlinedIcon from '@mui/icons-material/SwitchAccountOutlined';
+import HistoryOutlinedIcon from '@mui/icons-material/HistoryOutlined';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { useTheme } from '@mui/material/styles';
@@ -38,7 +39,12 @@ const menuItems = [
         path: '/users',
         permission: PERMISSIONS.VIEW_USERS, // ✅ Quyền yêu cầu
     },
-
+    {
+        text: 'Lịch sử thao tác',
+        icon: <HistoryOutlinedIcon />,
+        path: '/data-declaration/history',
+        permission: PERMISSIONS.VIEW_HISTORY, // ✅ Quyền yêu cầu
+    },
     {
         text: 'Khai báo dữ liệu',
         icon: <StorageOutlinedIcon />,
@@ -47,7 +53,6 @@ const menuItems = [
             { text: 'Năm học', path: '/data-declaration/school-year' },
             { text: 'Tổ bộ môn', path: '/data-declaration/department' },
             { text: 'Lớp học', path: '/data-declaration/classes' },
-            { text: 'Lịch sử thao tác', path: '/data-declaration/history' },
         ],
     },
     {

@@ -3,6 +3,8 @@ import { SchoolMenuModel } from '~/models/schoolMenuModel.js';
 import { SchoolMealModel } from '~/models/schoolMealModel.js';
 import { SchoolNutritionalStandardModel } from '~/models/schoolNutritionalStandardModel.js';
 import { SchoolFoodModel } from '~/models/schoolFoodModel.js';
+import { SchoolMenuApplyModel } from '~/models/schoolMenuApplyModel.js'; // ✅ Thêm import
+import { AcademicYearModel } from '~/models/academicYearModel.js'; // ✅ Thêm import
 import { UserModel } from '~/models/userModel.js';
 import ApiError from '~/utils/ApiError.js';
 import { removeVietnameseTones } from '~/utils/formatters.js';
@@ -160,6 +162,35 @@ const processMenuData = async (data, schoolId) => {
     };
 };
 
+/**
+ * ✅ Helper: Kiểm tra thực đơn đã được áp dụng trong năm học active
+ */
+const isMenuApplied = async (menuId, schoolId) => {
+    try {
+        // Lấy năm học active
+        const activeYear = await AcademicYearModel.findOne({
+            schoolId,
+            status: 'active',
+            _destroy: false,
+        });
+
+        if (!activeYear) return false;
+
+        // Kiểm tra có menu apply nào sử dụng menuId này trong năm học active không
+        const appliedCount = await SchoolMenuApplyModel.countDocuments({
+            schoolId,
+            academicYearId: activeYear._id,
+            menuId,
+            _destroy: false,
+        });
+
+        return appliedCount > 0;
+    } catch (error) {
+        console.error('❌ [isMenuApplied] Error:', error);
+        return false;
+    }
+};
+
 // --- Main Service Functions ---
 
 const createNew = async (data, userId) => {
@@ -190,6 +221,9 @@ const createNew = async (data, userId) => {
     return newMenu;
 };
 
+/**
+ * ✅ Lấy danh sách thực đơn (CÓ FLAG isApplied)
+ */
 const getAll = async (query, userId) => {
     const user = await UserModel.findById(userId).select('schoolId');
     if (!user || !user.schoolId) throw new ApiError(StatusCodes.FORBIDDEN, 'Người dùng không thuộc trường học nào.');
@@ -233,8 +267,16 @@ const getAll = async (query, userId) => {
         SchoolMenuModel.countDocuments(filter),
     ]);
 
+    // ✅ Kiểm tra từng thực đơn đã được áp dụng chưa
+    const itemsWithAppliedStatus = await Promise.all(
+        menus.map(async (item) => ({
+            ...item,
+            isApplied: await isMenuApplied(item._id, user.schoolId), // ✅ Thêm flag
+        })),
+    );
+
     return {
-        items: menus,
+        items: itemsWithAppliedStatus,
         pagination: {
             currentPage: Number(page),
             totalPages: Math.ceil(total / limit),
@@ -257,6 +299,14 @@ const update = async (id, data, userId) => {
     const user = await UserModel.findById(userId).select('schoolId');
     const existingMenu = await SchoolMenuModel.findOne({ _id: id, schoolId: user.schoolId, _destroy: false });
     if (!existingMenu) throw new ApiError(StatusCodes.NOT_FOUND, 'Không tìm thấy thực đơn.');
+    // ✅ Kiểm tra xem thực đơn đã được áp dụng chưa
+    const applied = await isMenuApplied(id, user.schoolId);
+    if (applied) {
+        throw new ApiError(
+            StatusCodes.FORBIDDEN,
+            'Không thể chỉnh sửa thực đơn đã được áp dụng trong năm học hiện tại',
+        );
+    }
 
     // ✅ Kiểm tra tên thực đơn trùng lặp nếu có thay đổi tên
     if (data.menuName && data.menuName.trim() !== existingMenu.menuName) {
@@ -291,6 +341,12 @@ const deleteMenu = async (id, userId) => {
     const user = await UserModel.findById(userId).select('schoolId');
     const menu = await SchoolMenuModel.findOne({ _id: id, schoolId: user.schoolId });
     if (!menu) throw new ApiError(StatusCodes.NOT_FOUND, 'Không tìm thấy thực đơn.');
+
+    // ✅ Kiểm tra xem thực đơn đã được áp dụng chưa
+    const applied = await isMenuApplied(id, user.schoolId);
+    if (applied) {
+        throw new ApiError(StatusCodes.FORBIDDEN, 'Không thể xóa thực đơn đã được áp dụng trong năm học hiện tại');
+    }
 
     menu._destroy = true;
     await menu.save();

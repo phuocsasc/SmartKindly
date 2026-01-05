@@ -30,6 +30,8 @@ import { PERMISSIONS } from '~/config/rbacConfig';
 import { usePermission } from '~/hooks/usePermission';
 import dayjs from '~/config/dayjsConfig';
 import MenuDialog from './MenuDialog';
+import AutoFixHighIcon from '@mui/icons-material/AutoFixHigh'; // Import Icon
+import BalancingMenuAi from './BalancingMenuAi'; // Import Component mới
 
 function Menu() {
     const { user } = useUser();
@@ -48,6 +50,8 @@ function Menu() {
     const [openDialog, setOpenDialog] = useState(false);
     const [dialogMode, setDialogMode] = useState('create');
     const [currentMenuId, setCurrentMenuId] = useState(null);
+    const [openAiDialog, setOpenAiDialog] = useState(false);
+    const [selectedMenuForAi, setSelectedMenuForAi] = useState(null);
 
     // Permissions
     const canCreate = hasPermission(PERMISSIONS.CREATE_MENU);
@@ -99,6 +103,16 @@ function Menu() {
         } catch (error) {
             console.error('Failed to fetch age groups', error);
         }
+    };
+    // Handler mới
+    const handleOpenAi = (row) => {
+        setSelectedMenuForAi(row); // Lưu toàn bộ row data hoặc fetch detail lại nếu cần
+        setOpenAiDialog(true);
+    };
+
+    const handleCloseAi = () => {
+        setOpenAiDialog(false);
+        setSelectedMenuForAi(null);
     };
 
     useEffect(() => {
@@ -328,15 +342,24 @@ function Menu() {
         {
             field: 'actions',
             headerName: 'Thao tác',
-            width: 90,
+            width: 140,
             sortable: false,
             align: 'center',
             headerAlign: 'center',
             renderCell: (params) => {
                 const isApplied = params.row.isApplied; // ✅ Check flag
+                const isReady = params.row._ready;
 
                 return (
                     <Box>
+                        {/* NÚT AI: Chỉ hiện khi chưa ready và chưa apply */}
+                        {!isReady && !isApplied && canUpdate && (
+                            <Tooltip title="Cân đối thực đơn bằng A.I">
+                                <IconButton color="secondary" size="small" onClick={() => handleOpenAi(params.row)}>
+                                    <AutoFixHighIcon fontSize="small" />
+                                </IconButton>
+                            </Tooltip>
+                        )}
                         {canUpdate && (
                             <Tooltip
                                 title={
@@ -512,6 +535,17 @@ function Menu() {
                 menuId={currentMenuId}
                 onClose={handleDialogClose}
                 onSuccess={handleDialogSuccess}
+            />
+
+            <BalancingMenuAi
+                open={openAiDialog}
+                menuData={selectedMenuForAi} // Lưu ý: Ở đây params.row có thể thiếu aggregatesFoodTable chi tiết nếu API getAll không trả về đủ.
+                // Nếu thiếu, trong BalancingMenuAi cần có useEffect gọi API getDetails(menuId) trước.
+                onClose={handleCloseAi}
+                onSuccess={() => {
+                    fetchMenus(); // Reload lại bảng sau khi update
+                    handleCloseAi();
+                }}
             />
             <ConfirmDialog {...dialogState} onCancel={handleCancel} />
         </MainLayout>

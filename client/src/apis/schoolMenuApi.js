@@ -29,4 +29,9 @@ export const schoolMenuApi = {
     delete: async (id) => {
         return await authorizedAxiosInstance.delete(`${API_ROOT}/v1/school-menus/${id}`);
     },
+
+    // ✅ NEW: Call A.I balance menu
+    balanceWithAi: async (data) => {
+        return await authorizedAxiosInstance.post(`${API_ROOT}/v1/school-menu-ai/balance-menu`, data);
+    },
 };

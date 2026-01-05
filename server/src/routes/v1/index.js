@@ -32,6 +32,7 @@ import { schoolMenuRoute } from './schoolMenuRoute.js'; // Thêm dòng này
 import { schoolMenuApplyRoute } from './schoolMenuApplyRoute.js';
 import { childrenManagementRoute } from '~/routes/v1/childrenManagementRoute.js';
 import { childrenByClassRoute } from '~/routes/v1/childrenByClassRoute.js';
+import { schoolMenuAiRoute } from './schoolMenuAiRoute.js';
 
 const Router = express.Router();
 
@@ -112,5 +113,7 @@ Router.use('/school-menu-applies', schoolMenuApplyRoute);
 Router.use('/children-managements', childrenManagementRoute);
 
 Router.use('/children-by-class', childrenByClassRoute);
+
+Router.use('/school-menu-ai', schoolMenuAiRoute);
 
 export const APIs_V1 = Router;

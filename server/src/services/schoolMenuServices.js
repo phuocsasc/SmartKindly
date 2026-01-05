@@ -267,12 +267,37 @@ const getAll = async (query, userId) => {
         SchoolMenuModel.countDocuments(filter),
     ]);
 
-    // ✅ Kiểm tra từng thực đơn đã được áp dụng chưa
+    // ✅ Lấy năm học active
+    const activeYear = await AcademicYearModel.findOne({
+        schoolId: user.schoolId,
+        status: 'active',
+        _destroy: false,
+    });
+
+    // ✅ Kiểm tra từng thực đơn: đã được áp dụng chưa + đếm số lần áp dụng
     const itemsWithAppliedStatus = await Promise.all(
-        menus.map(async (item) => ({
-            ...item,
-            isApplied: await isMenuApplied(item._id, user.schoolId), // ✅ Thêm flag
-        })),
+        menus.map(async (item) => {
+            let isApplied = false;
+            let appliedCount = 0;
+
+            if (activeYear) {
+                // Đếm số lần thực đơn được áp dụng trong năm học active
+                appliedCount = await SchoolMenuApplyModel.countDocuments({
+                    schoolId: user.schoolId,
+                    academicYearId: activeYear._id,
+                    menuId: item._id,
+                    _destroy: false,
+                });
+
+                isApplied = appliedCount > 0;
+            }
+
+            return {
+                ...item,
+                isApplied, // ✅ Flag đã áp dụng
+                appliedCount, // ✅ Số lần áp dụng
+            };
+        }),
     );
 
     return {

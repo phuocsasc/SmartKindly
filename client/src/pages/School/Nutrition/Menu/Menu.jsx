@@ -44,6 +44,7 @@ function Menu() {
     const [searchText, setSearchText] = useState('');
     const [debounceSearch, setDebounceSearch] = useState('');
     const [filterAgeGroup, setFilterAgeGroup] = useState('');
+    const [filterAppliedStatus, setFilterAppliedStatus] = useState(''); // ✅ NEW: Bộ lọc trạng thái áp dụng
     const [ageGroupOptions, setAgeGroupOptions] = useState([]);
     const [paginationModel, setPaginationModel] = useState({ page: 0, pageSize: 10 });
     const [totalRows, setTotalRows] = useState(0);
@@ -78,15 +79,28 @@ function Menu() {
             });
 
             const data = response.data.data;
-            const formattedRows = data.items.map((item, index) => ({
+
+            // ✅ Filter theo appliedStatus ở client-side
+            let filteredItems = data.items;
+
+            if (filterAppliedStatus === 'applied') {
+                // Đã áp dụng: appliedCount > 0
+                filteredItems = filteredItems.filter((item) => (item.appliedCount || 0) > 0);
+            } else if (filterAppliedStatus === 'not_applied') {
+                // Chưa áp dụng: appliedCount === 0
+                filteredItems = filteredItems.filter((item) => (item.appliedCount || 0) === 0);
+            }
+
+            const formattedRows = filteredItems.map((item, index) => ({
                 id: item._id,
                 isApplied: item.isApplied, // ✅ Flag từ backend
+                appliedCount: item.appliedCount || 0, // ✅ Số lần áp dụng
                 stt: paginationModel.page * paginationModel.pageSize + index + 1,
                 ...item,
             }));
 
             setRows(formattedRows);
-            setTotalRows(data.pagination.totalItems);
+            setTotalRows(filteredItems.length);
         } catch (error) {
             toast.error('Lỗi khi tải danh sách thực đơn!');
         } finally {
@@ -118,7 +132,7 @@ function Menu() {
     useEffect(() => {
         fetchMenus();
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [paginationModel, debounceSearch, filterAgeGroup]);
+    }, [paginationModel, debounceSearch, filterAgeGroup, filterAppliedStatus]);
 
     useEffect(() => {
         fetchAgeGroups();
@@ -221,7 +235,7 @@ function Menu() {
     };
 
     const columns = [
-        { field: 'stt', headerName: 'STT', width: 60, sortable: false, align: 'center', headerAlign: 'center' },
+        { field: 'stt', headerName: 'STT', width: 40, sortable: false, align: 'center', headerAlign: 'center' },
         {
             field: 'menuName',
             headerName: 'Tên thực đơn',
@@ -278,7 +292,7 @@ function Menu() {
             field: 'numberOfChildren',
             headerName: 'Số trẻ áp dụng',
             sortable: false,
-            width: 140,
+            width: 130,
             align: 'center',
             headerAlign: 'center',
         },
@@ -321,11 +335,31 @@ function Menu() {
                 );
             },
         },
+        // ✅ CỘT MỚI: Số lần áp dụng
+        {
+            field: 'appliedCount',
+            headerName: 'Số lần áp dụng',
+            width: 130,
+            sortable: false,
+            align: 'center',
+            headerAlign: 'center',
+            renderCell: (params) => {
+                const count = params.value || 0;
+                return (
+                    <Chip
+                        label={`${count} lần`}
+                        size="small"
+                        color={count > 0 ? 'success' : 'default'}
+                        variant={count > 0 ? 'filled' : 'outlined'}
+                    />
+                );
+            },
+        },
         {
             field: 'createdAt',
             headerName: 'Ngày tạo',
             sortable: false,
-            width: 120,
+            width: 100,
             align: 'center',
             headerAlign: 'center',
             renderCell: (params) => renderDateTimeCell(params.value),
@@ -333,7 +367,7 @@ function Menu() {
         {
             field: 'updatedAt',
             headerName: 'Ngày sửa',
-            width: 120,
+            width: 100,
             sortable: false,
             align: 'center',
             headerAlign: 'center',
@@ -342,7 +376,7 @@ function Menu() {
         {
             field: 'actions',
             headerName: 'Thao tác',
-            width: 140,
+            width: 120,
             sortable: false,
             align: 'center',
             headerAlign: 'center',
@@ -447,6 +481,19 @@ function Menu() {
                                             {group}
                                         </MenuItem>
                                     ))}
+                                </Select>
+                            </FormControl>
+                            {/* ✅ NEW: Filter Applied Status */}
+                            <FormControl size="small" sx={{ minWidth: 180 }}>
+                                <InputLabel>Trạng thái áp dụng</InputLabel>
+                                <Select
+                                    value={filterAppliedStatus}
+                                    onChange={(e) => setFilterAppliedStatus(e.target.value)}
+                                    label="Trạng thái áp dụng"
+                                >
+                                    <MenuItem value="">Tất cả</MenuItem>
+                                    <MenuItem value="applied">Đã áp dụng</MenuItem>
+                                    <MenuItem value="not_applied">Chưa áp dụng</MenuItem>
                                 </Select>
                             </FormControl>
                             {canCreate && (

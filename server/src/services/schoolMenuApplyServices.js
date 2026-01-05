@@ -391,40 +391,40 @@ const update = async (id, data, userId) => {
  */
 const deleteMenuApply = async (id, userId) => {
     try {
-        console.log('🗑️ [SchoolMenuApply delete] Starting');
+        console.log('🗑️ [SchoolMenuApply delete HARD] Starting');
 
+        // 1️⃣ Lấy user + schoolId + role
         const user = await UserModel.findById(userId).select('schoolId role');
         if (!user || !user.schoolId) {
             throw new ApiError(StatusCodes.FORBIDDEN, 'Bạn không thuộc trường học nào');
         }
 
-        // ✅ Chỉ BGH mới được xóa
+        // 2️⃣ Chỉ BGH mới được xóa
         checkPermission(user);
 
+        // 3️⃣ Tìm thực đơn áp dụng (KHÔNG dùng _destroy nữa)
         const existing = await SchoolMenuApplyModel.findOne({
             _id: id,
             schoolId: user.schoolId,
-            _destroy: false,
         });
 
         if (!existing) {
             throw new ApiError(StatusCodes.NOT_FOUND, 'Không tìm thấy thực đơn áp dụng');
         }
 
-        // ✅ Kiểm tra năm học phải đang active
+        // 4️⃣ Kiểm tra năm học đang active
         const academicYear = await AcademicYearModel.findById(existing.academicYearId);
         if (!academicYear || academicYear.status !== 'active') {
             throw new ApiError(StatusCodes.FORBIDDEN, 'Chỉ được xóa thực đơn áp dụng trong năm học đang hoạt động');
         }
 
-        // ✅ Soft delete
-        existing._destroy = true;
-        await existing.save();
+        // 5️⃣ 🔥 HARD DELETE – xóa khỏi database
+        await SchoolMenuApplyModel.deleteOne({ _id: existing._id });
 
-        console.log('✅ [SchoolMenuApply delete] Deleted successfully');
+        console.log('✅ [SchoolMenuApply delete HARD] Deleted successfully');
         return { message: 'Xóa thực đơn áp dụng thành công' };
     } catch (error) {
-        console.error('❌ [SchoolMenuApply delete] Error:', error);
+        console.error('❌ [SchoolMenuApply delete HARD] Error:', error);
         if (error instanceof ApiError) throw error;
         throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, 'Lỗi khi xóa thực đơn áp dụng');
     }

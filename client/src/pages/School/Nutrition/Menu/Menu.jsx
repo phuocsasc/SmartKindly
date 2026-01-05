@@ -31,7 +31,9 @@ import { usePermission } from '~/hooks/usePermission';
 import dayjs from '~/config/dayjsConfig';
 import MenuDialog from './MenuDialog';
 import AutoFixHighIcon from '@mui/icons-material/AutoFixHigh'; // Import Icon
+import PictureAsPdfOutlinedIcon from '@mui/icons-material/PictureAsPdfOutlined'; // ✅ NEW: PDF icon
 import BalancingMenuAi from './BalancingMenuAi'; // Import Component mới
+import { exportMenuToPdf } from '~/utils/menuPdfExport'; // ✅ NEW: Import export function
 
 function Menu() {
     const { user } = useUser();
@@ -53,6 +55,9 @@ function Menu() {
     const [currentMenuId, setCurrentMenuId] = useState(null);
     const [openAiDialog, setOpenAiDialog] = useState(false);
     const [selectedMenuForAi, setSelectedMenuForAi] = useState(null);
+
+    // ✅ NEW: PDF Export loading state
+    const [exportingPdfId, setExportingPdfId] = useState(null);
 
     // Permissions
     const canCreate = hasPermission(PERMISSIONS.CREATE_MENU);
@@ -127,6 +132,31 @@ function Menu() {
     const handleCloseAi = () => {
         setOpenAiDialog(false);
         setSelectedMenuForAi(null);
+    };
+
+    // ✅ NEW: Handle PDF Export
+    const handleExportPdf = async (menuId, menuName) => {
+        // 1. Set loading ngay lập tức để hiện vòng tròn xoay
+        setExportingPdfId(menuId);
+
+        // 2. Dùng setTimeout để đẩy việc nặng ra sau khi UI đã render xong loading
+        setTimeout(async () => {
+            try {
+                // Fetch chi tiết thực đơn
+                const res = await schoolMenuApi.getDetails(menuId);
+                const menuDetails = res.data.data;
+
+                // Export PDF (Tác vụ nặng gây lag)
+                await exportMenuToPdf(menuDetails, user?.school?.name || 'TRƯỜNG MẦM NON');
+
+                toast.success(`Xuất PDF thành công: ${menuName}`);
+            } catch (error) {
+                console.error('❌ Error exporting PDF:', error);
+                toast.error('Lỗi khi xuất PDF!');
+            } finally {
+                setExportingPdfId(null);
+            }
+        }, 100); // Delay 100ms để UI kịp cập nhật
     };
 
     useEffect(() => {
@@ -383,9 +413,38 @@ function Menu() {
             renderCell: (params) => {
                 const isApplied = params.row.isApplied; // ✅ Check flag
                 const isReady = params.row._ready;
+                const analysis = params.row.analysis;
+
+                // ✅ Check if menu is ready for PDF export
+                const canExportPdf =
+                    isReady &&
+                    analysis?.caloriesEvaluation === 'Đạt' &&
+                    analysis?.plgEvaluation?.protein === 'Đạt' &&
+                    analysis?.plgEvaluation?.lipid === 'Đạt' &&
+                    analysis?.plgEvaluation?.glucid === 'Đạt';
 
                 return (
                     <Box>
+                        {/* PDF Export Button */}
+                        {canExportPdf && (
+                            <Tooltip title="Xuất file PDF">
+                                {/* ✅ FIX: Bọc IconButton trong span để Tooltip hoạt động đúng khi nút bị disabled */}
+                                <span>
+                                    <IconButton
+                                        color="error"
+                                        size="small"
+                                        onClick={() => handleExportPdf(params.id, params.row.menuName)}
+                                        disabled={exportingPdfId === params.id}
+                                    >
+                                        {exportingPdfId === params.id ? (
+                                            <CircularProgress size={20} />
+                                        ) : (
+                                            <PictureAsPdfOutlinedIcon fontSize="small" />
+                                        )}
+                                    </IconButton>
+                                </span>
+                            </Tooltip>
+                        )}
                         {/* NÚT AI: Chỉ hiện khi chưa ready và chưa apply */}
                         {!isReady && !isApplied && canUpdate && (
                             <Tooltip title="Cân đối thực đơn bằng A.I">

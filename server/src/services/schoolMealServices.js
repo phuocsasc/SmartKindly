@@ -349,6 +349,13 @@ const deleteMeal = async (id, userId) => {
             throw new ApiError(StatusCodes.NOT_FOUND, 'Không tìm thấy món ăn');
         }
 
+        const mealInfo = {
+            name: meal.name,
+            mealType: meal.mealType,
+            totalCalories: meal.totalCalories,
+            ingredientCount: meal.ingredients?.length || 0,
+        };
+
         // ✅ Hard delete
         // await SchoolMealModel.findByIdAndDelete(id);
 
@@ -363,7 +370,7 @@ const deleteMeal = async (id, userId) => {
         );
 
         console.log('✅ [SchoolMeal delete] Deleted successfully');
-        return { message: 'Xóa món ăn thành công' };
+        return { message: 'Xóa món ăn thành công', mealInfo };
     } catch (error) {
         console.error('❌ [SchoolMeal delete] Error:', error);
         if (error instanceof ApiError) throw error;

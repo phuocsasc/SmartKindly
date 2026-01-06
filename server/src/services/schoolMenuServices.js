@@ -372,10 +372,17 @@ const deleteMenu = async (id, userId) => {
     if (applied) {
         throw new ApiError(StatusCodes.FORBIDDEN, 'Không thể xóa thực đơn đã được áp dụng trong năm học hiện tại');
     }
+    // ✅ Store menu info for audit log
+    const menuInfo = {
+        menuName: menu.menuName,
+        ageGroup: menu.ageGroup,
+        numberOfChildren: menu.numberOfChildren,
+        ready: menu._ready,
+    };
 
     menu._destroy = true;
     await menu.save();
-    return { message: 'Xóa thực đơn thành công.' };
+    return { message: 'Xóa thực đơn thành công.', menuInfo };
 };
 
 export const schoolMenuServices = {

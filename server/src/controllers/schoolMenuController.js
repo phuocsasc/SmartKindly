@@ -56,9 +56,11 @@ const update = async (req, res, next) => {
 const deleteMenu = async (req, res, next) => {
     try {
         const userId = req.jwtDecoded.id;
-        await schoolMenuServices.deleteMenu(req.params.id, userId);
+        const result = await schoolMenuServices.deleteMenu(req.params.id, userId);
         res.status(StatusCodes.OK).json({
             message: 'Xóa thực đơn thành công!',
+            // ✅ ADD: Thêm menuInfo để audit log có thể access
+            menuInfo: result.menuInfo,
         });
     } catch (error) {
         next(error);

@@ -412,6 +412,15 @@ const deleteMenuApply = async (id, userId) => {
             throw new ApiError(StatusCodes.NOT_FOUND, 'Không tìm thấy thực đơn áp dụng');
         }
 
+        // ✅ Store menu apply info for audit log
+        const menuApplyInfo = {
+            menuName: existing.menuSnapshot?.menuName || 'N/A',
+            ageGroup: existing.ageGroup,
+            weekNumber: existing.weekNumber,
+            dayOfWeek: existing.dayOfWeek,
+            date: existing.date,
+        };
+
         // 4️⃣ Kiểm tra năm học đang active
         const academicYear = await AcademicYearModel.findById(existing.academicYearId);
         if (!academicYear || academicYear.status !== 'active') {
@@ -422,7 +431,7 @@ const deleteMenuApply = async (id, userId) => {
         await SchoolMenuApplyModel.deleteOne({ _id: existing._id });
 
         console.log('✅ [SchoolMenuApply delete HARD] Deleted successfully');
-        return { message: 'Xóa thực đơn áp dụng thành công' };
+        return { message: 'Xóa thực đơn áp dụng thành công', menuApplyInfo };
     } catch (error) {
         console.error('❌ [SchoolMenuApply delete HARD] Error:', error);
         if (error instanceof ApiError) throw error;

@@ -58,9 +58,11 @@ const update = async (req, res, next) => {
 const deleteMeal = async (req, res, next) => {
     try {
         const userId = req.jwtDecoded.id;
-        await schoolMealServices.deleteMeal(req.params.id, userId);
+        const result = await schoolMealServices.deleteMeal(req.params.id, userId);
         res.status(StatusCodes.OK).json({
             message: 'Xóa món ăn thành công!',
+            // ✅ ADD: Thêm mealInfo để audit log có thể access
+            mealInfo: result.mealInfo,
         });
     } catch (error) {
         next(error);

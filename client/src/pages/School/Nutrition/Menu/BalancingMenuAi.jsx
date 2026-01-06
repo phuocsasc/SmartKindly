@@ -74,6 +74,7 @@ function BalancingMenuAi({ open, menuData, onClose, onSuccess }) {
                 aggregatedFoodTable: menuDetails.aggregatedFoodTable,
                 nutritionalStandard: menuDetails.nutritionalStandardId,
                 numberOfChildren: menuDetails.numberOfChildren,
+                menuId: menuDetails._id,
             };
 
             console.log('📤 [handleAiBalance] Payload:', payload);

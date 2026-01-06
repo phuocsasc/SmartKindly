@@ -30,4 +30,9 @@ export const AUDIT_LOG_RESOURCES = {
     WEEKLY_PLAN: 'Kế hoạch tuần',
     USER: 'Người dùng',
     SCHOOL_INFO: 'Thông tin nhà trường',
+    FOOD: 'Thực phẩm', // ✅ ADD: New resource type
+    MEAL: 'Món ăn', // ✅ ADD: New resource type
+    MENU: 'Thực đơn dự kiến', // ✅ ADD: New resource type
+    MENU_APPLY: 'Thực đơn áp dụng', // ✅ ADD: New resource type
+    NUTRITIONAL_STANDARD: 'Định mức dinh dưỡng', // ✅ ADD: New resource type
 };

@@ -56,9 +56,10 @@ const update = async (req, res, next) => {
 const deleteMenuApply = async (req, res, next) => {
     try {
         const userId = req.jwtDecoded.id;
-        await schoolMenuApplyServices.deleteMenuApply(req.params.id, userId);
+        const result = await schoolMenuApplyServices.deleteMenuApply(req.params.id, userId);
         res.status(StatusCodes.OK).json({
             message: 'Xóa thực đơn áp dụng thành công!',
+            menuApplyInfo: result.menuApplyInfo, // ✅ ADD: Thêm menuApplyInfo để audit log có thể access
         });
     } catch (error) {
         next(error);

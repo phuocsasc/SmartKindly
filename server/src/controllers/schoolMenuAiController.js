@@ -1,5 +1,8 @@
 import { StatusCodes } from 'http-status-codes';
 import { SchoolFoodModel } from '~/models/schoolFoodModel';
+import { SchoolMenuModel } from '~/models/schoolMenuModel';
+import { UserModel } from '~/models/userModel';
+import ApiError from '~/utils/ApiError';
 import OpenAI from 'openai';
 import { env } from '~/config/environment';
 
@@ -43,7 +46,23 @@ const calculateNutrition = (item, foodDbInfo, numberOfChildren) => {
 
 const balanceMenuWithAi = async (req, res, next) => {
     try {
-        const { aggregatedFoodTable, nutritionalStandard, numberOfChildren } = req.body;
+        const { aggregatedFoodTable, nutritionalStandard, numberOfChildren, menuId } = req.body;
+        const userId = req.jwtDecoded.id;
+
+        const user = await UserModel.findById(userId).select('schoolId');
+        if (!user || !user.schoolId) {
+            throw new ApiError(StatusCodes.FORBIDDEN, 'Bạn không thuộc trường học nào');
+        }
+
+        let menuInfo = null;
+        if (menuId) {
+            const menu = await SchoolMenuModel.findOne({
+                _id: menuId,
+                schoolId: user.schoolId,
+                _destroy: false,
+            }).select('menuName ageGroup numberOfChildren');
+            if (menu) menuInfo = { menuName: menu.menuName, ageGroup: menu.ageGroup };
+        }
 
         // 1. Lấy dữ liệu gốc từ DB
         const foodIds = aggregatedFoodTable.map((f) => f.foodId);
@@ -138,7 +157,7 @@ const balanceMenuWithAi = async (req, res, next) => {
         // 4. Prompt AI
         const prompt = `
         Bạn là chuyên gia dinh dưỡng.
-        
+            
         MỤC TIÊU BẮT BUỘC: Đưa Tỷ lệ các chất (P-L-G) về khung chuẩn:
         - Protein (P): ${nutritionalStandard.plgStructure.proteinMin}-${nutritionalStandard.plgStructure.proteinMax}% (Hiện tại: ${pctP.toFixed(1)}%)
         - Lipid (L): ${nutritionalStandard.plgStructure.lipidMin}-${nutritionalStandard.plgStructure.lipidMax}% (Hiện tại: ${pctL.toFixed(1)}%)
@@ -175,6 +194,7 @@ const balanceMenuWithAi = async (req, res, next) => {
                 : null;
             return {
                 ...item,
+                originalQuantity: item.purchaseQuantityByUnit,
                 purchaseQuantityByUnit: suggestion
                     ? parseFloat(suggestion.newPurchaseQuantityByUnit)
                     : item.purchaseQuantityByUnit,
@@ -222,6 +242,7 @@ const balanceMenuWithAi = async (req, res, next) => {
         res.status(StatusCodes.OK).json({
             message: 'Đã nhận gợi ý cân đối từ AI',
             data: processedTable,
+            menuInfo,
         });
     } catch (error) {
         next(error);

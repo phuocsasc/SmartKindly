@@ -50,4 +50,14 @@ export const schoolMenuApplyApi = {
             params: { ageGroup },
         });
     },
+
+    // ✅ NEW: Copy to weeks
+    copyToWeeks: async (data) => {
+        return await authorizedAxiosInstance.post(`${API_ROOT}/v1/school-menu-applies/copy-to-weeks`, data);
+    },
+
+    // ✅ NEW: Delete week menus
+    deleteWeekMenus: async (data) => {
+        return await authorizedAxiosInstance.delete(`${API_ROOT}/v1/school-menu-applies/delete-week`, { data });
+    },
 };

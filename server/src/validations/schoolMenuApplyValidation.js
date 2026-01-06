@@ -73,7 +73,42 @@ const update = async (req, res, next) => {
     }
 };
 
+// ✅ NEW: Validate copyToWeeks
+const copyToWeeks = async (req, res, next) => {
+    const correctCondition = Joi.object({
+        academicYearId: Joi.string().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE).optional(),
+        ageGroup: Joi.string().required(),
+        sourceWeekNumber: Joi.number().min(1).required(),
+        targetWeekNumbers: Joi.array().items(Joi.number().min(1)).min(1).required(),
+    });
+
+    try {
+        await correctCondition.validateAsync(req.body, { abortEarly: false });
+        next();
+    } catch (error) {
+        next(new ApiError(StatusCodes.UNPROCESSABLE_ENTITY, new Error(error).message));
+    }
+};
+
+// ✅ NEW: Validate deleteWeekMenus
+const deleteWeekMenus = async (req, res, next) => {
+    const correctCondition = Joi.object({
+        academicYearId: Joi.string().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE).optional(),
+        ageGroup: Joi.string().required(),
+        weekNumber: Joi.number().min(1).required(),
+    });
+
+    try {
+        await correctCondition.validateAsync(req.body, { abortEarly: false });
+        next();
+    } catch (error) {
+        next(new ApiError(StatusCodes.UNPROCESSABLE_ENTITY, new Error(error).message));
+    }
+};
+
 export const schoolMenuApplyValidation = {
     createNew,
     update,
+    copyToWeeks, // ✅ NEW
+    deleteWeekMenus, // ✅ NEW
 };

@@ -229,7 +229,7 @@ export const exportMenuToPdf = async (menuDetails, schoolName = 'TRƯỜNG MẦM
                         </div>
                         <div class="header-right">
                             <div class="document-title">Phiếu Yêu Cầu Thực Phẩm</div>
-                            <div class="menu-name">Thực đơn: ${menuDetails.menuName}</div>
+                            <div class="menu-name">Tên thực đơn: ${menuDetails.menuName}</div>
                         </div>
                     </div>
 

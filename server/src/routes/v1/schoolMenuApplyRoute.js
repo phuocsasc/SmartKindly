@@ -29,6 +29,21 @@ Router.get(
     schoolMenuApplyController.getAvailableMenus,
 );
 
+// ✅ NEW: Copy to weeks
+Router.route('/copy-to-weeks').post(
+    authMiddleware.isAuthorized,
+    schoolMenuApplyValidation.copyToWeeks,
+    schoolMenuApplyController.copyToWeeks,
+);
+
+// ✅ NEW: Delete week menus
+Router.route('/delete-week').delete(
+    authMiddleware.isAuthorized,
+    rbacMiddleware.isValidPermission([PERMISSIONS.DELETE_MENU_APPLY]),
+    schoolMenuApplyValidation.deleteWeekMenus,
+    schoolMenuApplyController.deleteWeekMenus,
+);
+
 // ✅ CRUD routes
 Router.route('/')
     .get(

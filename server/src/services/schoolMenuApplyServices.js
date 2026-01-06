@@ -565,6 +565,277 @@ const getAvailableMenus = async (ageGroup, userId) => {
     }
 };
 
+/**
+ * ✅ Copy thực đơn áp dụng sang các tuần sau
+ */
+const copyToWeeks = async (data, userId) => {
+    try {
+        console.log('📋 [SchoolMenuApply copyToWeeks] Starting with:', data);
+
+        const user = await UserModel.findById(userId).select('schoolId role _id');
+        if (!user || !user.schoolId) {
+            throw new ApiError(StatusCodes.FORBIDDEN, 'Bạn không thuộc trường học nào');
+        }
+
+        // ✅ Chỉ BGH mới được copy
+        checkPermission(user);
+
+        const { academicYearId, ageGroup, sourceWeekNumber, targetWeekNumbers } = data;
+
+        // ✅ Validate input
+        if (!ageGroup || !sourceWeekNumber || !targetWeekNumbers || targetWeekNumbers.length === 0) {
+            throw new ApiError(StatusCodes.BAD_REQUEST, 'Thiếu thông tin cần thiết để nhân bản');
+        }
+
+        // ✅ Lấy năm học
+        let targetYearId = academicYearId;
+        if (!targetYearId) {
+            const activeYear = await getActiveAcademicYear(user.schoolId);
+            targetYearId = activeYear._id;
+        }
+
+        // ✅ Lấy schedule để validate weeks và holidays
+        const schedule = await getScheduleByAcademicYear(user.schoolId, targetYearId);
+        const holidays = schedule.holidays || [];
+
+        // ✅ Lấy thực đơn áp dụng từ tuần nguồn
+        const sourceMenuApplies = await SchoolMenuApplyModel.find({
+            schoolId: user.schoolId,
+            academicYearId: targetYearId,
+            ageGroup,
+            weekNumber: sourceWeekNumber,
+            _destroy: false,
+        }).lean();
+
+        if (sourceMenuApplies.length === 0) {
+            throw new ApiError(StatusCodes.NOT_FOUND, `Tuần ${sourceWeekNumber} chưa có thực đơn áp dụng nào`);
+        }
+
+        console.log(`✅ Found ${sourceMenuApplies.length} menu applies in source week ${sourceWeekNumber}`);
+
+        // ✅ Tạo map: dayOfWeek -> menuApply
+        const sourceMenuMap = {};
+        sourceMenuApplies.forEach((menuApply) => {
+            sourceMenuMap[menuApply.dayOfWeek] = menuApply;
+        });
+
+        let createdCount = 0;
+        let updatedCount = 0;
+        let skippedCount = 0;
+
+        // ✅ Xử lý từng tuần đích
+        for (const targetWeekNumber of targetWeekNumbers) {
+            const weekData = schedule.weeks.find((w) => w.weekNumber === targetWeekNumber);
+            if (!weekData) {
+                console.warn(`⚠️ Week ${targetWeekNumber} not found in schedule, skipping`);
+                skippedCount++;
+                continue;
+            }
+
+            // ✅ Kiểm tra tuần có ngày làm việc không
+            if (!hasWorkingDays(weekData, holidays)) {
+                console.log(`⚠️ Week ${targetWeekNumber} has no working days, skipping`);
+                skippedCount++;
+                continue;
+            }
+
+            // ✅ Xử lý từng ngày trong tuần (Thứ 2 - Thứ 6)
+            for (let dayIndex = 0; dayIndex < DAYS_OF_WEEK.length; dayIndex++) {
+                const dayOfWeek = DAYS_OF_WEEK[dayIndex];
+                const sourceMenu = sourceMenuMap[dayOfWeek];
+
+                if (!sourceMenu) {
+                    console.log(`ℹ️ No source menu for ${dayOfWeek} in week ${sourceWeekNumber}, skipping`);
+                    continue;
+                }
+
+                // ✅ Tính ngày cụ thể
+                const targetDate = dayjs(weekData.startDate).add(dayIndex, 'day');
+
+                // ✅ Kiểm tra ngày nghỉ
+                const dateStr = targetDate.format('YYYY-MM-DD');
+                const isHoliday = holidays.some((holiday) => dayjs(holiday).format('YYYY-MM-DD') === dateStr);
+
+                if (isHoliday) {
+                    console.log(`ℹ️ ${dayOfWeek} (${dateStr}) is holiday, skipping`);
+                    skippedCount++;
+                    continue;
+                }
+
+                // ✅ Kiểm tra đã tồn tại chưa
+                const existingApply = await SchoolMenuApplyModel.findOne({
+                    schoolId: user.schoolId,
+                    academicYearId: targetYearId,
+                    ageGroup,
+                    weekNumber: targetWeekNumber,
+                    dayOfWeek,
+                    _destroy: false,
+                });
+
+                // ✅ Prepare data
+                const menuData = {
+                    schoolId: user.schoolId,
+                    academicYearId: targetYearId,
+                    ageGroup,
+                    weekNumber: targetWeekNumber,
+                    dayOfWeek,
+                    date: targetDate.toDate(),
+                    menuId: sourceMenu.menuId,
+                    menuSnapshot: sourceMenu.menuSnapshot,
+                    lastUpdatedBy: userId,
+                };
+
+                if (existingApply) {
+                    // ✅ Update existing
+                    await SchoolMenuApplyModel.findByIdAndUpdate(existingApply._id, menuData);
+                    updatedCount++;
+                    console.log(`✅ Updated: Week ${targetWeekNumber}, ${dayOfWeek}`);
+                } else {
+                    // ✅ Create new
+                    await SchoolMenuApplyModel.create({
+                        ...menuData,
+                        createdBy: userId,
+                    });
+                    createdCount++;
+                    console.log(`✅ Created: Week ${targetWeekNumber}, ${dayOfWeek}`);
+                }
+            }
+        }
+
+        console.log('✅ [SchoolMenuApply copyToWeeks] Completed:', {
+            created: createdCount,
+            updated: updatedCount,
+            skipped: skippedCount,
+        });
+
+        return {
+            message: 'Nhân bản thực đơn thành công!',
+            summary: {
+                sourceWeek: sourceWeekNumber,
+                targetWeeks: targetWeekNumbers.length,
+                created: createdCount,
+                updated: updatedCount,
+                skipped: skippedCount,
+            },
+        };
+    } catch (error) {
+        console.error('❌ [SchoolMenuApply copyToWeeks] Error:', error);
+        if (error instanceof ApiError) throw error;
+        throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, 'Lỗi khi nhân bản thực đơn: ' + error.message);
+    }
+};
+
+/**
+ * ✅ Xóa thực đơn áp dụng của 1 tuần cụ thể (HARD DELETE - xóa khỏi database)
+ */
+const deleteWeekMenus = async (data, userId) => {
+    try {
+        console.log('📋 [SchoolMenuApply deleteWeekMenus] Starting with:', data);
+
+        const user = await UserModel.findById(userId).select('schoolId role _id');
+        if (!user || !user.schoolId) {
+            throw new ApiError(StatusCodes.FORBIDDEN, 'Bạn không thuộc trường học nào');
+        }
+
+        // ✅ Chỉ BGH mới được xóa
+        checkPermission(user);
+
+        const { academicYearId, ageGroup, weekNumber } = data;
+
+        // ✅ Validate input
+        if (!ageGroup || !weekNumber) {
+            throw new ApiError(StatusCodes.BAD_REQUEST, 'Thiếu thông tin cần thiết để xóa thực đơn tuần');
+        }
+
+        // ✅ Lấy năm học
+        let targetYearId = academicYearId;
+        if (!targetYearId) {
+            const activeYear = await getActiveAcademicYear(user.schoolId);
+            targetYearId = activeYear._id;
+        }
+
+        // ✅ Kiểm tra năm học có đang active không
+        const academicYear = await AcademicYearModel.findOne({
+            _id: targetYearId,
+            schoolId: user.schoolId,
+            _destroy: false,
+        });
+
+        if (!academicYear) {
+            throw new ApiError(StatusCodes.NOT_FOUND, 'Không tìm thấy năm học');
+        }
+
+        if (academicYear.status !== 'active') {
+            throw new ApiError(StatusCodes.FORBIDDEN, 'Chỉ được xóa thực đơn trong năm học đang hoạt động');
+        }
+
+        // ✅ Lấy schedule để validate week và holidays
+        const schedule = await getScheduleByAcademicYear(user.schoolId, targetYearId);
+        const holidays = schedule.holidays || [];
+
+        // ✅ Validate week
+        const weekData = schedule.weeks.find((w) => w.weekNumber === weekNumber);
+        if (!weekData) {
+            throw new ApiError(StatusCodes.BAD_REQUEST, 'Tuần không hợp lệ');
+        }
+
+        // ✅ Lấy tất cả thực đơn áp dụng của tuần này
+        const weekMenuApplies = await SchoolMenuApplyModel.find({
+            schoolId: user.schoolId,
+            academicYearId: targetYearId,
+            ageGroup,
+            weekNumber,
+            _destroy: false,
+        }).lean();
+
+        if (weekMenuApplies.length === 0) {
+            throw new ApiError(StatusCodes.NOT_FOUND, `Tuần ${weekNumber} chưa có thực đơn áp dụng nào`);
+        }
+
+        console.log(`✅ Found ${weekMenuApplies.length} menu applies in week ${weekNumber}`);
+
+        let deletedCount = 0;
+        let skippedCount = 0;
+
+        // ✅ Xóa từng thực đơn (Thứ 2 - Thứ 6, loại trừ ngày nghỉ)
+        for (const menuApply of weekMenuApplies) {
+            // ✅ Kiểm tra ngày nghỉ
+            const dateStr = dayjs(menuApply.date).format('YYYY-MM-DD');
+            const isHoliday = holidays.some((holiday) => dayjs(holiday).format('YYYY-MM-DD') === dateStr);
+
+            if (isHoliday) {
+                console.log(`ℹ️ ${menuApply.dayOfWeek} (${dateStr}) is holiday, skipping`);
+                skippedCount++;
+                continue;
+            }
+
+            // ✅ HARD DELETE - Xóa khỏi database
+            await SchoolMenuApplyModel.deleteOne({ _id: menuApply._id });
+            deletedCount++;
+            console.log(`✅ Deleted: Week ${weekNumber}, ${menuApply.dayOfWeek}`);
+        }
+
+        console.log('✅ [SchoolMenuApply deleteWeekMenus] Completed:', {
+            deleted: deletedCount,
+            skipped: skippedCount,
+        });
+
+        return {
+            message: `Xóa thực đơn tuần ${weekNumber} thành công!`,
+            summary: {
+                weekNumber,
+                ageGroup,
+                deleted: deletedCount,
+                skipped: skippedCount,
+            },
+        };
+    } catch (error) {
+        console.error('❌ [SchoolMenuApply deleteWeekMenus] Error:', error);
+        if (error instanceof ApiError) throw error;
+        throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, 'Lỗi khi xóa thực đơn tuần: ' + error.message);
+    }
+};
+
 export const schoolMenuApplyServices = {
     createNew,
     getAll,
@@ -574,4 +845,6 @@ export const schoolMenuApplyServices = {
     getAvailableWeeks,
     getAvailableDays,
     getAvailableMenus,
+    copyToWeeks,
+    deleteWeekMenus,
 };

@@ -37,6 +37,9 @@ import dayjs from '~/config/dayjsConfig';
 import MenuApplyDialog from './MenuApplyDialog';
 import ConfirmDialog from '~/components/common/ConfirmDialog';
 import { useConfirmDialog } from '~/hooks/useConfirmDialog';
+import ContentCopyIcon from '@mui/icons-material/ContentCopy';
+import MenuApplyCopyDialog from './MenuApplyCopyDialog';
+import DeleteSweepIcon from '@mui/icons-material/DeleteSweep';
 
 const WEEKDAYS = ['Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6'];
 const MEAL_SESSIONS = ['Bữa sáng', 'Bữa trưa', 'Bữa xế', 'Bữa phụ'];
@@ -65,6 +68,8 @@ function MenuApply() {
     const [openDialog, setOpenDialog] = useState(false);
     const [dialogMode, setDialogMode] = useState('create');
     const [dialogData, setDialogData] = useState(null);
+    const [openCopyDialog, setOpenCopyDialog] = useState(false);
+    const [copyInfo, setCopyInfo] = useState(null);
 
     // Permissions
     const canCreate = hasPermission(PERMISSIONS.CREATE_MENU_APPLY);
@@ -350,6 +355,154 @@ function MenuApply() {
         });
     };
 
+    // ✅ NEW: Handle copy menu applies
+    const handleCopyMenuApplies = () => {
+        if (!isActiveYear) {
+            toast.warning('Chỉ có thể nhân bản thực đơn trong năm học đang hoạt động!');
+            return;
+        }
+
+        if (!canCreate) {
+            toast.warning('Bạn không có quyền nhân bản thực đơn áp dụng!');
+            return;
+        }
+
+        if (!selectedWeek || menuApplies.length === 0) {
+            toast.warning('Tuần hiện tại chưa có thực đơn áp dụng để nhân bản!');
+            return;
+        }
+
+        // Check if there are weeks after current week
+        const currentWeekNum = parseInt(selectedWeek);
+        const remainingWeeks = weeks.filter((w) => w.weekNumber > currentWeekNum);
+
+        if (remainingWeeks.length === 0) {
+            toast.warning('Đây là tuần cuối cùng, không thể nhân bản sang các tuần sau!');
+            return;
+        }
+
+        setCopyInfo({
+            ageGroup: selectedAgeGroup,
+            currentWeek: currentWeekNum,
+            totalWeeks: weeks.length,
+            weeks: weeks,
+        });
+        setOpenCopyDialog(true);
+    };
+
+    // ✅ NEW: Confirm copy
+    const handleConfirmCopy = async (option) => {
+        try {
+            const currentWeekNum = parseInt(selectedWeek);
+            const remainingWeeks = weeks.filter((w) => w.weekNumber > currentWeekNum);
+
+            let targetWeekNumbers = [];
+
+            switch (option) {
+                case 'all':
+                    targetWeekNumbers = remainingWeeks.map((w) => w.weekNumber);
+                    break;
+                case 'odd':
+                    targetWeekNumbers = remainingWeeks.filter((w) => w.weekNumber % 2 !== 0).map((w) => w.weekNumber);
+                    break;
+                case 'even':
+                    targetWeekNumbers = remainingWeeks.filter((w) => w.weekNumber % 2 === 0).map((w) => w.weekNumber);
+                    break;
+                default:
+                    throw new Error('Invalid copy option');
+            }
+
+            if (targetWeekNumbers.length === 0) {
+                toast.warning('Không có tuần nào phù hợp để nhân bản!');
+                return;
+            }
+
+            const payload = {
+                academicYearId: selectedYear,
+                ageGroup: selectedAgeGroup,
+                sourceWeekNumber: currentWeekNum,
+                targetWeekNumbers,
+            };
+
+            console.log('📤 [Copy Menu Applies] Payload:', payload);
+
+            const res = await schoolMenuApplyApi.copyToWeeks(payload);
+
+            const summary = res.data.data;
+            toast.success(
+                `Nhân bản thành công! Đã tạo ${summary.created} mới, cập nhật ${summary.updated}, bỏ qua ${summary.skipped}`,
+            );
+
+            // Refresh data
+            fetchMenuApplies();
+        } catch (error) {
+            console.error('❌ Error copying menu applies:', error);
+            toast.error(error.response?.data?.message || 'Lỗi khi nhân bản thực đơn!');
+            throw error;
+        }
+    };
+
+    // ✅ NEW: Handle delete week menus
+    const handleDeleteWeekMenus = () => {
+        if (!isActiveYear) {
+            toast.warning('Chỉ có thể xóa thực đơn trong năm học đang hoạt động!');
+            return;
+        }
+
+        if (!canDelete) {
+            toast.warning('Bạn không có quyền xóa thực đơn áp dụng!');
+            return;
+        }
+
+        if (!selectedWeek || menuApplies.length === 0) {
+            toast.warning('Tuần hiện tại chưa có thực đơn áp dụng để xóa!');
+            return;
+        }
+
+        const weekInfo = weeks.find((w) => w.weekNumber === parseInt(selectedWeek));
+        const weekLabel = weekInfo
+            ? `Tuần ${weekInfo.weekNumber} (${dayjs(weekInfo.startDate).format('DD/MM')} - ${dayjs(weekInfo.endDate).format('DD/MM')})`
+            : `Tuần ${selectedWeek}`;
+
+        showConfirm({
+            title: 'Xác nhận xóa thực đơn tuần',
+            message: (
+                <Box>
+                    <Typography sx={{ mb: 2 }}>
+                        Bạn có chắc chắn muốn xóa thực đơn <br /> <strong>{weekLabel}</strong> không?
+                    </Typography>
+                </Box>
+            ),
+            severity: 'error',
+            confirmText: 'Xác nhận xóa',
+            cancelText: 'Hủy',
+            onConfirm: async () => {
+                try {
+                    const payload = {
+                        academicYearId: selectedYear,
+                        ageGroup: selectedAgeGroup,
+                        weekNumber: parseInt(selectedWeek),
+                    };
+
+                    console.log('📤 [Delete Week Menus] Payload:', payload);
+
+                    const res = await schoolMenuApplyApi.deleteWeekMenus(payload);
+
+                    const summary = res.data.data;
+                    toast.success(
+                        `Xóa thành công! Đã xóa ${summary.deleted} thực đơn${summary.skipped > 0 ? `, bỏ qua ${summary.skipped} ngày nghỉ` : ''}`,
+                    );
+
+                    // Refresh data
+                    fetchMenuApplies();
+                } catch (error) {
+                    console.error('❌ Error deleting week menus:', error);
+                    toast.error(error.response?.data?.message || 'Lỗi khi xóa thực đơn tuần!');
+                }
+            },
+        });
+    };
+
     // Handle dialog close
     const handleDialogClose = () => {
         setOpenDialog(false);
@@ -471,6 +624,42 @@ function MenuApply() {
                                         ))}
                                     </Select>
                                 </FormControl>
+                            )}
+
+                            {/* ✅ NEW: Copy Button */}
+                            {isActiveYear && selectedWeek && menuApplies.length > 0 && canCreate && (
+                                <Tooltip title="Nhân bản thực đơn cho các tuần sau">
+                                    <IconButton
+                                        onClick={handleCopyMenuApplies}
+                                        sx={{
+                                            color: '#667eea',
+                                            bgcolor: 'rgba(102, 126, 234, 0.08)',
+                                            '&:hover': {
+                                                bgcolor: 'rgba(102, 126, 234, 0.15)',
+                                            },
+                                        }}
+                                    >
+                                        <ContentCopyIcon />
+                                    </IconButton>
+                                </Tooltip>
+                            )}
+
+                            {/* ✅ NEW: Delete Week Button */}
+                            {isActiveYear && selectedWeek && menuApplies.length > 0 && canDelete && (
+                                <Tooltip title="Xóa thực đơn tuần">
+                                    <IconButton
+                                        onClick={handleDeleteWeekMenus}
+                                        sx={{
+                                            color: '#d32f2f',
+                                            bgcolor: 'rgba(211, 47, 47, 0.08)',
+                                            '&:hover': {
+                                                bgcolor: 'rgba(211, 47, 47, 0.15)',
+                                            },
+                                        }}
+                                    >
+                                        <DeleteSweepIcon />
+                                    </IconButton>
+                                </Tooltip>
                             )}
                         </Box>
                     </Box>
@@ -727,6 +916,14 @@ function MenuApply() {
                 data={dialogData}
                 onClose={handleDialogClose}
                 onSuccess={handleDialogSuccess}
+            />
+
+            {/* ✅ NEW: Copy Dialog */}
+            <MenuApplyCopyDialog
+                open={openCopyDialog}
+                copyInfo={copyInfo}
+                onClose={() => setOpenCopyDialog(false)}
+                onConfirm={handleConfirmCopy}
             />
 
             {/* Confirm Dialog */}

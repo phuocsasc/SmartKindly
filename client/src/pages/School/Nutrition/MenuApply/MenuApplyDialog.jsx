@@ -435,15 +435,32 @@ function MenuApplyDialog({ open, mode, data, onClose, onSuccess }) {
             <Divider />
 
             <DialogActions sx={{ px: 3, py: 1.5, gap: 1 }}>
-                <Button onClick={onClose} variant="outlined" color="inherit" size="small">
+                <Button
+                    onClick={onClose}
+                    variant="outlined"
+                    color="inherit"
+                    size="small"
+                    sx={{ borderRadius: 1.5, px: 2.5, textTransform: 'none', fontWeight: 600 }}
+                >
                     Hủy
                 </Button>
                 <Button
                     onClick={handleSubmit}
                     variant="contained"
-                    color="primary"
                     size="small"
                     disabled={loading || !selectedMenuId}
+                    sx={{
+                        borderRadius: 1.5,
+                        px: 3,
+                        textTransform: 'none',
+                        fontWeight: 600,
+                        boxShadow: 2,
+                        background: 'linear-gradient(135deg, #0071bc 100%, #aee2ff 100%)',
+                        '&:hover': {
+                            boxShadow: 3,
+                            background: 'linear-gradient(135deg, #1180caff 100%, #aee2ff 100%)',
+                        },
+                    }}
                 >
                     {loading ? <CircularProgress size={20} color="inherit" /> : isEditMode ? 'Cập nhật' : 'Áp dụng'}
                 </Button>

@@ -107,6 +107,32 @@ const getAvailableMenus = async (req, res, next) => {
     }
 };
 
+const copyToWeeks = async (req, res, next) => {
+    try {
+        const userId = req.jwtDecoded.id;
+        const result = await schoolMenuApplyServices.copyToWeeks(req.body, userId);
+        res.status(StatusCodes.OK).json({
+            message: result.message,
+            data: result.summary,
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+const deleteWeekMenus = async (req, res, next) => {
+    try {
+        const userId = req.jwtDecoded.id;
+        const result = await schoolMenuApplyServices.deleteWeekMenus(req.body, userId);
+        res.status(StatusCodes.OK).json({
+            message: result.message,
+            data: result.summary,
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
 export const schoolMenuApplyController = {
     createNew,
     getAll,
@@ -116,4 +142,6 @@ export const schoolMenuApplyController = {
     getAvailableWeeks,
     getAvailableDays,
     getAvailableMenus,
+    copyToWeeks, // ✅ NEW
+    deleteWeekMenus, // ✅ NEW
 };

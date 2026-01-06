@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react';
 import {
     Dialog,
-    DialogTitle,
     DialogContent,
     DialogActions,
     Button,
@@ -12,15 +11,94 @@ import {
     Typography,
     IconButton,
     Avatar,
-    Divider,
     CircularProgress,
+    Chip,
+    Stack,
+    Grid,
+    Paper,
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
-import RateReviewIcon from '@mui/icons-material/RateReview';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
+import SaveIcon from '@mui/icons-material/Save';
+import EditIcon from '@mui/icons-material/Edit';
+
+// Icons cho từng mục
+import HealthAndSafetyIcon from '@mui/icons-material/HealthAndSafety';
+import SentimentSatisfiedAltIcon from '@mui/icons-material/SentimentSatisfiedAlt';
+import SchoolIcon from '@mui/icons-material/School';
+import NoteAltIcon from '@mui/icons-material/NoteAlt';
+import CalendarTodayOutlinedIcon from '@mui/icons-material/CalendarTodayOutlined';
+import PersonIcon from '@mui/icons-material/Person';
+
 import { childrenDailyAssessmentApi } from '~/apis';
 import { toast } from 'react-toastify';
 import dayjs from '~/config/dayjsConfig';
+
+// ✅ Dữ liệu gợi ý nhanh (Giúp giáo viên chọn nhanh)
+const SUGGESTIONS = {
+    health: ['Sức khỏe tốt', 'Ăn hết suất', 'Kén ăn', 'Ngủ ngon', 'Hơi mệt', 'Ho nhẹ', 'Sốt nhẹ'],
+    emotion: ['Vui vẻ', 'Hòa đồng', 'Tích cực', 'Ngoan ngoãn', 'Hơi quấy', 'Khóc nhè'],
+    skills: [
+        'Tập trung',
+        'Tiếp thu nhanh',
+        'Hăng hái phát biểu',
+        'Hoàn thành bài tập',
+        'Cần cố gắng',
+        'Thích nghe kể chuyện',
+    ],
+};
+
+// Component con để render từng phần nhập liệu cho gọn code
+const AssessmentInputSection = ({ icon, title, value, onChange, placeholder, suggestions = [] }) => {
+    const handleAddSuggestion = (text) => {
+        const newValue = value ? `${value}, ${text}` : text;
+        onChange(newValue);
+    };
+
+    return (
+        <Paper elevation={0} sx={{ p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 2, mb: 2 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
+                <Avatar sx={{ width: 28, height: 28, bgcolor: 'primary.50', color: 'primary.main' }}>{icon}</Avatar>
+                <Typography variant="subtitle2" fontWeight={700} color="text.primary">
+                    {title}
+                </Typography>
+            </Box>
+
+            {/* Gợi ý nhanh */}
+            {suggestions.length > 0 && (
+                <Stack direction="row" spacing={1} sx={{ mb: 1.5, flexWrap: 'wrap', gap: 1 }} useFlexGap>
+                    {suggestions.map((s) => (
+                        <Chip
+                            key={s}
+                            label={s}
+                            size="small"
+                            onClick={() => handleAddSuggestion(s)}
+                            clickable
+                            sx={{ borderRadius: 1, bgcolor: 'action.hover' }}
+                        />
+                    ))}
+                </Stack>
+            )}
+
+            <TextField
+                fullWidth
+                multiline
+                minRows={2}
+                maxRows={4}
+                placeholder={placeholder}
+                value={value}
+                onChange={(e) => onChange(e.target.value)}
+                variant="outlined"
+                size="small"
+                sx={{
+                    '& .MuiOutlinedInput-root': {
+                        bgcolor: 'background.paper',
+                    },
+                }}
+            />
+        </Paper>
+    );
+};
 
 function ChildrenAssessmentDialog({
     open,
@@ -42,11 +120,10 @@ function ChildrenAssessmentDialog({
 
     const isEditMode = !!existingAssessment;
 
-    // ✅ Initialize form data - Reset khi đổi học sinh hoặc ngày
+    // ✅ Initialize form data
     useEffect(() => {
         if (open) {
             if (existingAssessment) {
-                // Edit mode: Load existing data
                 setFormData({
                     healthStatus: existingAssessment.healthStatus || '',
                     emotionalBehavior: existingAssessment.emotionalBehavior || '',
@@ -54,7 +131,6 @@ function ChildrenAssessmentDialog({
                     notes: existingAssessment.notes || '',
                 });
             } else {
-                // Create mode: Reset to empty
                 setFormData({
                     healthStatus: '',
                     emotionalBehavior: '',
@@ -67,44 +143,31 @@ function ChildrenAssessmentDialog({
 
     // ✅ Handle submit
     const handleSubmit = async () => {
-        // Validate required fields
-        if (!formData.healthStatus.trim()) {
-            toast.warning('Vui lòng nhập tình trạng sức khỏe!');
-            return;
-        }
-        if (!formData.emotionalBehavior.trim()) {
-            toast.warning('Vui lòng nhập trạng thái cảm xúc, thái độ hành vi!');
-            return;
-        }
-        if (!formData.skillsKnowledge.trim()) {
-            toast.warning('Vui lòng nhập kiến thức kỹ năng!');
-            return;
-        }
+        if (!formData.healthStatus.trim()) return toast.warning('Vui lòng nhập tình trạng sức khỏe!');
+        if (!formData.emotionalBehavior.trim()) return toast.warning('Vui lòng nhập cảm xúc/hành vi!');
+        if (!formData.skillsKnowledge.trim()) return toast.warning('Vui lòng nhập kiến thức/kỹ năng!');
 
         try {
             setLoading(true);
+            const payload = {
+                academicYearId,
+                classId,
+                studentId: studentInfo.studentId,
+                date: dayjs(date).format('YYYY-MM-DD'),
+                ...formData,
+            };
 
             if (isEditMode) {
                 await childrenDailyAssessmentApi.update(existingAssessment._id, formData);
                 toast.success('Cập nhật đánh giá thành công!');
             } else {
-                // ✅ DEBUG: Log payload
-                const payload = {
-                    academicYearId,
-                    classId,
-                    studentId: studentInfo.studentId,
-                    date: dayjs(date).format('YYYY-MM-DD'),
-                    ...formData,
-                };
                 await childrenDailyAssessmentApi.create(payload);
                 toast.success('Thêm đánh giá thành công!');
             }
-
             onSuccess();
             onClose();
         } catch (error) {
-            console.error('❌ [Error saving assessment]:', error);
-            console.error('❌ [Error response]:', error.response?.data);
+            console.error('Error saving assessment:', error);
             toast.error(error.response?.data?.message || 'Lỗi khi lưu đánh giá!');
         } finally {
             setLoading(false);
@@ -113,7 +176,8 @@ function ChildrenAssessmentDialog({
 
     // ✅ Handle delete
     const handleDelete = async () => {
-        if (!existingAssessment || !existingAssessment._id) return;
+        if (!existingAssessment?._id) return;
+        if (!window.confirm('Bạn có chắc chắn muốn xóa đánh giá này không?')) return;
 
         try {
             setLoading(true);
@@ -122,222 +186,199 @@ function ChildrenAssessmentDialog({
             onSuccess();
             onClose();
         } catch (error) {
-            console.error('Error deleting assessment:', error);
-            toast.error(error.response?.data?.message || 'Lỗi khi xóa đánh giá!');
+            toast.error('Lỗi khi xóa đánh giá!');
         } finally {
             setLoading(false);
         }
     };
 
-    // ✅ Handle close with cleanup
-    const handleClose = () => {
-        setFormData({
-            healthStatus: '',
-            emotionalBehavior: '',
-            skillsKnowledge: '',
-            notes: '',
-        });
-        onClose();
-    };
-
     return (
-        <Dialog open={open} onClose={handleClose} maxWidth="md" fullWidth>
-            {/* Header */}
-            <DialogTitle
+        <Dialog
+            open={open}
+            onClose={onClose}
+            maxWidth="md"
+            fullWidth
+            PaperProps={{
+                sx: { borderRadius: 3, overflow: 'hidden' },
+            }}
+        >
+            {/* 1. Header hiện đại */}
+            <Box
                 sx={{
-                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                    px: 3,
+                    py: 2,
+                    bgcolor: 'primary.main',
                     color: 'white',
-                    py: 1.5,
-                    position: 'relative',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
                 }}
             >
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                    <Avatar sx={{ bgcolor: 'rgba(255, 255, 255, 0.2)', width: 32, height: 32 }}>
-                        <RateReviewIcon fontSize="small" />
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                    <Avatar sx={{ bgcolor: 'white', color: 'primary.main' }}>
+                        {isEditMode ? <EditIcon /> : <NoteAltIcon />}
                     </Avatar>
-                    <Typography variant="h6" fontWeight={600}>
-                        {isEditMode ? 'Cập nhật đánh giá trẻ' : 'Đánh giá trẻ hằng ngày'}
-                    </Typography>
+                    <Box>
+                        <Typography variant="h6" fontWeight={700} sx={{ lineHeight: 1.2 }}>
+                            {isEditMode ? 'Cập nhật đánh giá' : 'Đánh giá hằng ngày'}
+                        </Typography>
+                        <Typography variant="caption" sx={{ opacity: 0.9 }}>
+                            Ghi nhận quá trình phát triển của trẻ
+                        </Typography>
+                    </Box>
                 </Box>
-                <IconButton
-                    onClick={handleClose}
-                    size="small"
-                    sx={{
-                        position: 'absolute',
-                        right: 8,
-                        top: 8,
-                        color: 'white',
-                        '&:hover': { bgcolor: 'rgba(255, 255, 255, 0.1)' },
-                    }}
-                >
+                <IconButton onClick={onClose} sx={{ color: 'white', '&:hover': { bgcolor: 'rgba(255,255,255,0.2)' } }}>
                     <CloseIcon />
                 </IconButton>
-            </DialogTitle>
+            </Box>
 
-            {/* Content */}
-            <DialogContent sx={{ px: 3, py: 3 }}>
-                {/* Student Info */}
-                <Box
-                    sx={{
-                        mt: 2,
-                        mb: 3,
-                        p: 2,
-                        bgcolor: '#f5f5ff',
-                        borderRadius: 2,
-                        border: '1px solid #e0e0ff',
-                    }}
-                >
-                    <Typography variant="subtitle2" color="primary" gutterBottom>
-                        <strong>Học sinh:</strong> {studentInfo?.fullName}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                        <strong>Mã HS:</strong> {studentInfo?.studentCode}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                        <strong>Ngày:</strong> {dayjs(date).format('DD/MM/YYYY')} ({dayjs(date).format('dddd')})
-                    </Typography>
+            <DialogContent
+                sx={{
+                    p: 0,
+                    bgcolor: '#f4f6f8',
+
+                    // --- STYLE THANH CUỘN (SCROLLBAR) ---
+                    '&::-webkit-scrollbar': {
+                        width: '8px', // Độ rộng của thanh cuộn
+                    },
+                    '&::-webkit-scrollbar-track': {
+                        backgroundColor: '#f1f1f1', // Màu nền rãnh trượt (xám nhạt)
+                        borderLeft: '1px solid #e0e0e0',
+                    },
+                    '&::-webkit-scrollbar-thumb': {
+                        backgroundColor: 'primary.main', // ✅ Màu chính đồng bộ với Header
+                        borderRadius: '4px', // Bo tròn góc
+                        border: '2px solid #f1f1f1', // Viền trắng tạo khoảng cách giúp thanh cuộn đẹp hơn
+                    },
+                    '&::-webkit-scrollbar-thumb:hover': {
+                        backgroundColor: 'primary.dark', // Màu đậm hơn khi rê chuột vào
+                    },
+                    // Dành cho Firefox (nếu cần hỗ trợ)
+                    scrollbarWidth: 'thin',
+                    scrollbarColor: (theme) => `${theme.palette.primary.main} #f1f1f1`,
+                }}
+            >
+                {/* 2. Thông tin học sinh & Ngày tháng */}
+                <Box sx={{ bgcolor: 'white', p: 2, borderBottom: '1px solid', borderColor: 'divider' }}>
+                    <Grid container spacing={2} alignItems="center">
+                        <Grid item xs={12} sm={6}>
+                            <Stack direction="row" spacing={1.5} alignItems="center">
+                                <Avatar sx={{ bgcolor: 'primary.50', color: 'primary.main', width: 36, height: 36 }}>
+                                    <PersonIcon fontSize="small" />
+                                </Avatar>
+                                <Box>
+                                    <Typography variant="subtitle2" color="text.secondary">
+                                        Học sinh
+                                    </Typography>
+                                    <Typography variant="body1" fontWeight={600}>
+                                        {studentInfo?.fullName}{' '}
+                                        <Typography component="span" variant="caption" color="text.secondary">
+                                            ({studentInfo?.studentCode})
+                                        </Typography>
+                                    </Typography>
+                                </Box>
+                            </Stack>
+                        </Grid>
+                        <Grid item xs={12} sm={6}>
+                            <Stack
+                                direction="row"
+                                spacing={1.5}
+                                alignItems="center"
+                                justifyContent={{ sm: 'flex-end' }}
+                            >
+                                <Avatar sx={{ bgcolor: 'primary.50', color: 'primary.main', width: 36, height: 36 }}>
+                                    <CalendarTodayOutlinedIcon fontSize="small" />
+                                </Avatar>
+                                <Box>
+                                    <Typography variant="subtitle2" color="text.secondary">
+                                        Thời gian
+                                    </Typography>
+                                    <Typography variant="body1" fontWeight={600}>
+                                        {dayjs(date).format('DD/MM/YYYY')} - {dayjs(date).format('dddd')}
+                                    </Typography>
+                                </Box>
+                            </Stack>
+                        </Grid>
+                    </Grid>
                 </Box>
 
-                <Divider sx={{ my: 2 }} />
-
-                {/* 1. Tình trạng sức khỏe */}
-                <Box sx={{ mb: 2 }}>
-                    <Typography variant="subtitle2" sx={{ mb: 1, color: '#667eea', fontWeight: 600 }}>
-                        1. Tình trạng sức khỏe *
-                    </Typography>
-                    <TextField
-                        fullWidth
-                        multiline
-                        rows={3}
-                        placeholder="Ví dụ: Trẻ khỏe mạnh, ăn ngủ đầy đủ, không có dấu hiệu bất thường..."
+                {/* 3. Khu vực Form nhập liệu */}
+                <Box sx={{ p: 3 }}>
+                    <AssessmentInputSection
+                        icon={<HealthAndSafetyIcon fontSize="small" />}
+                        title="1. Tình trạng sức khỏe"
+                        placeholder="Nhập tình trạng ăn, ngủ, sức khỏe của trẻ..."
                         value={formData.healthStatus}
-                        onChange={(e) => setFormData({ ...formData, healthStatus: e.target.value })}
-                        sx={{
-                            '& .MuiOutlinedInput-root': {
-                                borderRadius: 1.5,
-                            },
-                        }}
+                        onChange={(val) => setFormData({ ...formData, healthStatus: val })}
+                        suggestions={SUGGESTIONS.health}
                     />
-                </Box>
 
-                {/* 2. Trạng thái cảm xúc, thái độ hành vi */}
-                <Box sx={{ mb: 2 }}>
-                    <Typography variant="subtitle2" sx={{ mb: 1, color: '#667eea', fontWeight: 600 }}>
-                        2. Trạng thái cảm xúc, thái độ hành vi *
-                    </Typography>
-                    <TextField
-                        fullWidth
-                        multiline
-                        rows={3}
-                        placeholder="Ví dụ: Vui vẻ, hòa đồng với bạn bè, tham gia tích cực các hoạt động..."
+                    <AssessmentInputSection
+                        icon={<SentimentSatisfiedAltIcon fontSize="small" />}
+                        title="2. Cảm xúc & Hành vi"
+                        placeholder="Nhập thái độ, cảm xúc, mức độ hòa đồng..."
                         value={formData.emotionalBehavior}
-                        onChange={(e) => setFormData({ ...formData, emotionalBehavior: e.target.value })}
-                        sx={{
-                            '& .MuiOutlinedInput-root': {
-                                borderRadius: 1.5,
-                            },
-                        }}
+                        onChange={(val) => setFormData({ ...formData, emotionalBehavior: val })}
+                        suggestions={SUGGESTIONS.emotion}
                     />
-                </Box>
 
-                {/* 3. Kiến thức kỹ năng */}
-                <Box sx={{ mb: 2 }}>
-                    <Typography variant="subtitle2" sx={{ mb: 1, color: '#667eea', fontWeight: 600 }}>
-                        3. Kiến thức kỹ năng *
-                    </Typography>
-                    <TextField
-                        fullWidth
-                        multiline
-                        rows={3}
-                        placeholder="Ví dụ: Hoàn thành tốt bài tập về màu sắc, chữ số, kỹ năng cầm bút..."
+                    <AssessmentInputSection
+                        icon={<SchoolIcon fontSize="small" />}
+                        title="3. Kiến thức & Kỹ năng"
+                        placeholder="Nhập khả năng tiếp thu bài học, kỹ năng vận động..."
                         value={formData.skillsKnowledge}
-                        onChange={(e) => setFormData({ ...formData, skillsKnowledge: e.target.value })}
-                        sx={{
-                            '& .MuiOutlinedInput-root': {
-                                borderRadius: 1.5,
-                            },
-                        }}
+                        onChange={(val) => setFormData({ ...formData, skillsKnowledge: val })}
+                        suggestions={SUGGESTIONS.skills}
                     />
-                </Box>
 
-                {/* 4. Lưu ý (Optional) */}
-                <Box>
-                    <Typography variant="subtitle2" sx={{ mb: 1, color: '#666', fontWeight: 600 }}>
-                        4. Ghi chú lưu ý cần quan tâm hơn (nếu có)
-                    </Typography>
-                    <TextField
-                        fullWidth
-                        multiline
-                        rows={2}
-                        placeholder="Ví dụ: Cần chú ý thêm về kỹ năng giao tiếp, tập trung khi học..."
+                    <AssessmentInputSection
+                        icon={<NoteAltIcon fontSize="small" />}
+                        title="4. Ghi chú thêm (Nếu có)"
+                        placeholder="Lưu ý riêng cho phụ huynh..."
                         value={formData.notes}
-                        onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                        sx={{
-                            '& .MuiOutlinedInput-root': {
-                                borderRadius: 1.5,
-                            },
-                        }}
+                        onChange={(val) => setFormData({ ...formData, notes: val })}
                     />
                 </Box>
             </DialogContent>
 
-            {/* Actions */}
-            <DialogActions sx={{ px: 3, py: 2, gap: 1, justifyContent: 'space-between' }}>
-                {/* Delete button - Only show in edit mode */}
+            {/* 4. Actions Footer */}
+            <DialogActions sx={{ p: 2, bgcolor: 'white', borderTop: '1px solid', borderColor: 'divider' }}>
                 {isEditMode && existingAssessment?._id && (
                     <Button
+                        onClick={handleDelete}
                         variant="outlined"
                         color="error"
-                        onClick={handleDelete}
-                        disabled={loading}
                         startIcon={<DeleteOutlineIcon />}
-                        size="small"
-                        sx={{
-                            borderRadius: 1.5,
-                            px: 2,
-                            textTransform: 'none',
-                        }}
+                        disabled={loading}
+                        sx={{ mr: 'auto', borderRadius: 2, textTransform: 'none' }}
                     >
-                        Xóa đánh giá
+                        Xóa
                     </Button>
                 )}
 
-                <Box sx={{ flex: 1 }} />
-
-                {/* Cancel button */}
                 <Button
-                    onClick={handleClose}
-                    variant="outlined"
+                    onClick={onClose}
+                    variant="text"
                     color="inherit"
                     disabled={loading}
-                    size="small"
-                    sx={{
-                        borderRadius: 1.5,
-                        px: 2.5,
-                        textTransform: 'none',
-                    }}
+                    sx={{ borderRadius: 2, textTransform: 'none', px: 3 }}
                 >
-                    Hủy
+                    Hủy bỏ
                 </Button>
 
-                {/* Save button */}
                 <Button
                     onClick={handleSubmit}
                     variant="contained"
                     disabled={loading}
-                    startIcon={loading ? <CircularProgress size={16} /> : null}
-                    size="small"
+                    startIcon={loading ? <CircularProgress size={20} color="inherit" /> : <SaveIcon />}
                     sx={{
-                        borderRadius: 1.5,
-                        px: 3,
+                        borderRadius: 2,
                         textTransform: 'none',
-                        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                        '&:hover': {
-                            background: 'linear-gradient(135deg, #5568d3 0%, #6a3f8f 100%)',
-                        },
+                        px: 4,
+                        boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
                     }}
                 >
-                    {loading ? 'Đang lưu...' : isEditMode ? 'Cập nhật' : 'Lưu đánh giá'}
+                    {isEditMode ? 'Cập nhật' : 'Lưu lại'}
                 </Button>
             </DialogActions>
         </Dialog>

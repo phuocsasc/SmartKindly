@@ -15,7 +15,8 @@ import {
 } from '@mui/material';
 import { DataGrid } from '@mui/x-data-grid';
 import PeopleIcon from '@mui/icons-material/People';
-import RateReviewIcon from '@mui/icons-material/RateReview';
+import EditIcon from '@mui/icons-material/Edit';
+import NoteAltIcon from '@mui/icons-material/NoteAlt';
 import DoneOutlinedIcon from '@mui/icons-material/DoneOutlined';
 import MainLayout from '~/layouts/SchoolLayout';
 import PageContainer from '~/components/common/PageContainer';
@@ -27,6 +28,7 @@ import { PERMISSIONS } from '~/config/rbacConfig';
 import { toast } from 'react-toastify';
 import dayjs from '~/config/dayjsConfig';
 import ChildrenAssessmentDialog from './ChildrenAssessmentDialog';
+import AssessmentCard from './AssessmentCard';
 
 // ✅ Helper: Get attendance chip props
 const getAttendanceChipProps = (status) => {
@@ -34,11 +36,11 @@ const getAttendanceChipProps = (status) => {
         case 'Có mặt':
             return { color: 'success', label: '✓' };
         case 'Vắng có phép':
-            return { color: 'warning', label: 'P' };
+            return { color: 'warning', label: 'P', name: 'Vắng có phép' };
         case 'Vắng không phép':
-            return { color: 'error', label: 'K' };
+            return { color: 'error', label: 'K', name: 'Vắng không phép' };
         default:
-            return { color: 'default', label: '-' };
+            return { color: 'default', label: '-', name: 'Chưa điểm danh' };
     }
 };
 
@@ -312,75 +314,140 @@ function ChildrenAssessment() {
 
     // ✅ DataGrid columns (giống ChildrenAttendance)
     const columns = [
-        { field: 'stt', headerName: 'STT', width: 60, sortable: false },
+        { field: 'stt', headerName: 'STT', width: 40, sortable: false, align: 'center' },
         {
             field: 'fullName',
             headerName: 'Họ tên học sinh',
-            flex: 1,
-            minWidth: 180,
+            flex: 0.8,
+            minWidth: 140,
             sortable: false,
             renderCell: (params) => <Typography sx={{ fontWeight: 600 }}>{params.value}</Typography>,
         },
-        { field: 'studentCode', headerName: 'Mã học sinh', flex: 0.8, minWidth: 120, sortable: false },
+        { field: 'studentCode', headerName: 'Mã học sinh', flex: 0.5, minWidth: 90, sortable: false },
         // ✅ Dynamic columns cho từng ngày trong tuần
         ...weekDays.map((day) => ({
             field: `day_${day.date}`,
             headerName: `${day.dayOfWeek} (${dayjs(day.date).format('DD/MM')})`,
-            flex: 0.6,
-            minWidth: 150,
+            flex: 0.7,
+            minWidth: 160,
             align: 'center',
             sortable: false,
             renderCell: (params) => {
                 const holiday = isHoliday(day.date);
                 const attendance = params.row.attendanceMap[day.date];
                 const assessment = params.row.assessmentMap[day.date];
-
                 const chipProps = getAttendanceChipProps(attendance?.status);
                 const canAssess = attendance?.status === 'Có mặt';
+
+                // Kiểm tra quyền chỉnh sửa/tạo mới
+                const allowAction = (isActiveYear && canCreate) || canUpdate;
 
                 return (
                     <Box
                         sx={{
+                            width: '100%',
+                            height: '100%',
                             display: 'flex',
                             flexDirection: 'column',
-                            alignItems: 'center',
-                            gap: 0.5,
-                            py: 0.5,
+                            justifyContent: holiday || !canAssess ? 'center' : 'flex-start',
+                            alignItems: 'stretch',
+                            position: 'relative', // Để định vị các thành phần con nếu cần
                         }}
                     >
                         {holiday ? (
-                            <Chip label="Ngày Nghỉ" color="error" size="small" />
+                            <Chip
+                                label="Ngày Nghỉ"
+                                color="error"
+                                size="small"
+                                variant="soft"
+                                sx={{ alignSelf: 'center' }}
+                            />
                         ) : !canAssess ? (
-                            <Chip label={chipProps.label} color={chipProps.color} size="small" />
+                            <Tooltip
+                                title={chipProps.name}
+                                arrow
+                                slotProps={{
+                                    tooltip: {
+                                        sx: {
+                                            maxWidth: 300,
+                                            bgcolor: '#1e293b',
+                                            color: '#f1f5f9',
+                                            borderRadius: 2,
+                                            border: '1px solid #334155',
+                                            boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+                                        },
+                                    },
+                                }}
+                            >
+                                <Box sx={{ display: 'flex', justifyContent: 'center' }}>
+                                    <Chip label={chipProps.label} color={chipProps.color} size="small" />
+                                </Box>
+                            </Tooltip>
                         ) : (
                             <>
-                                {(isActiveYear && canCreate) || canUpdate ? (
-                                    <Tooltip title="Đánh giá trẻ">
-                                        <IconButton
-                                            size="small"
-                                            color={assessment ? 'primary' : 'default'}
-                                            onClick={() => handleOpenAssessment(params.row, day)}
-                                        >
-                                            <RateReviewIcon fontSize="small" />
-                                        </IconButton>
-                                    </Tooltip>
-                                ) : null}
-
+                                {/* LOGIC HIỂN THỊ CHÍNH */}
                                 {assessment ? (
-                                    <Chip
-                                        label="Đã đánh giá"
-                                        color="success"
-                                        size="small"
-                                        variant="outlined"
-                                        sx={{ fontSize: '0.7rem' }}
-                                    />
+                                    /* TRƯỜNG HỢP 1: ĐÃ CÓ ĐÁNH GIÁ -> HIỆN CARD + ICON GÓC PHẢI TRÊN */
+                                    <Box sx={{ position: 'relative', width: '100%', mt: 1 }}>
+                                        {allowAction && (
+                                            <Tooltip title="Chỉnh sửa đánh giá" arrow>
+                                                <IconButton
+                                                    size="small"
+                                                    onClick={() => handleOpenAssessment(params.row, day)}
+                                                    sx={{
+                                                        position: 'absolute',
+                                                        top: -10,
+                                                        right: -8,
+                                                        color: '#667eea',
+                                                        bgcolor: 'rgba(255, 255, 255, 0.9)',
+                                                        '&:hover': {
+                                                            bgcolor: 'rgba(102, 126, 234, 0.1)',
+                                                        },
+                                                        zIndex: 1,
+                                                    }}
+                                                >
+                                                    <EditIcon sx={{ fontSize: 18 }} />
+                                                </IconButton>
+                                            </Tooltip>
+                                        )}
+
+                                        {/* Component Card nội dung tách rời */}
+                                        <AssessmentCard assessment={assessment} />
+                                    </Box>
                                 ) : (
-                                    <Chip
-                                        label="Chưa đánh giá"
-                                        color="default"
-                                        size="small"
-                                        sx={{ fontSize: '0.7rem' }}
-                                    />
+                                    /* TRƯỜNG HỢP 2: CHƯA ĐÁNH GIÁ -> ICON NẰM TRƯỚC CHỮ */
+                                    <Box
+                                        onClick={() => allowAction && handleOpenAssessment(params.row, day)}
+                                        sx={{
+                                            // mt: 2.5, // Dịch xuống một chút để tránh cái dấu check có mặt
+                                            p: 2,
+                                            height: 60, // Chiều cao cố định cho đẹp đội hình
+                                            border: '1px dashed',
+                                            borderColor: 'divider',
+                                            borderRadius: 2,
+                                            display: 'flex',
+                                            justifyContent: 'center',
+                                            alignItems: 'center',
+                                            gap: 1, // Khoảng cách giữa Icon và Chữ
+                                            color: 'text.secondary',
+                                            cursor: allowAction ? 'pointer' : 'default',
+                                            transition: 'all 0.2s',
+                                            '&:hover': allowAction
+                                                ? {
+                                                      borderColor: 'primary.main',
+                                                      bgcolor: 'primary.50',
+                                                      color: 'primary.main',
+                                                  }
+                                                : {},
+                                        }}
+                                    >
+                                        {/* Icon nằm trước chữ */}
+                                        <NoteAltIcon fontSize="small" />
+
+                                        <Typography variant="body2" sx={{ fontStyle: 'italic' }}>
+                                            Chưa đánh giá
+                                        </Typography>
+                                    </Box>
                                 )}
                             </>
                         )}
@@ -517,6 +584,7 @@ function ChildrenAssessment() {
                                 disableRowSelectionOnClick
                                 disableColumnMenu
                                 autoHeight
+                                getRowHeight={() => 'auto'}
                                 sx={{
                                     '& .MuiDataGrid-columnHeaders': {
                                         backgroundColor: '#e3f2fd',
@@ -573,7 +641,6 @@ function ChildrenAssessment() {
                                 <Chip label="- Chưa điểm danh" color="default" size="small" />
                                 <Chip label="P Vắng có phép" color="warning" size="small" />
                                 <Chip label="K Vắng không phép" color="error" size="small" />
-                                <Chip label="Đã đánh giá" color="success" size="small" variant="outlined" />
                             </Box>
                         </>
                     )}

@@ -30,7 +30,7 @@ import PageContainer from '~/components/common/PageContainer';
 import PageBreadcrumb from '~/components/common/PageBreadcrumb';
 import { useUser } from '~/contexts/UserContext';
 import { usePermission } from '~/hooks/usePermission';
-import { schoolMenuApplyApi, academicYearApi, scheduleApi, schoolNutritionalStandardApi } from '~/apis';
+import { schoolMenuApplyApi, academicYearApi, scheduleApi, schoolNutritionalStandardApi, schoolApi } from '~/apis';
 import { PERMISSIONS } from '~/config/rbacConfig';
 import { toast } from 'react-toastify';
 import dayjs from '~/config/dayjsConfig';
@@ -40,6 +40,8 @@ import { useConfirmDialog } from '~/hooks/useConfirmDialog';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import MenuApplyCopyDialog from './MenuApplyCopyDialog';
 import DeleteSweepIcon from '@mui/icons-material/DeleteSweep';
+import PictureAsPdfOutlinedIcon from '@mui/icons-material/PictureAsPdfOutlined'; // ✅ NEW
+import { exportWeeklyMenuToPdf } from '~/utils/weeklyMenuPdfExport'; // ✅ NEW
 
 const WEEKDAYS = ['Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6'];
 const MEAL_SESSIONS = ['Bữa sáng', 'Bữa trưa', 'Bữa xế', 'Bữa phụ'];
@@ -70,6 +72,7 @@ function MenuApply() {
     const [dialogData, setDialogData] = useState(null);
     const [openCopyDialog, setOpenCopyDialog] = useState(false);
     const [copyInfo, setCopyInfo] = useState(null);
+    const [exportingPdf, setExportingPdf] = useState(false);
 
     // Permissions
     const canCreate = hasPermission(PERMISSIONS.CREATE_MENU_APPLY);
@@ -503,6 +506,62 @@ function MenuApply() {
         });
     };
 
+    // ✅ NEW: Handle export weekly menu to PDF
+    const handleExportWeeklyMenuPdf = async () => {
+        if (!selectedYear || !selectedAgeGroup || !selectedWeek || !currentWeekData) {
+            toast.warning('Vui lòng chọn đầy đủ năm học, nhóm trẻ và tuần để xuất PDF!');
+            return;
+        }
+
+        try {
+            setExportingPdf(true);
+
+            // ✅ 1. Fetch school info
+            const schoolRes = await schoolApi.getSchoolInfo();
+            const schoolName = schoolRes.data?.data?.name || 'TRƯỜNG MẦM NON';
+
+            console.log('🏫 [Export PDF] School name:', schoolName);
+
+            // ✅ 2. Fetch nutritional standard for the age group
+            const standardRes = await schoolNutritionalStandardApi.getAll({ limit: 100 });
+            const standards = standardRes.data?.data?.standards || [];
+            const nutritionalStandard = standards.find((s) => s.ageGroup === selectedAgeGroup);
+
+            if (!nutritionalStandard) {
+                toast.error('Không tìm thấy định mức dinh dưỡng cho nhóm trẻ này!');
+                return;
+            }
+
+            // ✅ 3. Prepare data for PDF export
+            const weeklyMenuData = {
+                schoolName: schoolName, // ✅ USE: fetched school name
+                ageGroup: selectedAgeGroup,
+                weekNumber: parseInt(selectedWeek),
+                weekStartDate: currentWeekData.startDate,
+                weekEndDate: currentWeekData.endDate,
+                menuApplies: menuApplies,
+                holidays: holidays,
+                nutritionalStandard: {
+                    totalCalories: nutritionalStandard.totalCalories,
+                    recommendedCaloriesMin: nutritionalStandard.recommendedCaloriesMin,
+                    recommendedCaloriesMax: nutritionalStandard.recommendedCaloriesMax,
+                },
+            };
+
+            console.log('📤 [Export Weekly Menu PDF] Data:', weeklyMenuData);
+
+            // ✅ 4. Export PDF
+            await exportWeeklyMenuToPdf(weeklyMenuData);
+
+            toast.success('Xuất PDF thực đơn tuần thành công!');
+        } catch (error) {
+            console.error('❌ Error exporting weekly menu PDF:', error);
+            toast.error(error.response?.data?.message || 'Lỗi khi xuất PDF thực đơn tuần!');
+        } finally {
+            setExportingPdf(false);
+        }
+    };
+
     // Handle dialog close
     const handleDialogClose = () => {
         setOpenDialog(false);
@@ -624,6 +683,34 @@ function MenuApply() {
                                         ))}
                                     </Select>
                                 </FormControl>
+                            )}
+
+                            {/* ✅ NEW: Export PDF Button */}
+                            {selectedYear && selectedAgeGroup && selectedWeek && currentWeekData && (
+                                <Tooltip title="Xuất file PDF thực đơn tuần">
+                                    <span>
+                                        <IconButton
+                                            onClick={handleExportWeeklyMenuPdf}
+                                            disabled={exportingPdf}
+                                            sx={{
+                                                color: '#e74c3c',
+                                                bgcolor: 'rgba(231, 76, 60, 0.08)',
+                                                '&:hover': {
+                                                    bgcolor: 'rgba(231, 76, 60, 0.15)',
+                                                },
+                                                '&:disabled': {
+                                                    bgcolor: 'rgba(0, 0, 0, 0.04)',
+                                                },
+                                            }}
+                                        >
+                                            {exportingPdf ? (
+                                                <CircularProgress size={20} sx={{ color: '#e74c3c' }} />
+                                            ) : (
+                                                <PictureAsPdfOutlinedIcon />
+                                            )}
+                                        </IconButton>
+                                    </span>
+                                </Tooltip>
                             )}
 
                             {/* ✅ NEW: Copy Button */}

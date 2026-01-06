@@ -22,7 +22,7 @@ import MainLayout from '~/layouts/SchoolLayout';
 import PageContainer from '~/components/common/PageContainer';
 import PageBreadcrumb from '~/components/common/PageBreadcrumb';
 import { useUser } from '~/contexts/UserContext';
-import { schoolMenuApi, schoolNutritionalStandardApi } from '~/apis';
+import { schoolMenuApi, schoolNutritionalStandardApi, schoolApi } from '~/apis';
 import { toast } from 'react-toastify';
 import ConfirmDialog from '~/components/common/ConfirmDialog';
 import { useConfirmDialog } from '~/hooks/useConfirmDialog';
@@ -136,18 +136,22 @@ function Menu() {
 
     // ✅ NEW: Handle PDF Export
     const handleExportPdf = async (menuId, menuName) => {
-        // 1. Set loading ngay lập tức để hiện vòng tròn xoay
         setExportingPdfId(menuId);
 
-        // 2. Dùng setTimeout để đẩy việc nặng ra sau khi UI đã render xong loading
         setTimeout(async () => {
             try {
-                // Fetch chi tiết thực đơn
+                // ✅ 1. Fetch school info
+                const schoolRes = await schoolApi.getSchoolInfo();
+                const schoolName = schoolRes.data?.data?.name || 'TRƯỜNG MẦM NON';
+
+                console.log('🏫 [Export PDF Menu] School name:', schoolName);
+
+                // ✅ 2. Fetch chi tiết thực đơn
                 const res = await schoolMenuApi.getDetails(menuId);
                 const menuDetails = res.data.data;
 
-                // Export PDF (Tác vụ nặng gây lag)
-                await exportMenuToPdf(menuDetails, user?.school?.name || 'TRƯỜNG MẦM NON');
+                // ✅ 3. Export PDF với tên trường đã fetch
+                await exportMenuToPdf(menuDetails, schoolName); // ✅ USE: fetched school name
 
                 toast.success(`Xuất PDF thành công: ${menuName}`);
             } catch (error) {
@@ -156,7 +160,7 @@ function Menu() {
             } finally {
                 setExportingPdfId(null);
             }
-        }, 100); // Delay 100ms để UI kịp cập nhật
+        }, 100);
     };
 
     useEffect(() => {
@@ -427,7 +431,7 @@ function Menu() {
                     <Box>
                         {/* PDF Export Button */}
                         {canExportPdf && (
-                            <Tooltip title="Xuất file PDF">
+                            <Tooltip title="Xuất file PDF phiếu yêu cầu thực phẩm">
                                 {/* ✅ FIX: Bọc IconButton trong span để Tooltip hoạt động đúng khi nút bị disabled */}
                                 <span>
                                     <IconButton

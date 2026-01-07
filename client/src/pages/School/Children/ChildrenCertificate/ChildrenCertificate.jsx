@@ -158,6 +158,8 @@ function ChildrenCertificate() {
                 certificate: student.certificate,
                 isGoodChild: student.certificate?.isGoodChild || false,
                 comment: student.certificate?.comment || '',
+                createdAt: student.certificate?.createdAt || null, // ✅ ADD
+                updatedAt: student.certificate?.updatedAt || null, // ✅ ADD
             }));
 
             setRows(mappedRows);
@@ -270,6 +272,23 @@ function ChildrenCertificate() {
         });
     };
 
+    // ✅ Format date time
+    const formatDateTime = (dateTime) => {
+        if (!dateTime) return '---';
+        const date = dayjs(dateTime).format('DD/MM/YYYY');
+        const time = dayjs(dateTime).format('HH:mm:ss');
+        return (
+            <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.3 }}>
+                <Typography variant="body2" fontWeight={600}>
+                    {time}
+                </Typography>
+                <Typography variant="caption" color="text.secondary">
+                    {date}
+                </Typography>
+            </Box>
+        );
+    };
+
     // ✅ DataGrid columns
     const columns = [
         { field: 'stt', headerName: 'STT', width: 60, sortable: false },
@@ -285,9 +304,10 @@ function ChildrenCertificate() {
         {
             field: 'isGoodChild',
             headerName: 'Hoa bé ngoan',
-            flex: 0.8,
-            minWidth: 150,
+            flex: 0.6,
+            minWidth: 100,
             sortable: false,
+            headerAlign: 'center',
             align: 'center',
             renderCell: (params) => (
                 <Box
@@ -308,6 +328,7 @@ function ChildrenCertificate() {
                         sx={{
                             width: 52, // Kích thước ảnh (tương đương fontSize 32px cũ)
                             height: 52,
+                            borderRadius: 2,
                             objectFit: 'contain',
                             // Logic xử lý hiển thị:
                             // Nếu có phiếu (params.value = true) -> opacity 1 (rõ nét)
@@ -329,9 +350,9 @@ function ChildrenCertificate() {
         },
         {
             field: 'comment',
-            headerName: 'Nhận xét',
-            flex: 1.5,
-            minWidth: 250,
+            headerName: 'Nhận xét của giáo viên',
+            flex: 1.7,
+            minWidth: 280,
             sortable: false,
             renderCell: (params) => (
                 <Typography
@@ -346,6 +367,28 @@ function ChildrenCertificate() {
                 </Typography>
             ),
         },
+        // ✅ ADD: Ngày tạo
+        {
+            field: 'createdAt',
+            headerName: 'Ngày tạo',
+            flex: 0.6,
+            minWidth: 100,
+            sortable: false,
+            align: 'center',
+            headerAlign: 'center',
+            renderCell: (params) => formatDateTime(params.value),
+        },
+        // ✅ ADD: Ngày sửa
+        {
+            field: 'updatedAt',
+            headerName: 'Ngày sửa',
+            flex: 0.6,
+            minWidth: 100,
+            sortable: false,
+            align: 'center',
+            headerAlign: 'center',
+            renderCell: (params) => formatDateTime(params.value),
+        },
     ];
 
     // ✅ Add actions column if user has permission
@@ -353,8 +396,8 @@ function ChildrenCertificate() {
         columns.push({
             field: 'actions',
             headerName: 'Thao tác',
-            flex: 0.5,
-            minWidth: 100,
+            flex: 0.4,
+            minWidth: 80,
             sortable: false,
             align: 'center',
             renderCell: (params) => (

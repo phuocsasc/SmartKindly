@@ -7,6 +7,7 @@ import { AcademicYearModel } from '~/models/academicYearModel.js';
 import { DepartmentModel } from '~/models/departmentModel.js';
 import { ScheduleModel } from '~/models/scheduleModel.js';
 import { UserModel } from '~/models/userModel.js';
+import { ChildrenDailyAssessmentModel } from '~/models/childrenDailyAssessmentModel.js';
 import dayjs from 'dayjs'; // ✅ Import dayjs
 
 const ALLOWED_STATUSES = ['Có mặt', 'Vắng có phép', 'Vắng không phép'];
@@ -459,8 +460,51 @@ const deleteAttendance = async (id, userId) => {
         throw new ApiError(StatusCodes.FORBIDDEN, 'Bạn không có quyền xóa điểm danh lớp này');
     }
 
+    // ✅ 4. Lưu thông tin trước khi xóa (để log)
+    const studentId = doc.studentId;
+    const classId = doc.classId;
+    const academicYearId = doc.academicYearId;
+    const date = doc.date;
+    const dateStr = dayjs(date).format('YYYY-MM-DD');
+
+    console.log(`🗑️ [deleteAttendance] Deleting attendance for student ${studentId} on ${dateStr}`);
+
+    // ✅ 5. Xóa CASCADE: Tìm và xóa cứng bản đánh giá trẻ cùng ngày
+    // ⚠️ FIX: Query bằng startOfDay và endOfDay để match chính xác
+    const startOfDay = dayjs(date).startOf('day').toDate();
+    const endOfDay = dayjs(date).endOf('day').toDate();
+
+    console.log('🔍 [deleteAttendance] Finding assessments between:', {
+        startOfDay: dayjs(startOfDay).format('YYYY-MM-DD HH:mm:ss'),
+        endOfDay: dayjs(endOfDay).format('YYYY-MM-DD HH:mm:ss'),
+        studentId: studentId.toString(),
+        classId: classId.toString(),
+        academicYearId: academicYearId.toString(),
+    });
+
+    // ⚠️ FIX: Query với $gte và $lte để match cả ngày
+    const assessmentDeleteResult = await ChildrenDailyAssessmentModel.deleteMany({
+        schoolId: user.schoolId,
+        academicYearId: academicYearId,
+        classId: classId,
+        studentId: studentId,
+        date: {
+            $gte: startOfDay,
+            $lte: endOfDay,
+        },
+    });
+
+    console.log(
+        `🗑️ [deleteAttendance] Cascade deleted ${assessmentDeleteResult.deletedCount} assessment(s) for student on ${dateStr}`,
+    );
+
     await ChildrenAttendanceModel.deleteOne({ _id: id });
-    return { message: 'Xóa điểm danh thành công' };
+    return {
+        message: 'Xóa điểm danh thành công',
+        cascadeDeleted: {
+            assessments: assessmentDeleteResult.deletedCount,
+        },
+    };
 };
 
 /**

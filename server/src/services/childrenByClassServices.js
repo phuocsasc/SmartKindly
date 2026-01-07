@@ -7,6 +7,8 @@ import ApiError from '~/utils/ApiError.js';
 import { StatusCodes } from 'http-status-codes';
 import { removeVietnameseTones } from '~/utils/formatters.js';
 import { ChildrenAttendanceModel } from '~/models/childrenAttendanceModel.js';
+import { ChildrenDailyAssessmentModel } from '~/models/childrenDailyAssessmentModel.js'; // ✅ ADD
+
 /**
  * ✅ Helper: Check permission - Chỉ BGH mới được thao tác
  */
@@ -534,6 +536,27 @@ const transferStudents = async (data, userId) => {
             `✅ [transferStudents] Updated ${attendanceUpdateResult.modifiedCount} attendance records from class "${fromClass.name}" to "${toClass.name}"`,
         );
 
+        // ✅ BƯỚC 4: Update DAILY ASSESSMENT DATA - Chuyển classId sang lớp mới
+        const assessmentUpdateResult = await ChildrenDailyAssessmentModel.updateMany(
+            {
+                schoolId: user.schoolId,
+                academicYearId: academicYearId,
+                classId: fromClassId,
+                studentId: { $in: studentObjectIds },
+                _destroy: false,
+            },
+            {
+                $set: {
+                    classId: toClassId,
+                    lastUpdatedBy: userId,
+                },
+            },
+        );
+
+        console.log(
+            `✅ [transferStudents] Updated ${assessmentUpdateResult.modifiedCount} daily assessment records from class "${fromClass.name}" to "${toClass.name}"`,
+        );
+
         console.log('✅ [ChildrenByClass transferStudents] Transferred:', studentIds.length, 'students');
 
         return {
@@ -542,6 +565,7 @@ const transferStudents = async (data, userId) => {
             fromClassName: fromClass.name,
             toClassName: toClass.name,
             attendanceUpdated: attendanceUpdateResult.modifiedCount,
+            assessmentUpdated: assessmentUpdateResult.modifiedCount, // ✅ ADD: Số đánh giá đã update
         };
     } catch (error) {
         console.error('❌ [ChildrenByClass transferStudents] Error:', error);

@@ -177,7 +177,7 @@ function ChildrenAssessmentDialog({
     // ✅ Handle delete
     const handleDelete = async () => {
         if (!existingAssessment?._id) return;
-        if (!window.confirm('Bạn có chắc chắn muốn xóa đánh giá này không?')) return;
+        // if (!window.confirm('Bạn có chắc chắn muốn xóa đánh giá này không?')) return;
 
         try {
             setLoading(true);

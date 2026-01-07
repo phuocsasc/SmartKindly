@@ -39,7 +39,7 @@ const AssessmentRow = ({ icon, color, label, value }) => {
                         sx={{
                             fontSize: '0.8125rem',
                             lineHeight: 1.5,
-                            fontWeight: 400,
+                            fontWeight: 600,
                             color: 'text.secondary', // Màu chữ dịu hơn
                             display: '-webkit-box',
                             WebkitLineClamp: 2,

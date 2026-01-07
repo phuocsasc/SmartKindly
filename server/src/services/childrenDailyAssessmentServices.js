@@ -580,8 +580,8 @@ const deleteAssessment = async (id, userId) => {
             throw new ApiError(StatusCodes.FORBIDDEN, 'Bạn không có quyền xóa đánh giá này');
         }
 
-        assessment._destroy = true;
-        await assessment.save();
+        // assessment._destroy = true;
+        // await assessment.save();
 
         const targetDate = dayjs(assessment.date);
         const dayOfWeek = targetDate.day();
@@ -593,12 +593,20 @@ const deleteAssessment = async (id, userId) => {
             5: 'Thứ 6',
         };
 
+        const messageAudit = `Xóa đánh giá học sinh "${assessment.studentId.fullName}" - ${dayNames[dayOfWeek]} - Tuần ${assessment.weekNumber} - Lớp "${assessment.classId.name}" - Năm học ${assessment.academicYearId.fromYear}-${assessment.academicYearId.toYear}`;
+
+        // 2. Xóa cứng khỏi DB
+        await ChildrenDailyAssessmentModel.deleteOne({
+            _id: id,
+            schoolId: user.schoolId,
+        });
+
         await logAction(
             userId,
             user.schoolId,
             AUDIT_LOG_ACTIONS.DELETE,
             AUDIT_LOG_RESOURCES.CHILDREN_ASSESSMENT,
-            `Xóa đánh giá học sinh "${assessment.studentId.fullName}" - ${dayNames[dayOfWeek]} - Tuần ${assessment.weekNumber} - Lớp "${assessment.classId.name}" - Năm học ${assessment.academicYearId.fromYear}-${assessment.academicYearId.toYear}`,
+            messageAudit,
             {
                 assessmentId: id,
                 classId: assessment.classId._id,

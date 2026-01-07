@@ -272,6 +272,10 @@ const getAll = async (query, userId) => {
             throw new ApiError(StatusCodes.BAD_REQUEST, 'Lớp học là bắt buộc');
         }
 
+        if (!weekNumber) {
+            throw new ApiError(StatusCodes.BAD_REQUEST, 'Tuần là bắt buộc');
+        }
+
         // Validate year
         await getAcademicYearOrThrow(user.schoolId, academicYearId);
 
@@ -281,51 +285,106 @@ const getAll = async (query, userId) => {
             throw new ApiError(StatusCodes.FORBIDDEN, 'Bạn không có quyền xem phiếu bé ngoan của lớp này');
         }
 
-        const filter = {
+        // ✅ BƯỚC 1: Get ALL students in class (with managementStatus filter)
+        const allStudentsInClass = await ChildrenByClassModel.find({
             schoolId: user.schoolId,
             academicYearId,
             classId,
+            managementStatus: { $in: ['Đang học', 'Nghỉ học'] },
             _destroy: false,
-        };
+        })
+            .populate('studentId', 'fullName studentCode status')
+            .select('studentId managementStatus')
+            .lean();
 
-        if (weekNumber) filter.weekNumber = parseInt(weekNumber);
+        // ✅ BƯỚC 2: Filter students by search text
+        let filteredStudents = allStudentsInClass.filter((s) => s.studentId);
 
-        // Search by student name/code
         if (search) {
-            const students = await ChildrenManagementModel.find({
-                schoolId: user.schoolId,
-                $or: [
-                    { fullName: { $regex: search, $options: 'i' } },
-                    { studentCode: { $regex: search, $options: 'i' } },
-                ],
-                _destroy: false,
-            }).select('_id');
-
-            filter.studentId = { $in: students.map((s) => s._id) };
+            const searchLower = search.toLowerCase();
+            filteredStudents = filteredStudents.filter((s) => {
+                const fullName = s.studentId.fullName?.toLowerCase() || '';
+                const studentCode = s.studentId.studentCode?.toLowerCase() || '';
+                return fullName.includes(searchLower) || studentCode.includes(searchLower);
+            });
         }
 
+        const totalStudents = filteredStudents.length;
+        const totalPages = Math.ceil(totalStudents / limit);
         const skip = (page - 1) * limit;
 
-        const [certificates, total] = await Promise.all([
-            ChildrenCertificateModel.find(filter)
-                .populate('studentId', 'fullName studentCode status')
-                .populate('classId', 'name grade ageGroup')
-                .populate('createdBy', 'fullName username')
-                .populate('lastUpdatedBy', 'fullName username')
-                .sort({ weekNumber: -1, createdAt: -1 })
-                .skip(skip)
-                .limit(limit)
-                .lean(),
-            ChildrenCertificateModel.countDocuments(filter),
-        ]);
+        // ✅ BƯỚC 3: Paginate students
+        const paginatedStudents = filteredStudents.slice(skip, skip + limit);
+        const studentIds = paginatedStudents.map((s) => s.studentId._id.toString());
+
+        console.log('📊 [getAll] Pagination info:', {
+            totalStudents,
+            page,
+            limit,
+            totalPages,
+            currentPageStudents: paginatedStudents.length,
+        });
+
+        // ✅ BƯỚC 4: Get certificates for paginated students
+        const certificates = await ChildrenCertificateModel.find({
+            schoolId: user.schoolId,
+            academicYearId,
+            classId,
+            weekNumber: parseInt(weekNumber),
+            studentId: { $in: studentIds },
+            _destroy: false,
+        })
+            .populate('studentId', 'fullName studentCode status')
+            .populate('createdBy', 'fullName username')
+            .populate('lastUpdatedBy', 'fullName username')
+            .lean();
+
+        console.log('📋 [getAll] Certificates found:', certificates.length);
+
+        // ✅ BƯỚC 5: Build certificateMap for quick lookup
+        const certificateMap = {};
+        certificates.forEach((cert) => {
+            if (cert.studentId && cert.studentId._id) {
+                certificateMap[cert.studentId._id.toString()] = cert;
+            }
+        });
+
+        // ✅ BƯỚC 6: Build response with students + certificates
+        const studentsWithCertificates = paginatedStudents.map((student) => {
+            const studentId = student.studentId._id.toString();
+            const certificate = certificateMap[studentId] || null;
+
+            return {
+                studentId: student.studentId._id,
+                fullName: student.studentId.fullName,
+                studentCode: student.studentId.studentCode,
+                managementStatus: student.managementStatus,
+                certificate: certificate
+                    ? {
+                          _id: certificate._id,
+                          isGoodChild: certificate.isGoodChild,
+                          comment: certificate.comment,
+                          createdBy: certificate.createdBy,
+                          lastUpdatedBy: certificate.lastUpdatedBy,
+                          createdAt: certificate.createdAt,
+                          updatedAt: certificate.updatedAt,
+                      }
+                    : null,
+            };
+        });
+
+        console.log('✅ [getAll] Response:', {
+            studentsCount: studentsWithCertificates.length,
+            withCertificate: studentsWithCertificates.filter((s) => s.certificate !== null).length,
+        });
 
         return {
-            certificates,
+            students: studentsWithCertificates,
             pagination: {
                 page: parseInt(page),
                 limit: parseInt(limit),
-                total,
-                totalPages: Math.ceil(total / limit),
+                totalItems: totalStudents,
+                totalPages,
             },
         };
     } catch (error) {

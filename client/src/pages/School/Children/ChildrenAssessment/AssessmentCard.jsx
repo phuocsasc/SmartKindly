@@ -110,7 +110,7 @@ const AssessmentCard = ({ assessment }) => {
                 {/* Tăng khoảng cách giữa các dòng cho thoáng */}
                 <AssessmentRow
                     icon={<HealthAndSafetyIcon />}
-                    color="error"
+                    color="primary"
                     label="Tình trạng sức khỏe"
                     value={assessment.healthStatus}
                 />
@@ -129,7 +129,7 @@ const AssessmentCard = ({ assessment }) => {
                 {!!(assessment.notes || '').trim() && (
                     <AssessmentRow
                         icon={<NoteIcon />}
-                        color="primary"
+                        color="error"
                         label="Ghi chú giáo viên"
                         value={assessment.notes}
                     />

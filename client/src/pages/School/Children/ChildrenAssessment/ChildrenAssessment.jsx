@@ -349,7 +349,7 @@ function ChildrenAssessment() {
                             height: '100%',
                             display: 'flex',
                             flexDirection: 'column',
-                            justifyContent: holiday || !canAssess ? 'center' : 'flex-start',
+                            justifyContent: holiday || !canAssess ? 'center' : 'center',
                             alignItems: 'stretch',
                             position: 'relative', // Để định vị các thành phần con nếu cần
                         }}
@@ -380,7 +380,7 @@ function ChildrenAssessment() {
                                 }}
                             >
                                 <Box sx={{ display: 'flex', justifyContent: 'center' }}>
-                                    <Chip label={chipProps.label} color={chipProps.color} size="small" />
+                                    <Chip label={`${chipProps.name}`} color={chipProps.color} size="small" />
                                 </Box>
                             </Tooltip>
                         ) : (
@@ -634,14 +634,6 @@ function ChildrenAssessment() {
                                     },
                                 }}
                             />
-
-                            {/* Legend */}
-                            <Box sx={{ mt: 2, display: 'flex', gap: 1, flexWrap: 'wrap', justifyContent: 'center' }}>
-                                {/* <Chip label="✓ Có mặt" color="success" size="small" /> */}
-                                <Chip label="- Chưa điểm danh" color="default" size="small" />
-                                <Chip label="P Vắng có phép" color="warning" size="small" />
-                                <Chip label="K Vắng không phép" color="error" size="small" />
-                            </Box>
                         </>
                     )}
                 </Paper>

@@ -9,19 +9,13 @@ import {
     InputLabel,
     Select,
     MenuItem,
-    CircularProgress,
     TextField,
     IconButton,
     Tooltip,
-    Table,
-    TableBody,
-    TableCell,
-    TableContainer,
-    TableHead,
-    TableRow,
     Alert,
     Chip,
 } from '@mui/material';
+import { DataGrid } from '@mui/x-data-grid';
 import PeopleIcon from '@mui/icons-material/People';
 import LocalFloristRoundedIcon from '@mui/icons-material/LocalFloristRounded';
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
@@ -32,7 +26,7 @@ import PageContainer from '~/components/common/PageContainer';
 import PageBreadcrumb from '~/components/common/PageBreadcrumb';
 import { useUser } from '~/contexts/UserContext';
 import { usePermission } from '~/hooks/usePermission';
-import { childrenCertificateApi, academicYearApi, childrenByClassApi } from '~/apis';
+import { childrenCertificateApi, academicYearApi } from '~/apis';
 import { PERMISSIONS } from '~/config/rbacConfig';
 import { toast } from 'react-toastify';
 import dayjs from '~/config/dayjsConfig';
@@ -55,9 +49,10 @@ function ChildrenCertificate() {
     const [selectedWeek, setSelectedWeek] = useState('');
     const [searchText, setSearchText] = useState('');
 
-    // Certificate data
-    const [students, setStudents] = useState([]);
-    const [certificates, setCertificates] = useState({});
+    // ✅ DataGrid state
+    const [rows, setRows] = useState([]);
+    const [paginationModel, setPaginationModel] = useState({ page: 0, pageSize: 10 });
+    const [totalRows, setTotalRows] = useState(0);
 
     // Dialog state
     const [openDialog, setOpenDialog] = useState(false);
@@ -111,7 +106,7 @@ function ChildrenCertificate() {
         }
     };
 
-    // ✅ Fetch valid weeks (exclude fully holiday weeks Mon-Fri)
+    // ✅ Fetch valid weeks
     const fetchValidWeeks = async () => {
         if (!selectedYear) return;
 
@@ -135,64 +130,54 @@ function ChildrenCertificate() {
         }
     };
 
-    // ✅ Fetch certificate data
+    // ✅ Fetch certificate data with pagination
     const fetchCertificateData = async () => {
         if (!selectedYear || !selectedClass || !selectedWeek) return;
 
         try {
             setLoading(true);
 
-            // 1. Get students from class
-            const studentsRes = await childrenByClassApi.getAll({
-                academicYearId: selectedYear,
-                classId: selectedClass,
-                page: 1,
-                limit: 1000,
-            });
-
-            // ✅ FIX: childrenByClassApi trả về data.children (KHÔNG PHẢI data.students)
-            const studentsData = (studentsRes.data.data.children || []).filter(
-                (s) => s.studentId && (s.managementStatus === 'Đang học' || s.managementStatus === 'Nghỉ học'),
-            );
-
-            console.log('✅ [fetchCertificateData] Students loaded:', studentsData.length);
-
-            // 2. Get certificates
-            const certificatesRes = await childrenCertificateApi.getAll({
+            const res = await childrenCertificateApi.getAll({
                 academicYearId: selectedYear,
                 classId: selectedClass,
                 weekNumber: selectedWeek,
                 search: searchText,
+                page: paginationModel.page + 1,
+                limit: paginationModel.pageSize,
             });
 
-            const { certificates: certificatesList } = certificatesRes.data.data;
+            const { students, pagination } = res.data.data;
 
-            // 3. Map certificates by studentId
-            const certificateMap = {};
-            (certificatesList || []).forEach((cert) => {
-                if (cert.studentId && cert.studentId._id) {
-                    certificateMap[cert.studentId._id] = cert;
-                }
-            });
+            // ✅ Map to DataGrid rows
+            const mappedRows = students.map((student, index) => ({
+                id: student.studentId,
+                stt: paginationModel.page * paginationModel.pageSize + index + 1,
+                studentId: student.studentId,
+                fullName: student.fullName,
+                studentCode: student.studentCode,
+                managementStatus: student.managementStatus,
+                certificate: student.certificate,
+                isGoodChild: student.certificate?.isGoodChild || false,
+                comment: student.certificate?.comment || '',
+            }));
 
-            setStudents(studentsData);
-            setCertificates(certificateMap);
+            setRows(mappedRows);
+            setTotalRows(pagination.totalItems);
 
-            console.log('✅ [fetchCertificateData] Certificate data loaded:', {
-                studentsCount: studentsData.length,
-                certificatesCount: certificatesList?.length || 0,
+            console.log('✅ [fetchCertificateData] Loaded:', {
+                studentsCount: mappedRows.length,
+                totalItems: pagination.totalItems,
+                page: pagination.page,
             });
         } catch (error) {
             console.error('❌ [fetchCertificateData] Error:', error);
 
-            if (error?.response?.status === 404) {
-                console.log('⚠️ Class not found - may be switching years');
-            } else {
+            if (error?.response?.status !== 404) {
                 toast.error(error.response?.data?.message || 'Lỗi khi tải dữ liệu phiếu bé ngoan!');
             }
 
-            setStudents([]);
-            setCertificates({});
+            setRows([]);
+            setTotalRows(0);
         } finally {
             setLoading(false);
         }
@@ -208,8 +193,7 @@ function ChildrenCertificate() {
         if (selectedYear) {
             setSelectedClass('');
             setSelectedWeek('');
-            setStudents([]);
-            setCertificates({});
+            setRows([]);
 
             fetchClasses();
             fetchValidWeeks();
@@ -218,13 +202,12 @@ function ChildrenCertificate() {
             setWeeks([]);
             setSelectedClass('');
             setSelectedWeek('');
-            setStudents([]);
-            setCertificates({});
+            setRows([]);
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [selectedYear]);
 
-    // ✅ When class/week/search changes: reload certificate data
+    // ✅ When class/week/search/pagination changes: reload data
     useEffect(() => {
         if (selectedYear && selectedClass && selectedWeek && classes.length > 0) {
             const classExists = classes.some((cls) => cls._id === selectedClass);
@@ -235,11 +218,10 @@ function ChildrenCertificate() {
 
             fetchCertificateData();
         } else {
-            setStudents([]);
-            setCertificates({});
+            setRows([]);
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [selectedYear, selectedClass, selectedWeek, searchText, classes]);
+    }, [selectedYear, selectedClass, selectedWeek, searchText, paginationModel, classes]);
 
     // ✅ Format week label
     const formatWeekLabel = (week) => {
@@ -249,35 +231,36 @@ function ChildrenCertificate() {
     };
 
     // ✅ Handle edit/create certificate
-    const handleEdit = (student) => {
+    const handleEdit = (row) => {
         if (!isActiveYear && !canUpdate) return;
 
-        const certificate = certificates[student.studentId._id] || null;
-
         setDialogData({
-            studentInfo: student.studentId,
+            studentInfo: {
+                _id: row.studentId,
+                fullName: row.fullName,
+                studentCode: row.studentCode,
+            },
             classId: selectedClass,
             academicYearId: selectedYear,
             weekNumber: parseInt(selectedWeek),
-            existingCertificate: certificate,
+            existingCertificate: row.certificate,
         });
         setOpenDialog(true);
     };
 
     // ✅ Handle delete certificate
-    const handleDelete = (student) => {
-        const certificate = certificates[student.studentId._id];
-        if (!certificate) return;
+    const handleDelete = (row) => {
+        if (!row.certificate) return;
 
         showConfirm({
             title: 'Xác nhận xóa phiếu bé ngoan',
-            message: `Bạn có chắc chắn muốn xóa phiếu bé ngoan của bé "${student.studentId.fullName}" trong tuần ${selectedWeek}?`,
+            message: `Bạn có chắc chắn muốn xóa phiếu bé ngoan của bé "${row.fullName}" trong tuần ${selectedWeek}?`,
             severity: 'error',
             confirmText: 'Xóa',
             cancelText: 'Hủy',
             onConfirm: async () => {
                 try {
-                    await childrenCertificateApi.delete(certificate._id);
+                    await childrenCertificateApi.delete(row.certificate._id);
                     toast.success('Xóa phiếu bé ngoan thành công!');
                     fetchCertificateData();
                 } catch (error) {
@@ -288,12 +271,111 @@ function ChildrenCertificate() {
         });
     };
 
-    // ✅ Filter students by search
-    const filteredStudents = students.filter(
-        (student) =>
-            student.studentId.fullName.toLowerCase().includes(searchText.toLowerCase()) ||
-            student.studentId.studentCode.toLowerCase().includes(searchText.toLowerCase()),
-    );
+    // ✅ DataGrid columns
+    const columns = [
+        { field: 'stt', headerName: 'STT', width: 60, sortable: false },
+        {
+            field: 'fullName',
+            headerName: 'Họ tên học sinh',
+            flex: 1,
+            minWidth: 150,
+            sortable: false,
+            renderCell: (params) => <Typography sx={{ fontWeight: 600 }}>{params.value}</Typography>,
+        },
+        { field: 'studentCode', headerName: 'Mã học sinh', flex: 0.6, minWidth: 100, sortable: false },
+        {
+            field: 'isGoodChild',
+            headerName: 'Hoa bé ngoan',
+            flex: 0.8,
+            minWidth: 150,
+            sortable: false,
+            align: 'center',
+            renderCell: (params) => (
+                <Box
+                    sx={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: 1,
+                        cursor: isActiveYear && canCreate ? 'pointer' : 'default',
+                    }}
+                    onClick={() => isActiveYear && canCreate && handleEdit(params.row)}
+                >
+                    <LocalFloristRoundedIcon
+                        sx={{
+                            fontSize: 32,
+                            color: params.value ? '#ff4081' : '#bdbdbd',
+                            transition: 'all 0.3s',
+                            '&:hover': {
+                                transform: isActiveYear && canCreate ? 'scale(1.2)' : 'none',
+                            },
+                        }}
+                    />
+                    {params.value && (
+                        <Chip
+                            label="Bé ngoan"
+                            size="small"
+                            sx={{
+                                bgcolor: '#ffe0ec',
+                                color: '#ff4081',
+                                fontWeight: 600,
+                                fontSize: '0.75rem',
+                            }}
+                        />
+                    )}
+                </Box>
+            ),
+        },
+        {
+            field: 'comment',
+            headerName: 'Nhận xét',
+            flex: 1.5,
+            minWidth: 250,
+            sortable: false,
+            renderCell: (params) => (
+                <Typography
+                    variant="body2"
+                    sx={{
+                        whiteSpace: 'pre-line',
+                        wordBreak: 'break-word',
+                        color: params.value ? '#000' : '#757575',
+                    }}
+                >
+                    {params.value || 'Chưa có nhận xét'}
+                </Typography>
+            ),
+        },
+    ];
+
+    // ✅ Add actions column if user has permission
+    if (isActiveYear && (canCreate || canUpdate || canDelete)) {
+        columns.push({
+            field: 'actions',
+            headerName: 'Thao tác',
+            flex: 0.5,
+            minWidth: 100,
+            sortable: false,
+            align: 'center',
+            renderCell: (params) => (
+                <Box sx={{ display: 'flex', gap: 0.5, justifyContent: 'center' }}>
+                    {(canCreate || canUpdate) && (
+                        <Tooltip title={params.row.certificate ? 'Chỉnh sửa phiếu' : 'Thêm phiếu mới'}>
+                            <IconButton size="small" color="primary" onClick={() => handleEdit(params.row)}>
+                                <EditOutlinedIcon fontSize="small" />
+                            </IconButton>
+                        </Tooltip>
+                    )}
+                    {canDelete && params.row.certificate && (
+                        <Tooltip title="Xóa phiếu">
+                            <IconButton size="small" color="error" onClick={() => handleDelete(params.row)}>
+                                <DeleteOutlineOutlinedIcon fontSize="small" />
+                            </IconButton>
+                        </Tooltip>
+                    )}
+                </Box>
+            ),
+        });
+    }
 
     return (
         <MainLayout user={user}>
@@ -306,7 +388,7 @@ function ChildrenCertificate() {
                     {/* Toolbar */}
                     <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
                         <Typography variant="h5" fontWeight={600}>
-                            Phiếu bé ngoan
+                            Phiếu bé ngoan hằng tuần
                         </Typography>
 
                         <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', flexWrap: 'wrap' }}>
@@ -407,266 +489,76 @@ function ChildrenCertificate() {
                         </Alert>
                     )}
 
-                    {/* Certificate Table */}
-                    {loading ? (
-                        <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
-                            <CircularProgress />
-                        </Box>
-                    ) : !selectedYear || !selectedClass || !selectedWeek ? (
+                    {/* DataGrid */}
+                    {!selectedYear || !selectedClass || !selectedWeek ? (
                         <Alert severity="info">Vui lòng chọn năm học, lớp học và tuần để xem phiếu bé ngoan.</Alert>
                     ) : (
-                        <TableContainer
+                        <DataGrid
+                            rows={rows}
+                            columns={columns}
+                            loading={loading}
+                            paginationMode="server"
+                            paginationModel={paginationModel}
+                            onPaginationModelChange={setPaginationModel}
+                            rowCount={totalRows}
+                            pageSizeOptions={[5, 10, 20, 50]}
+                            disableRowSelectionOnClick
+                            disableColumnMenu
+                            autoHeight
+                            getRowHeight={() => 'auto'}
                             sx={{
-                                maxHeight: 500,
-                                overflowY: 'auto',
-                                overflowX: 'auto',
-                                position: 'relative',
-                                '&::-webkit-scrollbar': { width: '6px', height: '8px' },
-                                '&::-webkit-scrollbar-track': { backgroundColor: '#e3f2fd' },
-                                '&::-webkit-scrollbar-thumb': {
-                                    backgroundColor: '#0964a1a4',
-                                    borderRadius: '4px',
+                                '& .MuiDataGrid-columnHeaders': {
+                                    backgroundColor: '#e3f2fd',
+                                    color: '#1976d2',
+                                    fontWeight: 900,
+                                    borderBottom: '2px solid #bbdefb',
                                 },
-                                '&::-webkit-scrollbar-thumb:hover': { backgroundColor: '#0071BC' },
-                                border: '1px solid #e0e0e0',
+                                '& .MuiDataGrid-columnHeaderTitle': {
+                                    fontWeight: 'bold',
+                                    fontSize: '0.95rem',
+                                },
+                                '& .MuiDataGrid-columnHeader': {
+                                    borderRight: '1px solid #bbdefb',
+                                    textAlign: 'center',
+                                },
+                                '& .MuiDataGrid-cell': {
+                                    borderRight: '1px solid #e0e0e0',
+                                    borderBottom: '1px solid #f0f0f0',
+                                    alignItems: 'center',
+                                    whiteSpace: 'normal',
+                                    wordBreak: 'break-word',
+                                    color: '#000',
+                                    py: 1,
+                                },
+                                '& .MuiDataGrid-cell:focus, & .MuiDataGrid-cell:focus-within': {
+                                    outline: 'none',
+                                },
+                                '& .MuiDataGrid-row:hover': {
+                                    backgroundColor: '#f5faff',
+                                },
                                 borderRadius: 2,
                                 boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+                                border: 'none',
                             }}
-                        >
-                            <Table
-                                stickyHeader
-                                size="small"
-                                sx={{
-                                    // Header style
-                                    '& .MuiTableHead-root .MuiTableCell-head': {
-                                        backgroundColor: '#e3f2fd',
-                                        color: '#1976d2',
-                                        fontWeight: 600,
-                                        borderBottom: '2px solid #bbdefb',
-                                        borderRight: '1px solid #bbdefb',
-                                        fontSize: '0.95rem',
-                                        textAlign: 'center',
-                                        zIndex: 2,
-                                    },
-
-                                    // Body style
-                                    '& .MuiTableBody-root .MuiTableCell-body': {
-                                        borderRight: '1px solid #e0e0e0',
-                                        borderBottom: '1px solid #f0f0f0',
-                                        whiteSpace: 'normal',
-                                        wordBreak: 'break-word',
-                                        color: '#000',
-                                        padding: '8px 10px',
-                                        fontSize: '0.9rem',
-                                    },
-
-                                    // Row hover
-                                    '& .MuiTableRow-root:hover': {
-                                        backgroundColor: '#f5faff',
-                                    },
-
-                                    // Fixed columns (STT, Họ tên, Mã HS)
-                                    '& .MuiTableCell-root': {
-                                        '&.sticky-col-stt': {
-                                            position: 'sticky',
-                                            left: 0,
-                                            zIndex: 3,
-                                            backgroundColor: '#e3f2fd',
-                                            minWidth: 50,
-                                            maxWidth: 50,
-                                            width: 50,
-                                            textAlign: 'center',
-                                        },
-                                        '&.sticky-col-stt.body-cell': {
-                                            backgroundColor: '#fff',
-                                            zIndex: 2,
-                                        },
-                                        '&.sticky-col-name': {
-                                            position: 'sticky',
-                                            left: 50,
-                                            zIndex: 3,
-                                            backgroundColor: '#e3f2fd',
-                                            minWidth: 160,
-                                        },
-                                        '&.sticky-col-name.body-cell': {
-                                            backgroundColor: '#fff',
-                                            zIndex: 2,
-                                        },
-                                        '&.sticky-col-code': {
-                                            position: 'sticky',
-                                            left: 210,
-                                            zIndex: 3,
-                                            backgroundColor: '#e3f2fd',
-                                            minWidth: 110,
-                                        },
-                                        '&.sticky-col-code.body-cell': {
-                                            backgroundColor: '#fff',
-                                            zIndex: 2,
-                                        },
-                                    },
-                                }}
-                            >
-                                <TableHead>
-                                    <TableRow>
-                                        <TableCell className="sticky-col-stt">STT</TableCell>
-                                        <TableCell className="sticky-col-name">Họ tên học sinh</TableCell>
-                                        <TableCell className="sticky-col-code">Mã học sinh</TableCell>
-                                        <TableCell align="center" sx={{ minWidth: 180 }}>
-                                            Hoa bé ngoan
-                                        </TableCell>
-                                        <TableCell sx={{ minWidth: 300 }}>Nhận xét</TableCell>
-                                        {isActiveYear && (canCreate || canUpdate || canDelete) && (
-                                            <TableCell align="center" sx={{ width: 100 }}>
-                                                Thao tác
-                                            </TableCell>
-                                        )}
-                                    </TableRow>
-                                </TableHead>
-
-                                <TableBody>
-                                    {filteredStudents.length === 0 ? (
-                                        <TableRow>
-                                            <TableCell colSpan={6} align="center" sx={{ py: 4 }}>
-                                                <Typography variant="body2" color="text.secondary">
-                                                    Không có học sinh nào
-                                                </Typography>
-                                            </TableCell>
-                                        </TableRow>
-                                    ) : (
-                                        filteredStudents.map((student, index) => {
-                                            const certificate = certificates[student.studentId._id];
-                                            const isGoodChild = certificate?.isGoodChild || false;
-
-                                            return (
-                                                <TableRow key={student.studentId._id} hover>
-                                                    <TableCell className="body-cell sticky-col-stt">
-                                                        {index + 1}
-                                                    </TableCell>
-                                                    <TableCell className="body-cell sticky-col-name">
-                                                        <Typography variant="body2" fontWeight={600}>
-                                                            {student.studentId.fullName}
-                                                        </Typography>
-                                                    </TableCell>
-                                                    <TableCell className="body-cell sticky-col-code">
-                                                        <Typography variant="body2">
-                                                            {student.studentId.studentCode}
-                                                        </Typography>
-                                                    </TableCell>
-
-                                                    {/* Hoa bé ngoan */}
-                                                    <TableCell align="center">
-                                                        <Box
-                                                            sx={{
-                                                                display: 'flex',
-                                                                alignItems: 'center',
-                                                                justifyContent: 'center',
-                                                                gap: 1,
-                                                                cursor:
-                                                                    isActiveYear && canCreate ? 'pointer' : 'default',
-                                                            }}
-                                                            onClick={() =>
-                                                                isActiveYear && canCreate && handleEdit(student)
-                                                            }
-                                                        >
-                                                            <LocalFloristRoundedIcon
-                                                                sx={{
-                                                                    fontSize: 32,
-                                                                    color: isGoodChild ? '#ff4081' : '#bdbdbd',
-                                                                    transition: 'all 0.3s',
-                                                                    '&:hover': {
-                                                                        transform:
-                                                                            isActiveYear && canCreate
-                                                                                ? 'scale(1.2)'
-                                                                                : 'none',
-                                                                    },
-                                                                }}
-                                                            />
-                                                            {isGoodChild && (
-                                                                <Chip
-                                                                    label="Bé ngoan"
-                                                                    size="small"
-                                                                    sx={{
-                                                                        bgcolor: '#ffe0ec',
-                                                                        color: '#ff4081',
-                                                                        fontWeight: 600,
-                                                                        fontSize: '0.75rem',
-                                                                    }}
-                                                                />
-                                                            )}
-                                                        </Box>
-                                                    </TableCell>
-
-                                                    {/* Nhận xét */}
-                                                    <TableCell>
-                                                        {certificate?.comment ? (
-                                                            <Typography
-                                                                variant="body2"
-                                                                sx={{
-                                                                    whiteSpace: 'pre-line',
-                                                                    wordBreak: 'break-word',
-                                                                }}
-                                                            >
-                                                                {certificate.comment}
-                                                            </Typography>
-                                                        ) : (
-                                                            <Typography variant="body2" color="text.secondary">
-                                                                Chưa có nhận xét
-                                                            </Typography>
-                                                        )}
-                                                    </TableCell>
-
-                                                    {/* Thao tác */}
-                                                    {isActiveYear && (canCreate || canUpdate || canDelete) && (
-                                                        <TableCell align="center">
-                                                            <Box
-                                                                sx={{
-                                                                    display: 'flex',
-                                                                    gap: 0.5,
-                                                                    justifyContent: 'center',
-                                                                }}
-                                                            >
-                                                                {(canCreate || canUpdate) && (
-                                                                    <Tooltip
-                                                                        title={
-                                                                            certificate
-                                                                                ? 'Chỉnh sửa phiếu'
-                                                                                : 'Thêm phiếu mới'
-                                                                        }
-                                                                    >
-                                                                        <IconButton
-                                                                            size="small"
-                                                                            color="primary"
-                                                                            onClick={() => handleEdit(student)}
-                                                                        >
-                                                                            <EditOutlinedIcon fontSize="small" />
-                                                                        </IconButton>
-                                                                    </Tooltip>
-                                                                )}
-                                                                {canDelete && certificate && (
-                                                                    <Tooltip title="Xóa phiếu">
-                                                                        <IconButton
-                                                                            size="small"
-                                                                            color="error"
-                                                                            onClick={() => handleDelete(student)}
-                                                                        >
-                                                                            <DeleteOutlineOutlinedIcon fontSize="small" />
-                                                                        </IconButton>
-                                                                    </Tooltip>
-                                                                )}
-                                                            </Box>
-                                                        </TableCell>
-                                                    )}
-                                                </TableRow>
-                                            );
-                                        })
-                                    )}
-                                </TableBody>
-                            </Table>
-                        </TableContainer>
+                            slots={{
+                                noRowsOverlay: () => (
+                                    <Box sx={{ p: 3, textAlign: 'center' }}>
+                                        <Typography>Không có học sinh nào trong lớp này!</Typography>
+                                    </Box>
+                                ),
+                            }}
+                            slotProps={{
+                                pagination: {
+                                    labelRowsPerPage: 'Số dòng mỗi trang:',
+                                    labelDisplayedRows: ({ from, to, count }) =>
+                                        `${from} - ${to} của ${count !== -1 ? count : `hơn ${to}`}`,
+                                },
+                            }}
+                        />
                     )}
 
                     {/* Legend */}
-                    {filteredStudents.length > 0 && (
+                    {rows.length > 0 && (
                         <Box sx={{ mt: 2, display: 'flex', gap: 2, flexWrap: 'wrap', justifyContent: 'center' }}>
                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                                 <LocalFloristRoundedIcon sx={{ fontSize: 20, color: '#ff4081' }} />

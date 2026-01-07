@@ -8,6 +8,7 @@ import { StatusCodes } from 'http-status-codes';
 import { removeVietnameseTones } from '~/utils/formatters.js';
 import { ChildrenAttendanceModel } from '~/models/childrenAttendanceModel.js';
 import { ChildrenDailyAssessmentModel } from '~/models/childrenDailyAssessmentModel.js'; // ✅ ADD
+import { ChildrenCertificateModel } from '~/models/childrenCertificateModel.js'; // ✅ ADD
 
 /**
  * ✅ Helper: Check permission - Chỉ BGH mới được thao tác
@@ -557,6 +558,27 @@ const transferStudents = async (data, userId) => {
             `✅ [transferStudents] Updated ${assessmentUpdateResult.modifiedCount} daily assessment records from class "${fromClass.name}" to "${toClass.name}"`,
         );
 
+        // ✅ BƯỚC 5: Update CHILDREN CERTIFICATE DATA - Chuyển classId sang lớp mới
+        const certificateUpdateResult = await ChildrenCertificateModel.updateMany(
+            {
+                schoolId: user.schoolId,
+                academicYearId: academicYearId,
+                classId: fromClassId,
+                studentId: { $in: studentObjectIds },
+                _destroy: false,
+            },
+            {
+                $set: {
+                    classId: toClassId,
+                    lastUpdatedBy: userId,
+                },
+            },
+        );
+
+        console.log(
+            `✅ [transferStudents] Updated ${certificateUpdateResult.modifiedCount} children certificate records from class "${fromClass.name}" to "${toClass.name}"`,
+        );
+
         console.log('✅ [ChildrenByClass transferStudents] Transferred:', studentIds.length, 'students');
 
         return {
@@ -566,6 +588,7 @@ const transferStudents = async (data, userId) => {
             toClassName: toClass.name,
             attendanceUpdated: attendanceUpdateResult.modifiedCount,
             assessmentUpdated: assessmentUpdateResult.modifiedCount, // ✅ ADD: Số đánh giá đã update
+            certificateUpdated: certificateUpdateResult.modifiedCount, // ✅ ADD
         };
     } catch (error) {
         console.error('❌ [ChildrenByClass transferStudents] Error:', error);
@@ -632,10 +655,36 @@ const removeStudentFromClass = async (id, userId) => {
             `🗑️ [removeStudentFromClass] Deleted ${attendanceDeleteResult.deletedCount} attendance records for student ${studentInfo.studentCode}`,
         );
 
-        // ✅ BƯỚC 2: Xóa cứng record khỏi ChildrenByClassModel
+        // ✅ BƯỚC 2: Xóa cứng dữ liệu đánh giá hằng ngày (ChildrenDailyAssessmentModel)
+        const assessmentDeleteResult = await ChildrenDailyAssessmentModel.deleteMany({
+            schoolId: user.schoolId,
+            academicYearId: record.academicYearId._id,
+            classId: record.classId._id,
+            studentId: studentInfo.studentId,
+            _destroy: false,
+        });
+
+        console.log(
+            `🗑️ [removeStudentFromClass] Deleted ${assessmentDeleteResult.deletedCount} daily assessment records for student ${studentInfo.studentCode}`,
+        );
+
+        // ✅ BƯỚC 3: Xóa cứng dữ liệu phiếu bé ngoan (ChildrenCertificateModel)
+        const certificateDeleteResult = await ChildrenCertificateModel.deleteMany({
+            schoolId: user.schoolId,
+            academicYearId: record.academicYearId._id,
+            classId: record.classId._id,
+            studentId: studentInfo.studentId,
+            _destroy: false,
+        });
+
+        console.log(
+            `🗑️ [removeStudentFromClass] Deleted ${certificateDeleteResult.deletedCount} children certificate records for student ${studentInfo.studentCode}`,
+        );
+
+        // ✅ BƯỚC 4: Xóa cứng record khỏi ChildrenByClassModel
         await ChildrenByClassModel.findByIdAndDelete(id);
 
-        // ✅ BƯỚC 3: Update ChildrenManagement
+        // ✅ BƯỚC 5: Update ChildrenManagement
         await ChildrenManagementModel.findByIdAndUpdate(studentInfo.studentId, {
             $set: {
                 hasClass: false,
@@ -646,13 +695,17 @@ const removeStudentFromClass = async (id, userId) => {
         console.log('✅ [ChildrenByClass removeStudentFromClass] Hard deleted successfully');
 
         return {
-            message: `Đã xóa học sinh "${studentInfo.fullName}" ra khỏi lớp "${studentInfo.className}" và xóa ${attendanceDeleteResult.deletedCount} bản ghi điểm danh`,
+            message: `Đã xóa học sinh "${studentInfo.fullName}" ra khỏi lớp "${studentInfo.className}" và xóa ${attendanceDeleteResult.deletedCount} bản ghi điểm danh, ${assessmentDeleteResult.deletedCount} bản ghi đánh giá, ${certificateDeleteResult.deletedCount} phiếu bé ngoan`,
             studentInfo: {
                 fullName: studentInfo.fullName,
                 studentCode: studentInfo.studentCode,
                 className: studentInfo.className,
             },
-            attendanceDeleted: attendanceDeleteResult.deletedCount,
+            cascadeDeleted: {
+                attendance: attendanceDeleteResult.deletedCount,
+                assessment: assessmentDeleteResult.deletedCount,
+                certificate: certificateDeleteResult.deletedCount,
+            },
         };
     } catch (error) {
         console.error('❌ [ChildrenByClass removeStudentFromClass] Error:', error);
@@ -715,12 +768,38 @@ const removeStudentsFromClass = async (ids, userId) => {
             `🗑️ [removeStudentsFromClass] Deleted ${attendanceDeleteResult.deletedCount} attendance records for ${ids.length} students`,
         );
 
-        // ✅ BƯỚC 2: Xóa cứng records khỏi ChildrenByClassModel
+        // ✅ BƯỚC 2: Xóa cứng dữ liệu đánh giá hằng ngày (ChildrenDailyAssessmentModel)
+        const assessmentDeleteResult = await ChildrenDailyAssessmentModel.deleteMany({
+            schoolId: user.schoolId,
+            academicYearId: academicYearId,
+            classId: classId,
+            studentId: { $in: studentIds },
+            _destroy: false,
+        });
+
+        console.log(
+            `🗑️ [removeStudentsFromClass] Deleted ${assessmentDeleteResult.deletedCount} daily assessment records for ${ids.length} students`,
+        );
+
+        // ✅ BƯỚC 3: Xóa cứng dữ liệu phiếu bé ngoan (ChildrenCertificateModel)
+        const certificateDeleteResult = await ChildrenCertificateModel.deleteMany({
+            schoolId: user.schoolId,
+            academicYearId: academicYearId,
+            classId: classId,
+            studentId: { $in: studentIds },
+            _destroy: false,
+        });
+
+        console.log(
+            `🗑️ [removeStudentsFromClass] Deleted ${certificateDeleteResult.deletedCount} children certificate records for ${ids.length} students`,
+        );
+
+        // ✅ BƯỚC 4: Xóa cứng records khỏi ChildrenByClassModel
         const deleteResult = await ChildrenByClassModel.deleteMany({ _id: { $in: ids } });
 
         console.log('📋 [removeStudentsFromClass] Deleted count:', deleteResult.deletedCount);
 
-        // ✅ BƯỚC 3: Update ChildrenManagement
+        // ✅ BƯỚC 5: Update ChildrenManagement
         const updateResult = await ChildrenManagementModel.updateMany(
             { _id: { $in: studentIds } },
             {
@@ -736,15 +815,23 @@ const removeStudentsFromClass = async (ids, userId) => {
         console.log(
             '✅ [ChildrenByClass removeStudentsFromClass] Hard deleted:',
             deleteResult.deletedCount,
-            'students and',
+            'students,',
             attendanceDeleteResult.deletedCount,
-            'attendance records',
+            'attendance records,',
+            assessmentDeleteResult.deletedCount,
+            'assessment records,',
+            certificateDeleteResult.deletedCount,
+            'certificate records',
         );
 
         return {
-            message: `Đã xóa ${deleteResult.deletedCount} học sinh ra khỏi lớp và xóa ${attendanceDeleteResult.deletedCount} bản ghi điểm danh`,
+            message: `Đã xóa ${deleteResult.deletedCount} học sinh ra khỏi lớp và xóa ${attendanceDeleteResult.deletedCount} bản ghi điểm danh, ${assessmentDeleteResult.deletedCount} bản ghi đánh giá, ${certificateDeleteResult.deletedCount} phiếu bé ngoan`,
             count: deleteResult.deletedCount,
-            attendanceDeleted: attendanceDeleteResult.deletedCount,
+            cascadeDeleted: {
+                attendance: attendanceDeleteResult.deletedCount,
+                assessment: assessmentDeleteResult.deletedCount,
+                certificate: certificateDeleteResult.deletedCount,
+            },
         };
     } catch (error) {
         console.error('❌ [ChildrenByClass removeStudentsFromClass] Error:', error);

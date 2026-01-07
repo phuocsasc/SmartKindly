@@ -13,11 +13,9 @@ import {
     IconButton,
     Tooltip,
     Alert,
-    Chip,
 } from '@mui/material';
 import { DataGrid } from '@mui/x-data-grid';
 import PeopleIcon from '@mui/icons-material/People';
-import LocalFloristRoundedIcon from '@mui/icons-material/LocalFloristRounded';
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
 import DoneOutlinedIcon from '@mui/icons-material/DoneOutlined';
 import DeleteOutlineOutlinedIcon from '@mui/icons-material/DeleteOutlineOutlined';
@@ -33,6 +31,7 @@ import dayjs from '~/config/dayjsConfig';
 import ChildrenCertificateDialog from './ChildrenCertificateDialog';
 import { useConfirmDialog } from '~/hooks/useConfirmDialog';
 import ConfirmDialog from '~/components/common/ConfirmDialog';
+import HoaBeNgon from '/hoa_be_ngoan.png';
 
 function ChildrenCertificate() {
     const { user } = useUser();
@@ -301,28 +300,30 @@ function ChildrenCertificate() {
                     }}
                     onClick={() => isActiveYear && canCreate && handleEdit(params.row)}
                 >
-                    <LocalFloristRoundedIcon
+                    {/* THAY ĐỔI TẠI ĐÂY: Dùng thẻ Box component="img" để hiển thị ảnh PNG */}
+                    <Box
+                        component="img"
+                        src={HoaBeNgon}
+                        alt="Hoa bé ngoan"
                         sx={{
-                            fontSize: 32,
-                            color: params.value ? '#ff4081' : '#bdbdbd',
+                            width: 52, // Kích thước ảnh (tương đương fontSize 32px cũ)
+                            height: 52,
+                            objectFit: 'contain',
+                            // Logic xử lý hiển thị:
+                            // Nếu có phiếu (params.value = true) -> opacity 1 (rõ nét)
+                            // Nếu chưa có (params.value = false) -> opacity 0.3 (mờ đi)
+                            opacity: params.value ? 1 : 0.3,
+                            // Thêm grayscale nếu muốn ảnh chưa chọn bị xám màu (tùy chọn)
+                            filter: params.value ? 'none' : 'grayscale(100%)',
                             transition: 'all 0.3s',
                             '&:hover': {
                                 transform: isActiveYear && canCreate ? 'scale(1.2)' : 'none',
+                                // Khi hover vào ô chưa chọn, có thể cho rõ lên 1 chút để user biết có thể click
+                                opacity: isActiveYear && canCreate ? 1 : params.value ? 1 : 0.3,
+                                // filter: 'none',
                             },
                         }}
                     />
-                    {params.value && (
-                        <Chip
-                            label="Bé ngoan"
-                            size="small"
-                            sx={{
-                                bgcolor: '#ffe0ec',
-                                color: '#ff4081',
-                                fontWeight: 600,
-                                fontSize: '0.75rem',
-                            }}
-                        />
-                    )}
                 </Box>
             ),
         },
@@ -561,12 +562,23 @@ function ChildrenCertificate() {
                     {rows.length > 0 && (
                         <Box sx={{ mt: 2, display: 'flex', gap: 2, flexWrap: 'wrap', justifyContent: 'center' }}>
                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                                <LocalFloristRoundedIcon sx={{ fontSize: 20, color: '#ff4081' }} />
-                                <Typography variant="caption">Bé ngoan</Typography>
+                                {/* Ảnh rõ nét */}
+                                <Box component="img" src={HoaBeNgon} sx={{ width: 30, height: 30 }} />
+                                <Typography variant="caption">Hoa bé ngoan</Typography>
                             </Box>
                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                                <LocalFloristRoundedIcon sx={{ fontSize: 20, color: '#bdbdbd' }} />
-                                <Typography variant="caption">Chưa chọn</Typography>
+                                {/* Ảnh mờ đi */}
+                                <Box
+                                    component="img"
+                                    src={HoaBeNgon}
+                                    sx={{
+                                        width: 30,
+                                        height: 30,
+                                        opacity: 0.3,
+                                        filter: 'grayscale(100%)',
+                                    }}
+                                />
+                                <Typography variant="caption">Chưa chọn/ Chưa đạt</Typography>
                             </Box>
                         </Box>
                     )}

@@ -11,11 +11,8 @@ import {
     TextField,
     Typography,
     IconButton,
-    Avatar,
     Divider,
     CircularProgress,
-    FormControlLabel,
-    Checkbox,
     Table,
     TableBody,
     TableCell,
@@ -27,14 +24,19 @@ import {
     Accordion,
     AccordionSummary,
     AccordionDetails,
+    Grid,
+    Card,
+    CardActionArea,
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
-import LocalFloristRoundedIcon from '@mui/icons-material/LocalFloristRounded';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import AssessmentOutlinedIcon from '@mui/icons-material/AssessmentOutlined';
+import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
+import CheckCircleRoundedIcon from '@mui/icons-material/CheckCircleRounded';
 import { childrenCertificateApi } from '~/apis';
 import { toast } from 'react-toastify';
 import dayjs from '~/config/dayjsConfig';
+import HoaBeNgon from '/hoa_be_ngoan.png'; // Import hình ảnh
 
 function ChildrenCertificateDialog({
     open,
@@ -165,135 +167,150 @@ function ChildrenCertificateDialog({
         return `${dayNames[dayOfWeek]} (${date.format('DD/MM')})`;
     };
 
+    // Toggle Hoa bé ngoan
+    const toggleGoodChild = () => {
+        setFormData((prev) => ({ ...prev, isGoodChild: !prev.isGoodChild }));
+    };
+
     return (
-        <Dialog open={open} onClose={handleClose} maxWidth="lg" fullWidth>
-            {/* Header */}
+        <Dialog
+            open={open}
+            onClose={handleClose}
+            maxWidth="md" // Thu nhỏ lại chút cho gọn, nếu cần rộng thì để lg
+            fullWidth
+            PaperProps={{
+                sx: { borderRadius: 3, overflow: 'hidden' },
+            }}
+        >
+            {/* Header: Modern Gradient */}
             <DialogTitle
                 sx={{
-                    background: 'linear-gradient(135deg, #ff4081 0%, #f50057 100%)',
-                    color: 'white',
-                    py: 1.5,
-                    position: 'relative',
+                    background: 'linear-gradient(135deg, #FF9A9E 0%, #FECFEF 100%)', // Màu pastel trẻ trung
+                    color: '#4a4a4a',
+                    py: 2,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
                 }}
             >
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                    <Avatar sx={{ bgcolor: 'rgba(255, 255, 255, 0.2)', width: 32, height: 32 }}>
-                        <LocalFloristRoundedIcon fontSize="small" />
-                    </Avatar>
-                    <Typography variant="h6" fontWeight={600}>
-                        {isEditMode ? 'Cập nhật phiếu bé ngoan' : 'Thêm phiếu bé ngoan'}
-                    </Typography>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                    {/* Hình ảnh logo nhỏ ở header */}
+                    <Box
+                        component="img"
+                        src={HoaBeNgon}
+                        sx={{ width: 40, height: 40, filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.1))' }}
+                    />
+                    <Box>
+                        <Typography variant="h6" fontWeight={700} sx={{ lineHeight: 1.2 }}>
+                            {isEditMode ? 'Cập nhật phiếu bé ngoan' : 'Phiếu bé ngoan tuần'}
+                        </Typography>
+                        <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                            {studentInfo?.fullName} - {studentInfo?.studentCode}
+                        </Typography>
+                    </Box>
                 </Box>
                 <IconButton
                     onClick={handleClose}
                     size="small"
                     sx={{
-                        position: 'absolute',
-                        right: 8,
-                        top: 8,
-                        color: 'white',
-                        '&:hover': { bgcolor: 'rgba(255, 255, 255, 0.1)' },
+                        bgcolor: 'rgba(255,255,255,0.4)',
+                        '&:hover': { bgcolor: 'rgba(255,255,255,0.7)' },
                     }}
                 >
                     <CloseIcon />
                 </IconButton>
             </DialogTitle>
 
-            {/* Content */}
-            <DialogContent sx={{ px: 3, py: 3 }}>
-                {/* Student Info */}
-                <Box
-                    sx={{
-                        mt: 2,
-                        mb: 3,
-                        p: 2,
-                        bgcolor: '#fff0f5',
-                        borderRadius: 2,
-                        border: '1px solid #ffcce0',
-                    }}
-                >
-                    <Typography variant="subtitle2" color="primary" gutterBottom>
-                        <strong>Học sinh:</strong> {studentInfo?.fullName}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                        <strong>Mã HS:</strong> {studentInfo?.studentCode}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                        <strong>Tuần:</strong> Tuần {weekNumber}
-                    </Typography>
-                </Box>
-
-                <Divider sx={{ my: 2 }} />
-
-                {/* ✅ Preview Data Section */}
-                {previewLoading ? (
-                    <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
-                        <CircularProgress size={30} />
-                    </Box>
-                ) : previewData ? (
-                    <Accordion defaultExpanded sx={{ mb: 3, boxShadow: 1 }}>
-                        <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                <AssessmentOutlinedIcon color="primary" />
-                                <Typography variant="subtitle1" fontWeight={600}>
-                                    Thông tin tham khảo (Tuần {weekNumber})
-                                </Typography>
-                            </Box>
-                        </AccordionSummary>
-                        <AccordionDetails>
-                            {/* Attendance Summary */}
-                            <Box sx={{ mb: 2 }}>
-                                <Typography variant="subtitle2" fontWeight={600} sx={{ mb: 1, color: '#667eea' }}>
-                                    Tổng hợp điểm danh
-                                </Typography>
-                                <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap' }}>
+            <DialogContent
+                sx={{
+                    p: 0,
+                    bgcolor: '#f8f9fa', // --- STYLE THANH CUỘN (SCROLLBAR) ---
+                    '&::-webkit-scrollbar': {
+                        width: '8px', // Độ rộng của thanh cuộn
+                    },
+                    '&::-webkit-scrollbar-track': {
+                        backgroundColor: '#f1f1f1', // Màu nền rãnh trượt (xám nhạt)
+                        borderLeft: '1px solid #e0e0e0',
+                    },
+                    '&::-webkit-scrollbar-thumb': {
+                        backgroundColor: '#ff4081', // ✅ Màu chính đồng bộ với Header
+                        borderRadius: '4px', // Bo tròn góc
+                        border: '2px solid #ff4081', // Viền trắng tạo khoảng cách giúp thanh cuộn đẹp hơn
+                    },
+                    '&::-webkit-scrollbar-thumb:hover': {
+                        backgroundColor: '#c60055', // Màu đậm hơn khi rê chuột vào
+                    },
+                    // Dành cho Firefox (nếu cần hỗ trợ)
+                    scrollbarWidth: 'thin',
+                    scrollbarColor: '#ff4081 #f1f1f1',
+                }}
+            >
+                <Box sx={{ p: 3 }}>
+                    {/* SECTION 1: Dữ liệu tham khảo (Accordion) */}
+                    {previewLoading ? (
+                        <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+                            <CircularProgress size={30} color="inherit" />
+                        </Box>
+                    ) : previewData ? (
+                        <Accordion
+                            defaultExpanded={false} // Mặc định đóng để tập trung vào việc đánh giá, user cần thì mở ra
+                            sx={{
+                                mb: 3,
+                                boxShadow: 'none',
+                                border: '1px solid #e0e0e0',
+                                borderRadius: '12px !important',
+                                '&:before': { display: 'none' },
+                                overflow: 'hidden',
+                            }}
+                        >
+                            <AccordionSummary expandIcon={<ExpandMoreIcon />} sx={{ bgcolor: '#fff' }}>
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                    <AssessmentOutlinedIcon color="action" />
+                                    <Typography variant="subtitle1" fontWeight={600} color="text.secondary">
+                                        Xem dữ liệu tham khảo Tuần {weekNumber} (Điểm danh & Đánh giá hằng ngày)
+                                    </Typography>
+                                </Box>
+                            </AccordionSummary>
+                            <AccordionDetails sx={{ bgcolor: '#fff', borderTop: '1px solid #f0f0f0', p: 2 }}>
+                                {/* Attendance Summary Chips */}
+                                <Box sx={{ mb: 2, display: 'flex', gap: 1, flexWrap: 'wrap' }}>
                                     <Chip
-                                        label={`Có mặt: ${previewData.attendanceSummary.present}/${previewData.attendanceSummary.totalDays}`}
+                                        label={`Có mặt: ${previewData.attendanceSummary.present}`}
                                         color="success"
-                                        size="small"
+                                        size="large"
+                                        variant="outlined"
                                     />
                                     <Chip
-                                        label={`Vắng có phép: ${previewData.attendanceSummary.absentWithPermission}/${previewData.attendanceSummary.totalDays}`}
+                                        label={`Vắng có phép: ${previewData.attendanceSummary.absentWithPermission}`}
                                         color="warning"
-                                        size="small"
+                                        size="large"
+                                        variant="outlined"
                                     />
                                     <Chip
-                                        label={`Vắng không phép: ${previewData.attendanceSummary.absentWithoutPermission}/${previewData.attendanceSummary.totalDays}`}
+                                        label={`Vắng không phép: ${previewData.attendanceSummary.absentWithoutPermission}`}
                                         color="error"
-                                        size="small"
+                                        size="large"
+                                        variant="outlined"
                                     />
                                 </Box>
-                            </Box>
 
-                            <Divider sx={{ my: 2 }} />
-
-                            {/* Assessment Table */}
-                            <Box>
-                                <Typography variant="subtitle2" fontWeight={600} sx={{ mb: 1, color: '#667eea' }}>
-                                    Tổng hợp Đánh giá hằng ngày
-                                </Typography>
-                                <TableContainer component={Paper} sx={{ maxHeight: 300, border: '1px solid #e0e0e0' }}>
-                                    <Table stickyHeader size="small">
+                                {/* Assessment Table */}
+                                <TableContainer
+                                    component={Paper}
+                                    elevation={0}
+                                    sx={{ border: '1px solid #eee', borderRadius: 2 }}
+                                >
+                                    <Table size="small">
                                         <TableHead>
-                                            <TableRow>
-                                                <TableCell
-                                                    sx={{
-                                                        bgcolor: '#e3f2fd',
-                                                        fontWeight: 600,
-                                                        minWidth: 150,
-                                                    }}
-                                                >
+                                            <TableRow sx={{ bgcolor: '#f1f5f9' }}>
+                                                <TableCell sx={{ fontWeight: 600, color: '#475569' }}>
                                                     Tiêu chí
                                                 </TableCell>
                                                 {previewData.weekDays.map((day) => (
                                                     <TableCell
                                                         key={day.date}
                                                         align="center"
-                                                        sx={{
-                                                            bgcolor: '#e3f2fd',
-                                                            fontWeight: 600,
-                                                            minWidth: 120,
-                                                        }}
+                                                        sx={{ fontWeight: 600, color: '#475569' }}
                                                     >
                                                         {getDayLabel(day.date)}
                                                     </TableCell>
@@ -301,243 +318,221 @@ function ChildrenCertificateDialog({
                                             </TableRow>
                                         </TableHead>
                                         <TableBody>
-                                            {/* Điểm danh */}
-                                            <TableRow hover>
-                                                <TableCell sx={{ fontWeight: 500, bgcolor: '#fafafa' }}>
-                                                    Điểm danh
-                                                </TableCell>
-                                                {previewData.weekDays.map((day) => (
+                                            {[
+                                                'Điểm danh',
+                                                'Tình hình sức khỏe',
+                                                'Cảm xúc, Hành vi',
+                                                'Kiến thức, Kỹ năng',
+                                                'Ghi chú lưu ý',
+                                            ].map((criteria, index) => (
+                                                <TableRow key={index} hover>
                                                     <TableCell
-                                                        key={day.date}
-                                                        align="center"
-                                                        sx={{ fontSize: '0.8rem' }}
+                                                        sx={{ fontWeight: 500, color: '#334155', bgcolor: '#fafafa' }}
                                                     >
-                                                        <Chip
-                                                            label={day.attendance}
-                                                            size="small"
-                                                            color={
-                                                                day.attendance === 'Có mặt'
-                                                                    ? 'success'
-                                                                    : day.attendance === 'Vắng có phép'
-                                                                      ? 'warning'
-                                                                      : day.attendance === 'Vắng không phép'
-                                                                        ? 'error'
-                                                                        : 'default'
-                                                            }
-                                                            sx={{ fontSize: '0.7rem', height: 20 }}
-                                                        />
+                                                        {criteria}
                                                     </TableCell>
-                                                ))}
-                                            </TableRow>
+                                                    {previewData.weekDays.map((day) => {
+                                                        let content = '';
+                                                        if (criteria === 'Điểm danh') content = day.attendance;
+                                                        if (criteria === 'Tình hình sức khỏe')
+                                                            content = day.assessment?.healthStatus;
+                                                        if (criteria === 'Cảm xúc, Hành vi')
+                                                            content = day.assessment?.emotionalBehavior;
+                                                        if (criteria === 'Kiến thức, Kỹ năng')
+                                                            content = day.assessment?.skillsKnowledge;
+                                                        if (criteria === 'Ghi chú lưu ý')
+                                                            content = day.assessment?.notes;
 
-                                            {/* Tình trạng sức khỏe */}
-                                            <TableRow hover>
-                                                <TableCell sx={{ fontWeight: 500, bgcolor: '#fafafa' }}>
-                                                    Sức khỏe
-                                                </TableCell>
-                                                {previewData.weekDays.map((day) => (
-                                                    <TableCell
-                                                        key={day.date}
-                                                        sx={{
-                                                            fontSize: '0.75rem',
-                                                            whiteSpace: 'pre-line',
-                                                            maxWidth: 150,
-                                                        }}
-                                                    >
-                                                        {day.assessment?.healthStatus || (
-                                                            <Typography
-                                                                variant="caption"
-                                                                color="text.secondary"
-                                                                fontStyle="italic"
-                                                            >
-                                                                {day.isHoliday ? 'Ngày nghỉ' : 'Chưa đánh giá'}
-                                                            </Typography>
-                                                        )}
-                                                    </TableCell>
-                                                ))}
-                                            </TableRow>
+                                                        if (criteria === 'Điểm danh') {
+                                                            return (
+                                                                <TableCell key={day.date} align="center">
+                                                                    <Chip
+                                                                        label={content}
+                                                                        size="small"
+                                                                        sx={{
+                                                                            height: 20,
+                                                                            fontSize: '0.7rem',
+                                                                            bgcolor:
+                                                                                content === 'Có mặt'
+                                                                                    ? '#dcfce7'
+                                                                                    : content?.includes('Vắng')
+                                                                                      ? '#fee2e2'
+                                                                                      : '#f3f4f6',
+                                                                            color:
+                                                                                content === 'Có mặt'
+                                                                                    ? '#166534'
+                                                                                    : content?.includes('Vắng')
+                                                                                      ? '#991b1b'
+                                                                                      : '#374151',
+                                                                        }}
+                                                                    />
+                                                                </TableCell>
+                                                            );
+                                                        }
 
-                                            {/* Cảm xúc/Hành vi */}
-                                            <TableRow hover>
-                                                <TableCell sx={{ fontWeight: 500, bgcolor: '#fafafa' }}>
-                                                    Cảm xúc/Hành vi
-                                                </TableCell>
-                                                {previewData.weekDays.map((day) => (
-                                                    <TableCell
-                                                        key={day.date}
-                                                        sx={{
-                                                            fontSize: '0.75rem',
-                                                            whiteSpace: 'pre-line',
-                                                            maxWidth: 150,
-                                                        }}
-                                                    >
-                                                        {day.assessment?.emotionalBehavior || (
-                                                            <Typography
-                                                                variant="caption"
-                                                                color="text.secondary"
-                                                                fontStyle="italic"
+                                                        return (
+                                                            <TableCell
+                                                                key={day.date}
+                                                                sx={{ fontSize: '0.75rem', maxWidth: 120 }}
                                                             >
-                                                                {day.isHoliday ? 'Ngày nghỉ' : 'Chưa đánh giá'}
-                                                            </Typography>
-                                                        )}
-                                                    </TableCell>
-                                                ))}
-                                            </TableRow>
-
-                                            {/* Kiến thức/Kỹ năng */}
-                                            <TableRow hover>
-                                                <TableCell sx={{ fontWeight: 500, bgcolor: '#fafafa' }}>
-                                                    Kiến thức/Kỹ năng
-                                                </TableCell>
-                                                {previewData.weekDays.map((day) => (
-                                                    <TableCell
-                                                        key={day.date}
-                                                        sx={{
-                                                            fontSize: '0.75rem',
-                                                            whiteSpace: 'pre-line',
-                                                            maxWidth: 150,
-                                                        }}
-                                                    >
-                                                        {day.assessment?.skillsKnowledge || (
-                                                            <Typography
-                                                                variant="caption"
-                                                                color="text.secondary"
-                                                                fontStyle="italic"
-                                                            >
-                                                                {day.isHoliday ? 'Ngày nghỉ' : 'Chưa đánh giá'}
-                                                            </Typography>
-                                                        )}
-                                                    </TableCell>
-                                                ))}
-                                            </TableRow>
-
-                                            {/* Lưu ý */}
-                                            <TableRow hover>
-                                                <TableCell sx={{ fontWeight: 500, bgcolor: '#fafafa' }}>
-                                                    Lưu ý
-                                                </TableCell>
-                                                {previewData.weekDays.map((day) => (
-                                                    <TableCell
-                                                        key={day.date}
-                                                        sx={{
-                                                            fontSize: '0.75rem',
-                                                            whiteSpace: 'pre-line',
-                                                            maxWidth: 150,
-                                                        }}
-                                                    >
-                                                        {day.assessment?.notes || (
-                                                            <Typography
-                                                                variant="caption"
-                                                                color="text.secondary"
-                                                                fontStyle="italic"
-                                                            >
-                                                                {day.isHoliday ? 'Ngày nghỉ' : 'Không có'}
-                                                            </Typography>
-                                                        )}
-                                                    </TableCell>
-                                                ))}
-                                            </TableRow>
+                                                                {content || (
+                                                                    <Typography
+                                                                        variant="caption"
+                                                                        color="text.secondary"
+                                                                        fontStyle="italic"
+                                                                    >
+                                                                        {day.isHoliday ? '-' : '...'}
+                                                                    </Typography>
+                                                                )}
+                                                            </TableCell>
+                                                        );
+                                                    })}
+                                                </TableRow>
+                                            ))}
                                         </TableBody>
                                     </Table>
                                 </TableContainer>
-                            </Box>
-                        </AccordionDetails>
-                    </Accordion>
-                ) : null}
+                            </AccordionDetails>
+                        </Accordion>
+                    ) : null}
 
-                {/* Hoa bé ngoan */}
-                <Box sx={{ mb: 3 }}>
-                    <FormControlLabel
-                        control={
-                            <Checkbox
-                                checked={formData.isGoodChild}
-                                onChange={(e) => setFormData({ ...formData, isGoodChild: e.target.checked })}
-                                icon={<LocalFloristRoundedIcon sx={{ fontSize: 32, color: '#bdbdbd' }} />}
-                                checkedIcon={<LocalFloristRoundedIcon sx={{ fontSize: 32, color: '#ff4081' }} />}
-                            />
-                        }
-                        label={
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                <Typography
-                                    variant="body1"
-                                    fontWeight={600}
+                    {/* SECTION 2: Trao Phiếu & Nhận xét (Main Interaction) */}
+                    <Grid container spacing={3}>
+                        {/* Cột trái: Nút trao phiếu (Big Visual Toggle) */}
+                        <Grid item xs={12} md={4}>
+                            <Card
+                                elevation={0}
+                                sx={{
+                                    height: '100%',
+                                    border: formData.isGoodChild ? '2px solid #ff4081' : '2px dashed #e0e0e0',
+                                    borderRadius: 3,
+                                    position: 'relative',
+                                    overflow: 'visible',
+                                    transition: 'all 0.3s ease',
+                                }}
+                            >
+                                <CardActionArea
+                                    onClick={toggleGoodChild}
                                     sx={{
-                                        color: formData.isGoodChild ? '#ff4081' : '#000',
+                                        height: '100%',
+                                        display: 'flex',
+                                        flexDirection: 'column',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        p: 2,
+                                        bgcolor: formData.isGoodChild ? '#fff0f5' : '#fff',
                                     }}
                                 >
-                                    Trao hoa bé ngoan Tuần {weekNumber}
-                                </Typography>
-                                <Typography
-                                    variant="body2"
-                                    sx={{
-                                        fontWeight: 600,
-                                        color: formData.isGoodChild ? '#ff4081' : '#757575',
-                                    }}
-                                >
-                                    ({formData.isGoodChild ? 'Bé ngoan' : 'Chưa chọn'})
-                                </Typography>
-                            </Box>
-                        }
-                    />
-                </Box>
+                                    {/* Hiệu ứng checkmark khi chọn */}
+                                    {formData.isGoodChild && (
+                                        <CheckCircleRoundedIcon
+                                            sx={{
+                                                position: 'absolute',
+                                                top: -10,
+                                                right: -10,
+                                                color: '#ff4081',
+                                                bgcolor: '#fff',
+                                                borderRadius: '50%',
+                                                fontSize: 32,
+                                            }}
+                                        />
+                                    )}
 
-                {/* Nhận xét */}
-                <Box>
-                    <Typography variant="subtitle2" sx={{ mb: 1, color: '#ff4081', fontWeight: 600 }}>
-                        Nhận xét Tuần {weekNumber} *
-                    </Typography>
-                    <TextField
-                        fullWidth
-                        multiline
-                        rows={6}
-                        placeholder="Nhập nhận xét về học sinh trong tuần này..."
-                        value={formData.comment}
-                        onChange={(e) => setFormData({ ...formData, comment: e.target.value })}
-                        sx={{
-                            '& .MuiOutlinedInput-root': {
-                                borderRadius: 1.5,
-                            },
-                        }}
-                    />
+                                    {/* Hình ảnh chính */}
+                                    <Box
+                                        component="img"
+                                        src={HoaBeNgon}
+                                        sx={{
+                                            width: 100, // Ảnh to rõ
+                                            height: 100,
+                                            objectFit: 'contain',
+                                            mb: 2,
+                                            filter: formData.isGoodChild ? 'none' : 'grayscale(100%) opacity(0.5)',
+                                            transform: formData.isGoodChild ? 'scale(1.1)' : 'scale(1)',
+                                            transition: 'all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)', // Bouncy effect
+                                        }}
+                                    />
+
+                                    <Typography
+                                        variant="h6"
+                                        fontWeight={700}
+                                        color={formData.isGoodChild ? '#ff4081' : 'text.disabled'}
+                                    >
+                                        {formData.isGoodChild ? 'ĐẠT BÉ NGOAN' : 'CHƯA ĐẠT'}
+                                    </Typography>
+                                    <Typography variant="caption" color="text.secondary" align="center">
+                                        {formData.isGoodChild ? 'Bấm để hủy phiếu' : 'Bấm để trao phiếu'}
+                                    </Typography>
+                                </CardActionArea>
+                            </Card>
+                        </Grid>
+
+                        {/* Cột phải: Nhập nhận xét */}
+                        <Grid item xs={12} md={8}>
+                            <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+                                <Box sx={{ display: 'flex', alignItems: 'center', mb: 1, gap: 1 }}>
+                                    <InfoOutlinedIcon fontSize="small" color="primary" />
+                                    <Typography variant="subtitle2" fontWeight={600} color="text.primary">
+                                        Lời nhận xét của giáo viên
+                                    </Typography>
+                                </Box>
+                                <TextField
+                                    fullWidth
+                                    multiline
+                                    rows={6} // Cao hơn để dễ nhập
+                                    placeholder="Nhập lời khen ngợi, động viên hoặc nhắc nhở học sinh..."
+                                    value={formData.comment}
+                                    onChange={(e) => setFormData({ ...formData, comment: e.target.value })}
+                                    sx={{
+                                        '& .MuiOutlinedInput-root': {
+                                            bgcolor: '#fff',
+                                            borderRadius: 2,
+                                            fontSize: '0.95rem',
+                                            '& fieldset': { borderColor: '#e0e0e0' },
+                                            '&:hover fieldset': { borderColor: '#b3b3b3' },
+                                            '&.Mui-focused fieldset': { borderColor: '#ff4081', borderWidth: 1 },
+                                        },
+                                    }}
+                                />
+                                <Box sx={{ mt: 1, display: 'flex', justifyContent: 'flex-end' }}>
+                                    <Typography variant="caption" color="text.secondary">
+                                        {formData.comment.length} ký tự
+                                    </Typography>
+                                </Box>
+                            </Box>
+                        </Grid>
+                    </Grid>
                 </Box>
             </DialogContent>
 
-            {/* Actions */}
-            <DialogActions sx={{ px: 3, py: 2, gap: 1 }}>
-                {/* Cancel button */}
+            <Divider />
+
+            <DialogActions sx={{ px: 3, py: 2, bgcolor: '#fff' }}>
                 <Button
                     onClick={handleClose}
                     variant="outlined"
                     color="inherit"
                     disabled={loading}
-                    size="small"
-                    sx={{
-                        borderRadius: 1.5,
-                        px: 2.5,
-                        textTransform: 'none',
-                    }}
+                    sx={{ borderRadius: 2, textTransform: 'none', px: 3, borderColor: '#e0e0e0' }}
                 >
-                    Hủy
+                    Đóng
                 </Button>
-
-                {/* Save button */}
                 <Button
                     onClick={handleSubmit}
                     variant="contained"
                     disabled={loading}
-                    startIcon={loading ? <CircularProgress size={16} /> : null}
-                    size="small"
+                    startIcon={loading ? <CircularProgress size={16} color="inherit" /> : null}
                     sx={{
-                        borderRadius: 1.5,
-                        px: 3,
+                        borderRadius: 2,
                         textTransform: 'none',
-                        background: 'linear-gradient(135deg, #ff4081 0%, #f50057 100%)',
-                        '&:hover': {
-                            background: 'linear-gradient(135deg, #e91e63 0%, #c51162 100%)',
-                        },
+                        px: 4,
+                        bgcolor: '#ff4081',
+                        boxShadow: '0 4px 10px rgba(255, 64, 129, 0.3)',
+                        '&:hover': { bgcolor: '#f50057' },
+                        fontWeight: 600,
                     }}
                 >
-                    {loading ? 'Đang lưu...' : isEditMode ? 'Cập nhật' : 'Lưu phiếu'}
+                    {loading ? 'Đang lưu...' : isEditMode ? 'Cập nhật phiếu' : 'Lưu phiếu'}
                 </Button>
             </DialogActions>
         </Dialog>

@@ -24,7 +24,7 @@ const ChildrenCertificateSchema = new mongoose.Schema(
         },
         studentId: {
             type: mongoose.Schema.Types.ObjectId,
-            ref: 'ChildrenProfile',
+            ref: 'ChildrenManagement',
             required: [true, 'Học sinh là bắt buộc'],
             index: true,
         },

@@ -30,11 +30,11 @@ import {
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import LocalFloristRoundedIcon from '@mui/icons-material/LocalFloristRounded';
-import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import AssessmentOutlinedIcon from '@mui/icons-material/AssessmentOutlined';
 import { childrenCertificateApi } from '~/apis';
 import { toast } from 'react-toastify';
+import dayjs from '~/config/dayjsConfig';
 
 function ChildrenCertificateDialog({
     open,
@@ -147,24 +147,6 @@ function ChildrenCertificateDialog({
         }
     };
 
-    // ✅ Handle delete
-    const handleDelete = async () => {
-        if (!existingCertificate || !existingCertificate._id) return;
-
-        try {
-            setLoading(true);
-            await childrenCertificateApi.delete(existingCertificate._id);
-            toast.success('Xóa phiếu bé ngoan thành công!');
-            onSuccess();
-            onClose();
-        } catch (error) {
-            console.error('Error deleting certificate:', error);
-            toast.error(error.response?.data?.message || 'Lỗi khi xóa phiếu bé ngoan!');
-        } finally {
-            setLoading(false);
-        }
-    };
-
     // ✅ Handle close with cleanup
     const handleClose = () => {
         setFormData({
@@ -173,6 +155,14 @@ function ChildrenCertificateDialog({
         });
         setPreviewData(null);
         onClose();
+    };
+
+    // ✅ Get day label
+    const getDayLabel = (dateStr) => {
+        const date = dayjs(dateStr);
+        const dayOfWeek = date.day();
+        const dayNames = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'];
+        return `${dayNames[dayOfWeek]} (${date.format('DD/MM')})`;
     };
 
     return (
@@ -263,11 +253,6 @@ function ChildrenCertificateDialog({
                                         size="small"
                                     />
                                     <Chip
-                                        label={`Đi trễ: ${previewData.attendanceSummary.late}/${previewData.attendanceSummary.totalDays}`}
-                                        color="info"
-                                        size="small"
-                                    />
-                                    <Chip
                                         label={`Vắng có phép: ${previewData.attendanceSummary.absentWithPermission}/${previewData.attendanceSummary.totalDays}`}
                                         color="warning"
                                         size="small"
@@ -282,7 +267,7 @@ function ChildrenCertificateDialog({
 
                             <Divider sx={{ my: 2 }} />
 
-                            {/* Assessment Grid */}
+                            {/* Assessment Table */}
                             <Box>
                                 <Typography variant="subtitle2" fontWeight={600} sx={{ mb: 1, color: '#667eea' }}>
                                     Tổng hợp Đánh giá hằng ngày
@@ -310,40 +295,148 @@ function ChildrenCertificateDialog({
                                                             minWidth: 120,
                                                         }}
                                                     >
-                                                        {day.dayLabel}
+                                                        {getDayLabel(day.date)}
                                                     </TableCell>
                                                 ))}
                                             </TableRow>
                                         </TableHead>
                                         <TableBody>
-                                            {previewData.assessmentGrid.map((row, idx) => (
-                                                <TableRow key={idx} hover>
-                                                    <TableCell sx={{ fontWeight: 500, bgcolor: '#fafafa' }}>
-                                                        {row.criteria}
+                                            {/* Điểm danh */}
+                                            <TableRow hover>
+                                                <TableCell sx={{ fontWeight: 500, bgcolor: '#fafafa' }}>
+                                                    Điểm danh
+                                                </TableCell>
+                                                {previewData.weekDays.map((day) => (
+                                                    <TableCell
+                                                        key={day.date}
+                                                        align="center"
+                                                        sx={{ fontSize: '0.8rem' }}
+                                                    >
+                                                        <Chip
+                                                            label={day.attendance}
+                                                            size="small"
+                                                            color={
+                                                                day.attendance === 'Có mặt'
+                                                                    ? 'success'
+                                                                    : day.attendance === 'Vắng có phép'
+                                                                      ? 'warning'
+                                                                      : day.attendance === 'Vắng không phép'
+                                                                        ? 'error'
+                                                                        : 'default'
+                                                            }
+                                                            sx={{ fontSize: '0.7rem', height: 20 }}
+                                                        />
                                                     </TableCell>
-                                                    {row.days.map((dayData, dayIdx) => (
-                                                        <TableCell
-                                                            key={dayIdx}
-                                                            sx={{
-                                                                fontSize: '0.75rem',
-                                                                whiteSpace: 'pre-line',
-                                                                maxWidth: 150,
-                                                                minHeight: 60,
-                                                            }}
-                                                        >
-                                                            {dayData.content || (
-                                                                <Typography
-                                                                    variant="caption"
-                                                                    color="text.secondary"
-                                                                    fontStyle="italic"
-                                                                >
-                                                                    Chưa đánh giá
-                                                                </Typography>
-                                                            )}
-                                                        </TableCell>
-                                                    ))}
-                                                </TableRow>
-                                            ))}
+                                                ))}
+                                            </TableRow>
+
+                                            {/* Tình trạng sức khỏe */}
+                                            <TableRow hover>
+                                                <TableCell sx={{ fontWeight: 500, bgcolor: '#fafafa' }}>
+                                                    Sức khỏe
+                                                </TableCell>
+                                                {previewData.weekDays.map((day) => (
+                                                    <TableCell
+                                                        key={day.date}
+                                                        sx={{
+                                                            fontSize: '0.75rem',
+                                                            whiteSpace: 'pre-line',
+                                                            maxWidth: 150,
+                                                        }}
+                                                    >
+                                                        {day.assessment?.healthStatus || (
+                                                            <Typography
+                                                                variant="caption"
+                                                                color="text.secondary"
+                                                                fontStyle="italic"
+                                                            >
+                                                                {day.isHoliday ? 'Ngày nghỉ' : 'Chưa đánh giá'}
+                                                            </Typography>
+                                                        )}
+                                                    </TableCell>
+                                                ))}
+                                            </TableRow>
+
+                                            {/* Cảm xúc/Hành vi */}
+                                            <TableRow hover>
+                                                <TableCell sx={{ fontWeight: 500, bgcolor: '#fafafa' }}>
+                                                    Cảm xúc/Hành vi
+                                                </TableCell>
+                                                {previewData.weekDays.map((day) => (
+                                                    <TableCell
+                                                        key={day.date}
+                                                        sx={{
+                                                            fontSize: '0.75rem',
+                                                            whiteSpace: 'pre-line',
+                                                            maxWidth: 150,
+                                                        }}
+                                                    >
+                                                        {day.assessment?.emotionalBehavior || (
+                                                            <Typography
+                                                                variant="caption"
+                                                                color="text.secondary"
+                                                                fontStyle="italic"
+                                                            >
+                                                                {day.isHoliday ? 'Ngày nghỉ' : 'Chưa đánh giá'}
+                                                            </Typography>
+                                                        )}
+                                                    </TableCell>
+                                                ))}
+                                            </TableRow>
+
+                                            {/* Kiến thức/Kỹ năng */}
+                                            <TableRow hover>
+                                                <TableCell sx={{ fontWeight: 500, bgcolor: '#fafafa' }}>
+                                                    Kiến thức/Kỹ năng
+                                                </TableCell>
+                                                {previewData.weekDays.map((day) => (
+                                                    <TableCell
+                                                        key={day.date}
+                                                        sx={{
+                                                            fontSize: '0.75rem',
+                                                            whiteSpace: 'pre-line',
+                                                            maxWidth: 150,
+                                                        }}
+                                                    >
+                                                        {day.assessment?.skillsKnowledge || (
+                                                            <Typography
+                                                                variant="caption"
+                                                                color="text.secondary"
+                                                                fontStyle="italic"
+                                                            >
+                                                                {day.isHoliday ? 'Ngày nghỉ' : 'Chưa đánh giá'}
+                                                            </Typography>
+                                                        )}
+                                                    </TableCell>
+                                                ))}
+                                            </TableRow>
+
+                                            {/* Lưu ý */}
+                                            <TableRow hover>
+                                                <TableCell sx={{ fontWeight: 500, bgcolor: '#fafafa' }}>
+                                                    Lưu ý
+                                                </TableCell>
+                                                {previewData.weekDays.map((day) => (
+                                                    <TableCell
+                                                        key={day.date}
+                                                        sx={{
+                                                            fontSize: '0.75rem',
+                                                            whiteSpace: 'pre-line',
+                                                            maxWidth: 150,
+                                                        }}
+                                                    >
+                                                        {day.assessment?.notes || (
+                                                            <Typography
+                                                                variant="caption"
+                                                                color="text.secondary"
+                                                                fontStyle="italic"
+                                                            >
+                                                                {day.isHoliday ? 'Ngày nghỉ' : 'Không có'}
+                                                            </Typography>
+                                                        )}
+                                                    </TableCell>
+                                                ))}
+                                            </TableRow>
                                         </TableBody>
                                     </Table>
                                 </TableContainer>
@@ -372,13 +465,13 @@ function ChildrenCertificateDialog({
                                         color: formData.isGoodChild ? '#ff4081' : '#000',
                                     }}
                                 >
-                                    Hoa bé ngoan
+                                    Trao hoa bé ngoan Tuần {weekNumber}
                                 </Typography>
                                 <Typography
                                     variant="body2"
                                     sx={{
                                         fontWeight: 600,
-                                        color: formData.isGoodChild ? '#ff4081' : '#000',
+                                        color: formData.isGoodChild ? '#ff4081' : '#757575',
                                     }}
                                 >
                                     ({formData.isGoodChild ? 'Bé ngoan' : 'Chưa chọn'})
@@ -391,12 +484,12 @@ function ChildrenCertificateDialog({
                 {/* Nhận xét */}
                 <Box>
                     <Typography variant="subtitle2" sx={{ mb: 1, color: '#ff4081', fontWeight: 600 }}>
-                        Nhận xét *
+                        Nhận xét Tuần {weekNumber} *
                     </Typography>
                     <TextField
                         fullWidth
                         multiline
-                        rows={5}
+                        rows={6}
                         placeholder="Nhập nhận xét về học sinh trong tuần này..."
                         value={formData.comment}
                         onChange={(e) => setFormData({ ...formData, comment: e.target.value })}
@@ -410,28 +503,7 @@ function ChildrenCertificateDialog({
             </DialogContent>
 
             {/* Actions */}
-            <DialogActions sx={{ px: 3, py: 2, gap: 1, justifyContent: 'space-between' }}>
-                {/* Delete button - Only show in edit mode */}
-                {isEditMode && existingCertificate?._id && (
-                    <Button
-                        variant="outlined"
-                        color="error"
-                        onClick={handleDelete}
-                        disabled={loading}
-                        startIcon={<DeleteOutlineIcon />}
-                        size="small"
-                        sx={{
-                            borderRadius: 1.5,
-                            px: 2,
-                            textTransform: 'none',
-                        }}
-                    >
-                        Xóa phiếu
-                    </Button>
-                )}
-
-                <Box sx={{ flex: 1 }} />
-
+            <DialogActions sx={{ px: 3, py: 2, gap: 1 }}>
                 {/* Cancel button */}
                 <Button
                     onClick={handleClose}

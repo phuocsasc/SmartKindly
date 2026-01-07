@@ -20,9 +20,9 @@ export const childrenCertificateApi = {
 
     // Lấy danh sách phiếu bé ngoan theo lớp và tuần
     getAll: async (params) => {
-        const { classId, weekNumber, academicYearId, search } = params;
+        const { academicYearId, classId, weekNumber, search, page = 1, limit = 1000 } = params;
         return await authorizedAxiosInstance.get(`${API_ROOT}/v1/children-certificates`, {
-            params: { classId, weekNumber, academicYearId, search, page: 1, limit: 1000 },
+            params: { academicYearId, classId, weekNumber, search, page, limit },
         });
     },
 

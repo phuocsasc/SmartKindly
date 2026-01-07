@@ -34,7 +34,7 @@ const getDetails = async (req, res, next) => {
         const userId = req.jwtDecoded.id;
         const result = await childrenCertificateServices.getDetails(req.params.id, userId);
         res.status(StatusCodes.OK).json({
-            message: 'Lấy thông tin phiếu bé ngoan thành công!',
+            message: 'Lấy chi tiết phiếu bé ngoan thành công!',
             data: result,
         });
     } catch (error) {
@@ -116,5 +116,5 @@ export const childrenCertificateController = {
     deleteCertificate,
     getAccessibleClassesList,
     getValidWeeks,
-    getPreviewData, // ✅ Add new controller
+    getPreviewData,
 };

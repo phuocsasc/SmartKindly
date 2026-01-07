@@ -20,21 +20,25 @@ import {
     TableHead,
     TableRow,
     Alert,
+    Chip,
 } from '@mui/material';
 import PeopleIcon from '@mui/icons-material/People';
 import LocalFloristRoundedIcon from '@mui/icons-material/LocalFloristRounded';
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
 import DoneOutlinedIcon from '@mui/icons-material/DoneOutlined';
+import DeleteOutlineOutlinedIcon from '@mui/icons-material/DeleteOutlineOutlined';
 import MainLayout from '~/layouts/SchoolLayout';
 import PageContainer from '~/components/common/PageContainer';
 import PageBreadcrumb from '~/components/common/PageBreadcrumb';
 import { useUser } from '~/contexts/UserContext';
 import { usePermission } from '~/hooks/usePermission';
-import { childrenCertificateApi, academicYearApi, childrenProfileApi } from '~/apis';
+import { childrenCertificateApi, academicYearApi, childrenByClassApi } from '~/apis';
 import { PERMISSIONS } from '~/config/rbacConfig';
 import { toast } from 'react-toastify';
 import dayjs from '~/config/dayjsConfig';
 import ChildrenCertificateDialog from './ChildrenCertificateDialog';
+import { useConfirmDialog } from '~/hooks/useConfirmDialog';
+import ConfirmDialog from '~/components/common/ConfirmDialog';
 
 function ChildrenCertificate() {
     const { user } = useUser();
@@ -59,9 +63,13 @@ function ChildrenCertificate() {
     const [openDialog, setOpenDialog] = useState(false);
     const [dialogData, setDialogData] = useState(null);
 
+    // Confirm dialog
+    const { dialogState, showConfirm, handleCancel } = useConfirmDialog();
+
     const isActiveYear = selectedYear === activeYearId;
     const canCreate = hasPermission(PERMISSIONS.CREATE_CHILDREN_CERTIFICATE);
     const canUpdate = hasPermission(PERMISSIONS.UPDATE_CHILDREN_CERTIFICATE);
+    const canDelete = hasPermission(PERMISSIONS.DELETE_CHILDREN_CERTIFICATE);
 
     // ✅ Fetch academic years
     const fetchAcademicYears = async () => {
@@ -135,15 +143,19 @@ function ChildrenCertificate() {
             setLoading(true);
 
             // 1. Get students from class
-            const studentsRes = await childrenProfileApi.getAll({
+            const studentsRes = await childrenByClassApi.getAll({
                 academicYearId: selectedYear,
                 classId: selectedClass,
-                status: 'Đang học',
                 page: 1,
                 limit: 1000,
             });
 
-            const studentsData = studentsRes.data.data.profiles;
+            // ✅ FIX: childrenByClassApi trả về data.children (KHÔNG PHẢI data.students)
+            const studentsData = (studentsRes.data.data.children || []).filter(
+                (s) => s.studentId && (s.managementStatus === 'Đang học' || s.managementStatus === 'Nghỉ học'),
+            );
+
+            console.log('✅ [fetchCertificateData] Students loaded:', studentsData.length);
 
             // 2. Get certificates
             const certificatesRes = await childrenCertificateApi.getAll({
@@ -157,24 +169,26 @@ function ChildrenCertificate() {
 
             // 3. Map certificates by studentId
             const certificateMap = {};
-            certificatesList.forEach((cert) => {
-                certificateMap[cert.studentId._id] = cert;
+            (certificatesList || []).forEach((cert) => {
+                if (cert.studentId && cert.studentId._id) {
+                    certificateMap[cert.studentId._id] = cert;
+                }
             });
 
             setStudents(studentsData);
             setCertificates(certificateMap);
 
-            console.log('✅ Certificate data loaded:', {
+            console.log('✅ [fetchCertificateData] Certificate data loaded:', {
                 studentsCount: studentsData.length,
-                certificatesCount: certificatesList.length,
+                certificatesCount: certificatesList?.length || 0,
             });
         } catch (error) {
-            console.error('Error fetching certificate data:', error);
+            console.error('❌ [fetchCertificateData] Error:', error);
 
             if (error?.response?.status === 404) {
-                console.log('⚠️  Class not found - may be switching years');
+                console.log('⚠️ Class not found - may be switching years');
             } else {
-                toast.error('Lỗi khi tải dữ liệu phiếu bé ngoan!');
+                toast.error(error.response?.data?.message || 'Lỗi khi tải dữ liệu phiếu bé ngoan!');
             }
 
             setStudents([]);
@@ -234,14 +248,14 @@ function ChildrenCertificate() {
         return `Tuần ${week.weekNumber} (${start} - ${end})`;
     };
 
-    // ✅ Handle edit certificate
+    // ✅ Handle edit/create certificate
     const handleEdit = (student) => {
         if (!isActiveYear && !canUpdate) return;
 
-        const certificate = certificates[student._id] || null;
+        const certificate = certificates[student.studentId._id] || null;
 
         setDialogData({
-            studentInfo: student,
+            studentInfo: student.studentId,
             classId: selectedClass,
             academicYearId: selectedYear,
             weekNumber: parseInt(selectedWeek),
@@ -250,11 +264,35 @@ function ChildrenCertificate() {
         setOpenDialog(true);
     };
 
+    // ✅ Handle delete certificate
+    const handleDelete = (student) => {
+        const certificate = certificates[student.studentId._id];
+        if (!certificate) return;
+
+        showConfirm({
+            title: 'Xác nhận xóa phiếu bé ngoan',
+            message: `Bạn có chắc chắn muốn xóa phiếu bé ngoan của bé "${student.studentId.fullName}" trong tuần ${selectedWeek}?`,
+            severity: 'error',
+            confirmText: 'Xóa',
+            cancelText: 'Hủy',
+            onConfirm: async () => {
+                try {
+                    await childrenCertificateApi.delete(certificate._id);
+                    toast.success('Xóa phiếu bé ngoan thành công!');
+                    fetchCertificateData();
+                } catch (error) {
+                    console.error('Error deleting certificate:', error);
+                    toast.error(error.response?.data?.message || 'Lỗi khi xóa phiếu bé ngoan!');
+                }
+            },
+        });
+    };
+
     // ✅ Filter students by search
     const filteredStudents = students.filter(
         (student) =>
-            student.fullName.toLowerCase().includes(searchText.toLowerCase()) ||
-            student.studentCode.toLowerCase().includes(searchText.toLowerCase()),
+            student.studentId.fullName.toLowerCase().includes(searchText.toLowerCase()) ||
+            student.studentId.studentCode.toLowerCase().includes(searchText.toLowerCase()),
     );
 
     return (
@@ -282,7 +320,7 @@ function ChildrenCertificate() {
                             />
 
                             {/* Academic Year */}
-                            <FormControl size="small" sx={{ minWidth: 100 }}>
+                            <FormControl size="small" sx={{ minWidth: 120 }}>
                                 <InputLabel>Năm học</InputLabel>
                                 <Select
                                     value={selectedYear}
@@ -322,7 +360,7 @@ function ChildrenCertificate() {
                             </FormControl>
 
                             {/* Week */}
-                            <FormControl size="small" sx={{ minWidth: 180 }}>
+                            <FormControl size="small" sx={{ minWidth: 200 }}>
                                 <InputLabel>Tuần</InputLabel>
                                 <Select
                                     value={selectedWeek}
@@ -379,7 +417,7 @@ function ChildrenCertificate() {
                     ) : (
                         <TableContainer
                             sx={{
-                                maxHeight: 450,
+                                maxHeight: 500,
                                 overflowY: 'auto',
                                 overflowX: 'auto',
                                 position: 'relative',
@@ -390,6 +428,7 @@ function ChildrenCertificate() {
                                     borderRadius: '4px',
                                 },
                                 '&::-webkit-scrollbar-thumb:hover': { backgroundColor: '#0071BC' },
+                                border: '1px solid #e0e0e0',
                                 borderRadius: 2,
                                 boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
                             }}
@@ -398,7 +437,7 @@ function ChildrenCertificate() {
                                 stickyHeader
                                 size="small"
                                 sx={{
-                                    // 💠 HEADER STYLE – giống bảng Đánh giá
+                                    // Header style
                                     '& .MuiTableHead-root .MuiTableCell-head': {
                                         backgroundColor: '#e3f2fd',
                                         color: '#1976d2',
@@ -410,23 +449,23 @@ function ChildrenCertificate() {
                                         zIndex: 2,
                                     },
 
-                                    // 💠 BODY STYLE
+                                    // Body style
                                     '& .MuiTableBody-root .MuiTableCell-body': {
                                         borderRight: '1px solid #e0e0e0',
                                         borderBottom: '1px solid #f0f0f0',
                                         whiteSpace: 'normal',
                                         wordBreak: 'break-word',
                                         color: '#000',
-                                        padding: '6px 8px',
+                                        padding: '8px 10px',
                                         fontSize: '0.9rem',
                                     },
 
-                                    // 💠 ROW HOVER
+                                    // Row hover
                                     '& .MuiTableRow-root:hover': {
                                         backgroundColor: '#f5faff',
                                     },
 
-                                    // 💠 FIXED COLUMNS (STT, Họ tên, Mã HS)
+                                    // Fixed columns (STT, Họ tên, Mã HS)
                                     '& .MuiTableCell-root': {
                                         '&.sticky-col-stt': {
                                             position: 'sticky',
@@ -448,33 +487,23 @@ function ChildrenCertificate() {
                                             zIndex: 3,
                                             backgroundColor: '#e3f2fd',
                                             minWidth: 160,
-                                            maxWidth: 180,
-                                            width: 180,
-                                            overflow: 'hidden',
-                                            textOverflow: 'ellipsis',
-                                            whiteSpace: 'nowrap',
                                         },
                                         '&.sticky-col-name.body-cell': {
                                             backgroundColor: '#fff',
                                             zIndex: 2,
-                                            fontWeight: 600,
                                         },
                                         '&.sticky-col-code': {
                                             position: 'sticky',
-                                            left: 230, // 50 (STT) + 180 (Name)
+                                            left: 210,
                                             zIndex: 3,
                                             backgroundColor: '#e3f2fd',
-                                            minWidth: 120,
+                                            minWidth: 110,
                                         },
                                         '&.sticky-col-code.body-cell': {
                                             backgroundColor: '#fff',
                                             zIndex: 2,
                                         },
                                     },
-
-                                    borderRadius: 2,
-                                    boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
-                                    overflow: 'hidden',
                                 }}
                             >
                                 <TableHead>
@@ -482,11 +511,11 @@ function ChildrenCertificate() {
                                         <TableCell className="sticky-col-stt">STT</TableCell>
                                         <TableCell className="sticky-col-name">Họ tên học sinh</TableCell>
                                         <TableCell className="sticky-col-code">Mã học sinh</TableCell>
-                                        <TableCell align="center" sx={{ minWidth: 150 }}>
+                                        <TableCell align="center" sx={{ minWidth: 180 }}>
                                             Hoa bé ngoan
                                         </TableCell>
                                         <TableCell sx={{ minWidth: 300 }}>Nhận xét</TableCell>
-                                        {isActiveYear && (canCreate || canUpdate) && (
+                                        {isActiveYear && (canCreate || canUpdate || canDelete) && (
                                             <TableCell align="center" sx={{ width: 100 }}>
                                                 Thao tác
                                             </TableCell>
@@ -505,19 +534,23 @@ function ChildrenCertificate() {
                                         </TableRow>
                                     ) : (
                                         filteredStudents.map((student, index) => {
-                                            const certificate = certificates[student._id];
+                                            const certificate = certificates[student.studentId._id];
                                             const isGoodChild = certificate?.isGoodChild || false;
 
                                             return (
-                                                <TableRow key={student._id} hover>
-                                                    <TableCell>{index + 1}</TableCell>
-                                                    <TableCell>
+                                                <TableRow key={student.studentId._id} hover>
+                                                    <TableCell className="body-cell sticky-col-stt">
+                                                        {index + 1}
+                                                    </TableCell>
+                                                    <TableCell className="body-cell sticky-col-name">
                                                         <Typography variant="body2" fontWeight={600}>
-                                                            {student.fullName}
+                                                            {student.studentId.fullName}
                                                         </Typography>
                                                     </TableCell>
-                                                    <TableCell>
-                                                        <Typography variant="body2">{student.studentCode}</Typography>
+                                                    <TableCell className="body-cell sticky-col-code">
+                                                        <Typography variant="body2">
+                                                            {student.studentId.studentCode}
+                                                        </Typography>
                                                     </TableCell>
 
                                                     {/* Hoa bé ngoan */}
@@ -528,26 +561,38 @@ function ChildrenCertificate() {
                                                                 alignItems: 'center',
                                                                 justifyContent: 'center',
                                                                 gap: 1,
+                                                                cursor:
+                                                                    isActiveYear && canCreate ? 'pointer' : 'default',
                                                             }}
+                                                            onClick={() =>
+                                                                isActiveYear && canCreate && handleEdit(student)
+                                                            }
                                                         >
                                                             <LocalFloristRoundedIcon
                                                                 sx={{
-                                                                    fontSize: 28,
+                                                                    fontSize: 32,
                                                                     color: isGoodChild ? '#ff4081' : '#bdbdbd',
-                                                                    transition: 'color 0.3s',
+                                                                    transition: 'all 0.3s',
+                                                                    '&:hover': {
+                                                                        transform:
+                                                                            isActiveYear && canCreate
+                                                                                ? 'scale(1.2)'
+                                                                                : 'none',
+                                                                    },
                                                                 }}
                                                             />
-                                                            {/* {isGoodChild && (
-                                                                <Typography
-                                                                    variant="body2"
+                                                            {isGoodChild && (
+                                                                <Chip
+                                                                    label="Bé ngoan"
+                                                                    size="small"
                                                                     sx={{
+                                                                        bgcolor: '#ffe0ec',
                                                                         color: '#ff4081',
                                                                         fontWeight: 600,
+                                                                        fontSize: '0.75rem',
                                                                     }}
-                                                                >
-                                                                    Bé ngoan
-                                                                </Typography>
-                                                            )} */}
+                                                                />
+                                                            )}
                                                         </Box>
                                                     </TableCell>
 
@@ -571,21 +616,44 @@ function ChildrenCertificate() {
                                                     </TableCell>
 
                                                     {/* Thao tác */}
-                                                    {isActiveYear && (canCreate || canUpdate) && (
+                                                    {isActiveYear && (canCreate || canUpdate || canDelete) && (
                                                         <TableCell align="center">
-                                                            <Tooltip
-                                                                title={
-                                                                    certificate ? 'Chỉnh sửa phiếu' : 'Thêm phiếu mới'
-                                                                }
+                                                            <Box
+                                                                sx={{
+                                                                    display: 'flex',
+                                                                    gap: 0.5,
+                                                                    justifyContent: 'center',
+                                                                }}
                                                             >
-                                                                <IconButton
-                                                                    size="small"
-                                                                    color={certificate ? 'primary' : 'default'}
-                                                                    onClick={() => handleEdit(student)}
-                                                                >
-                                                                    <EditOutlinedIcon fontSize="small" />
-                                                                </IconButton>
-                                                            </Tooltip>
+                                                                {(canCreate || canUpdate) && (
+                                                                    <Tooltip
+                                                                        title={
+                                                                            certificate
+                                                                                ? 'Chỉnh sửa phiếu'
+                                                                                : 'Thêm phiếu mới'
+                                                                        }
+                                                                    >
+                                                                        <IconButton
+                                                                            size="small"
+                                                                            color="primary"
+                                                                            onClick={() => handleEdit(student)}
+                                                                        >
+                                                                            <EditOutlinedIcon fontSize="small" />
+                                                                        </IconButton>
+                                                                    </Tooltip>
+                                                                )}
+                                                                {canDelete && certificate && (
+                                                                    <Tooltip title="Xóa phiếu">
+                                                                        <IconButton
+                                                                            size="small"
+                                                                            color="error"
+                                                                            onClick={() => handleDelete(student)}
+                                                                        >
+                                                                            <DeleteOutlineOutlinedIcon fontSize="small" />
+                                                                        </IconButton>
+                                                                    </Tooltip>
+                                                                )}
+                                                            </Box>
                                                         </TableCell>
                                                     )}
                                                 </TableRow>
@@ -626,6 +694,9 @@ function ChildrenCertificate() {
                     onSuccess={fetchCertificateData}
                 />
             )}
+
+            {/* Confirm Dialog */}
+            <ConfirmDialog {...dialogState} onCancel={handleCancel} />
         </MainLayout>
     );
 }

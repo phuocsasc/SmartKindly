@@ -1,29 +1,36 @@
 import express from 'express';
-import { StatusCodes } from 'http-status-codes';
 import { dashboardController } from '~/controllers/dashboardController.js';
 import { authMiddleware } from '~/middlewares/authMiddleware.js';
 import { rbacMiddleware } from '~/middlewares/rbacMiddleware.js';
 
 const Router = express.Router();
 
-Router.route('/access').get(authMiddleware.isAuthorized, dashboardController.access);
-
-// Ví dụ API /messages cần quyền admin hoặc moderator để truy cập:
-Router.route('/messages').get(
+// ✅ Get dashboard statistics
+Router.route('/stats').get(
     authMiddleware.isAuthorized,
-    rbacMiddleware.isValidPermission(['read_messages']),
-    (req, res) => {
-        res.status(StatusCodes.OK).json({ message: 'Truy cập API GET: /message thành công!' });
-    },
+    rbacMiddleware.isValidPermission(['view_dashboard']),
+    dashboardController.getDashboardStats,
 );
 
-// Ví dụ API /admin-tools cần quyền admin hoặc moderator để truy cập:
-Router.route('/admin-tools').get(
+// ✅ Get available academic years
+Router.route('/available-years').get(
     authMiddleware.isAuthorized,
-    rbacMiddleware.isValidPermission(['read_admin_tools']),
-    (req, res) => {
-        res.status(StatusCodes.OK).json({ message: 'Truy cập API GET: /admin-tools thành công!' });
-    },
+    rbacMiddleware.isValidPermission(['view_dashboard']),
+    dashboardController.getAvailableYears,
+);
+
+// ✅ Get available weeks
+Router.route('/available-weeks').get(
+    authMiddleware.isAuthorized,
+    rbacMiddleware.isValidPermission(['view_dashboard']),
+    dashboardController.getAvailableWeeks,
+);
+
+// ✅ Get accessible classes
+Router.route('/accessible-classes').get(
+    authMiddleware.isAuthorized,
+    rbacMiddleware.isValidPermission(['view_dashboard']),
+    dashboardController.getAccessibleClasses,
 );
 
 export const dashboardRoute = Router;

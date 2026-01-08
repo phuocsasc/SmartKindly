@@ -1,25 +1,67 @@
+// server/src/controllers/dashboardController.js
+
 import { StatusCodes } from 'http-status-codes';
+import { dashboardServices } from '~/services/dashboardServices.js';
 
-const access = async (req, res) => {
+// ✅ Get dashboard statistics
+const getDashboardStats = async (req, res, next) => {
     try {
-        // console.log('req.jwtDecoded: ', req.jwtDecoded);
-        const userInfo = {
-            id: req.jwtDecoded.id,
-            username: req.jwtDecoded.username,
-            fullName: req.jwtDecoded.fullName,
-            role: req.jwtDecoded.role,
-            isRoot: req.jwtDecoded.isRoot || false,
-            schoolId: req.jwtDecoded.schoolId,
-            schoolName: req.jwtDecoded.schoolName,
-            status: req.jwtDecoded.status,
-        };
-
-        res.status(StatusCodes.OK).json(userInfo);
+        const userId = req.jwtDecoded.id;
+        const result = await dashboardServices.getDashboardStats(req.query, userId);
+        res.status(StatusCodes.OK).json({
+            message: 'Lấy thống kê dashboard thành công!',
+            data: result,
+        });
     } catch (error) {
-        res.status(StatusCodes.INTERNAL_SERVER_ERROR).json(error);
+        next(error);
+    }
+};
+
+// ✅ Get available academic years
+const getAvailableYears = async (req, res, next) => {
+    try {
+        const userId = req.jwtDecoded.id;
+        const result = await dashboardServices.getAvailableYears(userId);
+        res.status(StatusCodes.OK).json({
+            message: 'Lấy danh sách năm học thành công!',
+            data: result,
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+// ✅ Get available weeks
+const getAvailableWeeks = async (req, res, next) => {
+    try {
+        const userId = req.jwtDecoded.id;
+        const result = await dashboardServices.getAvailableWeeks(req.query, userId);
+        res.status(StatusCodes.OK).json({
+            message: 'Lấy danh sách tuần thành công!',
+            data: result,
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+// ✅ Get accessible classes
+const getAccessibleClasses = async (req, res, next) => {
+    try {
+        const userId = req.jwtDecoded.id;
+        const result = await dashboardServices.getAccessibleClasses(req.query, userId);
+        res.status(StatusCodes.OK).json({
+            message: 'Lấy danh sách lớp học thành công!',
+            data: result,
+        });
+    } catch (error) {
+        next(error);
     }
 };
 
 export const dashboardController = {
-    access,
+    getDashboardStats,
+    getAvailableYears,
+    getAvailableWeeks,
+    getAccessibleClasses, // ✅ ADD
 };

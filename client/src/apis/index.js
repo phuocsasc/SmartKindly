@@ -82,3 +82,5 @@ export * from './schoolMenuApplyApi';
 export * from './childrenManagementApi';
 
 export * from './childrenByClassApi';
+
+export * from './dashboardApi'; // ✅ ADD

@@ -90,6 +90,7 @@ const AssessmentInputSection = ({ icon, title, value, onChange, placeholder, sug
                 onChange={(e) => onChange(e.target.value)}
                 variant="outlined"
                 size="small"
+                inputProps={{ spellCheck: 'false' }}
                 sx={{
                     '& .MuiOutlinedInput-root': {
                         bgcolor: 'background.paper',

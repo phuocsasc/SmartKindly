@@ -198,7 +198,12 @@ function ChildrenCertificateDialog({
                     <Box
                         component="img"
                         src={HoaBeNgon}
-                        sx={{ width: 40, height: 40, filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.1))' }}
+                        sx={{
+                            width: 40,
+                            height: 40,
+                            borderRadius: 1,
+                            filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.1))',
+                        }}
                     />
                     <Box>
                         <Typography variant="h6" fontWeight={700} sx={{ lineHeight: 1.2 }}>
@@ -445,6 +450,7 @@ function ChildrenCertificateDialog({
                                         sx={{
                                             width: 100, // Ảnh to rõ
                                             height: 100,
+                                            borderRadius: 3,
                                             objectFit: 'contain',
                                             mb: 2,
                                             filter: formData.isGoodChild ? 'none' : 'grayscale(100%) opacity(0.5)',

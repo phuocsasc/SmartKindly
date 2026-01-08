@@ -1,6 +1,6 @@
 import { Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import Login from '~/pages/Auth/Login';
-import Dashboard from '~/pages/School/Dashboard';
+import Dashboard from '~/pages/School/Dashboard/Dashboard';
 import AdminDashboard from './pages/Admin/AdminDashboard';
 import NotFound from '~/pages/ErrorPage/NotFound';
 import AccessDenied from '~/pages/ErrorPage/AccessDenied';

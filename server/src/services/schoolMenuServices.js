@@ -228,7 +228,7 @@ const getAll = async (query, userId) => {
     const user = await UserModel.findById(userId).select('schoolId');
     if (!user || !user.schoolId) throw new ApiError(StatusCodes.FORBIDDEN, 'Người dùng không thuộc trường học nào.');
 
-    const { page = 1, limit = 20, search = '', ageGroup = '' } = query;
+    const { page = 1, limit = 20, search = '', ageGroup = '', appliedStatus = '' } = query; // ✅ NEW: appliedStatus param
     const skip = (page - 1) * limit;
 
     const filter = { schoolId: user.schoolId, _destroy: false };
@@ -239,63 +239,130 @@ const getAll = async (query, userId) => {
         filter.ageGroup = ageGroup;
     }
 
-    const [menus, total] = await Promise.all([
-        SchoolMenuModel.find(filter)
-            .select({
-                menuName: 1,
-                ageGroup: 1,
-                numberOfChildren: 1,
-                analysis: 1,
-                _ready: 1,
-                createdAt: 1,
-                updatedAt: 1, // Thêm dòng này
-                'meals.Bữa sáng.name': 1,
-                'meals.Bữa sáng.mealId': 1,
-                'meals.Bữa trưa.name': 1,
-                'meals.Bữa trưa.mealId': 1,
-                'meals.Bữa xế.name': 1,
-                'meals.Bữa xế.mealId': 1,
-                'meals.Bữa phụ.name': 1,
-                'meals.Bữa phụ.mealId': 1,
-            })
-            .populate('nutritionalStandardId', 'ageGroup')
-            .populate('createdBy', 'fullName')
-            .sort({ createdAt: -1 })
-            .skip(skip)
-            .limit(Number(limit))
-            .lean(),
-        SchoolMenuModel.countDocuments(filter),
-    ]);
-
-    // ✅ Lấy năm học active
+    // ✅ Lấy năm học active để filter
     const activeYear = await AcademicYearModel.findOne({
         schoolId: user.schoolId,
         status: 'active',
         _destroy: false,
     });
 
-    // ✅ Kiểm tra từng thực đơn: đã được áp dụng chưa + đếm số lần áp dụng
+    // ✅ STEP 1: Nếu có filter appliedStatus, cần pre-filter bằng $lookup + aggregation
+    let menus;
+    let total;
+
+    if (appliedStatus && activeYear) {
+        // ✅ Use aggregation pipeline để filter theo appliedCount
+        const pipeline = [
+            { $match: filter },
+            {
+                $lookup: {
+                    from: 'schoolmenuapplies', // Collection name (lowercase + underscore)
+                    let: { menuId: '$_id' },
+                    pipeline: [
+                        {
+                            $match: {
+                                $expr: {
+                                    $and: [
+                                        { $eq: ['$menuId', '$$menuId'] },
+                                        { $eq: ['$schoolId', user.schoolId] },
+                                        { $eq: ['$academicYearId', activeYear._id] },
+                                        { $eq: ['$_destroy', false] },
+                                    ],
+                                },
+                            },
+                        },
+                    ],
+                    as: 'applies',
+                },
+            },
+            {
+                $addFields: {
+                    appliedCount: { $size: '$applies' },
+                },
+            },
+            {
+                $match:
+                    appliedStatus === 'applied'
+                        ? { appliedCount: { $gt: 0 } }
+                        : appliedStatus === 'not_applied'
+                          ? { appliedCount: 0 }
+                          : {},
+            },
+            { $sort: { createdAt: -1 } },
+        ];
+
+        // Get total count
+        const countPipeline = [...pipeline, { $count: 'total' }];
+        const countResult = await SchoolMenuModel.aggregate(countPipeline);
+        total = countResult[0]?.total || 0;
+
+        // Get paginated data
+        const dataPipeline = [...pipeline, { $skip: skip }, { $limit: Number(limit) }];
+        menus = await SchoolMenuModel.aggregate(dataPipeline);
+
+        // ✅ Populate sau khi aggregate
+        await SchoolMenuModel.populate(menus, [
+            { path: 'nutritionalStandardId', select: 'ageGroup' },
+            { path: 'createdBy', select: 'fullName' },
+        ]);
+    } else {
+        // ✅ Normal query (no appliedStatus filter)
+        [menus, total] = await Promise.all([
+            SchoolMenuModel.find(filter)
+                .select({
+                    menuName: 1,
+                    ageGroup: 1,
+                    numberOfChildren: 1,
+                    analysis: 1,
+                    _ready: 1,
+                    createdAt: 1,
+                    updatedAt: 1,
+                    'meals.Bữa sáng.name': 1,
+                    'meals.Bữa sáng.mealId': 1,
+                    'meals.Bữa trưa.name': 1,
+                    'meals.Bữa trưa.mealId': 1,
+                    'meals.Bữa xế.name': 1,
+                    'meals.Bữa xế.mealId': 1,
+                    'meals.Bữa phụ.name': 1,
+                    'meals.Bữa phụ.mealId': 1,
+                })
+                .populate('nutritionalStandardId', 'ageGroup')
+                .populate('createdBy', 'fullName')
+                .sort({ createdAt: -1 })
+                .skip(skip)
+                .limit(Number(limit))
+                .lean(),
+            SchoolMenuModel.countDocuments(filter),
+        ]);
+    }
+
+    // ✅ STEP 2: Add isApplied + appliedCount cho tất cả items
     const itemsWithAppliedStatus = await Promise.all(
         menus.map(async (item) => {
             let isApplied = false;
             let appliedCount = 0;
 
             if (activeYear) {
-                // Đếm số lần thực đơn được áp dụng trong năm học active
-                appliedCount = await SchoolMenuApplyModel.countDocuments({
-                    schoolId: user.schoolId,
-                    academicYearId: activeYear._id,
-                    menuId: item._id,
-                    _destroy: false,
-                });
-
-                isApplied = appliedCount > 0;
+                // Nếu đã có appliedCount từ aggregation thì dùng luôn
+                if (item.appliedCount !== undefined) {
+                    appliedCount = item.appliedCount;
+                    isApplied = appliedCount > 0;
+                } else {
+                    // Nếu không có (normal query), tính lại
+                    appliedCount = await SchoolMenuApplyModel.countDocuments({
+                        schoolId: user.schoolId,
+                        academicYearId: activeYear._id,
+                        menuId: item._id,
+                        _destroy: false,
+                    });
+                    isApplied = appliedCount > 0;
+                }
             }
 
             return {
                 ...item,
-                isApplied, // ✅ Flag đã áp dụng
-                appliedCount, // ✅ Số lần áp dụng
+                isApplied,
+                appliedCount,
             };
         }),
     );

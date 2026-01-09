@@ -81,31 +81,21 @@ function Menu() {
                 limit: paginationModel.pageSize,
                 search: debounceSearch,
                 ageGroup: filterAgeGroup,
+                appliedStatus: filterAppliedStatus, // ✅ CHANGE: Pass to server
             });
 
             const data = response.data.data;
 
-            // ✅ Filter theo appliedStatus ở client-side
-            let filteredItems = data.items;
-
-            if (filterAppliedStatus === 'applied') {
-                // Đã áp dụng: appliedCount > 0
-                filteredItems = filteredItems.filter((item) => (item.appliedCount || 0) > 0);
-            } else if (filterAppliedStatus === 'not_applied') {
-                // Chưa áp dụng: appliedCount === 0
-                filteredItems = filteredItems.filter((item) => (item.appliedCount || 0) === 0);
-            }
-
-            const formattedRows = filteredItems.map((item, index) => ({
+            const formattedRows = data.items.map((item, index) => ({
                 id: item._id,
-                isApplied: item.isApplied, // ✅ Flag từ backend
-                appliedCount: item.appliedCount || 0, // ✅ Số lần áp dụng
+                isApplied: item.isApplied,
+                appliedCount: item.appliedCount || 0,
                 stt: paginationModel.page * paginationModel.pageSize + index + 1,
                 ...item,
             }));
 
             setRows(formattedRows);
-            setTotalRows(filteredItems.length);
+            setTotalRows(data.pagination.totalItems); // ✅ CHANGE: Use server totalItems
         } catch (error) {
             toast.error('Lỗi khi tải danh sách thực đơn!');
         } finally {

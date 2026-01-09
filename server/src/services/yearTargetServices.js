@@ -1,9 +1,38 @@
 // server/src/services/yearTargetServices.js
 
 import { YearTargetModel } from '~/models/yearTargetModel.js';
+import { EducationalActivityModel } from '~/models/educationalActivityModel.js'; // ✅ ADD
 import { UserModel } from '~/models/userModel.js';
 import ApiError from '~/utils/ApiError.js';
 import { StatusCodes } from 'http-status-codes';
+
+/**
+ * ✅ Helper: Xóa cascade hoạt động giáo dục khi xóa 1 target cụ thể
+ * @param {ObjectId} yearTargetId - ID của yearTarget document
+ * @param {ObjectId} targetId - ID của target cần xóa (nằm trong mảng targets)
+ */
+const deleteCascadeActivitiesForTarget = async (yearTargetId, targetId) => {
+    try {
+        console.log('🗑️ [deleteCascadeActivitiesForTarget] Deleting activities for:', {
+            yearTargetId: yearTargetId.toString(),
+            targetId: targetId.toString(),
+        });
+
+        // ✅ Hard delete các hoạt động có targetId này
+        const deleteResult = await EducationalActivityModel.deleteMany({
+            yearTargetId: yearTargetId,
+            targetId: targetId,
+            _destroy: false,
+        });
+
+        console.log(`✅ Deleted ${deleteResult.deletedCount} educational activities for target ${targetId}`);
+
+        return deleteResult.deletedCount;
+    } catch (error) {
+        console.error('❌ [deleteCascadeActivitiesForTarget] Error:', error);
+        throw error;
+    }
+};
 
 /**
  * ✅ Tạo mới Year Target
@@ -137,6 +166,75 @@ const update = async (id, data, userId) => {
             }
         }
 
+        // ✅ ============================================
+        // CASCADE DELETE: Tìm targets bị xóa trong mainFields
+        // ============================================
+        if (data.mainFields) {
+            console.log('🔍 [YearTarget update] Checking for deleted targets...');
+
+            // Thu thập tất cả targetIds từ OLD structure
+            const oldTargetIds = new Set();
+            yearTarget.mainFields.forEach((mainField) => {
+                if (mainField.subFields && Array.isArray(mainField.subFields)) {
+                    mainField.subFields.forEach((subField) => {
+                        subField.expectedResults?.forEach((er) => {
+                            er.targets?.forEach((target) => {
+                                if (target._id) oldTargetIds.add(target._id.toString());
+                            });
+                        });
+                    });
+                } else {
+                    mainField.expectedResults?.forEach((er) => {
+                        er.targets?.forEach((target) => {
+                            if (target._id) oldTargetIds.add(target._id.toString());
+                        });
+                    });
+                }
+            });
+
+            // Thu thập tất cả targetIds từ NEW structure
+            const newTargetIds = new Set();
+            data.mainFields.forEach((mainField) => {
+                if (mainField.subFields && Array.isArray(mainField.subFields)) {
+                    mainField.subFields.forEach((subField) => {
+                        subField.expectedResults?.forEach((er) => {
+                            er.targets?.forEach((target) => {
+                                if (target._id) newTargetIds.add(target._id.toString());
+                            });
+                        });
+                    });
+                } else {
+                    mainField.expectedResults?.forEach((er) => {
+                        er.targets?.forEach((target) => {
+                            if (target._id) newTargetIds.add(target._id.toString());
+                        });
+                    });
+                }
+            });
+
+            // Tìm các targetIds bị xóa (có trong old nhưng không có trong new)
+            const deletedTargetIds = [...oldTargetIds].filter((id) => !newTargetIds.has(id));
+
+            console.log('📊 [YearTarget update] Target comparison:', {
+                oldCount: oldTargetIds.size,
+                newCount: newTargetIds.size,
+                deletedCount: deletedTargetIds.length,
+                deletedTargetIds,
+            });
+
+            // ✅ Xóa các hoạt động giáo dục tương ứng với targets bị xóa
+            if (deletedTargetIds.length > 0) {
+                let totalDeletedActivities = 0;
+
+                for (const targetId of deletedTargetIds) {
+                    const deletedCount = await deleteCascadeActivitiesForTarget(yearTarget._id, targetId);
+                    totalDeletedActivities += deletedCount;
+                }
+
+                console.log(`✅ [YearTarget update] Cascade deleted ${totalDeletedActivities} educational activities`);
+            }
+        }
+
         // ✅ Update
         const updatedYearTarget = await YearTargetModel.findByIdAndUpdate(
             id,
@@ -161,24 +259,92 @@ const update = async (id, data, userId) => {
  */
 const deleteYearTarget = async (id, userId) => {
     try {
-        // ✅ Kiểm tra user (chỉ admin mới được xóa)
+        console.log('🗑️ [YearTarget deleteYearTarget] Starting with id:', id);
+
+        // ✅ STEP 1: Verify user permission (only admin)
         const user = await UserModel.findById(userId).select('role');
         if (!user || user.role !== 'admin') {
             throw new ApiError(StatusCodes.FORBIDDEN, 'Chỉ admin mới có quyền xóa mục tiêu năm học');
         }
 
+        // ✅ STEP 2: Find the year target
         const yearTarget = await YearTargetModel.findOne({ _id: id, _destroy: false });
         if (!yearTarget) {
             throw new ApiError(StatusCodes.NOT_FOUND, 'Không tìm thấy mục tiêu năm học');
         }
 
-        // Soft delete
-        await YearTargetModel.findByIdAndUpdate(id, { _destroy: true });
+        console.log('📋 [YearTarget deleteYearTarget] Found target:', {
+            _id: yearTarget._id,
+            ageGroup: yearTarget.ageGroup,
+        });
 
-        return { message: 'Xóa mục tiêu năm học thành công' };
+        // ✅ STEP 3: Collect all targetIds from mainFields structure
+        const targetIdsToDelete = [];
+
+        yearTarget.mainFields.forEach((mainField) => {
+            // Case 1: Has subFields
+            if (mainField.subFields && Array.isArray(mainField.subFields)) {
+                mainField.subFields.forEach((subField) => {
+                    if (subField.expectedResults && Array.isArray(subField.expectedResults)) {
+                        subField.expectedResults.forEach((expectedResult) => {
+                            if (expectedResult.targets && Array.isArray(expectedResult.targets)) {
+                                expectedResult.targets.forEach((target) => {
+                                    if (target._id) {
+                                        targetIdsToDelete.push(target._id);
+                                    }
+                                });
+                            }
+                        });
+                    }
+                });
+            }
+
+            // Case 2: Has expectedResults directly
+            if (mainField.expectedResults && Array.isArray(mainField.expectedResults)) {
+                mainField.expectedResults.forEach((expectedResult) => {
+                    if (expectedResult.targets && Array.isArray(expectedResult.targets)) {
+                        expectedResult.targets.forEach((target) => {
+                            if (target._id) {
+                                targetIdsToDelete.push(target._id);
+                            }
+                        });
+                    }
+                });
+            }
+        });
+
+        console.log(
+            `🔍 [YearTarget deleteYearTarget] Found ${targetIdsToDelete.length} target IDs to check for activities`,
+        );
+
+        // ✅ STEP 4: HARD DELETE related educational activities (by targetId)
+        const deleteActivitiesResult = await EducationalActivityModel.deleteMany({
+            yearTargetId: yearTarget._id,
+            targetId: { $in: targetIdsToDelete },
+            _destroy: false,
+        });
+
+        console.log(
+            `🗑️ [YearTarget deleteYearTarget] HARD deleted ${deleteActivitiesResult.deletedCount} related educational activities`,
+        );
+
+        // ✅ STEP 5: HARD DELETE the year target
+        await YearTargetModel.findByIdAndDelete(id);
+
+        console.log('✅ [YearTarget deleteYearTarget] HARD deleted year target successfully');
+
+        return {
+            message: 'Xóa mục tiêu năm học thành công',
+            deletedActivitiesCount: deleteActivitiesResult.deletedCount,
+            yearTargetInfo: {
+                ageGroup: yearTarget.ageGroup,
+                targetsCount: targetIdsToDelete.length,
+            },
+        };
     } catch (error) {
+        console.error('❌ [YearTarget deleteYearTarget] Error:', error);
         if (error instanceof ApiError) throw error;
-        throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, 'Lỗi khi xóa mục tiêu năm học');
+        throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, 'Lỗi khi xóa mục tiêu năm học: ' + error.message);
     }
 };
 

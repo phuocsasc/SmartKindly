@@ -281,8 +281,7 @@ const deleteActivity = async (id, userId) => {
             throw new ApiError(StatusCodes.NOT_FOUND, 'Không tìm thấy hoạt động giáo dục');
         }
 
-        // Soft delete
-        await EducationalActivityModel.findByIdAndUpdate(id, { _destroy: true });
+        await EducationalActivityModel.deleteOne({ _id: id });
 
         return { message: 'Xóa hoạt động giáo dục thành công' };
     } catch (error) {

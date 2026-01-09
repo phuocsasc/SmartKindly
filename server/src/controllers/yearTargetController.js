@@ -56,9 +56,13 @@ const update = async (req, res, next) => {
 const deleteYearTarget = async (req, res, next) => {
     try {
         const userId = req.jwtDecoded.id;
-        await yearTargetServices.deleteYearTarget(req.params.id, userId);
+        const result = await yearTargetServices.deleteYearTarget(req.params.id, userId);
         res.status(StatusCodes.OK).json({
-            message: 'Xóa mục tiêu năm học thành công!',
+            message: result.message,
+            data: {
+                deletedActivitiesCount: result.deletedActivitiesCount,
+                yearTargetInfo: result.yearTargetInfo,
+            },
         });
     } catch (error) {
         next(error);

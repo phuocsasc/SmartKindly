@@ -24,7 +24,7 @@ import { useTheme } from '@mui/material/styles';
 import logo_sidebar from '/logo_thanh_menu_tach_nen.png';
 
 const menuItems = [
-    { text: 'Trang chủ', icon: <DashboardIcon />, path: '/admin/dashboard' },
+    { text: 'Tổng quan', icon: <DashboardIcon />, path: '/admin/dashboard' },
 
     { text: 'Quản lý trường học', icon: <MapsHomeWorkOutlinedIcon />, path: '/admin/school-management' },
     { text: 'Quản lý người dùng', icon: <SwitchAccountOutlinedIcon />, path: '/admin/users-management' },
@@ -33,8 +33,8 @@ const menuItems = [
         text: 'Ngân hàng dữ liệu',
         icon: <StorageOutlinedIcon />,
         children: [
-            { text: 'Mục tiêu năm học', path: '/admin/edu-plan/year-target' },
-            { text: 'Kế hoạch giáo dục', path: '/admin/edu-plan/theme-plan' },
+            { text: 'Mục tiêu năm học theo từng độ tuổi', path: '/admin/edu-plan/year-target' },
+            { text: 'Hoạt động giáo dục theo từng mục tiêu', path: '/admin/edu-plan/theme-plan' },
             { text: 'Định mức dinh dưỡng', path: '/admin/nutrition/standards' },
             { text: 'Thực phẩm', path: '/admin/nutrition/food' },
             // { text: 'Món ăn', path: '/admin/nutrition/meal' },

@@ -84,3 +84,5 @@ export * from './childrenManagementApi';
 export * from './childrenByClassApi';
 
 export * from './dashboardApi'; // ✅ ADD
+
+export * from './adminDashboardApi'; // ✅ ADD

@@ -31,7 +31,7 @@ import { usePermission } from '~/hooks/usePermission';
 import { PERMISSIONS } from '~/config/rbacConfig';
 
 const menuItems = [
-    { text: 'Trang chủ', icon: <DashboardIcon />, path: '/dashboard' },
+    { text: 'Tổng quan', icon: <DashboardIcon />, path: '/dashboard' },
 
     {
         text: 'Quản lý người dùng',

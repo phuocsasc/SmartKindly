@@ -33,6 +33,13 @@ import CertificateStats from './CertificateStats';
 import YearTargetStats from './YearTargetStats';
 import ActivityStats from './ActivityStats';
 
+// ✅ 1. CẤU HÌNH CHIỀU CAO TẠI ĐÂY (Đơn vị: px)
+const ROW_HEIGHTS = {
+    row1: 400, // Hàng 1: Các thẻ tổng quan (TotalChildren, TotalClasses...)
+    row2: 500, // Hàng 2: Các biểu đồ chi tiết (Học sinh, Điểm danh, Đánh giá)
+    row3: 500, // Hàng 3: Các thống kê bổ sung (Chứng chỉ, Ăn uống...)
+};
+
 function Dashboard() {
     const { user } = useUser();
 
@@ -310,7 +317,7 @@ function Dashboard() {
     return (
         <MainLayout user={user}>
             <PageContainer>
-                <Paper sx={{ p: 2, borderRadius: 2, boxShadow: 2 }}>
+                <Paper sx={{ p: 2, borderRadius: 2, boxShadow: 2, bgcolor: '#f8f9fa' }}>
                     {/* Toolbar */}
                     <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
                         <Typography variant="h5" fontWeight={600}>
@@ -408,50 +415,70 @@ function Dashboard() {
                         <Grid container spacing={3}>
                             {/* Row 1: Common stats (4 items) */}
                             <Grid item xs={12} sm={6} md={3}>
-                                <TotalChildren data={stats.totalChildren} />
+                                <Box sx={{ height: ROW_HEIGHTS.row1 }}>
+                                    <TotalChildren data={stats.totalChildren} />
+                                </Box>
                             </Grid>
                             <Grid item xs={12} sm={6} md={3}>
-                                <TotalClasses data={stats.totalClasses} classesList={stats.classesList} />
+                                <Box sx={{ height: ROW_HEIGHTS.row1 }}>
+                                    <TotalClasses data={stats.totalClasses} classesList={stats.classesList} />
+                                </Box>
                             </Grid>
                             <Grid item xs={12} sm={6} md={3}>
-                                <TotalMeals data={stats.totalMeals} />
+                                <Box sx={{ height: ROW_HEIGHTS.row1 }}>
+                                    <TotalMeals data={stats.totalMeals} />
+                                </Box>
                             </Grid>
                             <Grid item xs={12} sm={6} md={3}>
-                                <TotalMenus data={stats.totalMenusByAgeGroup} />
+                                <Box sx={{ height: ROW_HEIGHTS.row1 }}>
+                                    <TotalMenus data={stats.totalMenusByAgeGroup} />
+                                </Box>
                             </Grid>
 
                             {/* Row 2: Class-specific stats (3 items) */}
                             <Grid item xs={12} md={4}>
-                                <StudentsPerClass data={stats.classStudents} classInfo={stats.classInfo} />
+                                <Box sx={{ height: ROW_HEIGHTS.row2 }}>
+                                    <YearTargetStats data={stats.yearTargetsByAgeGroup} />
+                                </Box>
                             </Grid>
                             <Grid item xs={12} md={4}>
-                                <AttendanceStats
-                                    data={stats.attendanceStatsByDay}
-                                    weekNumber={stats.weekNumber}
-                                    classInfo={stats.classInfo}
-                                />
+                                <Box sx={{ height: ROW_HEIGHTS.row2 }}>
+                                    <ActivityStats data={stats.activitiesByAgeGroup} />
+                                </Box>
                             </Grid>
                             <Grid item xs={12} md={4}>
-                                <AssessmentStats
-                                    data={stats.assessmentStatsByDay}
-                                    weekNumber={stats.weekNumber}
-                                    classInfo={stats.classInfo}
-                                />
+                                <Box sx={{ height: ROW_HEIGHTS.row2 }}>
+                                    <StudentsPerClass data={stats.classStudents} classInfo={stats.classInfo} />
+                                </Box>
                             </Grid>
 
                             {/* Row 3: More stats (3 items) */}
                             <Grid item xs={12} md={4}>
-                                <CertificateStats
-                                    data={stats.certificateStats}
-                                    weekNumber={stats.weekNumber}
-                                    classInfo={stats.classInfo}
-                                />
+                                <Box sx={{ height: ROW_HEIGHTS.row3 }}>
+                                    <AttendanceStats
+                                        data={stats.attendanceStatsByDay}
+                                        weekNumber={stats.weekNumber}
+                                        classInfo={stats.classInfo}
+                                    />
+                                </Box>
                             </Grid>
                             <Grid item xs={12} md={4}>
-                                <YearTargetStats data={stats.yearTargetsByAgeGroup} />
+                                <Box sx={{ height: ROW_HEIGHTS.row3 }}>
+                                    <AssessmentStats
+                                        data={stats.assessmentStatsByDay}
+                                        weekNumber={stats.weekNumber}
+                                        classInfo={stats.classInfo}
+                                    />
+                                </Box>
                             </Grid>
                             <Grid item xs={12} md={4}>
-                                <ActivityStats data={stats.activitiesByAgeGroup} />
+                                <Box sx={{ height: ROW_HEIGHTS.row3 }}>
+                                    <CertificateStats
+                                        data={stats.certificateStats}
+                                        weekNumber={stats.weekNumber}
+                                        classInfo={stats.classInfo}
+                                    />
+                                </Box>
                             </Grid>
                         </Grid>
                     )}

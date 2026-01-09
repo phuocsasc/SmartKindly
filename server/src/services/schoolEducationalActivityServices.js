@@ -392,7 +392,6 @@ const deleteActivity = async (id, userId) => {
         }
 
         console.log('🔍 [deleteActivity] academicYearId:', activity.academicYearId);
-        console.log('🔍 [deleteActivity] academicYearId type:', typeof activity.academicYearId);
 
         // ✅ Kiểm tra năm học
         const academicYear = await AcademicYearModel.findOne({
@@ -426,7 +425,10 @@ const deleteActivity = async (id, userId) => {
             ageGroup: activity.ageGroup,
         };
 
-        await SchoolEducationalActivityModel.findByIdAndUpdate(id, { _destroy: true });
+        await SchoolEducationalActivityModel.deleteOne({
+            _id: id,
+            schoolId: user.schoolId,
+        });
         console.log('✅ [deleteActivity] Deleted successfully');
 
         return { message: 'Xóa hoạt động giáo dục thành công', activityInfo };

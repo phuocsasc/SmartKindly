@@ -105,7 +105,7 @@ function StudentsPerClass({ data, classInfo }) {
                         <PeopleAltIcon />
                     </Avatar>
                     <Box>
-                        <Typography variant="h6" fontWeight={600} sx={{ lineHeight: 1.2, color: '#1565c0' }}>
+                        <Typography variant="h6" fontWeight={700} sx={{ lineHeight: 1.2, color: '#1565c0' }}>
                             Học sinh lớp ( {classInfo.name} )
                         </Typography>
                         <Typography variant="caption" color="text.secondary" fontWeight={600}>

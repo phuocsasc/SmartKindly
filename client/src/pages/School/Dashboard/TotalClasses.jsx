@@ -96,7 +96,7 @@ function TotalClasses({ data, classesList }) {
                     variant="h3"
                     fontWeight={900}
                     sx={{
-                        background: 'linear-gradient(45deg, #2e7d32 30%, #66bb6a 90%)',
+                        background: 'linear-gradient(45deg, #2e7d32 30%, #66bb6a 100%)',
                         WebkitBackgroundClip: 'text',
                         WebkitTextFillColor: 'transparent',
                         lineHeight: 1,

@@ -95,7 +95,7 @@ const TotalChildren = ({ data }) => {
                         <ChildCareIcon />
                     </Avatar>
                     <Box>
-                        <Typography variant="h6" sx={{ fontWeight: 600, lineHeight: 1.2, color: '#00838F' }}>
+                        <Typography variant="h6" sx={{ fontWeight: 700, lineHeight: 1.2, color: '#00838F' }}>
                             Tổng số trẻ
                         </Typography>
                         <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600 }}>

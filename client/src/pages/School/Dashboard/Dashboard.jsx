@@ -426,7 +426,7 @@ function Dashboard() {
                             </Grid>
                             <Grid item xs={12} sm={6} md={3}>
                                 <Box sx={{ height: ROW_HEIGHTS.row1 }}>
-                                    <TotalMeals data={stats.totalMeals} />
+                                    <TotalMeals data={stats.totalMealsByType} />
                                 </Box>
                             </Grid>
                             <Grid item xs={12} sm={6} md={3}>

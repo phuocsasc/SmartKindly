@@ -318,11 +318,26 @@ const getDashboardStats = async (query, userId) => {
             .populate('homeRoomTeacher', 'fullName')
             .lean();
 
-        // 3. Total meals - unchanged
-        const totalMeals = await SchoolMealModel.countDocuments({
-            schoolId: user.schoolId,
-            _destroy: false,
-        });
+        // 3. Total meals by meal type - UPDATED
+        const totalMealsByType = await SchoolMealModel.aggregate([
+            {
+                $match: {
+                    schoolId: user.schoolId,
+                    _destroy: false,
+                },
+            },
+            {
+                $group: {
+                    _id: '$mealType',
+                    count: { $sum: 1 },
+                },
+            },
+            {
+                $sort: { _id: 1 }, // Sort by mealType alphabetically
+            },
+        ]);
+
+        console.log('📊 Total meals by type:', totalMealsByType);
 
         // 4. Total menus by age group - unchanged
         const totalMenusByAgeGroup = await SchoolMenuModel.aggregate([
@@ -572,7 +587,10 @@ const getDashboardStats = async (query, userId) => {
                 ageGroup: cls.ageGroup,
                 homeRoomTeacher: cls.homeRoomTeacher?.fullName || 'Chưa phân công',
             })),
-            totalMeals,
+            totalMealsByType: totalMealsByType.map((item) => ({
+                mealType: item._id,
+                count: item.count,
+            })),
             totalMenusByAgeGroup: totalMenusByAgeGroup.map((item) => ({
                 ageGroup: item._id,
                 count: item.count,

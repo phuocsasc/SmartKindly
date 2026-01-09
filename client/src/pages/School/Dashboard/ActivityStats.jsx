@@ -89,7 +89,7 @@ function ActivityStats({ data }) {
                         <ExtensionIcon />
                     </Avatar>
                     <Box>
-                        <Typography variant="h6" fontWeight={600} sx={{ lineHeight: 1.2, color: '#880e4f' }}>
+                        <Typography variant="h6" fontWeight={700} sx={{ lineHeight: 1.2, color: '#880e4f' }}>
                             Hoạt động giáo dục
                         </Typography>
                         <Typography variant="caption" color="text.secondary" fontWeight={600}>

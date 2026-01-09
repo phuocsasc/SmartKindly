@@ -88,7 +88,7 @@ function YearTargetStats({ data }) {
                         <TrackChangesIcon />
                     </Avatar>
                     <Box>
-                        <Typography variant="h6" fontWeight={600} sx={{ lineHeight: 1.2, color: '#283593' }}>
+                        <Typography variant="h6" fontWeight={700} sx={{ lineHeight: 1.2, color: '#283593' }}>
                             Mục tiêu năm học
                         </Typography>
                         <Typography variant="caption" color="text.secondary" fontWeight={600}>

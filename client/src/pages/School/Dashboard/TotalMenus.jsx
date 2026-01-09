@@ -64,7 +64,7 @@ function TotalMenus({ data }) {
                         <MenuBookIcon />
                     </Avatar>
                     <Box>
-                        <Typography variant="h6" fontWeight={600} sx={{ lineHeight: 1.2, color: '#E65100' }}>
+                        <Typography variant="h6" fontWeight={700} sx={{ lineHeight: 1.2, color: '#E65100' }}>
                             Thực đơn dự kiến
                         </Typography>
                         <Typography variant="caption" color="text.secondary" fontWeight={600}>

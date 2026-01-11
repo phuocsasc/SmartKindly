@@ -14,6 +14,7 @@ import {
     MenuItem,
     CircularProgress,
 } from '@mui/material';
+import ContentCopyOutlinedIcon from '@mui/icons-material/ContentCopyOutlined';
 import { DataGrid } from '@mui/x-data-grid';
 import { GridFooterContainer, GridPagination } from '@mui/x-data-grid';
 import AddCircleOutlineOutlinedIcon from '@mui/icons-material/AddCircleOutlineOutlined';
@@ -125,7 +126,12 @@ function Meal() {
         setCurrentMeal(meal);
         setOpenDialog(true);
     };
-
+    // ✅ THÊM: Hàm xử lý copy
+    const handleCopy = (mealRow) => {
+        setDialogMode('copy');
+        setCurrentMeal(mealRow); // Truyền dữ liệu món ăn gốc vào để dialog clone
+        setOpenDialog(true);
+    };
     const handleDelete = async (id, name) => {
         try {
             await showConfirm({
@@ -330,6 +336,18 @@ function Meal() {
                         <Tooltip title="Xem chi tiết">
                             <IconButton size="small" color="info" onClick={() => handleView(params.row)}>
                                 <VisibilityOutlinedIcon fontSize="small" />
+                            </IconButton>
+                        </Tooltip>
+                    )}
+                    {/* ✅ THÊM: Icon Copy - Quyền là CREATE_MEAL vì bản chất là tạo mới */}
+                    {hasPermission(PERMISSIONS.CREATE_MEAL) && (
+                        <Tooltip title="Sao chép món ăn">
+                            <IconButton
+                                size="small"
+                                color="primary" // Màu xanh lá cho khác biệt
+                                onClick={() => handleCopy(params.row)}
+                            >
+                                <ContentCopyOutlinedIcon fontSize="small" />
                             </IconButton>
                         </Tooltip>
                     )}

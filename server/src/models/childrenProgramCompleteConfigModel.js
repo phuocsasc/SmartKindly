@@ -30,7 +30,7 @@ const ChildrenProgramCompleteSchema = new mongoose.Schema(
         },
         studentId: {
             type: mongoose.Schema.Types.ObjectId,
-            ref: 'ChildrenProfile',
+            ref: 'ChildrenManagement',
             required: true,
         },
         assessmentDetails: [AssessmentDetailSchema],

@@ -29,6 +29,7 @@ import {
     Paper,
     Checkbox,
 } from '@mui/material';
+import ContentCopyOutlinedIcon from '@mui/icons-material/ContentCopyOutlined';
 import CloseIcon from '@mui/icons-material/Close';
 import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
 import AssistantOutlinedIcon from '@mui/icons-material/AssistantOutlined';
@@ -62,8 +63,8 @@ function MealDialog({ open, mode, meal, onClose, onSuccess }) {
         mealType: '',
         ingredients: [],
     });
-
-    const isCreateMode = mode === 'create';
+    // Coi chế tạo mới nếu mode là 'create' hoặc 'copy'
+    const isCreateMode = mode === 'create' || mode === 'copy';
 
     // Load meal data for edit mode
     useEffect(() => {
@@ -86,7 +87,19 @@ function MealDialog({ open, mode, meal, onClose, onSuccess }) {
                 ingredients: [],
             });
         }
-
+        if (open && mode === 'copy' && meal) {
+            setFormData({
+                name: `${meal.name} copy`, // Thêm chữ copy phía sau
+                mealType: meal.mealType || '',
+                ingredients: meal.ingredients
+                    ? meal.ingredients.map((ing) => ({
+                          ...ing,
+                          // Nếu muốn reset lại số lượng về 0 thì sửa ở đây,
+                          // còn muốn giữ nguyên định lượng cũ thì để nguyên {...ing}
+                      }))
+                    : [],
+            });
+        }
         if (open) {
             setActiveTab(0);
             setSearchFoodText('');
@@ -271,10 +284,14 @@ function MealDialog({ open, mode, meal, onClose, onSuccess }) {
             >
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
                     <Avatar sx={{ bgcolor: 'rgba(255, 255, 255, 0.2)', width: 32, height: 32 }}>
-                        {isCreateMode ? <AddCircleOutlineIcon fontSize="small" /> : <EditIcon fontSize="small" />}
+                        {mode === 'create' && <AddCircleOutlineIcon fontSize="small" />}
+                        {mode === 'edit' && <EditIcon fontSize="small" />}
+                        {mode === 'copy' && <ContentCopyOutlinedIcon fontSize="small" />}
                     </Avatar>
                     <Typography variant="h6" fontWeight={600}>
-                        {isCreateMode ? 'Thêm món ăn mới' : `Chỉnh sửa món ăn - ${meal?.name}`}
+                        {mode === 'create' && 'Thêm món ăn mới'}
+                        {mode === 'edit' && `Chỉnh sửa món ăn - ${meal?.name}`}
+                        {mode === 'copy' && 'Sao chép món ăn'}
                     </Typography>
                 </Box>
                 <IconButton

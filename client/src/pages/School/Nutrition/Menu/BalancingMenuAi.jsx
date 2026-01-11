@@ -90,6 +90,7 @@ function BalancingMenuAi({ open, menuData, onClose, onSuccess }) {
                 const newPurchaseQty = parseFloat(item.purchaseQuantityByUnit) || 0;
 
                 // 1. Tính lại Lượng mua (kg)
+                // ⚠️ FIX: Không làm tròn ở đây để giữ độ chính xác khi chuyển đổi đơn vị
                 let purchaseQuantityKg;
                 if (item.unit.toLowerCase() === 'kg') {
                     purchaseQuantityKg = newPurchaseQty;
@@ -97,19 +98,32 @@ function BalancingMenuAi({ open, menuData, onClose, onSuccess }) {
                     purchaseQuantityKg = (newPurchaseQty * item.gramConversion) / 1000;
                 }
 
-                // 2. Tính lại Tổng lượng ăn (kg) từ Lượng mua và Hệ số thái bỏ
-                // Công thức: Mua = Ăn * (1 + %thải bỏ) => Ăn = Mua / (1 + %thải bỏ)
-                const totalQuantityKg = purchaseQuantityKg / (1 + item.wastePercentage / 100);
+                // 2. Tính lại Tổng lượng ăn (kg) (Edible KG)
+                // ⚠️ FIX: TUYỆT ĐỐI KHÔNG làm tròn totalQuantityKg về 1 số thập phân ở đây
+                // Server tính: edibleKg = purchaseKg / (1 + waste / 100) -> giữ nguyên số thực
+                const totalQuantityKgRaw = purchaseQuantityKg / (1 + item.wastePercentage / 100);
+
+                // Chỉ làm tròn hiển thị UI (nếu cần), nhưng biến dùng để tính toán phải là Raw
+                // Tuy nhiên để khớp UI MenuDialog, ta có thể để hiển thị là 1 số lẻ,
+                // NHƯNG quan trọng nhất là gramsPerChild phải tính từ số RAW hoặc logic khớp server.
+                // Ở đây ta giữ raw để tính gramsPerChild.
 
                 // 3. Tính lại Lượng ăn 1 trẻ (g)
-                const quantityPerChildGram = (totalQuantityKg * 1000) / menuDetails.numberOfChildren;
+                const quantityPerChildGramRaw = (totalQuantityKgRaw * 1000) / menuDetails.numberOfChildren;
+
+                // 🔥 QUAN TRỌNG: Làm tròn 2 chữ số thập phân NGAY TẠI ĐÂY
+                const quantityPerChildGram = parseFloat(quantityPerChildGramRaw.toFixed(2));
+
+                // Tính lại totalQuantityKg để hiển thị (chỉ hiển thị)
+                const totalQuantityKgDisplay = parseFloat(totalQuantityKgRaw.toFixed(1));
+                const purchaseQuantityKgDisplay = parseFloat(purchaseQuantityKg.toFixed(1));
 
                 return {
                     ...item,
                     purchaseQuantityByUnit: newPurchaseQty,
-                    purchaseQuantityKg: parseFloat(purchaseQuantityKg.toFixed(1)),
-                    totalQuantityKg: parseFloat(totalQuantityKg.toFixed(1)),
-                    quantityPerChildGram: parseFloat(quantityPerChildGram.toFixed(2)), // ✅ Dữ liệu mới để tính dinh dưỡng
+                    purchaseQuantityKg: purchaseQuantityKgDisplay,
+                    totalQuantityKg: totalQuantityKgDisplay,
+                    quantityPerChildGram: quantityPerChildGram, // Dữ liệu chuẩn đã làm tròn 2 số
                 };
             });
 
@@ -142,15 +156,21 @@ function BalancingMenuAi({ open, menuData, onClose, onSuccess }) {
             purchaseQuantityKg = (newPurchaseQty * item.gramConversion) / 1000;
         }
 
-        const totalQuantityKg = purchaseQuantityKg / (1 + item.wastePercentage / 100);
-        const quantityPerChildGram = (totalQuantityKg * 1000) / menuDetails.numberOfChildren;
+        // 2. Tính Total KG / Edible KG (Raw) - KHÔNG làm tròn trung gian
+        const totalQuantityKgRaw = purchaseQuantityKg / (1 + item.wastePercentage / 100);
+
+        // 3. Tính Grams/Child (Raw -> Round 2)
+        const quantityPerChildGramRaw = (totalQuantityKgRaw * 1000) / menuDetails.numberOfChildren;
+
+        // 🔥 FIX: Chỉ làm tròn 2 số thập phân ở bước cuối cùng này
+        const quantityPerChildGram = parseFloat(quantityPerChildGramRaw.toFixed(2)); // Đồng bộ
 
         updated[index] = {
             ...item,
             purchaseQuantityByUnit: newPurchaseQty,
             purchaseQuantityKg: parseFloat(purchaseQuantityKg.toFixed(1)),
-            totalQuantityKg: parseFloat(totalQuantityKg.toFixed(1)),
-            quantityPerChildGram: parseFloat(quantityPerChildGram.toFixed(2)),
+            totalQuantityKg: parseFloat(totalQuantityKgRaw.toFixed(1)),
+            quantityPerChildGram: quantityPerChildGram,
         };
 
         setEditedSuggestions(updated);
@@ -208,18 +228,9 @@ function BalancingMenuAi({ open, menuData, onClose, onSuccess }) {
             return val < min ? 'Chưa đạt' : val > max ? 'Vượt quá định mức' : 'Đạt';
         };
 
-        const proteinPct =
-            totalCalories > 0
-                ? parseFloat((((totalProtein * ENERGY_FACTORS.PROTEIN) / totalCalories) * 100).toFixed(1))
-                : 0;
-        const lipidPct =
-            totalCalories > 0
-                ? parseFloat((((totalLipid * ENERGY_FACTORS.LIPID) / totalCalories) * 100).toFixed(1))
-                : 0;
-        const glucidPct =
-            totalCalories > 0
-                ? parseFloat((((totalGlucid * ENERGY_FACTORS.GLUCID) / totalCalories) * 100).toFixed(1))
-                : 0;
+        const proteinPct = totalCalories > 0 ? ((totalProtein * ENERGY_FACTORS.PROTEIN) / totalCalories) * 100 : 0;
+        const lipidPct = totalCalories > 0 ? ((totalLipid * ENERGY_FACTORS.LIPID) / totalCalories) * 100 : 0;
+        const glucidPct = totalCalories > 0 ? ((totalGlucid * ENERGY_FACTORS.GLUCID) / totalCalories) * 100 : 0;
 
         return {
             totalProtein,
@@ -351,6 +362,11 @@ function BalancingMenuAi({ open, menuData, onClose, onSuccess }) {
             </Dialog>
         );
     }
+
+    const formatPercent = (value) => {
+        if (value === null || value === undefined) return '0.00';
+        return Number(value).toFixed(2);
+    };
 
     return (
         <Dialog open={open} onClose={onClose} maxWidth="xl" fullWidth>
@@ -738,19 +754,19 @@ function BalancingMenuAi({ open, menuData, onClose, onSuccess }) {
                                         </TableCell>
                                         <TableCell align="center" sx={{ borderRight: '1px solid #eee' }}>
                                             <Typography component="span" sx={{ mr: 1 }}>
-                                                {currentNutrition?.proteinPercentage || 0} %
+                                                {formatPercent(currentNutrition?.proteinPercentage)} %
                                             </Typography>
                                             {getStatusChip(currentNutrition?.plgEvaluation?.protein)}
                                         </TableCell>
                                         <TableCell align="center" sx={{ borderRight: '1px solid #eee' }}>
                                             <Typography component="span" sx={{ mr: 1 }}>
-                                                {currentNutrition?.lipidPercentage || 0} %
+                                                {formatPercent(currentNutrition?.lipidPercentage)} %
                                             </Typography>
                                             {getStatusChip(currentNutrition?.plgEvaluation?.lipid)}
                                         </TableCell>
                                         <TableCell align="center">
                                             <Typography component="span" sx={{ mr: 1 }}>
-                                                {currentNutrition?.glucidPercentage || 0} %
+                                                {formatPercent(currentNutrition?.glucidPercentage)} %
                                             </Typography>
                                             {getStatusChip(currentNutrition?.plgEvaluation?.glucid)}
                                         </TableCell>
@@ -764,19 +780,19 @@ function BalancingMenuAi({ open, menuData, onClose, onSuccess }) {
                                             </TableCell>
                                             <TableCell align="center" sx={{ borderRight: '1px solid #eee' }}>
                                                 <Typography component="span" sx={{ mr: 1 }}>
-                                                    {aiNutrition.proteinPercentage} %
+                                                    {formatPercent(aiNutrition.proteinPercentage)} %
                                                 </Typography>
                                                 {getStatusChip(aiNutrition.plgEvaluation.protein)}
                                             </TableCell>
                                             <TableCell align="center" sx={{ borderRight: '1px solid #eee' }}>
                                                 <Typography component="span" sx={{ mr: 1 }}>
-                                                    {aiNutrition.lipidPercentage} %
+                                                    {formatPercent(aiNutrition.lipidPercentage)} %
                                                 </Typography>
                                                 {getStatusChip(aiNutrition.plgEvaluation.lipid)}
                                             </TableCell>
                                             <TableCell align="center">
                                                 <Typography component="span" sx={{ mr: 1 }}>
-                                                    {aiNutrition.glucidPercentage} %
+                                                    {formatPercent(aiNutrition.glucidPercentage)} %
                                                 </Typography>
                                                 {getStatusChip(aiNutrition.plgEvaluation.glucid)}
                                             </TableCell>

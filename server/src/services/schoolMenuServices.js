@@ -447,8 +447,7 @@ const deleteMenu = async (id, userId) => {
         ready: menu._ready,
     };
 
-    menu._destroy = true;
-    await menu.save();
+    await SchoolMenuModel.deleteOne({ _id: id });
     return { message: 'Xóa thực đơn thành công.', menuInfo };
 };
 

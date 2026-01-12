@@ -107,7 +107,7 @@ function TotalMeals({ data }) {
                 sx={{
                     flex: 1,
                     overflowY: 'auto',
-                    pr: 1,
+                    pr: 2,
                     zIndex: 1,
                     // ✅ CUSTOM SCROLLBAR
                     '&::-webkit-scrollbar': { width: '5px' },

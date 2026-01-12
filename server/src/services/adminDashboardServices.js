@@ -67,7 +67,7 @@ const getAdminDashboardStats = async (userId) => {
             {
                 $match: {
                     role: { $in: ['ban_giam_hieu', 'to_truong', 'giao_vien', 'phu_huynh'] },
-                    status: true, // Only active users
+                    status: true,
                     _destroy: false,
                 },
             },
@@ -95,32 +95,50 @@ const getAdminDashboardStats = async (userId) => {
         });
 
         // ============================================
-        // ✅ 3. THỐNG KÊ THỰC PHẨM THEO LOẠI
+        // ✅ 3. THỐNG KÊ THỰC PHẨM THEO LOẠI (CATEGORIES)
         // ============================================
-        console.log('📊 [3/5] Calculating food statistics...');
+        console.log('📊 [3/5] Calculating food statistics by categories...');
 
-        const foodByType = await FoodModel.aggregate([
-            {
-                $match: {
-                    _destroy: false,
-                },
-            },
-            {
-                $group: {
-                    _id: '$foodType',
-                    count: { $sum: 1 },
-                },
-            },
-            {
-                $sort: { _id: 1 },
-            },
-        ]);
+        // ✅ Lấy tất cả thực phẩm có categories
+        const allFoods = await FoodModel.find({ _destroy: false }).select('categories').lean();
 
-        const totalFoods = foodByType.reduce((sum, item) => sum + item.count, 0);
+        // ✅ Đếm số lần xuất hiện của từng category (1 food có thể có nhiều categories)
+        const categoryCount = {};
+        const VALID_CATEGORIES = ['Động vật', 'Thực vật', 'Thực phẩm Khô', 'Thực phẩm tươi', 'Thực phẩm ăn liền'];
 
-        console.log('✅ Food stats:', {
-            total: totalFoods,
-            byType: foodByType.map((f) => ({ foodType: f._id, count: f.count })),
+        // Initialize counts
+        VALID_CATEGORIES.forEach((cat) => {
+            categoryCount[cat] = 0;
+        });
+
+        // Count occurrences
+        allFoods.forEach((food) => {
+            if (food.categories && Array.isArray(food.categories)) {
+                food.categories.forEach((category) => {
+                    if (VALID_CATEGORIES.includes(category)) {
+                        categoryCount[category]++;
+                    }
+                });
+            }
+        });
+
+        // ✅ Tính tổng số lượng categories (không phải số lượng foods)
+        const totalCategoryOccurrences = Object.values(categoryCount).reduce((sum, count) => sum + count, 0);
+
+        // ✅ Format kết quả
+        const foodByCategory = VALID_CATEGORIES.map((category) => ({
+            category,
+            count: categoryCount[category],
+            percentage:
+                totalCategoryOccurrences > 0
+                    ? parseFloat(((categoryCount[category] / totalCategoryOccurrences) * 100).toFixed(1))
+                    : 0,
+        }));
+
+        console.log('✅ Food stats by categories:', {
+            totalFoods: allFoods.length,
+            totalCategoryOccurrences,
+            byCategory: foodByCategory,
         });
 
         // ============================================
@@ -137,7 +155,6 @@ const getAdminDashboardStats = async (userId) => {
         const yearTargetsByAgeGroup = yearTargets.map((target) => {
             let totalTargets = 0;
 
-            // Count targets in mainFields structure
             if (target.mainFields && Array.isArray(target.mainFields)) {
                 target.mainFields.forEach((mainField) => {
                     // Case 1: Has subFields
@@ -230,13 +247,11 @@ const getAdminDashboardStats = async (userId) => {
                 ],
             },
 
-            // 3. Food statistics by type
+            // 3. Food statistics by categories (✅ UPDATED)
             foods: {
-                total: totalFoods,
-                byType: foodByType.map((item) => ({
-                    foodType: item._id,
-                    count: item.count,
-                })),
+                totalFoods: allFoods.length, // Số lượng thực phẩm
+                totalCategoryOccurrences, // Tổng số lần xuất hiện của categories
+                byCategory: foodByCategory, // Chi tiết từng loại
             },
 
             // 4. Year targets by age group

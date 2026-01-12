@@ -21,18 +21,38 @@ const evaluate = (value, min, max) => {
 };
 
 const recalculateFromEditedItem = (editedItem, numberOfChildren) => {
-    let purchaseQuantityKg;
-    if (editedItem.unit.toLowerCase() === 'kg') {
-        purchaseQuantityKg = editedItem.purchaseQuantityByUnit;
+    const purchaseQty = Number(editedItem.purchaseQuantityByUnit) || 0;
+    const unit = (editedItem.unit || '').trim().toLowerCase();
+    const gramConversion = Number(editedItem.gramConversion) || 0;
+    const wastePercentage = Number(editedItem.wastePercentage) || 0;
+
+    // 1. Tính purchaseKg (KHÔNG làm tròn)
+    let purchaseQuantityKg = 0;
+    if (unit === 'kg') {
+        purchaseQuantityKg = purchaseQty;
+    } else if (unit === 'g' || unit === 'gam') {
+        purchaseQuantityKg = purchaseQty / 1000;
+    } else if (gramConversion > 0) {
+        purchaseQuantityKg = (purchaseQty * gramConversion) / 1000;
     } else {
-        purchaseQuantityKg = (editedItem.purchaseQuantityByUnit * editedItem.gramConversion) / 1000;
+        purchaseQuantityKg = purchaseQty;
     }
-    purchaseQuantityKg = parseFloat(purchaseQuantityKg.toFixed(1));
 
-    const totalQuantityKg = parseFloat((purchaseQuantityKg / (1 + editedItem.wastePercentage / 100)).toFixed(1));
-    const quantityPerChildGram = parseFloat(((totalQuantityKg * 1000) / numberOfChildren).toFixed(2));
+    // 2. Tính totalQuantityKg (edibleKg) (KHÔNG làm tròn)
+    const totalQuantityKg = purchaseQuantityKg / (1 + wastePercentage / 100);
 
-    return { ...editedItem, purchaseQuantityKg, totalQuantityKg, quantityPerChildGram };
+    // 3. Tính quantityPerChildGram (KHÔNG làm tròn trung gian)
+    const quantityPerChildGramRaw = numberOfChildren > 0 ? (totalQuantityKg * 1000) / numberOfChildren : 0;
+
+    // 🔥 CHỈ làm tròn 2 số thập phân ở đây
+    const quantityPerChildGram = parseFloat(quantityPerChildGramRaw.toFixed(2));
+
+    return {
+        ...editedItem,
+        purchaseQuantityKg: parseFloat(purchaseQuantityKg.toFixed(3)), // ✅ Làm tròn 3 số thập phân cho display
+        totalQuantityKg: parseFloat(totalQuantityKg.toFixed(3)), // ✅ Làm tròn 3 số thập phân cho display
+        quantityPerChildGram, // ✅ Đã làm tròn 2 số thập phân
+    };
 };
 
 const processMenuData = async (data, schoolId) => {
@@ -88,19 +108,36 @@ const processMenuData = async (data, schoolId) => {
                     }
                 });
             });
+
         finalAggregatedTable = Array.from(foodMap.values()).map((item) => {
+            // 🔥 Tính lại từ quantityPerChildGram (đã được làm tròn 2 số thập phân từ Meal)
             const quantityPerChildGram = parseFloat(item.quantityPerChildGram.toFixed(2));
-            const totalQuantityKg = parseFloat(((quantityPerChildGram * numberOfChildren) / 1000).toFixed(1));
-            const purchaseQuantityKg = parseFloat((totalQuantityKg * (1 + item.wastePercentage / 100)).toFixed(1));
-            const purchaseQuantityByUnit =
-                item.unit.toLowerCase() === 'kg'
-                    ? purchaseQuantityKg
-                    : parseFloat(((purchaseQuantityKg / item.gramConversion) * 1000).toFixed(1));
-            return { ...item, quantityPerChildGram, totalQuantityKg, purchaseQuantityKg, purchaseQuantityByUnit };
+
+            // KHÔNG làm tròn trung gian
+            const totalQuantityKgRaw = (quantityPerChildGram * numberOfChildren) / 1000;
+            const purchaseQuantityKgRaw = totalQuantityKgRaw * (1 + item.wastePercentage / 100);
+
+            const unit = (item.unit || '').trim().toLowerCase();
+            let purchaseQuantityByUnit;
+            if (unit === 'kg') {
+                purchaseQuantityByUnit = purchaseQuantityKgRaw;
+            } else if (item.gramConversion > 0) {
+                purchaseQuantityByUnit = (purchaseQuantityKgRaw / item.gramConversion) * 1000;
+            } else {
+                purchaseQuantityByUnit = purchaseQuantityKgRaw;
+            }
+
+            return {
+                ...item,
+                quantityPerChildGram, // ✅ Đã làm tròn 2 số
+                totalQuantityKg: parseFloat(totalQuantityKgRaw.toFixed(3)), // ✅ Làm tròn 3 số cho display
+                purchaseQuantityKg: parseFloat(purchaseQuantityKgRaw.toFixed(3)), // ✅ Làm tròn 3 số cho display
+                purchaseQuantityByUnit: parseFloat(purchaseQuantityByUnit.toFixed(1)), // ✅ Làm tròn 1 số thập phân
+            };
         });
     }
 
-    // 4. Perform nutritional analysis
+    // 4. Perform nutritional analysis (GIỐNG schoolMenuAiController)
     const foodInfoMap = new Map(
         finalAggregatedTable.map((i) => [i.foodId.toString(), { protein: 0, lipid: 0, glucid: 0 }]),
     );
@@ -112,11 +149,13 @@ const processMenuData = async (data, schoolId) => {
     const totals = { protein: 0, lipid: 0, glucid: 0 };
     finalAggregatedTable.forEach((item) => {
         const foodInfo = foodInfoMap.get(item.foodId.toString());
+        // 🔥 Tính từ quantityPerChildGram (đã làm tròn 2 số)
         totals.protein += item.quantityPerChildGram * (foodInfo.protein || 0);
         totals.lipid += item.quantityPerChildGram * (foodInfo.lipid || 0);
         totals.glucid += item.quantityPerChildGram * (foodInfo.glucid || 0);
     });
 
+    // 🔥 Làm tròn 2 số thập phân SAU KHI TỔNG HỢP
     const totalProtein = parseFloat(totals.protein.toFixed(2));
     const totalLipid = parseFloat(totals.lipid.toFixed(2));
     const totalGlucid = parseFloat(totals.glucid.toFixed(2));

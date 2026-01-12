@@ -77,61 +77,49 @@ function BalancingMenuAi({ open, menuData, onClose, onSuccess }) {
                 menuId: menuDetails._id,
             };
 
-            console.log('📤 [handleAiBalance] Payload:', payload);
-
-            // ✅ Call API thông qua schoolMenuApi
             const res = await schoolMenuApi.balanceWithAi(payload);
             const aiData = res.data.data;
 
-            // =================================================================
-            // 🛠️ FIX: TÍNH TOÁN LẠI DỮ LIỆU PHÁI SINH NGAY LẬP TỨC
-            // =================================================================
+            // 🔥 TÍNH TOÁN LẠI DỮ LIỆU PHÁI SINH (ĐỒNG BỘ VỚI SERVER)
             const recalculatedAiData = aiData.map((item) => {
-                const newPurchaseQty = parseFloat(item.purchaseQuantityByUnit) || 0;
+                const purchaseQty = parseFloat(item.purchaseQuantityByUnit) || 0;
+                const unit = (item.unit || '').trim().toLowerCase();
+                const gramConversion = Number(item.gramConversion) || 0;
+                const wastePercentage = Number(item.wastePercentage) || 0;
 
-                // 1. Tính lại Lượng mua (kg)
-                // ⚠️ FIX: Không làm tròn ở đây để giữ độ chính xác khi chuyển đổi đơn vị
-                let purchaseQuantityKg;
-                if (item.unit.toLowerCase() === 'kg') {
-                    purchaseQuantityKg = newPurchaseQty;
+                // 1. Tính purchaseKg (KHÔNG làm tròn)
+                let purchaseQuantityKg = 0;
+                if (unit === 'kg') {
+                    purchaseQuantityKg = purchaseQty;
+                } else if (unit === 'g' || unit === 'gam') {
+                    purchaseQuantityKg = purchaseQty / 1000;
+                } else if (gramConversion > 0) {
+                    purchaseQuantityKg = (purchaseQty * gramConversion) / 1000;
                 } else {
-                    purchaseQuantityKg = (newPurchaseQty * item.gramConversion) / 1000;
+                    purchaseQuantityKg = purchaseQty;
                 }
 
-                // 2. Tính lại Tổng lượng ăn (kg) (Edible KG)
-                // ⚠️ FIX: TUYỆT ĐỐI KHÔNG làm tròn totalQuantityKg về 1 số thập phân ở đây
-                // Server tính: edibleKg = purchaseKg / (1 + waste / 100) -> giữ nguyên số thực
-                const totalQuantityKgRaw = purchaseQuantityKg / (1 + item.wastePercentage / 100);
+                // 2. Tính totalQuantityKg (KHÔNG làm tròn)
+                const totalQuantityKgRaw = purchaseQuantityKg / (1 + wastePercentage / 100);
 
-                // Chỉ làm tròn hiển thị UI (nếu cần), nhưng biến dùng để tính toán phải là Raw
-                // Tuy nhiên để khớp UI MenuDialog, ta có thể để hiển thị là 1 số lẻ,
-                // NHƯNG quan trọng nhất là gramsPerChild phải tính từ số RAW hoặc logic khớp server.
-                // Ở đây ta giữ raw để tính gramsPerChild.
-
-                // 3. Tính lại Lượng ăn 1 trẻ (g)
+                // 3. Tính quantityPerChildGram (KHÔNG làm tròn trung gian)
                 const quantityPerChildGramRaw = (totalQuantityKgRaw * 1000) / menuDetails.numberOfChildren;
 
-                // 🔥 QUAN TRỌNG: Làm tròn 2 chữ số thập phân NGAY TẠI ĐÂY
+                // 🔥 CHỈ làm tròn 2 số thập phân ở đây
                 const quantityPerChildGram = parseFloat(quantityPerChildGramRaw.toFixed(2));
-
-                // Tính lại totalQuantityKg để hiển thị (chỉ hiển thị)
-                const totalQuantityKgDisplay = parseFloat(totalQuantityKgRaw.toFixed(1));
-                const purchaseQuantityKgDisplay = parseFloat(purchaseQuantityKg.toFixed(1));
 
                 return {
                     ...item,
-                    purchaseQuantityByUnit: newPurchaseQty,
-                    purchaseQuantityKg: purchaseQuantityKgDisplay,
-                    totalQuantityKg: totalQuantityKgDisplay,
-                    quantityPerChildGram: quantityPerChildGram, // Dữ liệu chuẩn đã làm tròn 2 số
+                    purchaseQuantityByUnit: parseFloat(purchaseQty.toFixed(1)), // ✅ Làm tròn 1 số
+                    purchaseQuantityKg: parseFloat(purchaseQuantityKg.toFixed(3)), // ✅ Làm tròn 3 số cho display
+                    totalQuantityKg: parseFloat(totalQuantityKgRaw.toFixed(3)), // ✅ Làm tròn 3 số cho display
+                    quantityPerChildGram, // ✅ Đã làm tròn 2 số
                 };
             });
 
             setAiSuggestions(recalculatedAiData);
-            setEditedSuggestions(recalculatedAiData); // State này thay đổi sẽ trigger useMemo tính lại dinh dưỡng
+            setEditedSuggestions(recalculatedAiData);
             toast.success('Đã nhận gợi ý từ A.I!');
-
-            console.log('✅ [handleAiBalance] AI suggestions:', recalculatedAiData);
         } catch (error) {
             console.error('❌ Error response:', error.response?.data);
             toast.error(error.response?.data?.message || 'Lỗi khi gọi A.I!');
@@ -146,31 +134,38 @@ function BalancingMenuAi({ open, menuData, onClose, onSuccess }) {
 
         const updated = [...editedSuggestions];
         const item = updated[index];
-        const newPurchaseQty = parseFloat(newValue) || 0;
+        const purchaseQty = parseFloat(newValue) || 0;
+        const unit = (item.unit || '').trim().toLowerCase();
+        const gramConversion = Number(item.gramConversion) || 0;
+        const wastePercentage = Number(item.wastePercentage) || 0;
 
-        // Recalculate
-        let purchaseQuantityKg;
-        if (item.unit.toLowerCase() === 'kg') {
-            purchaseQuantityKg = newPurchaseQty;
+        // 1. Tính purchaseKg (KHÔNG làm tròn)
+        let purchaseQuantityKg = 0;
+        if (unit === 'kg') {
+            purchaseQuantityKg = purchaseQty;
+        } else if (unit === 'g' || unit === 'gam') {
+            purchaseQuantityKg = purchaseQty / 1000;
+        } else if (gramConversion > 0) {
+            purchaseQuantityKg = (purchaseQty * gramConversion) / 1000;
         } else {
-            purchaseQuantityKg = (newPurchaseQty * item.gramConversion) / 1000;
+            purchaseQuantityKg = purchaseQty;
         }
 
-        // 2. Tính Total KG / Edible KG (Raw) - KHÔNG làm tròn trung gian
-        const totalQuantityKgRaw = purchaseQuantityKg / (1 + item.wastePercentage / 100);
+        // 2. Tính totalQuantityKg (KHÔNG làm tròn)
+        const totalQuantityKgRaw = purchaseQuantityKg / (1 + wastePercentage / 100);
 
-        // 3. Tính Grams/Child (Raw -> Round 2)
+        // 3. Tính quantityPerChildGram (KHÔNG làm tròn trung gian)
         const quantityPerChildGramRaw = (totalQuantityKgRaw * 1000) / menuDetails.numberOfChildren;
 
-        // 🔥 FIX: Chỉ làm tròn 2 số thập phân ở bước cuối cùng này
-        const quantityPerChildGram = parseFloat(quantityPerChildGramRaw.toFixed(2)); // Đồng bộ
+        // 🔥 CHỈ làm tròn 2 số thập phân ở đây
+        const quantityPerChildGram = parseFloat(quantityPerChildGramRaw.toFixed(2));
 
         updated[index] = {
             ...item,
-            purchaseQuantityByUnit: newPurchaseQty,
-            purchaseQuantityKg: parseFloat(purchaseQuantityKg.toFixed(1)),
-            totalQuantityKg: parseFloat(totalQuantityKgRaw.toFixed(1)),
-            quantityPerChildGram: quantityPerChildGram,
+            purchaseQuantityByUnit: parseFloat(purchaseQty.toFixed(1)),
+            purchaseQuantityKg: parseFloat(purchaseQuantityKg.toFixed(3)),
+            totalQuantityKg: parseFloat(totalQuantityKgRaw.toFixed(3)),
+            quantityPerChildGram,
         };
 
         setEditedSuggestions(updated);
@@ -178,18 +173,19 @@ function BalancingMenuAi({ open, menuData, onClose, onSuccess }) {
 
     // ✅ Tính toán dinh dưỡng từ bảng (current hoặc AI)
     const calculateNutrition = (foodTable) => {
-        if (!foodTable || !menuDetails || !menuDetails.nutritionalStandardId) {
-            console.warn('⚠️ Missing data for nutrition calculation');
+        if (!foodTable || !menuDetails?.nutritionalStandardId) {
             return null;
         }
 
         const totals = { protein: 0, lipid: 0, glucid: 0 };
         foodTable.forEach((item) => {
+            // 🔥 Tính từ quantityPerChildGram (đã làm tròn 2 số)
             totals.protein += (item.quantityPerChildGram || 0) * (item.protein || 0);
             totals.lipid += (item.quantityPerChildGram || 0) * (item.lipid || 0);
             totals.glucid += (item.quantityPerChildGram || 0) * (item.glucid || 0);
         });
 
+        // 🔥 Làm tròn 2 số thập phân SAU KHI TỔNG HỢP
         const totalProtein = parseFloat(totals.protein.toFixed(2));
         const totalLipid = parseFloat(totals.lipid.toFixed(2));
         const totalGlucid = parseFloat(totals.glucid.toFixed(2));
@@ -203,9 +199,7 @@ function BalancingMenuAi({ open, menuData, onClose, onSuccess }) {
 
         const standard = menuDetails.nutritionalStandardId;
 
-        // ✅ Defensive check for standard structure
-        if (!standard || !standard.plgStructure) {
-            console.warn('⚠️ Missing nutritional standard structure');
+        if (!standard?.plgStructure) {
             return {
                 totalProtein,
                 totalLipid,
@@ -215,11 +209,7 @@ function BalancingMenuAi({ open, menuData, onClose, onSuccess }) {
                 proteinPercentage: 0,
                 lipidPercentage: 0,
                 glucidPercentage: 0,
-                plgEvaluation: {
-                    protein: 'N/A',
-                    lipid: 'N/A',
-                    glucid: 'N/A',
-                },
+                plgEvaluation: { protein: 'N/A', lipid: 'N/A', glucid: 'N/A' },
             };
         }
 
@@ -242,9 +232,9 @@ function BalancingMenuAi({ open, menuData, onClose, onSuccess }) {
                 standard.recommendedCaloriesMin,
                 standard.recommendedCaloriesMax,
             ),
-            proteinPercentage: proteinPct,
-            lipidPercentage: lipidPct,
-            glucidPercentage: glucidPct,
+            proteinPercentage: parseFloat(proteinPct.toFixed(2)), // ✅ Làm tròn 2 số
+            lipidPercentage: parseFloat(lipidPct.toFixed(2)), // ✅ Làm tròn 2 số
+            glucidPercentage: parseFloat(glucidPct.toFixed(2)), // ✅ Làm tròn 2 số
             plgEvaluation: {
                 protein: evaluate(proteinPct, standard.plgStructure.proteinMin, standard.plgStructure.proteinMax),
                 lipid: evaluate(lipidPct, standard.plgStructure.lipidMin, standard.plgStructure.lipidMax),

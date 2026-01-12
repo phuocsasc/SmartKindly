@@ -202,27 +202,43 @@ function MenuDialog({ open, mode, menuId, onClose, onSuccess }) {
                 });
 
             finalAggregatedTable = Array.from(foodMap.values()).map((item) => {
+                // 🔥 Làm tròn quantityPerChildGram về 2 số thập phân TRƯỚC
                 const quantityPerChildGram = parseFloat(item.quantityPerChildGram.toFixed(2));
-                const totalQuantityKg = parseFloat(
-                    ((quantityPerChildGram * currentNumberOfChildren) / 1000).toFixed(1),
-                );
-                const purchaseQuantityKg = parseFloat((totalQuantityKg * (1 + item.wastePercentage / 100)).toFixed(1));
-                const purchaseQuantityByUnit =
-                    item.unit.toLowerCase() === 'kg'
-                        ? purchaseQuantityKg
-                        : parseFloat(((purchaseQuantityKg / item.gramConversion) * 1000).toFixed(1));
-                return { ...item, quantityPerChildGram, totalQuantityKg, purchaseQuantityKg, purchaseQuantityByUnit };
+
+                // Tính các giá trị phái sinh (KHÔNG làm tròn trung gian)
+                const totalQuantityKgRaw = (quantityPerChildGram * currentNumberOfChildren) / 1000;
+                const purchaseQuantityKgRaw = totalQuantityKgRaw * (1 + item.wastePercentage / 100);
+
+                const unit = (item.unit || '').trim().toLowerCase();
+                let purchaseQuantityByUnit;
+                if (unit === 'kg') {
+                    purchaseQuantityByUnit = purchaseQuantityKgRaw;
+                } else if (item.gramConversion > 0) {
+                    purchaseQuantityByUnit = (purchaseQuantityKgRaw / item.gramConversion) * 1000;
+                } else {
+                    purchaseQuantityByUnit = purchaseQuantityKgRaw;
+                }
+
+                return {
+                    ...item,
+                    quantityPerChildGram, // ✅ Đã làm tròn 2 số
+                    totalQuantityKg: parseFloat(totalQuantityKgRaw.toFixed(3)), // ✅ Làm tròn 3 số cho display
+                    purchaseQuantityKg: parseFloat(purchaseQuantityKgRaw.toFixed(3)), // ✅ Làm tròn 3 số cho display
+                    purchaseQuantityByUnit: parseFloat(purchaseQuantityByUnit.toFixed(1)), // ✅ Làm tròn 1 số thập phân
+                };
             });
         }
 
         // Perform nutritional analysis
         const totals = { protein: 0, lipid: 0, glucid: 0 };
         finalAggregatedTable.forEach((item) => {
+            // 🔥 Tính từ quantityPerChildGram (đã làm tròn 2 số)
             totals.protein += item.quantityPerChildGram * (item.protein || 0);
             totals.lipid += item.quantityPerChildGram * (item.lipid || 0);
             totals.glucid += item.quantityPerChildGram * (item.glucid || 0);
         });
 
+        // 🔥 Làm tròn 2 số thập phân SAU KHI TỔNG HỢP
         const totalProtein = parseFloat(totals.protein.toFixed(2));
         const totalLipid = parseFloat(totals.lipid.toFixed(2));
         const totalGlucid = parseFloat(totals.glucid.toFixed(2));
@@ -248,29 +264,29 @@ function MenuDialog({ open, mode, menuId, onClose, onSuccess }) {
             ),
             proteinPercentage:
                 totalCalories > 0
-                    ? parseFloat((((totalProtein * ENERGY_FACTORS.PROTEIN) / totalCalories) * 100).toFixed(1))
+                    ? parseFloat((((totalProtein * ENERGY_FACTORS.PROTEIN) / totalCalories) * 100).toFixed(2))
                     : 0,
             lipidPercentage:
                 totalCalories > 0
-                    ? parseFloat((((totalLipid * ENERGY_FACTORS.LIPID) / totalCalories) * 100).toFixed(1))
+                    ? parseFloat((((totalLipid * ENERGY_FACTORS.LIPID) / totalCalories) * 100).toFixed(2))
                     : 0,
             glucidPercentage:
                 totalCalories > 0
-                    ? parseFloat((((totalGlucid * ENERGY_FACTORS.GLUCID) / totalCalories) * 100).toFixed(1))
+                    ? parseFloat((((totalGlucid * ENERGY_FACTORS.GLUCID) / totalCalories) * 100).toFixed(2))
                     : 0,
             plgEvaluation: {
                 protein: evaluate(
-                    totalCalories > 0 ? ((totalProtein * ENERGY_FACTORS.PROTEIN) / totalCalories) * 100 : 0,
+                    ((totalProtein * ENERGY_FACTORS.PROTEIN) / totalCalories) * 100,
                     currentStandard.plgStructure.proteinMin,
                     currentStandard.plgStructure.proteinMax,
                 ),
                 lipid: evaluate(
-                    totalCalories > 0 ? ((totalLipid * ENERGY_FACTORS.LIPID) / totalCalories) * 100 : 0,
+                    ((totalLipid * ENERGY_FACTORS.LIPID) / totalCalories) * 100,
                     currentStandard.plgStructure.lipidMin,
                     currentStandard.plgStructure.lipidMax,
                 ),
                 glucid: evaluate(
-                    totalCalories > 0 ? ((totalGlucid * ENERGY_FACTORS.GLUCID) / totalCalories) * 100 : 0,
+                    ((totalGlucid * ENERGY_FACTORS.GLUCID) / totalCalories) * 100,
                     currentStandard.plgStructure.glucidMin,
                     currentStandard.plgStructure.glucidMax,
                 ),

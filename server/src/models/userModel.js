@@ -1,3 +1,5 @@
+// server/src/models/userModel.js
+
 import mongoose from 'mongoose';
 import bcrypt from 'bcrypt';
 
@@ -20,6 +22,15 @@ const UserSchema = new mongoose.Schema(
             ref: 'Class',
             default: null,
         },
+        // ✅ NEW: Liên kết phụ huynh với học sinh
+        studentId: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'ChildrenManagement',
+            required: function () {
+                return this.role === 'phu_huynh'; // Chỉ bắt buộc khi role là phụ huynh
+            },
+            index: true,
+        },
         username: {
             type: String,
             required: [true, 'Tên tài khoản là bắt buộc'],
@@ -37,7 +48,11 @@ const UserSchema = new mongoose.Schema(
             type: String,
             required: [true, 'Họ tên là bắt buộc'],
             trim: true,
+            minlength: [2, 'Họ tên phải có ít nhất 2 ký tự'],
             maxlength: [100, 'Họ tên không được vượt quá 100 ký tự'],
+        },
+        fullNameWithoutAccent: {
+            type: String,
         },
         gender: {
             type: String,
@@ -86,22 +101,16 @@ const UserSchema = new mongoose.Schema(
     },
 );
 
-// Index
-// UserSchema.index({ username: 1 });
-// UserSchema.index({ userId: 1 });
-// UserSchema.index({ email: 1 });
-// UserSchema.index({ fullName: 'text' });
-// UserSchema.index({ schoolId: 1 });
+// ===== INDEXES =====
+UserSchema.index({ schoolId: 1, role: 1, status: 1, _destroy: 1 });
+UserSchema.index({ schoolId: 1, _destroy: 1 });
+UserSchema.index({ email: 1, _destroy: 1 });
+UserSchema.index({ username: 1, _destroy: 1 });
+UserSchema.index({ classId: 1 });
+UserSchema.index({ studentId: 1 }); // ✅ NEW: Index cho phụ huynh
+UserSchema.index({ createdAt: -1 });
 
-// ✅ Thêm compound indexes để tối ưu query phổ biến
-UserSchema.index({ schoolId: 1, role: 1, status: 1, _destroy: 1 }); // ✅ Filter users by school + role + status
-UserSchema.index({ schoolId: 1, _destroy: 1 }); // ✅ Query users by school
-UserSchema.index({ email: 1, _destroy: 1 }); // ✅ Login/forgot password
-UserSchema.index({ username: 1, _destroy: 1 }); // ✅ Login
-UserSchema.index({ classId: 1 }); // ✅ Find teacher by class
-UserSchema.index({ createdAt: -1 }); // ✅ Sort by created date
-
-// ✅ Text search index cho search box
+// Text search index
 UserSchema.index(
     {
         fullName: 'text',
@@ -114,22 +123,17 @@ UserSchema.index(
             fullName: 10,
             username: 5,
             email: 3,
-            phone: 1,
+            phone: 2,
         },
+        name: 'user_text_search',
     },
 );
 
-// Middleware: Hash password
+// ===== METHODS =====
 UserSchema.pre('save', async function (next) {
     if (!this.isModified('password')) return next();
-
-    try {
-        const salt = await bcrypt.genSalt(10);
-        this.password = await bcrypt.hash(this.password, salt);
-        next();
-    } catch (error) {
-        next(error);
-    }
+    this.password = await bcrypt.hash(this.password, 10);
+    next();
 });
 
 // Method: Compare password
@@ -139,18 +143,20 @@ UserSchema.methods.comparePassword = async function (candidatePassword) {
 
 // Static method: Tạo userId tự động (8 chữ số random)
 UserSchema.statics.generateUserId = async function () {
-    let userId;
-    let isUnique = false;
-
-    while (!isUnique) {
-        userId = Math.floor(10000000 + Math.random() * 90000000);
-        const existing = await this.findOne({ userId, _destroy: false });
-        if (!existing) {
-            isUnique = true;
-        }
-    }
-
-    return userId;
+    const lastUser = await this.findOne().sort({ userId: -1 }).select('userId').lean();
+    return lastUser ? lastUser.userId + 1 : 10000001;
 };
+
+// ===== PRE-SAVE MIDDLEWARE =====
+UserSchema.pre('save', function (next) {
+    if (this.fullName) {
+        this.fullNameWithoutAccent = this.fullName
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .replace(/đ/g, 'd')
+            .replace(/Đ/g, 'D');
+    }
+    next();
+});
 
 export const UserModel = mongoose.model('User', UserSchema);

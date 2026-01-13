@@ -187,6 +187,8 @@ const getAll = async (query, schoolScope) => {
         // ✅ Chỉ lấy user cùng trường
         if (schoolScope && schoolScope.role !== 'admin') {
             filter.schoolId = schoolScope.schoolId;
+            // ✅ UPDATED: Loại bỏ phụ huynh khỏi danh sách
+            filter.role = { $ne: 'phu_huynh' };
         }
 
         // Tìm kiếm

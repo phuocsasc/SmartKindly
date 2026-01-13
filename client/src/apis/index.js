@@ -86,3 +86,5 @@ export * from './childrenByClassApi';
 export * from './dashboardApi'; // ✅ ADD
 
 export * from './adminDashboardApi'; // ✅ ADD
+
+export * from './parentApi'; // ✅ ADD

@@ -54,6 +54,10 @@ function UserManagement() {
     const [dialogMode, setDialogMode] = useState('create');
     const [currentUser, setCurrentUser] = useState(null);
 
+    // ✅ Lọc bỏ ADMIN và PHU_HUYNH khỏi danh sách role
+    const availableRoles = Object.entries(ROLE_CONFIG).filter(
+        ([role]) => role !== ROLES.ADMIN && role !== ROLES.PHU_HUYNH,
+    );
     // Debounce search
     useEffect(() => {
         const handler = setTimeout(() => setDebounceSearch(searchText), 1000);
@@ -100,15 +104,15 @@ function UserManagement() {
             const stats = {};
 
             // Gọi API để lấy tổng số cho từng role
-            for (const role of Object.keys(ROLE_CONFIG)) {
+            for (const [roleCode] of availableRoles) {
                 const res = await userApi.getAllUsers({
                     page: 1,
                     limit: 1, // Chỉ cần lấy pagination info, không cần data
-                    role: role,
+                    role: roleCode,
                     search: '',
                     status: '',
                 });
-                stats[role] = res.data.data.pagination.totalItems;
+                stats[roleCode] = res.data.data.pagination.totalItems;
             }
 
             setRoleStats(stats);
@@ -227,7 +231,7 @@ function UserManagement() {
     const columns = [
         { field: 'stt', headerName: 'STT', width: 40, sortable: false },
         { field: 'username', headerName: 'Tên tài khoản', flex: 1, minWidth: 120, sortable: false },
-        { field: 'fullName', headerName: 'Họ tên', flex: 1.2, minWidth: 140, sortable: false },
+        { field: 'fullName', headerName: 'Họ tên cán bộ', flex: 1.2, minWidth: 140, sortable: false },
         { field: 'gender', headerName: 'Giới tính', flex: 0.6, minWidth: 90, sortable: false },
         { field: 'email', headerName: 'Email', flex: 0.6, minWidth: 180, sortable: false },
         { field: 'phone', headerName: 'Số điện thoại', flex: 0.6, minWidth: 120, sortable: false },
@@ -365,8 +369,6 @@ function UserManagement() {
             },
         },
     ];
-    // ✅ Lọc bỏ role ADMIN khỏi thống kê và filter
-    const availableRoles = Object.entries(ROLE_CONFIG).filter(([role]) => role !== ROLES.ADMIN);
 
     return (
         <MainLayout user={user}>
@@ -431,7 +433,7 @@ function UserManagement() {
                     {/* ======= Thanh công cụ trên bảng Danh sách người dùng ======= */}
                     <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
                         <Typography variant="h5" fontWeight={600}>
-                            Danh sách người dùng
+                            Danh sách tài khoản cán bộ
                         </Typography>
 
                         <Box

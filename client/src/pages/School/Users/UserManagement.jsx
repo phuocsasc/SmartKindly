@@ -18,6 +18,7 @@ import AddCircleOutlineOutlinedIcon from '@mui/icons-material/AddCircleOutlineOu
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
 import DeleteOutlineOutlinedIcon from '@mui/icons-material/DeleteOutlineOutlined';
 import StarIcon from '@mui/icons-material/Star';
+import SwitchAccountOutlinedIcon from '@mui/icons-material/SwitchAccountOutlined';
 import { useEffect, useState } from 'react';
 import MainLayout from '~/layouts/SchoolLayout';
 import PageContainer from '~/components/common/PageContainer';
@@ -371,7 +372,12 @@ function UserManagement() {
         <MainLayout user={user}>
             <PageContainer>
                 {/* ======= BREADCRUMB ======= */}
-                <PageBreadcrumb items={[{ text: 'Quản lý người dùng' }]} />
+                <PageBreadcrumb
+                    items={[
+                        { text: 'Người dùng', icon: SwitchAccountOutlinedIcon, href: '#' },
+                        { text: 'Cán bộ nhân viên' },
+                    ]}
+                />
 
                 {/* ======= THỐNG KÊ ======= */}
                 <Box sx={{ mb: 2, display: 'flex', gap: 1, flexWrap: 'wrap' }}>

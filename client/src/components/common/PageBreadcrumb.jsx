@@ -1,12 +1,16 @@
 import { Breadcrumbs, Link, Typography } from '@mui/material';
-import HomeIcon from '@mui/icons-material/Home';
+import { Dashboard as DashboardIcon } from '@mui/icons-material';
 
 function PageBreadcrumb({ items }) {
     return (
         <Breadcrumbs sx={{ mb: 0 }}>
-            <Link color="inherit" href="#" sx={{ display: 'flex', alignItems: 'center', textDecoration: 'none' }}>
-                <HomeIcon sx={{ mr: 0.5 }} fontSize="inherit" />
-                Trang chủ
+            <Link
+                color="inherit"
+                href="/dashboard"
+                sx={{ display: 'flex', alignItems: 'center', textDecoration: 'none' }}
+            >
+                <DashboardIcon sx={{ mr: 0.5 }} fontSize="inherit" />
+                Tổng quan
             </Link>
             {items.map((item, index) => {
                 const isLast = index === items.length - 1;

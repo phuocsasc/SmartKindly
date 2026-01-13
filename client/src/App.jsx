@@ -22,6 +22,7 @@ import AdminNutritionalStandards from '~/pages/Admin/DataBank/NutritionalStandar
 
 // Users
 import UserManagement from '~/pages/School/Users/UserManagement';
+import UsersParents from '~/pages/School/UsersParents/UsersParents';
 import UserInfo from '~/pages/School/Users/UserInfo';
 import ForgotPassword from '~/pages/Auth/ForgotPassword';
 
@@ -123,6 +124,7 @@ function AppContent() {
                     {/* Chỉ cho phép xem nếu có quyền VIEW_USERS */}
                     <Route element={<RbacRoute requiredPermission={PERMISSIONS.VIEW_USERS} />}>
                         <Route path="/users" element={<UserManagement />} />
+                        <Route path="/users-parents" element={<UsersParents />} />
                     </Route>
                     <Route path="/user-info" element={<UserInfo />} />
                     {/* Các route khác... */}

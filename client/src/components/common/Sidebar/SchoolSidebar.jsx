@@ -17,8 +17,6 @@ import KeyboardDoubleArrowLeftOutlinedIcon from '@mui/icons-material/KeyboardDou
 import KeyboardDoubleArrowRightOutlinedIcon from '@mui/icons-material/KeyboardDoubleArrowRightOutlined';
 import HistoryEduOutlinedIcon from '@mui/icons-material/HistoryEduOutlined';
 import RestaurantOutlinedIcon from '@mui/icons-material/RestaurantOutlined';
-// import MonetizationOnOutlinedIcon from '@mui/icons-material/MonetizationOnOutlined';
-// import MedicalServicesOutlinedIcon from '@mui/icons-material/MedicalServicesOutlined';
 import StorageOutlinedIcon from '@mui/icons-material/StorageOutlined';
 import SwitchAccountOutlinedIcon from '@mui/icons-material/SwitchAccountOutlined';
 import HistoryOutlinedIcon from '@mui/icons-material/HistoryOutlined';
@@ -34,9 +32,12 @@ const menuItems = [
     { text: 'Tổng quan', icon: <DashboardIcon />, path: '/dashboard' },
 
     {
-        text: 'Quản lý người dùng',
+        text: 'Người dùng',
         icon: <SwitchAccountOutlinedIcon />,
-        path: '/users',
+        children: [
+            { text: 'Cán bộ nhân viên', path: '/users' },
+            { text: 'Phụ huynh', path: '/users-parents' },
+        ],
         permission: PERMISSIONS.VIEW_USERS, // ✅ Quyền yêu cầu
     },
     {
@@ -60,9 +61,7 @@ const menuItems = [
         icon: <PeopleIcon />,
         children: [
             { text: 'Hồ sơ cán bộ', path: '/staff/profile' },
-            // { text: 'Phân công phụ trách', path: '/staff/assignment' },
             { text: 'Đánh giá xếp loại', path: '/staff/evaluation' },
-            // { text: 'Danh hiệu thi đua', path: '/staff/reward' },
         ],
     },
     {
@@ -72,8 +71,6 @@ const menuItems = [
             { text: 'Mục tiêu năm học theo từng độ tuổi', path: '/edu-plan/year-target' },
             { text: 'Hoạt động giáo dục theo từng mục tiêu', path: '/edu-plan/activities' },
             { text: 'Thời khóa biểu', path: '/edu-plan/schedule' },
-            // { text: 'Các chủ đề - sự kiện', path: '/edu-plan/events-theme' },
-            // { text: 'Kế hoạch giáo dục theo chủ đề', path: '/edu-plan/theme-plan' },
             { text: 'Kế hoạch giáo dục chi tiết theo tuần', path: '/edu-plan/weekly-plan' },
         ],
     },
@@ -83,7 +80,6 @@ const menuItems = [
         children: [
             { text: 'Danh sách trẻ toàn trường', path: '/children/management' },
             { text: 'Danh sách trẻ theo lớp', path: '/children/class' },
-            // { text: 'Hồ sơ trẻ em', path: '/children/profile' },
             { text: 'Điểm danh trẻ em', path: '/children/attendance' },
             { text: 'Đánh giá trẻ hằng ngày', path: '/children/assessment' },
             { text: 'Phiếu bé ngoan', path: '/children/certificate' },
@@ -95,7 +91,6 @@ const menuItems = [
         text: 'Dinh dưỡng',
         icon: <RestaurantOutlinedIcon />,
         children: [
-            // { text: 'Nhà cung cấp', path: '/nutrition/supplier' },
             { text: 'Định mức dinh dưỡng', path: '/nutrition/standards' },
             // { text: 'Tiền dịch vụ', path: '/nutrition/service-charge' },
             { text: 'Thực phẩm', path: '/nutrition/food' },
@@ -104,17 +99,7 @@ const menuItems = [
             { text: 'Thực đơn áp dụng', path: '/nutrition/menu-apply' },
         ],
     },
-    // {
-    //     text: 'Học phí',
-    //     icon: <MonetizationOnOutlinedIcon />,
-    //     children: [
-    //         { text: 'Thiết lập khoản thu', path: '/fee/setup' },
-    //         { text: 'Danh mục khoản thu', path: '/fee/list' },
-    //         { text: 'Thu thanh toán', path: '/fee/payment' },
-    //         { text: 'Quản lý ngày học/nghỉ', path: '/fee/day-off' },
-    //         { text: 'Báo cáo thống kê thu chi', path: '/fee/report' },
-    //     ],
-    // },
+
     // {
     //     text: 'Y tế',
     //     icon: <MedicalServicesOutlinedIcon />,

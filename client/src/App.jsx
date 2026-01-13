@@ -60,6 +60,18 @@ import MenuApply from '~/pages/School/Nutrition/MenuApply/MenuApply';
 import NutritionalStandards from '~/pages/School/Nutrition/Standard/NutritionalStandards';
 import ServiceCharge from '~/pages/School/Nutrition/ServiceCharge/ServiceCharge';
 
+// Parent
+import ParentDashboard from '~/pages/Parent/Dashboard/Dashboard';
+import ParentInfo from './pages/Parent/ParentInfo';
+import Attendance from './pages/Parent/ViewInfo/Attendance';
+import Children from './pages/Parent/ViewInfo/Children';
+import CompletionAssessment from './pages/Parent/ViewInfo/CompletionAssessment';
+import DailyAssessment from './pages/Parent/ViewInfo/DailyAssessment';
+import ParentSchedule from './pages/Parent/ViewInfo/Schedule';
+import School from './pages/Parent/ViewInfo/School';
+import WeeklyCertificate from './pages/Parent/ViewInfo/WeeklyCertificate';
+import WeeklyMenu from './pages/Parent/ViewInfo/WeeklyMenu';
+
 /**
  * Protected Routes với UserContext
  */
@@ -209,8 +221,39 @@ function AppContent() {
                     <Route element={<RbacRoute requiredPermission={PERMISSIONS.VIEW_MENU_APPLY} />}>
                         <Route path="/nutrition/menu-apply" element={<MenuApply />} />
                     </Route>
-                </Route>
 
+                    {/* Các Route phụ huynh */}
+                    <Route element={<RbacRoute requiredPermission={PERMISSIONS.VIEW_PARENT_DASHBOARD} />}>
+                        <Route path="/parent/dashboard" element={<ParentDashboard />} />
+                    </Route>
+                    <Route element={<RbacRoute requiredPermission={PERMISSIONS.UPDATE_PARENT_PROFILE} />}>
+                        <Route path="/parent/user-info" element={<ParentInfo />} />
+                    </Route>
+                    <Route element={<RbacRoute requiredPermission={PERMISSIONS.VIEW_SCHOOL_INFO} />}>
+                        <Route path="/parent/school-info" element={<School />} />
+                    </Route>
+                    <Route element={<RbacRoute requiredPermission={PERMISSIONS.VIEW_CHILD_PROFILE} />}>
+                        <Route path="/parent/child-info" element={<Children />} />
+                    </Route>
+                    <Route element={<RbacRoute requiredPermission={PERMISSIONS.VIEW_CLASS_SCHEDULE} />}>
+                        <Route path="/parent/schedule" element={<ParentSchedule />} />
+                    </Route>
+                    <Route element={<RbacRoute requiredPermission={PERMISSIONS.VIEW_WEEKLY_MENU} />}>
+                        <Route path="/parent/weekly-menu" element={<WeeklyMenu />} />
+                    </Route>
+                    <Route element={<RbacRoute requiredPermission={PERMISSIONS.VIEW_CHILD_ATTENDANCE} />}>
+                        <Route path="/parent/attendance" element={<Attendance />} />
+                    </Route>
+                    <Route element={<RbacRoute requiredPermission={PERMISSIONS.VIEW_DAILY_ASSESSMENT} />}>
+                        <Route path="/parent/daily-assessment" element={<DailyAssessment />} />
+                    </Route>
+                    <Route element={<RbacRoute requiredPermission={PERMISSIONS.VIEW_WEEKLY_CERTIFICATE} />}>
+                        <Route path="/parent/children-certificate" element={<WeeklyCertificate />} />
+                    </Route>
+                    <Route element={<RbacRoute requiredPermission={PERMISSIONS.VIEW_PROGRAM_COMPLETION_ASSESSMENT} />}>
+                        <Route path="/parent/age-completion" element={<CompletionAssessment />} />
+                    </Route>
+                </Route>
                 <Route path="/access-denied" element={<AccessDenied />} />
                 <Route path="*" element={<NotFound />} />
             </Routes>

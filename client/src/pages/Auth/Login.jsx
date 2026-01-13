@@ -52,6 +52,8 @@ function Login() {
             // ✅ Điều hướng dựa trên role
             if (res.data.role === 'admin') {
                 navigate('/admin/dashboard');
+            } else if (res.data.role === 'phu_huynh') {
+                navigate('/parent/dashboard');
             } else {
                 navigate('/dashboard');
             }

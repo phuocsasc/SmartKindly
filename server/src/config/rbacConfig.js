@@ -161,6 +161,17 @@ export const PERMISSIONS = {
     CREATE_MENU_APPLY: 'create_menu_apply',
     UPDATE_MENU_APPLY: 'update_menu_apply',
     DELETE_MENU_APPLY: 'delete_menu_apply',
+
+    // Trang phụ huynh
+    VIEW_PARENT_DASHBOARD: 'view_parent_dashboard',
+    UPDATE_PARENT_PROFILE: 'update_parent_profile',
+    VIEW_CHILD_PROFILE: 'view_child_profile',
+    VIEW_CHILD_ATTENDANCE: 'view_child_attendance',
+    VIEW_WEEKLY_MENU: 'view_weekly_menu',
+    VIEW_CLASS_SCHEDULE: 'view_class_schedule',
+    VIEW_DAILY_ASSESSMENT: 'view_daily_assessment',
+    VIEW_WEEKLY_CERTIFICATE: 'view_weekly_certificate',
+    VIEW_PROGRAM_COMPLETION_ASSESSMENT: 'view_program_completion_assessment',
 };
 
 export const ROLE_PERMISSIONS = {
@@ -289,5 +300,16 @@ export const ROLE_PERMISSIONS = {
         PERMISSIONS.VIEW_NUTRITIONAL_STANDARDS,
         PERMISSIONS.VIEW_SERVICE_CHARGE,
     ],
-    [ROLES.PHU_HUYNH]: [PERMISSIONS.VIEW_SCHOOL_INFO, PERMISSIONS.VIEW_DASHBOARD],
+    [ROLES.PHU_HUYNH]: [
+        PERMISSIONS.VIEW_PARENT_DASHBOARD,
+        PERMISSIONS.VIEW_SCHOOL_INFO,
+        PERMISSIONS.UPDATE_PARENT_PROFILE,
+        PERMISSIONS.VIEW_CHILD_PROFILE,
+        PERMISSIONS.VIEW_CHILD_ATTENDANCE,
+        PERMISSIONS.VIEW_WEEKLY_MENU,
+        PERMISSIONS.VIEW_CLASS_SCHEDULE,
+        PERMISSIONS.VIEW_DAILY_ASSESSMENT,
+        PERMISSIONS.VIEW_WEEKLY_CERTIFICATE,
+        PERMISSIONS.VIEW_PROGRAM_COMPLETION_ASSESSMENT,
+    ],
 };

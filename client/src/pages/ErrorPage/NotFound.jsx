@@ -14,6 +14,8 @@ function NotFound() {
         // ✅ Điều hướng dựa trên role
         if (user?.role === 'admin') {
             navigate('/admin/dashboard');
+        } else if (user?.role === 'phu_huynh') {
+            navigate('/parent/dashboard');
         } else if (user) {
             navigate('/dashboard');
         } else {

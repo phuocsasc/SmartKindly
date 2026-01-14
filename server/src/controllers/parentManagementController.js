@@ -94,10 +94,24 @@ const getAvailableStudents = async (req, res, next) => {
     }
 };
 
+const getMyInfo = async (req, res, next) => {
+    try {
+        const userId = req.jwtDecoded.id;
+        const result = await parentManagementServices.getMyInfo(userId);
+        res.status(StatusCodes.OK).json({
+            message: 'Lấy thông tin phụ huynh thành công!',
+            data: result,
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
 export const parentManagementController = {
     createNew,
     getAll,
     getDetails,
+    getMyInfo, // ✅ Export
     update,
     deleteParent,
     deleteManyParents,

@@ -4,11 +4,7 @@ import { Dashboard as DashboardIcon } from '@mui/icons-material';
 function PageBreadcrumb({ items }) {
     return (
         <Breadcrumbs sx={{ mb: 0 }}>
-            <Link
-                color="inherit"
-                href="/dashboard"
-                sx={{ display: 'flex', alignItems: 'center', textDecoration: 'none' }}
-            >
+            <Link color="inherit" href="#" sx={{ display: 'flex', alignItems: 'center', textDecoration: 'none' }}>
                 <DashboardIcon sx={{ mr: 0.5 }} fontSize="inherit" />
                 Tổng quan
             </Link>

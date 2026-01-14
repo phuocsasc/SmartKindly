@@ -3,6 +3,8 @@
 import { UserModel } from '~/models/userModel.js';
 import { SchoolModel } from '~/models/schoolModel.js';
 import { ChildrenManagementModel } from '~/models/childrenManagementModel.js';
+import { AcademicYearModel } from '~/models/academicYearModel.js';
+import { ChildrenByClassModel } from '~/models/childrenByClassModel.js';
 import ApiError from '~/utils/ApiError.js';
 import { StatusCodes } from 'http-status-codes';
 import { removeVietnameseTones } from '~/utils/formatters.js';
@@ -535,10 +537,64 @@ const getAvailableStudents = async (query, userId) => {
     }
 };
 
+const getMyInfo = async (userId) => {
+    try {
+        const parent = await UserModel.findOne({
+            _id: userId,
+            role: 'phu_huynh',
+            _destroy: false,
+        })
+            .select('-password')
+            .populate('studentId', 'fullName studentCode status gender currentAgeGroup birthDate')
+            .lean();
+
+        if (!parent) {
+            throw new ApiError(StatusCodes.NOT_FOUND, 'Không tìm thấy thông tin phụ huynh');
+        }
+
+        // ✅ Lấy thông tin lớp học sinh trong năm học active
+        let currentClassName = null;
+        if (parent.studentId && parent.schoolId) {
+            const activeYear = await AcademicYearModel.findOne({
+                schoolId: parent.schoolId,
+                status: 'active',
+                _destroy: false,
+            }).select('_id');
+
+            if (activeYear) {
+                const classRecord = await ChildrenByClassModel.findOne({
+                    schoolId: parent.schoolId,
+                    academicYearId: activeYear._id,
+                    studentId: parent.studentId._id,
+                    _destroy: false,
+                })
+                    .populate('classId', 'name')
+                    .lean();
+
+                if (classRecord && classRecord.classId) {
+                    currentClassName = classRecord.classId.name;
+                }
+            }
+        }
+
+        console.log(`✅ [ParentManagement getMyInfo] Parent: ${parent.username}, class: ${currentClassName}`);
+
+        return {
+            ...parent,
+            currentClassName,
+        };
+    } catch (error) {
+        console.error('❌ [ParentManagement getMyInfo] Error:', error);
+        if (error instanceof ApiError) throw error;
+        throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, 'Lỗi khi lấy thông tin phụ huynh');
+    }
+};
+
 export const parentManagementServices = {
     createNew,
     getAll,
     getDetails,
+    getMyInfo, // ✅ Export
     update,
     deleteParent,
     deleteManyParents,

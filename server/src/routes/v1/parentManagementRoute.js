@@ -23,6 +23,9 @@ Router.route('/delete-many').post(
     parentManagementController.deleteManyParents,
 );
 
+// ✅ GET MY INFO (Parent tự xem thông tin của mình)
+Router.route('/my-info').get(authMiddleware.isAuthorized, parentManagementController.getMyInfo);
+
 // ✅ CRUD routes
 Router.route('/')
     .get(

@@ -4,6 +4,11 @@ import authorizedAxiosInstance from '~/utils/authorizedAxios';
 import { API_ROOT } from '~/utils/constants';
 
 export const parentApi = {
+    // ✅ NEW: Parent xem thông tin của chính mình
+    getMyInfo: async () => {
+        return await authorizedAxiosInstance.get(`${API_ROOT}/v1/parent-managements/my-info`);
+    },
+
     // Lấy danh sách phụ huynh
     getAll: async (params) => {
         const { page = 1, limit = 10, search = '', status = '' } = params;

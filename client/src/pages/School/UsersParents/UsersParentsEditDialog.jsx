@@ -1,5 +1,3 @@
-// client/src/pages/School/UsersParents/UsersParentsEditDialog.jsx
-
 import { useState, useEffect } from 'react';
 import {
     Dialog,
@@ -12,16 +10,21 @@ import {
     Typography,
     IconButton,
     Avatar,
-    Divider,
-    FormControl,
-    InputLabel,
-    Select,
-    MenuItem,
-    Chip,
     Grid,
+    InputAdornment,
+    Switch,
+    Paper,
+    Zoom,
 } from '@mui/material';
-import CloseIcon from '@mui/icons-material/Close';
-import EditIcon from '@mui/icons-material/Edit';
+import {
+    Close as CloseIcon,
+    Edit as EditIcon,
+    Email as EmailIcon,
+    PhoneIphone as PhoneIcon,
+    School as SchoolIcon,
+    ToggleOn as StatusIcon,
+} from '@mui/icons-material';
+import PermContactCalendarOutlinedIcon from '@mui/icons-material/PermContactCalendarOutlined';
 import { parentApi } from '~/apis';
 import { toast } from 'react-toastify';
 
@@ -58,10 +61,10 @@ function UsersParentsEditDialog({ open, parentData, onClose, onSuccess }) {
         try {
             setLoading(true);
             await parentApi.update(parentData.id, formData);
-            toast.success('Cập nhật thông tin phụ huynh thành công!');
+            toast.success('Cập nhật thông tin tài khoản thành công!');
             onSuccess();
         } catch (error) {
-            toast.error(error?.response?.data?.message || 'Lỗi khi cập nhật thông tin!');
+            toast.error(error?.response?.data?.message || 'Lỗi cập nhật!');
         } finally {
             setLoading(false);
         }
@@ -73,224 +76,218 @@ function UsersParentsEditDialog({ open, parentData, onClose, onSuccess }) {
             onClose={onClose}
             maxWidth="sm"
             fullWidth
+            TransitionComponent={Zoom}
             PaperProps={{
                 sx: {
-                    borderRadius: 3,
-                    boxShadow: '0 8px 32px rgba(0, 0, 0, 0.12)',
+                    borderRadius: 5,
+                    backgroundImage: 'none',
+                    boxShadow: '0 20px 60px rgba(0,0,0,0.15)',
+                    overflow: 'hidden',
                 },
             }}
         >
-            {/* Header */}
+            {/* Header với Gradient hiện đại */}
             <DialogTitle
                 sx={{
-                    background: 'linear-gradient(135deg, #0071bc 0%, #aee2ff 100%)',
+                    background: 'linear-gradient(135deg, #1e293b 0%, #334155 100%)',
                     color: '#fff',
-                    py: 1.5,
-                    position: 'relative',
+                    p: 2,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
                 }}
             >
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                    <Avatar sx={{ bgcolor: 'rgba(255, 255, 255, 0.2)', width: 32, height: 32 }}>
-                        <EditIcon fontSize="small" />
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                    <Avatar
+                        sx={{ bgcolor: 'primary.main', width: 45, height: 45, boxShadow: '0 4px 12px rgba(0,0,0,0.2)' }}
+                    >
+                        <EditIcon />
                     </Avatar>
-                    <Typography variant="h6" fontWeight={600}>
-                        Chỉnh sửa thông tin phụ huynh
-                    </Typography>
+                    <Box>
+                        <Typography variant="h6" sx={{ fontWeight: 700, lineHeight: 1.2 }}>
+                            Chỉnh sửa tài khoản phụ huynh
+                        </Typography>
+                    </Box>
                 </Box>
-
                 <IconButton
                     onClick={onClose}
-                    size="small"
                     sx={{
-                        position: 'absolute',
-                        right: 8,
-                        top: 8,
                         color: 'white',
-                        '&:hover': { backgroundColor: 'rgba(255, 255, 255, 0.1)' },
+                        bgcolor: 'rgba(255,255,255,0.1)',
+                        '&:hover': { bgcolor: 'rgba(255,255,255,0.2)' },
                     }}
                 >
                     <CloseIcon />
                 </IconButton>
             </DialogTitle>
 
-            {/* Content */}
-            <DialogContent sx={{ pt: 3, mt: 2 }}>
-                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
-                    {/* Thông tin học sinh (READ-ONLY) */}
+            <DialogContent sx={{ p: 4, bgcolor: '#f8fafc', mt: 2 }}>
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                    {/* Phần 1: Thông tin học sinh - Thiết kế dạng Card Read-only */}
                     <Box>
-                        <Typography
-                            variant="subtitle2"
-                            sx={{
-                                mb: 1.5,
-                                color: 'primary.main',
-                                fontWeight: 600,
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: 1,
-                            }}
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+                            <SchoolIcon color="primary" fontSize="small" />
+                            <Typography variant="subtitle2" fontWeight={700} color="text.secondary">
+                                THÔNG TIN HỌC SINH
+                            </Typography>
+                        </Box>
+                        <Paper
+                            variant="outlined"
+                            sx={{ p: 2, borderRadius: 3, bgcolor: '#fff', borderStyle: 'dashed' }}
                         >
-                            <Box sx={{ width: 3, height: 14, bgcolor: 'primary.main', borderRadius: 1 }} />
-                            Thông tin học sinh (Không thể thay đổi)
-                        </Typography>
+                            <Grid container spacing={2}>
+                                <Grid item xs={12} sm={6}>
+                                    <Box>
+                                        <Typography variant="caption" color="text.disabled" display="block">
+                                            Tên tài khoản
+                                        </Typography>
+                                        <Typography variant="body2" fontWeight={600}>
+                                            {parentData?.username || '---'}
+                                        </Typography>
+                                    </Box>
+                                </Grid>
+                                <Grid item xs={12} sm={6}>
+                                    <Box>
+                                        <Typography variant="caption" color="text.disabled" display="block">
+                                            Mã học sinh
+                                        </Typography>
+                                        <Typography variant="body2" fontWeight={600} sx={{ color: 'primary.main' }}>
+                                            {parentData?.studentCode || '---'}
+                                        </Typography>
+                                    </Box>
+                                </Grid>
+                                <Grid item xs={12} sm={6}>
+                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                        <Box>
+                                            <Typography variant="caption" color="text.disabled" display="block">
+                                                Họ tên học sinh
+                                            </Typography>
+                                            <Typography variant="body2" fontWeight={600}>
+                                                {parentData?.studentFullName || '---'}
+                                            </Typography>
+                                        </Box>
+                                    </Box>
+                                </Grid>
+                                <Grid item xs={12} sm={6}>
+                                    <Box>
+                                        <Typography variant="caption" color="text.disabled" display="block">
+                                            Giới tính
+                                        </Typography>
+                                        <Typography variant="body2" fontWeight={600}>
+                                            {parentData?.studentGender || '---'}
+                                        </Typography>
+                                    </Box>
+                                </Grid>
+                            </Grid>
+                        </Paper>
+                    </Box>
 
-                        <Grid container spacing={2}>
+                    {/* Phần 2: Thông tin liên hệ - Form nhập liệu hiện đại */}
+                    <Box>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+                            <PermContactCalendarOutlinedIcon color="primary" fontSize="small" />
+                            <Typography variant="subtitle2" fontWeight={700} color="text.secondary">
+                                THÔNG TIN LIÊN HỆ
+                            </Typography>
+                        </Box>
+                        <Grid container spacing={3}>
                             <Grid item xs={12}>
                                 <TextField
-                                    label="Tên tài khoản"
-                                    value={parentData?.username || ''}
-                                    disabled
                                     fullWidth
+                                    label="Số điện thoại"
                                     size="small"
-                                    variant="outlined"
+                                    value={formData.phone}
+                                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                                    InputProps={{
+                                        startAdornment: (
+                                            <InputAdornment position="start">
+                                                <PhoneIcon sx={{ color: 'primary.main', p: 0.5 }} />
+                                            </InputAdornment>
+                                        ),
+                                    }}
+                                    sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
                                 />
                             </Grid>
                             <Grid item xs={12}>
                                 <TextField
-                                    label="Họ tên học sinh"
-                                    value={parentData?.studentFullName || ''}
-                                    disabled
                                     fullWidth
+                                    label="Địa chỉ Email"
                                     size="small"
-                                    variant="outlined"
-                                />
-                            </Grid>
-                            <Grid item xs={6}>
-                                <TextField
-                                    label="Mã học sinh"
-                                    value={parentData?.studentCode || ''}
-                                    disabled
-                                    fullWidth
-                                    size="small"
-                                    variant="outlined"
-                                />
-                            </Grid>
-                            <Grid item xs={6}>
-                                <TextField
-                                    label="Giới tính"
-                                    value={parentData?.studentGender || ''}
-                                    disabled
-                                    fullWidth
-                                    size="small"
-                                    variant="outlined"
+                                    value={formData.email}
+                                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                                    InputProps={{
+                                        startAdornment: (
+                                            <InputAdornment position="start">
+                                                <EmailIcon sx={{ color: 'primary.main', p: 0.5 }} />
+                                            </InputAdornment>
+                                        ),
+                                    }}
+                                    sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
                                 />
                             </Grid>
                         </Grid>
                     </Box>
 
-                    <Divider />
-
-                    {/* Thông tin có thể chỉnh sửa */}
-                    <Box>
-                        <Typography
-                            variant="subtitle2"
-                            sx={{
-                                mb: 1.5,
-                                color: 'secondary.main',
-                                fontWeight: 600,
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: 1,
-                            }}
-                        >
-                            <Box sx={{ width: 3, height: 14, bgcolor: 'secondary.main', borderRadius: 1 }} />
-                            Thông tin liên hệ
-                        </Typography>
-
-                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                            <TextField
-                                label="Số điện thoại"
-                                placeholder="VD: 0901234567"
-                                value={formData.phone}
-                                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                                fullWidth
-                                size="small"
-                                variant="outlined"
-                            />
-
-                            <TextField
-                                label="Email"
-                                type="email"
-                                placeholder="VD: [email protected]"
-                                value={formData.email}
-                                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                                fullWidth
-                                size="small"
-                                variant="outlined"
-                            />
+                    {/* Phần 3: Trạng thái tài khoản */}
+                    <Paper
+                        elevation={0}
+                        sx={{
+                            p: 2,
+                            borderRadius: 3,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            bgcolor: formData.status ? 'success.lighter' : 'error.lighter',
+                            border: '1px solid',
+                            borderColor: formData.status ? 'success.light' : 'error.light',
+                            transition: 'all 0.3s ease',
+                        }}
+                    >
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                            <StatusIcon color={formData.status ? 'success' : 'error'} />
+                            <Box>
+                                <Typography variant="subtitle2" fontWeight={700}>
+                                    Trạng thái hoạt động
+                                </Typography>
+                                <Typography variant="caption" color="text.secondary">
+                                    {formData.status
+                                        ? 'Tài khoản đang được phép truy cập'
+                                        : 'Tài khoản đang bị tạm khóa'}
+                                </Typography>
+                            </Box>
                         </Box>
-                    </Box>
-
-                    <Divider />
-
-                    {/* Trạng thái */}
-                    <Box>
-                        <Typography
-                            variant="subtitle2"
-                            sx={{
-                                mb: 1.5,
-                                color: 'success.main',
-                                fontWeight: 600,
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: 1,
-                            }}
-                        >
-                            <Box sx={{ width: 3, height: 14, bgcolor: 'success.main', borderRadius: 1 }} />
-                            Trạng thái
-                        </Typography>
-
-                        <FormControl fullWidth size="small">
-                            <InputLabel>Trạng thái</InputLabel>
-                            <Select
-                                value={formData.status}
-                                onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-                                label="Trạng thái"
-                                renderValue={(selected) => (
-                                    <Chip
-                                        label={selected ? 'Kích hoạt' : 'Vô hiệu hóa'}
-                                        color={selected ? 'success' : 'error'}
-                                        size="small"
-                                    />
-                                )}
-                            >
-                                <MenuItem value={true}>
-                                    <Chip label="Kích hoạt" color="success" size="small" />
-                                </MenuItem>
-                                <MenuItem value={false}>
-                                    <Chip label="Vô hiệu hóa" color="error" size="small" />
-                                </MenuItem>
-                            </Select>
-                        </FormControl>
-                    </Box>
+                        <Switch
+                            checked={formData.status}
+                            onChange={(e) => setFormData({ ...formData, status: e.target.checked })}
+                            color="success"
+                        />
+                    </Paper>
                 </Box>
             </DialogContent>
 
-            {/* Actions */}
-            <DialogActions sx={{ px: 3, py: 2, gap: 1 }}>
-                <Button
-                    onClick={onClose}
-                    variant="outlined"
-                    color="inherit"
-                    size="small"
-                    sx={{ borderRadius: 1.5, px: 2.5, textTransform: 'none', fontWeight: 600 }}
-                >
+            {/* Actions với nút bấm Glassmorphism */}
+            <DialogActions sx={{ p: 3, bgcolor: '#f8fafc', gap: 2 }}>
+                <Button onClick={onClose} variant="text" sx={{ color: 'text.secondary', fontWeight: 700, px: 3 }}>
                     Hủy bỏ
                 </Button>
                 <Button
-                    variant="contained"
                     onClick={handleSubmit}
+                    variant="contained"
                     disabled={loading}
-                    size="small"
                     sx={{
-                        borderRadius: 1.5,
-                        px: 3,
+                        borderRadius: 3,
+                        px: 4,
+                        py: 1.2,
+                        fontWeight: 700,
                         textTransform: 'none',
-                        fontWeight: 600,
-                        background: 'linear-gradient(135deg, #0071bc 100%, #aee2ff 100%)',
-                        '&:hover': { boxShadow: 3 },
+                        boxShadow: '0 8px 20px rgba(0, 113, 188, 0.3)',
+                        background: 'linear-gradient(135deg, #0071bc 0%, #005a96 100%)',
+                        '&:hover': {
+                            background: 'linear-gradient(135deg, #005a96 0%, #0071bc 100%)',
+                        },
                     }}
                 >
-                    {loading ? 'Đang cập nhật...' : 'Cập nhật'}
+                    {loading ? 'Đang lưu...' : 'Lưu thay đổi'}
                 </Button>
             </DialogActions>
         </Dialog>

@@ -21,16 +21,9 @@ const checkPermission = (user) => {
  * Format: viettat.hovaten (VD: "Nguyễn Văn A" → "nva.nguyenvana")
  */
 const generateUsername = (abbreviation, fullName) => {
-    const normalized = removeVietnameseTones(fullName.toLowerCase().trim());
+    const namePart = removeVietnameseTones(fullName).toLowerCase().replace(/\s+/g, ''); // Xóa khoảng trắng
 
-    // Tách họ tên thành các từ
-    const parts = normalized.split(/\s+/).filter((p) => p);
-
-    // Lấy chữ cái đầu của mỗi từ (viết tắt)
-    const initials = parts.map((p) => p[0]).join('');
-
-    // Username: viettat.hovaten
-    return `${abbreviation}.${initials}${normalized.replace(/\s+/g, '')}`.toLowerCase();
+    return `${abbreviation}.${namePart}`;
 };
 
 /**
@@ -38,7 +31,7 @@ const generateUsername = (abbreviation, fullName) => {
  */
 const ensureUniqueUsername = async (baseUsername) => {
     let username = baseUsername;
-    let counter = 1;
+    let counter = 0;
 
     while (await UserModel.findOne({ username, _destroy: false })) {
         const randomNum = Math.floor(10 + Math.random() * 90); // Random 2 chữ số

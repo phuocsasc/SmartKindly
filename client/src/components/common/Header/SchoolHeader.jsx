@@ -219,7 +219,7 @@ function SchoolHeader({ sidebarCollapsed, onToggleMobileSidebar }) {
                             <ListItemIcon>
                                 <AccountCircleIcon fontSize="small" color="primary" />
                             </ListItemIcon>
-                            <ListItemText>Thông tin cá nhân</ListItemText>
+                            <ListItemText>Thông tin tài khoản</ListItemText>
                         </MenuItem>
                         <MenuItem onClick={handleChangePassword}>
                             <ListItemIcon>

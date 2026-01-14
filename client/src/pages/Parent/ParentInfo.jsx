@@ -227,7 +227,7 @@ function ParentInfo() {
                                     sx={{
                                         bgcolor: roleConfig.bgColor,
                                         color: roleConfig.color,
-                                        fontWeight: 700,
+                                        fontWeight: 600,
                                         borderRadius: 2,
                                         border: `1px solid ${roleConfig.color}`,
                                     }}
@@ -285,7 +285,7 @@ function ParentInfo() {
                                     },
                                 }}
                             >
-                                <Tab label="Hồ sơ tài khoản" />
+                                <Tab label="Thông tin tài khoản" />
                                 <Tab label="Đổi mật khẩu" />
                             </Tabs>
 
@@ -295,7 +295,7 @@ function ParentInfo() {
                                         <Box>
                                             <Box sx={{ mb: 4 }}>
                                                 <Typography variant="h6" fontWeight={700} gutterBottom>
-                                                    Thông tin tài khoản
+                                                    Thay đổi thông tin tài khoản
                                                 </Typography>
                                                 <Typography variant="body2" color="text.secondary">
                                                     Các thông tin cơ bản liên quan đến học sinh (Không thể tự thay đổi)

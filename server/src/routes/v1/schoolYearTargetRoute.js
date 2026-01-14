@@ -34,8 +34,8 @@ Router.route('/copy-from-system').post(
     rbacMiddleware.isValidPermission([PERMISSIONS.CREATE_YEAR_TARGET]),
     // ✅ Audit log cho copy từ hệ thống
     auditLog(AUDIT_LOG_ACTIONS.COPY, AUDIT_LOG_RESOURCES.YEAR_TARGET, (req, body) => {
-        const count = body.data?.count || 0;
-        return `Copy mục tiêu của ${count} nhóm tuổi từ hệ thống (Ngân hàng dữ liệu)`;
+        const { count = 0, activitiesCount = 0 } = body.data || {};
+        return `Copy ${count} mục tiêu và ${activitiesCount} hoạt động giáo dục từ hệ thống (Ngân hàng dữ liệu)`;
     }),
     schoolYearTargetController.copyFromSystem,
 );

@@ -96,9 +96,17 @@ function YearTargetCopySystemDialog({ open, currentYearId, onClose, onSuccess })
         try {
             setLoading(true);
 
-            await schoolYearTargetApi.copyFromSystem(currentYearId);
+            const res = await schoolYearTargetApi.copyFromSystem(currentYearId);
 
-            toast.success('Copy mục tiêu từ hệ thống thành công!');
+            // ✅ Hiển thị thông báo chi tiết từ server
+            const { count, activitiesCount } = res.data.data;
+            const message =
+                res.data.message || `Copy thành công ${count} mục tiêu và ${activitiesCount} hoạt động giáo dục!`;
+
+            toast.success(message, {
+                autoClose: 5000,
+            });
+
             onSuccess();
             handleClose();
         } catch (error) {

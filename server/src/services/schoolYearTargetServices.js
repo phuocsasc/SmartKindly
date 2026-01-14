@@ -953,52 +953,154 @@ const copyFromSystem = async (academicYearId, userId) => {
             throw new ApiError(StatusCodes.NOT_FOUND, 'Năm học đích không hợp lệ hoặc không đang hoạt động');
         }
 
-        // ✅ Import YearTargetModel để lấy mục tiêu từ hệ thống
+        // ✅ Import models để lấy dữ liệu từ hệ thống
         const { YearTargetModel } = await import('~/models/yearTargetModel.js');
+        const { EducationalActivityModel } = await import('~/models/educationalActivityModel.js');
 
-        // ✅ Lấy tất cả mục tiêu từ hệ thống (YearTarget collection)
+        // ✅ BƯỚC 1: Lấy tất cả mục tiêu từ hệ thống (YearTarget collection)
         const systemTargets = await YearTargetModel.find({ _destroy: false });
 
         if (systemTargets.length === 0) {
             throw new ApiError(StatusCodes.NOT_FOUND, 'Hệ thống chưa có mục tiêu mẫu nào');
         }
 
-        // ✅ Xóa cascade TẤT CẢ dữ liệu liên quan
-        await deleteCascadeRelatedData(schoolId, academicYearId);
-
         console.log(`📋 Found ${systemTargets.length} system targets to copy`);
 
-        // ✅ Xóa CỨNG tất cả mục tiêu hiện tại của năm học đang active
-        const deleteResult = await SchoolYearTargetModel.deleteMany({
+        // ✅ BƯỚC 2: Xóa cascade TẤT CẢ dữ liệu liên quan
+        await deleteCascadeRelatedData(schoolId, academicYearId);
+
+        // ✅ BƯỚC 3: Xóa CỨNG tất cả mục tiêu hiện tại của năm học đang active
+        const deleteTargetsResult = await SchoolYearTargetModel.deleteMany({
             schoolId,
             academicYearId,
             _destroy: false,
         });
 
-        console.log(`🗑️ Hard deleted ${deleteResult.deletedCount} existing targets in destination year`);
+        console.log(`🗑️ Hard deleted ${deleteTargetsResult.deletedCount} existing targets in destination year`);
 
-        // ✅ Copy từng mục tiêu từ hệ thống
+        // ✅ BƯỚC 4: Xóa CỨNG tất cả hoạt động giáo dục hiện tại của năm học đang active
+        const deleteActivitiesResult = await SchoolEducationalActivityModel.deleteMany({
+            schoolId,
+            academicYearId,
+            _destroy: false,
+        });
+
+        console.log(`🗑️ Hard deleted ${deleteActivitiesResult.deletedCount} existing activities in destination year`);
+
+        // ✅ BƯỚC 5: Copy từng mục tiêu và tạo mapping cho targetId
         const copiedTargets = [];
+        const oldToNewSchoolYearTargetIdMap = new Map(); // Map: systemYearTargetId -> newSchoolYearTargetId
+        const oldToNewTargetIdMap = new Map(); // Map: systemTargetId -> newTargetId
+
         for (const systemTarget of systemTargets) {
+            // Clone mainFields để tạo ObjectId mới cho tất cả targets
+            const newMainFields = JSON.parse(JSON.stringify(systemTarget.mainFields));
+
+            // ✅ Duyệt qua structure để tạo mapping targetId cũ -> mới
+            newMainFields.forEach((mainField) => {
+                if (mainField.subFields && mainField.subFields.length > 0) {
+                    mainField.subFields.forEach((subField) => {
+                        subField.expectedResults?.forEach((expectedResult) => {
+                            expectedResult.targets?.forEach((target) => {
+                                const oldTargetId = target._id; // _id cũ từ hệ thống
+                                const newTargetId = new mongoose.Types.ObjectId(); // Tạo _id mới
+                                target._id = newTargetId; // Gán _id mới
+
+                                // Lưu mapping
+                                oldToNewTargetIdMap.set(oldTargetId.toString(), newTargetId.toString());
+                            });
+                        });
+                    });
+                } else {
+                    mainField.expectedResults?.forEach((expectedResult) => {
+                        expectedResult.targets?.forEach((target) => {
+                            const oldTargetId = target._id;
+                            const newTargetId = new mongoose.Types.ObjectId();
+                            target._id = newTargetId;
+
+                            oldToNewTargetIdMap.set(oldTargetId.toString(), newTargetId.toString());
+                        });
+                    });
+                }
+            });
+
+            // Tạo SchoolYearTarget mới với mainFields đã có _id mới
             const newTarget = new SchoolYearTargetModel({
                 schoolId,
                 academicYearId,
                 ageGroup: systemTarget.ageGroup,
-                mainFields: systemTarget.mainFields, // Copy toàn bộ structure
+                mainFields: newMainFields,
                 createdBy: userId,
             });
 
             await newTarget.save();
             copiedTargets.push(newTarget);
+
+            // Lưu mapping: systemYearTargetId -> newSchoolYearTargetId
+            oldToNewSchoolYearTargetIdMap.set(systemTarget._id.toString(), newTarget._id);
         }
 
-        // ✅ Đánh dấu năm học đích đã cấu hình
+        console.log(`✅ Copied ${copiedTargets.length} year targets successfully`);
+        console.log(`📊 Created mapping for ${oldToNewTargetIdMap.size} targets`);
+
+        // ✅ BƯỚC 6: Copy hoạt động giáo dục từ hệ thống với targetId mapping chính xác
+        const systemActivities = await EducationalActivityModel.find({
+            _destroy: false,
+        });
+
+        console.log(`📋 Found ${systemActivities.length} activities to copy from system`);
+
+        const copiedActivities = [];
+
+        for (const systemActivity of systemActivities) {
+            // ✅ Map yearTargetId từ hệ thống sang schoolYearTargetId mới
+            const oldYearTargetId = systemActivity.yearTargetId.toString();
+            const newSchoolYearTargetId = oldToNewSchoolYearTargetIdMap.get(oldYearTargetId);
+
+            if (!newSchoolYearTargetId) {
+                console.log(
+                    `⚠️ Skipping activity: No corresponding schoolYearTarget found for yearTargetId ${oldYearTargetId}`,
+                );
+                continue;
+            }
+
+            // ✅ Map targetId từ hệ thống sang targetId mới
+            const oldTargetId = systemActivity.targetId.toString();
+            const newTargetId = oldToNewTargetIdMap.get(oldTargetId);
+
+            if (!newTargetId) {
+                console.log(`⚠️ Skipping activity: No corresponding targetId found for ${oldTargetId}`);
+                continue;
+            }
+
+            const newActivity = new SchoolEducationalActivityModel({
+                schoolId,
+                academicYearId,
+                ageGroup: systemActivity.ageGroup,
+                schoolYearTargetId: newSchoolYearTargetId, // ✅ Sử dụng ID mới của SchoolYearTarget
+                targetId: newTargetId, // ✅ Sử dụng _id mới của target
+                mainFieldCode: systemActivity.mainFieldCode,
+                subFieldCode: systemActivity.subFieldCode,
+                expectedResultCode: systemActivity.expectedResultCode,
+                targetCode: systemActivity.targetCode,
+                activityContent: systemActivity.activityContent,
+                createdBy: userId,
+            });
+
+            await newActivity.save();
+            copiedActivities.push(newActivity);
+        }
+
+        console.log(`✅ Copied ${copiedActivities.length} activities successfully from system`);
+
+        // ✅ BƯỚC 7: Đánh dấu năm học đích đã cấu hình
         if (!toYear.isConfig) {
             toYear.isConfig = true;
             await toYear.save();
             console.log('✅ [SchoolYearTarget copyFromSystem] Academic year marked as configured');
         }
 
+        // ✅ BƯỚC 8: Populate data để trả về
         const populatedTargets = await SchoolYearTargetModel.find({
             _id: { $in: copiedTargets.map((t) => t._id) },
         })
@@ -1006,10 +1108,12 @@ const copyFromSystem = async (academicYearId, userId) => {
             .populate('academicYearId', 'fromYear toYear status')
             .lean();
 
-        console.log('✅ [SchoolYearTarget copyFromSystem] Copied successfully');
+        console.log('✅ [SchoolYearTarget copyFromSystem] Completed successfully');
+
         return {
             count: populatedTargets.length,
             targets: populatedTargets,
+            activitiesCount: copiedActivities.length,
         };
     } catch (error) {
         console.error('❌ [SchoolYearTarget copyFromSystem] Error:', error);

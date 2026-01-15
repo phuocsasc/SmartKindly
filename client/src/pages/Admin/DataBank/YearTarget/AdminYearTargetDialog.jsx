@@ -213,7 +213,7 @@ function AdminYearTargetDialog({ open, data, onClose, onSuccess }) {
             await yearTargetApi.update(data.yearTargetId, { mainFields: renumberedMainFields });
 
             toast.success(isEditMode ? 'Cập nhật mục tiêu thành công!' : 'Thêm mục tiêu thành công!');
-            onSuccess();
+            onSuccess(renumberedMainFields);
         } catch (error) {
             console.error('Error saving target:', error);
             toast.error('Lỗi khi lưu mục tiêu!');

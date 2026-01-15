@@ -270,11 +270,12 @@ function AdminYearTarget() {
             const currentData = yearTargets[currentAgeGroup];
             if (!currentData) return;
 
+            // Clone data để xử lý
             const updatedMainFields = JSON.parse(JSON.stringify(currentData.mainFields));
             const mainField = updatedMainFields.find((mf) => mf.code === row._mainFieldCode);
             if (!mainField) return;
 
-            // ✅ Remove target
+            // ✅ Remove target (Logic xóa giữ nguyên)
             if (row._subFieldCode) {
                 const subField = mainField.subFields?.find((sf) => sf.code === row._subFieldCode);
                 const expectedResult = subField?.expectedResults?.find((er) => er.code === row._expectedResultCode);
@@ -288,13 +289,26 @@ function AdminYearTarget() {
                 }
             }
 
-            // ✅ Re-number all MT codes
+            // ✅ Re-number all MT codes (Logic đánh lại số thứ tự giữ nguyên)
             const renumberedMainFields = renumberAllTargets(updatedMainFields);
 
+            // Gọi API cập nhật xuống Database
             await yearTargetApi.update(currentData._id, { mainFields: renumberedMainFields });
+            
             toast.success('Xóa mục tiêu thành công!');
-            handleCancel();
-            fetchYearTargets();
+            handleCancel(); // Đóng dialog xác nhận
+
+            // ❌ KHÔNG GỌI fetchYearTargets();
+            
+            // ✅ CẬP NHẬT STATE TRỰC TIẾP (Client-side update)
+            setYearTargets((prev) => ({
+                ...prev,
+                [currentAgeGroup]: {
+                    ...prev[currentAgeGroup],
+                    mainFields: renumberedMainFields, // Gán danh sách mới đã xóa và đánh lại số
+                },
+            }));
+
         } catch (error) {
             console.error('Error deleting target:', error);
             toast.error('Lỗi khi xóa mục tiêu!');
@@ -537,10 +551,18 @@ function AdminYearTarget() {
                     setOpenDialog(false);
                     setDialogData(null);
                 }}
-                onSuccess={() => {
+                onSuccess={(updatedMainFields) => {
                     setOpenDialog(false);
                     setDialogData(null);
-                    fetchYearTargets();
+                    
+                    // Cập nhật State cục bộ (Local State) thay vì gọi API fetchYearTargets()
+                    setYearTargets((prev) => ({
+                        ...prev,
+                        [currentAgeGroup]: {
+                            ...prev[currentAgeGroup],
+                            mainFields: updatedMainFields, // Gán danh sách mới đã update từ Dialog
+                        },
+                    }));
                 }}
             />
             {/* Confirm Dialog */}

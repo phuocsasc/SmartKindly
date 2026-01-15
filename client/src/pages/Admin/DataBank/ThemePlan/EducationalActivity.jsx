@@ -233,7 +233,14 @@ function EducationalActivity() {
             await educationalActivityApi.delete(row.activityId);
             toast.success('Xóa hoạt động giáo dục thành công!');
             handleCancel();
-            fetchData();
+            
+            // Xóa trực tiếp khỏi state activities
+            setActivities((prev) => {
+                const newActivities = { ...prev };
+                const key = `${currentAgeGroup}-${row.targetId}`;
+                delete newActivities[key];
+                return newActivities;
+            });
         } catch (error) {
             console.error('Error deleting activity:', error);
             toast.error('Lỗi khi xóa hoạt động giáo dục!');
@@ -481,10 +488,15 @@ function EducationalActivity() {
                     setOpenDialog(false);
                     setDialogData(null);
                 }}
-                onSuccess={() => {
+                onSuccess={(newActivity) => {
                     setOpenDialog(false);
                     setDialogData(null);
-                    fetchData();
+                    
+                    const key = `${currentAgeGroup}-${newActivity.targetId}`;
+                    setActivities((prev) => ({
+                        ...prev,
+                        [key]: newActivity,
+                    }));
                 }}
             />
 

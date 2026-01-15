@@ -110,22 +110,26 @@ function EducationalActivityDialog({ open, data, onClose, onSuccess }) {
                 mainFieldCode: data.mainFieldCode,
                 subFieldCode: data.subFieldCode || null,
                 expectedResultCode: data.expectedResultCode,
-                targetId: data.targetId, // ✅ Send targetId
-                // targetCode: data.targetCode, ❌ Don't send (backend auto-fills)
+                targetId: data.targetId,
                 activityContent: formData.activityContent,
             };
 
+            let savedActivity; // Biến chứa dữ liệu trả về
+
             if (isEditMode) {
-                await educationalActivityApi.update(data.activityId, {
+                const res = await educationalActivityApi.update(data.activityId, {
                     activityContent: formData.activityContent,
                 });
                 toast.success('Cập nhật hoạt động giáo dục thành công!');
+                savedActivity = res.data.data; // Lấy dữ liệu mới cập nhật
             } else {
-                await educationalActivityApi.create(payload);
+                const res = await educationalActivityApi.create(payload);
                 toast.success('Thêm hoạt động giáo dục thành công!');
+                savedActivity = res.data.data; // Lấy dữ liệu mới tạo
             }
 
-            onSuccess();
+            // ✅ Truyền dữ liệu activity mới nhất về cha để update state
+            onSuccess(savedActivity); 
         } catch (error) {
             console.error('Error saving activity:', error);
             toast.error(error.response?.data?.message || 'Lỗi khi lưu hoạt động!');

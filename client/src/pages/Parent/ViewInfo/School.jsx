@@ -1,18 +1,20 @@
-// client/src/pages/Parent/ViewInfo/School.jsx
-
 import { useState, useEffect } from 'react';
-import { Box, Typography, Paper, Grid, Divider, CircularProgress, Avatar, Chip } from '@mui/material';
+import { Box, Typography, Paper, Grid, CircularProgress, Avatar, Chip, Stack, Card, CardContent } from '@mui/material';
 import {
-    School as SchoolIcon,
     LocationOn as LocationIcon,
     Phone as PhoneIcon,
     Email as EmailIcon,
     Language as WebsiteIcon,
     Person as PersonIcon,
     CalendarToday as CalendarIcon,
+    Fingerprint as IDIcon,
+    Verified as VerifiedIcon,
+    ErrorOutline as ErrorIcon,
 } from '@mui/icons-material';
+import LocationCityOutlinedIcon from '@mui/icons-material/LocationCityOutlined';
 import MainLayout from '~/layouts/ParentLayout';
 import PageContainer from '~/components/common/PageContainer';
+import PageBreadcrumb from '~/components/common/PageBreadcrumb';
 import { useUser } from '~/contexts/UserContext';
 import { parentChildrenApi } from '~/apis';
 import { toast } from 'react-toastify';
@@ -29,290 +31,279 @@ function School() {
                 setLoading(true);
                 const response = await parentChildrenApi.getSchoolInfo();
                 setSchoolData(response.data.data);
-                console.log('✅ [School] Fetched data:', response.data.data);
             } catch (error) {
-                console.error('❌ [School] Error:', error);
                 toast.error(error?.response?.data?.message || 'Không thể tải thông tin trường học');
             } finally {
                 setLoading(false);
             }
         };
 
-        if (user) {
-            fetchSchoolInfo();
-        }
+        if (user) fetchSchoolInfo();
     }, [user]);
 
-    if (loading) {
+    // UI Helper: Info Item Component
+    const InfoCard = ({ icon: Icon, label, value, color }) => {
+        const hasData = value && value.toString().trim() !== '';
+
+        return (
+            <Card
+                sx={{
+                    height: '100%',
+                    borderRadius: 4,
+                    boxShadow: '0 4px 20px 0 rgba(0,0,0,0.05)',
+                    transition: 'all 0.3s ease',
+                    border: '1px solid',
+                    borderColor: 'transparent',
+                    '&:hover': {
+                        transform: 'translateY(-4px)',
+                        borderColor: hasData ? `${color}40` : 'transparent',
+                        boxShadow: `0 8px 25px 0 ${hasData ? color + '20' : 'rgba(0,0,0,0.08)'}`,
+                    },
+                }}
+            >
+                <CardContent sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                    <Box
+                        sx={{
+                            p: 1.5,
+                            borderRadius: 3,
+                            display: 'flex',
+                            bgcolor: hasData ? `${color}15` : 'grey.100',
+                            color: hasData ? color : 'grey.400',
+                        }}
+                    >
+                        <Icon fontSize="medium" />
+                    </Box>
+                    <Box sx={{ overflow: 'hidden', flex: 1 }}>
+                        <Typography
+                            variant="caption"
+                            color="text.secondary"
+                            fontWeight={600}
+                            sx={{ display: 'block', mb: 0.2, textTransform: 'uppercase', letterSpacing: 0.5 }}
+                        >
+                            {label}
+                        </Typography>
+                        <Typography
+                            variant="body2"
+                            fontWeight={hasData ? 700 : 400}
+                            sx={{
+                                color: hasData ? 'text.primary' : 'text.disabled',
+                                fontStyle: hasData ? 'normal' : 'italic',
+                            }}
+                        >
+                            {hasData ? value : 'Chưa cập nhật'}
+                        </Typography>
+                    </Box>
+                </CardContent>
+            </Card>
+        );
+    };
+
+    if (loading)
         return (
             <MainLayout user={user}>
                 <PageContainer>
-                    <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}>
-                        <CircularProgress />
+                    <Box
+                        sx={{
+                            display: 'flex',
+                            flexDirection: 'column',
+                            justifyContent: 'center',
+                            alignItems: 'center',
+                            minHeight: '60vh',
+                            gap: 2,
+                        }}
+                    >
+                        <CircularProgress thickness={5} size={50} sx={{ color: '#667eea' }} />
+                        <Typography variant="body2" color="text.secondary" fontWeight={500}>
+                            Đang tải dữ liệu trường học...
+                        </Typography>
                     </Box>
                 </PageContainer>
             </MainLayout>
         );
-    }
 
-    if (!schoolData) {
+    if (!schoolData)
         return (
             <MainLayout user={user}>
                 <PageContainer>
-                    <Paper sx={{ p: 3, textAlign: 'center' }}>
+                    <Stack alignItems="center" spacing={2} sx={{ py: 10 }}>
+                        <ErrorIcon sx={{ fontSize: 60, color: 'text.disabled' }} />
                         <Typography variant="h6" color="text.secondary">
-                            Không có dữ liệu
+                            Không tìm thấy thông tin trường học
                         </Typography>
-                    </Paper>
+                    </Stack>
                 </PageContainer>
             </MainLayout>
         );
-    }
 
     return (
         <MainLayout user={user}>
             <PageContainer>
-                <Grid container spacing={3}>
-                    {/* ✅ HEADER CARD */}
+                <PageBreadcrumb items={[{ text: 'Nhà trường' }]} />
+                <Grid container spacing={4}>
+                    {/* --- BANNER HEADER --- */}
                     <Grid item xs={12}>
                         <Paper
-                            elevation={3}
+                            elevation={0}
                             sx={{
-                                p: 4,
-                                borderRadius: 4,
+                                position: 'relative',
+                                p: { xs: 3, md: 5 },
+                                borderRadius: 8,
+                                overflow: 'hidden',
                                 background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
                                 color: 'white',
+                                boxShadow: '0 12px 35px rgba(102, 126, 234, 0.35)',
                             }}
                         >
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 3 }}>
-                                <Avatar sx={{ width: 80, height: 80, bgcolor: 'rgba(255,255,255,0.2)' }}>
-                                    <SchoolIcon sx={{ fontSize: 50 }} />
+                            <Box
+                                sx={{
+                                    position: 'absolute',
+                                    top: -40,
+                                    right: -40,
+                                    width: 220,
+                                    height: 220,
+                                    borderRadius: '50%',
+                                    background: 'rgba(255,255,255,0.12)',
+                                }}
+                            />
+
+                            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={4} alignItems="center">
+                                <Avatar
+                                    sx={{
+                                        width: { xs: 90, md: 120 },
+                                        height: { xs: 90, md: 120 },
+                                        bgcolor: 'rgba(255,255,255,0.25)',
+                                        backdropFilter: 'blur(12px)',
+                                        border: '4px solid rgba(255,255,255,0.4)',
+                                        boxShadow: '0 8px 20px rgba(0,0,0,0.1)',
+                                    }}
+                                >
+                                    <LocationCityOutlinedIcon sx={{ fontSize: { xs: 50, md: 70 } }} />
                                 </Avatar>
-                                <Box>
-                                    <Typography variant="h4" fontWeight={700}>
-                                        {schoolData.name}
+
+                                <Box sx={{ textAlign: { xs: 'center', sm: 'left' }, flex: 1 }}>
+                                    <Typography
+                                        variant="h3"
+                                        fontWeight={700}
+                                        sx={{ mb: 1.5, letterSpacing: -1, fontSize: { xs: '1.75rem', md: '2.5rem' } }}
+                                    >
+                                        {schoolData.name || 'Tên trường chưa cập nhật'}
                                     </Typography>
-                                    <Box sx={{ display: 'flex', gap: 2, mt: 1, alignItems: 'center' }}>
+                                    <Stack
+                                        direction="row"
+                                        spacing={1.5}
+                                        justifyContent={{ xs: 'center', sm: 'flex-start' }}
+                                        flexWrap="wrap"
+                                        useFlexGap
+                                    >
                                         <Chip
-                                            label={schoolData.abbreviation}
-                                            size="small"
+                                            label={schoolData.abbreviation || 'N/A'}
                                             sx={{
                                                 bgcolor: 'rgba(255,255,255,0.2)',
                                                 color: 'white',
-                                                fontWeight: 600,
+                                                fontWeight: 700,
+                                                px: 1,
                                             }}
                                         />
                                         <Chip
-                                            label={schoolData.status ? 'Đang hoạt động' : 'Không hoạt động'}
-                                            size="small"
+                                            icon={<VerifiedIcon style={{ color: 'white' }} />}
+                                            label={schoolData.status ? 'Đang hoạt động' : 'Tạm dừng'}
                                             sx={{
-                                                bgcolor: schoolData.status
-                                                    ? 'rgba(76, 175, 80, 0.2)'
-                                                    : 'rgba(244, 67, 54, 0.2)',
+                                                bgcolor: schoolData.status ? '#4caf50' : '#f44336',
                                                 color: 'white',
-                                                fontWeight: 600,
+                                                fontWeight: 700,
+                                                px: 1,
                                             }}
                                         />
-                                    </Box>
+                                    </Stack>
                                 </Box>
-                            </Box>
+                            </Stack>
                         </Paper>
                     </Grid>
 
-                    {/* ✅ THÔNG TIN CHI TIẾT */}
+                    {/* --- DETAILED INFO SECTION --- */}
                     <Grid item xs={12}>
-                        <Paper sx={{ p: 4, borderRadius: 4 }}>
-                            <Typography variant="h6" fontWeight={700} gutterBottom sx={{ color: '#667eea', mb: 3 }}>
-                                Thông tin chi tiết
-                            </Typography>
-                            <Divider sx={{ mb: 3 }} />
+                        <Typography
+                            variant="h6"
+                            fontWeight={700}
+                            sx={{ mb: 3, display: 'flex', alignItems: 'center', gap: 1.5, color: '#2d3748' }}
+                        >
+                            <Box sx={{ width: 6, height: 28, bgcolor: '#667eea', borderRadius: 2 }} />
+                            TỔNG QUAN THÔNG TIN
+                        </Typography>
 
-                            <Grid container spacing={3}>
-                                {/* Địa chỉ */}
-                                <Grid item xs={12}>
-                                    <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 2 }}>
-                                        <Box
-                                            sx={{
-                                                p: 1.5,
-                                                bgcolor: '#e3f2fd',
-                                                borderRadius: 2,
-                                                display: 'flex',
-                                                alignItems: 'center',
-                                                justifyContent: 'center',
-                                            }}
-                                        >
-                                            <LocationIcon color="primary" />
-                                        </Box>
-                                        <Box>
-                                            <Typography variant="caption" color="text.secondary" display="block">
-                                                Địa chỉ
-                                            </Typography>
-                                            <Typography variant="body1" fontWeight={600}>
-                                                {schoolData.address}
-                                            </Typography>
-                                        </Box>
-                                    </Box>
-                                </Grid>
-
-                                {/* Số điện thoại */}
-                                <Grid item xs={12} sm={6}>
-                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                                        <Box
-                                            sx={{
-                                                p: 1.5,
-                                                bgcolor: '#e8f5e9',
-                                                borderRadius: 2,
-                                                display: 'flex',
-                                                alignItems: 'center',
-                                                justifyContent: 'center',
-                                            }}
-                                        >
-                                            <PhoneIcon color="success" />
-                                        </Box>
-                                        <Box>
-                                            <Typography variant="caption" color="text.secondary" display="block">
-                                                Số điện thoại
-                                            </Typography>
-                                            <Typography variant="body1" fontWeight={600}>
-                                                {schoolData.phone || 'Chưa cập nhật'}
-                                            </Typography>
-                                        </Box>
-                                    </Box>
-                                </Grid>
-
-                                {/* Email */}
-                                <Grid item xs={12} sm={6}>
-                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                                        <Box
-                                            sx={{
-                                                p: 1.5,
-                                                bgcolor: '#fff3e0',
-                                                borderRadius: 2,
-                                                display: 'flex',
-                                                alignItems: 'center',
-                                                justifyContent: 'center',
-                                            }}
-                                        >
-                                            <EmailIcon color="warning" />
-                                        </Box>
-                                        <Box>
-                                            <Typography variant="caption" color="text.secondary" display="block">
-                                                Email
-                                            </Typography>
-                                            <Typography variant="body1" fontWeight={600}>
-                                                {schoolData.email || 'Chưa cập nhật'}
-                                            </Typography>
-                                        </Box>
-                                    </Box>
-                                </Grid>
-
-                                {/* Website */}
-                                <Grid item xs={12} sm={6}>
-                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                                        <Box
-                                            sx={{
-                                                p: 1.5,
-                                                bgcolor: '#f3e5f5',
-                                                borderRadius: 2,
-                                                display: 'flex',
-                                                alignItems: 'center',
-                                                justifyContent: 'center',
-                                            }}
-                                        >
-                                            <WebsiteIcon color="secondary" />
-                                        </Box>
-                                        <Box>
-                                            <Typography variant="caption" color="text.secondary" display="block">
-                                                Website
-                                            </Typography>
-                                            <Typography variant="body1" fontWeight={600}>
-                                                {schoolData.website || 'Chưa cập nhật'}
-                                            </Typography>
-                                        </Box>
-                                    </Box>
-                                </Grid>
-
-                                {/* Hiệu trưởng */}
-                                <Grid item xs={12} sm={6}>
-                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                                        <Box
-                                            sx={{
-                                                p: 1.5,
-                                                bgcolor: '#fce4ec',
-                                                borderRadius: 2,
-                                                display: 'flex',
-                                                alignItems: 'center',
-                                                justifyContent: 'center',
-                                            }}
-                                        >
-                                            <PersonIcon color="error" />
-                                        </Box>
-                                        <Box>
-                                            <Typography variant="caption" color="text.secondary" display="block">
-                                                Hiệu trưởng
-                                            </Typography>
-                                            <Typography variant="body1" fontWeight={600}>
-                                                {schoolData.manager || 'Chưa cập nhật'}
-                                            </Typography>
-                                        </Box>
-                                    </Box>
-                                </Grid>
-
-                                {/* Ngày thành lập */}
-                                <Grid item xs={12} sm={6}>
-                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                                        <Box
-                                            sx={{
-                                                p: 1.5,
-                                                bgcolor: '#e0f2f1',
-                                                borderRadius: 2,
-                                                display: 'flex',
-                                                alignItems: 'center',
-                                                justifyContent: 'center',
-                                            }}
-                                        >
-                                            <CalendarIcon color="info" />
-                                        </Box>
-                                        <Box>
-                                            <Typography variant="caption" color="text.secondary" display="block">
-                                                Ngày thành lập
-                                            </Typography>
-                                            <Typography variant="body1" fontWeight={600}>
-                                                {schoolData.establishmentDate
-                                                    ? dayjs(schoolData.establishmentDate).format('DD/MM/YYYY')
-                                                    : 'Chưa cập nhật'}
-                                            </Typography>
-                                        </Box>
-                                    </Box>
-                                </Grid>
-
-                                {/* Mã trường */}
-                                <Grid item xs={12} sm={6}>
-                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                                        <Box
-                                            sx={{
-                                                p: 1.5,
-                                                bgcolor: '#ede7f6',
-                                                borderRadius: 2,
-                                                display: 'flex',
-                                                alignItems: 'center',
-                                                justifyContent: 'center',
-                                            }}
-                                        >
-                                            <SchoolIcon sx={{ color: '#673ab7' }} />
-                                        </Box>
-                                        <Box>
-                                            <Typography variant="caption" color="text.secondary" display="block">
-                                                Mã trường
-                                            </Typography>
-                                            <Typography variant="body1" fontWeight={600}>
-                                                {schoolData.schoolId}
-                                            </Typography>
-                                        </Box>
-                                    </Box>
-                                </Grid>
+                        <Grid container spacing={3}>
+                            {/* Full width Address */}
+                            <Grid item xs={12}>
+                                <InfoCard
+                                    icon={LocationIcon}
+                                    label="Địa chỉ trụ sở"
+                                    value={schoolData.address}
+                                    color="#3f51b5"
+                                />
                             </Grid>
-                        </Paper>
+
+                            {/* Grid Items */}
+                            {[
+                                { icon: PhoneIcon, label: 'Số điện thoại', value: schoolData.phone, color: '#4caf50' },
+                                {
+                                    icon: EmailIcon,
+                                    label: 'Hòm thư điện tử',
+                                    value: schoolData.email,
+                                    color: '#ff9800',
+                                },
+                                {
+                                    icon: WebsiteIcon,
+                                    label: 'Website chính thức',
+                                    value: schoolData.website,
+                                    color: '#2196f3',
+                                },
+                                {
+                                    icon: PersonIcon,
+                                    label: 'Hiệu trưởng',
+                                    value: schoolData.manager,
+                                    color: '#e91e63',
+                                },
+                                {
+                                    icon: CalendarIcon,
+                                    label: 'Ngày thành lập',
+                                    value: schoolData.establishmentDate
+                                        ? dayjs(schoolData.establishmentDate).format('DD/MM/YYYY')
+                                        : null,
+                                    color: '#00bcd4',
+                                },
+                                {
+                                    icon: IDIcon,
+                                    label: 'Mã số trường',
+                                    value: schoolData.schoolId,
+                                    color: '#673ab7',
+                                },
+                            ].map((item, index) => (
+                                <Grid item xs={12} sm={6} md={4} key={index}>
+                                    <InfoCard {...item} />
+                                </Grid>
+                            ))}
+                        </Grid>
+                    </Grid>
+
+                    {/* --- FOOTER NOTE --- */}
+                    <Grid item xs={12}>
+                        <Box
+                            sx={{
+                                p: 3,
+                                textAlign: 'center',
+                                borderRadius: 5,
+                                bgcolor: '#f7fafc',
+                                border: '1px dashed #cbd5e0',
+                            }}
+                        >
+                            <Typography
+                                variant="body2"
+                                color="text.secondary"
+                                sx={{ opacity: 0.9, fontStyle: 'italic' }}
+                            >
+                                Thông tin được cập nhật từ Nhà trường.
+                            </Typography>
+                        </Box>
                     </Grid>
                 </Grid>
             </PageContainer>

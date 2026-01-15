@@ -20,7 +20,7 @@ import {
     Chip,
     Alert,
 } from '@mui/material';
-import { School as SchoolIcon, DoneOutlined as DoneIcon } from '@mui/icons-material';
+import { DoneOutlined as DoneIcon } from '@mui/icons-material';
 import MainLayout from '~/layouts/ParentLayout';
 import PageContainer from '~/components/common/PageContainer';
 import PageBreadcrumb from '~/components/common/PageBreadcrumb';
@@ -268,16 +268,11 @@ function Schedule() {
     return (
         <MainLayout user={user}>
             <PageContainer>
-                <PageBreadcrumb
-                    items={[
-                        { text: 'Xem thông tin', icon: SchoolIcon },
-                        { text: 'Kế hoạch giáo dục chi tiết theo tuần' },
-                    ]}
-                />
+                <PageBreadcrumb items={[{ text: 'Thời khóa biểu' }]} />
 
                 <Paper sx={{ p: 3, borderRadius: 4 }}>
                     <Typography variant="h5" fontWeight={700} gutterBottom sx={{ color: '#667eea' }}>
-                        Kế hoạch giáo dục chi tiết theo tuần
+                        Thời khóa biểu
                     </Typography>
 
                     {/* Filters */}

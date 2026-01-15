@@ -35,6 +35,7 @@ import { childrenByClassRoute } from '~/routes/v1/childrenByClassRoute.js';
 import { schoolMenuAiRoute } from './schoolMenuAiRoute.js';
 import { adminDashboardRoute } from './adminDashboardRoute.js';
 import { parentManagementRoute } from '~/routes/v1/parentManagementRoute.js';
+import { parentChildrenRoute } from '~/routes/v1/parentChildrenRoute.js';
 
 const Router = express.Router();
 
@@ -121,5 +122,7 @@ Router.use('/school-menu-ai', schoolMenuAiRoute);
 Router.use('/admin/dashboard', adminDashboardRoute);
 
 Router.use('/parent-managements', parentManagementRoute);
+
+Router.use('/parent-children', parentChildrenRoute);
 
 export const APIs_V1 = Router;

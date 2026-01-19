@@ -294,12 +294,12 @@ function AdminYearTarget() {
 
             // Gọi API cập nhật xuống Database
             await yearTargetApi.update(currentData._id, { mainFields: renumberedMainFields });
-            
+
             toast.success('Xóa mục tiêu thành công!');
             handleCancel(); // Đóng dialog xác nhận
 
             // ❌ KHÔNG GỌI fetchYearTargets();
-            
+
             // ✅ CẬP NHẬT STATE TRỰC TIẾP (Client-side update)
             setYearTargets((prev) => ({
                 ...prev,
@@ -308,7 +308,6 @@ function AdminYearTarget() {
                     mainFields: renumberedMainFields, // Gán danh sách mới đã xóa và đánh lại số
                 },
             }));
-
         } catch (error) {
             console.error('Error deleting target:', error);
             toast.error('Lỗi khi xóa mục tiêu!');
@@ -554,7 +553,7 @@ function AdminYearTarget() {
                 onSuccess={(updatedMainFields) => {
                     setOpenDialog(false);
                     setDialogData(null);
-                    
+
                     // Cập nhật State cục bộ (Local State) thay vì gọi API fetchYearTargets()
                     setYearTargets((prev) => ({
                         ...prev,

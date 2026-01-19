@@ -1,3 +1,4 @@
+//client/src/pages/School/EducationPlan/YearTarget/YearTarget.jsx
 import { useState, useEffect } from 'react';
 import {
     Box,
@@ -792,10 +793,18 @@ function YearTarget() {
                     setOpenDialog(false);
                     setDialogData(null);
                 }}
-                onSuccess={() => {
+                onSuccess={(updatedMainFields) => {
                     setOpenDialog(false);
                     setDialogData(null);
-                    fetchYearTargets();
+
+                    // Cập nhật State cục bộ (Local State) thay vì gọi API fetchYearTargets()
+                    setYearTargets((prev) => ({
+                        ...prev,
+                        [currentAgeGroup]: {
+                            ...prev[currentAgeGroup],
+                            mainFields: updatedMainFields, // Gán danh sách mới đã update từ Dialog
+                        },
+                    }));
                 }}
             />
 

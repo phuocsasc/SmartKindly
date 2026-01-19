@@ -372,7 +372,21 @@ function EducationalActivity() {
             await schoolEducationalActivityApi.delete(row.activityId);
             toast.success('Xóa hoạt động giáo dục thành công!');
             handleCancel();
-            fetchData();
+
+            // Xóa trực tiếp khỏi state activities
+            setActivities((prev) => {
+                const newActivities = { ...prev };
+                const key = `${currentAgeGroup}-${row.targetId}`;
+                console.log('Deleting key:', key); // Debug xem key có đúng format không
+
+                if (newActivities[key]) {
+                    delete newActivities[key];
+                } else {
+                    console.warn('Key not found in activities state:', key);
+                }
+
+                return newActivities;
+            });
         } catch (error) {
             console.error('Error deleting activity:', error);
             toast.error('Lỗi khi xóa hoạt động giáo dục!');
@@ -716,10 +730,15 @@ function EducationalActivity() {
                     setOpenDialog(false);
                     setDialogData(null);
                 }}
-                onSuccess={() => {
+                onSuccess={(newActivity) => {
                     setOpenDialog(false);
                     setDialogData(null);
-                    fetchData();
+
+                    const key = `${currentAgeGroup}-${newActivity.targetId}`;
+                    setActivities((prev) => ({
+                        ...prev,
+                        [key]: newActivity,
+                    }));
                 }}
             />
 

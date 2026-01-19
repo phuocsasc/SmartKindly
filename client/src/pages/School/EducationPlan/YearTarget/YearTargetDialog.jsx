@@ -1,3 +1,4 @@
+//client/src/pages/School/EducationPlan/YearTarget/YearTargetDialog.jsx
 import { useState, useEffect } from 'react';
 import {
     Dialog,
@@ -209,7 +210,8 @@ function YearTargetDialog({ open, data, onClose, onSuccess }) {
             await schoolYearTargetApi.update(data.yearTargetId, { mainFields: renumberedMainFields });
 
             toast.success(isEditMode ? 'Cập nhật mục tiêu thành công!' : 'Thêm mục tiêu thành công!');
-            onSuccess();
+            // Thay vì gọi onSuccess() rỗng, hãy truyền data mới về
+            onSuccess(renumberedMainFields);
         } catch (error) {
             console.error('Error saving target:', error);
             toast.error('Lỗi khi lưu mục tiêu!');

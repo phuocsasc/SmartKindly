@@ -1,5 +1,4 @@
-// client/src/pages/School/EducationPlan/EducationalActivity/EducationalActivityDialog.jsx
-
+//client/src/pages/School/EducationPlan/EducationalActivity/EducationalActivityDialog.jsx
 import { useState, useEffect } from 'react';
 import {
     Dialog,
@@ -106,24 +105,30 @@ function EducationalActivityDialog({ open, data, onClose, onSuccess }) {
                 mainFieldCode: data.mainFieldCode,
                 subFieldCode: data.subFieldCode || null,
                 expectedResultCode: data.expectedResultCode,
-                targetId: data.targetId, // ✅ Send targetId instead of targetCode
+                targetId: data.targetId, // ✅ Đảm bảo targetId được gửi đi
                 activityContent: formData.activityContent,
             };
 
+            let savedActivity;
+
             if (isEditMode) {
-                await schoolEducationalActivityApi.update(data.activityId, {
+                const res = await schoolEducationalActivityApi.update(data.activityId, {
                     activityContent: formData.activityContent,
                 });
                 toast.success('Cập nhật hoạt động giáo dục thành công!');
+                savedActivity = res.data.data;
             } else {
-                await schoolEducationalActivityApi.create(payload);
+                const res = await schoolEducationalActivityApi.create(payload);
                 toast.success('Thêm hoạt động giáo dục thành công!');
+                savedActivity = res.data.data;
             }
 
-            onSuccess();
+            // ✅ Gọi onSuccess với dữ liệu mới để cập nhật state ở component cha
+            onSuccess(savedActivity);
         } catch (error) {
             console.error('Error saving activity:', error);
             toast.error(error.response?.data?.message || 'Lỗi khi lưu hoạt động giáo dục!');
+            // Không gọi onSuccess nếu lỗi
         } finally {
             setLoading(false);
         }

@@ -117,8 +117,8 @@ function AdminFoodDialog({ open, mode, food, onClose, onSuccess }) {
             toast.error('Vui lòng chọn đơn vị tính!');
             return;
         }
-        if (!formData.gramConversion || formData.gramConversion < 1 || formData.gramConversion > 1000) {
-            toast.error('Quy đổi sang gam phải từ 1 đến 1000!');
+        if (!formData.gramConversion || formData.gramConversion < 1 || formData.gramConversion > 1000000) {
+            toast.error('Quy đổi sang gam phải từ 1 đến 1000000!');
             return;
         }
         if (formData.categories.length === 0) {
@@ -285,8 +285,8 @@ function AdminFoodDialog({ open, mode, food, onClose, onSuccess }) {
                                     required
                                     fullWidth
                                     size="small"
-                                    inputProps={{ min: 1, max: 1000 }}
-                                    helperText="Từ 1 đến 1000 gram"
+                                    inputProps={{ min: 1, max: 1000000 }}
+                                    helperText="Từ 1 đến 1000000 gram"
                                 />
                             </Box>
 

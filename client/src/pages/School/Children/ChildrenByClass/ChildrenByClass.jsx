@@ -1,4 +1,4 @@
-/* eslint-disable no-unused-vars */
+//client/src/pages/School/Children/ChildrenByClass/ChildrenByClass.jsx
 import { useState, useEffect } from 'react';
 import {
     Box,
@@ -57,6 +57,7 @@ function ChildrenByClass() {
 
     // Children data
     const [rows, setRows] = useState([]);
+    // eslint-disable-next-line no-unused-vars
     const [classInfo, setClassInfo] = useState(null);
     const [selectedRows, setSelectedRows] = useState([]);
 
@@ -102,9 +103,14 @@ function ChildrenByClass() {
             const classList = res.data.data.classes || [];
             setClasses(classList);
 
-            // Auto-select first class
+            // --- ĐOẠN SỬA QUAN TRỌNG ---
+            // Chỉ reset về tab 0 nếu chưa chọn tab nào hoặc tab hiện tại không còn tồn tại
             if (classList.length > 0) {
-                setSelectedClassTab(0);
+                // Nếu selectedClassTab là -1 (chưa chọn) HOẶC lớp đang chọn bị xóa mất (index vượt quá mảng)
+                if (selectedClassTab === -1 || selectedClassTab >= classList.length) {
+                    setSelectedClassTab(0);
+                }
+                // Ngược lại: Giữ nguyên selectedClassTab để người dùng không bị "nhảy" trang
             } else {
                 setSelectedClassTab(-1);
                 setRows([]);
@@ -220,7 +226,38 @@ function ChildrenByClass() {
         }
         setOpenTransferDialog(true);
     };
+    // ✅ Hàm cập nhật sĩ số lớp (Client-side update)
+    const updateClassCount = (classId, change) => {
+        setClasses((prevClasses) => {
+            return prevClasses.map((cls) => {
+                if (cls._id === classId) {
+                    const currentCount = Number(cls.totalStudents) || 0;
 
+                    let changeAmount = 0;
+
+                    // TH1: Nếu change là một mảng (danh sách học sinh vừa thêm) -> Lấy độ dài
+                    if (Array.isArray(change)) {
+                        changeAmount = change.length;
+                    }
+                    // TH2: Nếu change là số -> Dùng luôn
+                    else if (typeof change === 'number') {
+                        changeAmount = change;
+                    }
+                    // TH3: Cố gắng ép kiểu nếu là string số
+                    else {
+                        changeAmount = Number(change) || 0;
+                    }
+
+                    // Tính toán số mới
+                    const newCount = currentCount + changeAmount;
+
+                    // Trả về object lớp với số lượng đã update
+                    return { ...cls, totalStudents: newCount };
+                }
+                return cls;
+            });
+        });
+    };
     // ✅ Handler: Xóa 1 học sinh ra khỏi lớp
     const handleDeleteStudent = async (id, fullName) => {
         if (!isActiveYear) {
@@ -237,9 +274,19 @@ function ChildrenByClass() {
                 cancelText: 'Hủy',
                 onConfirm: async () => {
                     try {
-                        await childrenByClassApi.removeStudentFromClass(id);
-                        toast.success('Xóa học sinh ra khỏi lớp thành công!');
-                        await handleRefreshData(); // ✅ Refresh cả classes và children
+                        await childrenByClassApi.removeStudentsFromClass(selectedRows);
+                        toast.success(`Đã xóa ${selectedRows.length} học sinh ra khỏi lớp!`);
+
+                        // --- THAY ĐỔI Ở ĐÂY: Cập nhật state trực tiếp ---
+                        // 1. Xóa các dòng đã chọn khỏi bảng
+                        setRows((prevRows) => prevRows.filter((row) => !selectedRows.includes(row.id)));
+                        // 2. Giảm sĩ số lớp
+                        if (classes[selectedClassTab]) {
+                            updateClassCount(classes[selectedClassTab]._id, -selectedRows.length);
+                        }
+                        // 3. Cập nhật lại tổng số dòng
+                        setTotalRows((prev) => prev - selectedRows.length);
+
                         setSelectedRows([]);
                     } catch (error) {
                         toast.error(error.response?.data?.message || 'Lỗi khi xóa học sinh!');
@@ -247,7 +294,7 @@ function ChildrenByClass() {
                 },
             });
         } catch (error) {
-            console.error('Error deleting student:', error);
+            console.error('Error deleting students:', error);
         }
     };
 
@@ -387,7 +434,48 @@ function ChildrenByClass() {
             },
         },
     ];
+    const ClassTabLabel = ({ name, ageGroup, teacher, count }) => {
+        return (
+            <Box
+                sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    width: '100%',
+                    textAlign: 'left',
+                }}
+            >
+                <Box>
+                    <Typography sx={{ fontWeight: 700, fontSize: 14, lineHeight: 1.3, color: 'inherit' }}>
+                        {/* ✅ SỬA: Dùng name và ageGroup thay vì cls.name */}
+                        {name} - ({ageGroup})
+                    </Typography>
+                    <Typography sx={{ fontSize: 12, fontWeight: 400, color: 'text.secondary', mt: 0.5 }}>
+                        {/* ✅ SỬA: Dùng teacher thay vì cls.homeRoomTeacher */}
+                        GVCN: {teacher || '---'}
+                    </Typography>
+                </Box>
 
+                <Box
+                    sx={{
+                        ml: 1,
+                        px: 1,
+                        py: 0.5,
+                        borderRadius: 4,
+                        bgcolor: '#e3f2fd',
+                        color: '#1976d2',
+                        fontSize: 12,
+                        fontWeight: 600,
+                        whiteSpace: 'nowrap',
+                        minWidth: '60px',
+                        textAlign: 'center',
+                    }}
+                >
+                    {Number.isFinite(Number(count)) ? count : '...'} bé
+                </Box>
+            </Box>
+        );
+    };
     const currentClass = classes[selectedClassTab];
 
     return (
@@ -554,75 +642,19 @@ function ChildrenByClass() {
                                     onChange={handleClassTabChange}
                                     variant="scrollable"
                                     scrollButtons={false}
-                                    sx={{
-                                        '& .MuiTabs-indicator': {
-                                            display: 'none', // ❌ bỏ gạch xanh mặc định
-                                        },
-                                    }}
+                                    sx={{ '& .MuiTabs-indicator': { display: 'none' } }}
                                 >
                                     {classes.map((cls) => (
                                         <Tab
-                                            key={cls._id}
+                                            key={`${cls._id}-${cls.totalStudents}`}
                                             disableRipple
                                             label={
-                                                <Box
-                                                    sx={{
-                                                        display: 'flex',
-                                                        alignItems: 'center',
-                                                        justifyContent: 'space-between',
-                                                        width: '100%',
-                                                        textAlign: 'left', // Reset text align về trái
-                                                    }}
-                                                >
-                                                    {/* Phần bên trái: Tên lớp + GVCN */}
-                                                    <Box>
-                                                        {/* Dòng 1: Tên lớp + Nhóm tuổi */}
-                                                        <Typography
-                                                            sx={{
-                                                                fontWeight: 700, // Đậm hơn chút để nổi bật
-                                                                fontSize: 14,
-                                                                lineHeight: 1.3,
-                                                                color: 'inherit',
-                                                            }}
-                                                        >
-                                                            {cls.name} - ({cls.ageGroup})
-                                                        </Typography>
-
-                                                        {/* Dòng 2: GVCN */}
-                                                        <Typography
-                                                            sx={{
-                                                                fontSize: 12,
-                                                                fontWeight: 400,
-                                                                color: 'text.secondary', // Màu xám nhạt hơn
-                                                                mt: 0.5, // Khoảng cách nhỏ với dòng trên
-                                                            }}
-                                                        >
-                                                            GVCN:{' '}
-                                                            {cls.homeRoomTeacher?.fullName ||
-                                                                cls.homeRoomTeacher ||
-                                                                '---'}
-                                                        </Typography>
-                                                    </Box>
-
-                                                    {/* Phần bên phải: Tổng số trẻ */}
-                                                    <Box
-                                                        sx={{
-                                                            ml: 1, // Khoảng cách với text
-                                                            px: 1,
-                                                            py: 0.5,
-                                                            borderRadius: 4,
-                                                            bgcolor: '#e3f2fd', // Màu nền xanh nhạt
-                                                            color: '#1976d2', // Chữ màu xanh đậm
-                                                            fontSize: 12,
-                                                            fontWeight: 600,
-                                                            whiteSpace: 'nowrap', // Không xuống dòng
-                                                            minWidth: '60px', // Độ rộng tối thiểu để đẹp hơn
-                                                            textAlign: 'center',
-                                                        }}
-                                                    >
-                                                        {cls.totalStudents || 0} bé
-                                                    </Box>
-                                                </Box>
+                                                <ClassTabLabel
+                                                    name={cls.name}
+                                                    ageGroup={cls.ageGroup}
+                                                    teacher={cls.homeRoomTeacher?.fullName || cls.homeRoomTeacher}
+                                                    count={cls.totalStudents} // Prop quan trọng nhất cần update
+                                                />
                                             }
                                             sx={{
                                                 boxSizing: 'border-box', // ✅
@@ -770,7 +802,9 @@ function ChildrenByClass() {
                     onClose={() => setOpenAddDialog(false)}
                     onSuccess={async () => {
                         setOpenAddDialog(false);
-                        await handleRefreshData(); // ✅ Refresh cả classes và children
+                        // Cập nhật sĩ số lớp ngay lập tức
+                        await handleRefreshData();
+                        toast.success('Thêm học sinh thành công!');
                     }}
                 />
             )}

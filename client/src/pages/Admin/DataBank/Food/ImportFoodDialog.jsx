@@ -184,8 +184,8 @@ function ImportFoodDialog({ open, onClose, onSuccess }) {
             if (!row.unit || row.unit.trim() === '') {
                 rowErrors.push('Thiếu đơn vị tính');
             }
-            if (!row.gramConversion || row.gramConversion < 1 || row.gramConversion > 1000) {
-                rowErrors.push('Quy đổi sang gam phải từ 1 đến 1000');
+            if (!row.gramConversion || row.gramConversion < 1 || row.gramConversion > 1000000) {
+                rowErrors.push('Quy đổi sang gam phải từ 1 đến 1000000');
             }
             if (!row.categories || row.categories.length === 0) {
                 rowErrors.push('Phải chọn ít nhất 1 loại thực phẩm (đánh dấu x)');

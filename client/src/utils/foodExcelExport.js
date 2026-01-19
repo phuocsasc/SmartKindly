@@ -72,7 +72,7 @@ const COLUMNS_CONFIG = [
         width: 18,
         required: true,
         format: 'number',
-        note: 'Bắt buộc\nTừ 1 đến 1000 gam',
+        note: 'Bắt buộc\nTừ 1 đến 1000000 gam',
     },
     {
         key: 'category_dongvat',
@@ -197,7 +197,7 @@ export const exportFoodsToExcel = async (foods = []) => {
         let noteText = '📌 LƯU Ý:\n';
         noteText += '• Các cột có tiêu đề màu ĐỎ là BẮT BUỘC phải nhập\n';
         noteText += '• Cột "Loại thực phẩm": Đánh dấu "x" vào cột tương ứng (1 thực phẩm có thể có nhiều loại)\n';
-        noteText += '• Quy đổi sang gam: Nhập số từ 1 đến 1000\n';
+        noteText += '• Quy đổi sang gam: Nhập số từ 1 đến 1000000\n';
         noteText += '• Hệ số thái bỏ: Nhập số từ 0 đến 99 (%)\n';
         noteText += '• Protein, Lipid, Glucid: Nhập số thập phân ≥ 0 (VD: 0.005, 9.026)\n';
 

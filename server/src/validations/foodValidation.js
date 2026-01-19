@@ -54,10 +54,10 @@ const createNew = async (req, res, next) => {
                 'any.required': 'Đơn vị tính là bắt buộc',
                 'any.only': 'Đơn vị tính không hợp lệ',
             }),
-        gramConversion: Joi.number().required().min(1).max(1000).messages({
+        gramConversion: Joi.number().required().min(1).max(1000000).messages({
             'number.base': 'Quy đổi sang gam phải là số',
-            'number.min': 'Quy đổi sang gam phải từ 1 đến 1000',
-            'number.max': 'Quy đổi sang gam phải từ 1 đến 1000',
+            'number.min': 'Quy đổi sang gam phải từ 1 đến 1000000',
+            'number.max': 'Quy đổi sang gam phải từ 1 đến 1000000',
             'any.required': 'Quy đổi sang gam là bắt buộc',
         }),
         categories: Joi.array()
@@ -112,10 +112,10 @@ const update = async (req, res, next) => {
             .messages({
                 'any.only': 'Đơn vị tính không hợp lệ',
             }),
-        gramConversion: Joi.number().min(1).max(1000).messages({
+        gramConversion: Joi.number().min(1).max(1000000).messages({
             'number.base': 'Quy đổi sang gam phải là số',
-            'number.min': 'Quy đổi sang gam phải từ 1 đến 1000',
-            'number.max': 'Quy đổi sang gam phải từ 1 đến 1000',
+            'number.min': 'Quy đổi sang gam phải từ 1 đến 1000000',
+            'number.max': 'Quy đổi sang gam phải từ 1 đến 1000000',
         }),
         categories: Joi.array()
             .items(Joi.string().valid('Động vật', 'Thực vật', 'Thực phẩm Khô', 'Thực phẩm tươi', 'Thực phẩm ăn liền'))

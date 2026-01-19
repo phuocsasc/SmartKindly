@@ -65,7 +65,7 @@ const FoodSchema = new mongoose.Schema(
             type: Number,
             required: [true, 'Quy đổi sang gam là bắt buộc'],
             min: [1, 'Quy đổi sang gam phải từ 1 đến 1000'],
-            max: [1000, 'Quy đổi sang gam phải từ 1 đến 1000'],
+            max: [1000000, 'Quy đổi sang gam phải từ 1 đến 1000000'],
         },
         categories: {
             type: [String],

@@ -46,10 +46,10 @@ const update = async (req, res, next) => {
             .messages({
                 'any.only': 'Đơn vị tính không hợp lệ',
             }),
-        gramConversion: Joi.number().min(1).max(1000).messages({
+        gramConversion: Joi.number().min(1).max(1000000).messages({
             'number.base': 'Quy đổi sang gam phải là số',
-            'number.min': 'Quy đổi sang gam phải từ 1 đến 1000',
-            'number.max': 'Quy đổi sang gam phải từ 1 đến 1000',
+            'number.min': 'Quy đổi sang gam phải từ 1 đến 1000000',
+            'number.max': 'Quy đổi sang gam phải từ 1 đến 1000000',
         }),
         wastePercentage: Joi.number().min(0).max(99).messages({
             'number.base': 'Hệ số thái bỏ phải là số',

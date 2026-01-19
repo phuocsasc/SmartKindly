@@ -98,8 +98,8 @@ const SchoolFoodSchema = new mongoose.Schema(
         gramConversion: {
             type: Number,
             required: [true, 'Quy đổi sang gam là bắt buộc'],
-            min: [1, 'Quy đổi sang gam phải từ 1 đến 1000'],
-            max: [1000, 'Quy đổi sang gam phải từ 1 đến 1000'],
+            min: [1, 'Quy đổi sang gam phải từ 1 đến 1000000'],
+            max: [1000000, 'Quy đổi sang gam phải từ 1 đến 1000000'],
         },
         wastePercentage: {
             type: Number,

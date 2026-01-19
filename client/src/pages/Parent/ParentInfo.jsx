@@ -382,7 +382,7 @@ function ParentInfo() {
                                                 <Grid item xs={12} sm={6}>
                                                     <TextField
                                                         fullWidth
-                                                        label="Email nhận thông báo"
+                                                        label="Email"
                                                         value={profileData.email}
                                                         onChange={(e) =>
                                                             setProfileData({ ...profileData, email: e.target.value })
@@ -458,7 +458,7 @@ function ParentInfo() {
                                                         })
                                                     }
                                                     sx={{ '& .MuiOutlinedInput-root': { borderRadius: 3 } }}
-                                                    helperText="Độ dài tối thiểu 6 ký tự bao gồm chữ và số"
+                                                    helperText="Độ dài tối thiểu 6 ký tự"
                                                 />
                                                 <TextField
                                                     fullWidth

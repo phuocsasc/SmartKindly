@@ -1,3 +1,4 @@
+//client/src/components/common/Sidebar/ParentSidebar.jsx
 import {
     Drawer,
     List,
@@ -22,7 +23,7 @@ import EventAvailableIcon from '@mui/icons-material/EventAvailable';
 import EditCalendarIcon from '@mui/icons-material/EditCalendar';
 import LocalFloristIcon from '@mui/icons-material/LocalFlorist';
 import EmojiPeopleIcon from '@mui/icons-material/EmojiPeople';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useLocation, Link } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { useTheme } from '@mui/material/styles';
 import logo_sidebar from '/logo_thanh_menu_tach_nen.png';
@@ -82,7 +83,6 @@ function ParentSidebar({ collapsed, onToggle, mobileOpen, onCloseMobile }) {
     const { user } = useUser();
     const { hasPermission } = usePermission(user?.role);
 
-    const navigate = useNavigate();
     const location = useLocation();
     const [openMenus, setOpenMenus] = useState({});
     const drawerWidth = collapsed ? 80 : 240;
@@ -109,20 +109,6 @@ function ParentSidebar({ collapsed, onToggle, mobileOpen, onCloseMobile }) {
     }, [location.pathname]);
 
     const handleToggleMenu = (text) => setOpenMenus((prev) => ({ ...prev, [text]: !prev[text] }));
-
-    const handleMenuClick = (path, hasChildren, text) => {
-        if (hasChildren) handleToggleMenu(text);
-        else {
-            navigate(path);
-            if (!isSmUp) onCloseMobile?.();
-        }
-    };
-
-    const handleSubMenuClick = (path, parentText) => {
-        setOpenMenus((prev) => (prev[parentText] ? prev : { [parentText]: true }));
-        navigate(path);
-        if (!isSmUp) onCloseMobile?.();
-    };
 
     const isMenuActive = (item) => {
         if (item.path && location.pathname === item.path) return true;
@@ -200,7 +186,15 @@ function ParentSidebar({ collapsed, onToggle, mobileOpen, onCloseMobile }) {
                         <Box key={item.text}>
                             <ListItem disablePadding>
                                 <ListItemButton
-                                    onClick={() => handleMenuClick(item.path, hasChildren, item.text)}
+                                    onClick={() => {
+                                        if (hasChildren) {
+                                            handleToggleMenu(item.text);
+                                        } else {
+                                            if (!isSmUp) onCloseMobile?.();
+                                        }
+                                    }}
+                                    component={hasChildren ? 'div' : Link}
+                                    to={hasChildren ? undefined : item.path}
                                     selected={isActive}
                                     sx={{
                                         minHeight: 44,
@@ -276,7 +270,14 @@ function ParentSidebar({ collapsed, onToggle, mobileOpen, onCloseMobile }) {
                                             <ListItemButton
                                                 key={child.text}
                                                 selected={location.pathname === child.path}
-                                                onClick={() => handleSubMenuClick(child.path, item.text)}
+                                                component={Link}
+                                                to={child.path}
+                                                onClick={() => {
+                                                    setOpenMenus((prev) =>
+                                                        prev[item.text] ? prev : { [item.text]: true },
+                                                    ); // Giữ menu cha mở
+                                                    if (!isSmUp) onCloseMobile?.();
+                                                }}
                                                 sx={{
                                                     pl: isCollapsed ? 2 : 6,
                                                     py: 0.8,

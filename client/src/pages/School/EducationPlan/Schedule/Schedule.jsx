@@ -99,12 +99,10 @@ function Schedule() {
     const fetchSchedule = async () => {
         try {
             setLoading(true);
-
             const res = await scheduleApi.getByAcademicYear(selectedYear);
             const scheduleData = res.data.data;
 
             if (!scheduleData) {
-                // ✅ Nếu chưa có schedule, tự động khởi tạo
                 if (isActiveYear && canCreate) {
                     await initializeSchedule();
                 } else {
@@ -117,10 +115,24 @@ function Schedule() {
             }
 
             setSchedule(scheduleData);
-            setWeeks(scheduleData.weeks || []);
+            const weeksList = scheduleData.weeks || [];
+            setWeeks(weeksList);
 
-            if (scheduleData.weeks && scheduleData.weeks.length > 0) {
-                setSelectedWeek(scheduleData.weeks[0].weekNumber.toString());
+            if (weeksList.length > 0) {
+                // ✅ TỰ ĐỘNG CHỌN TUẦN HIỆN TẠI
+                const today = dayjs();
+                const currentWeek = weeksList.find((w) => {
+                    const start = dayjs(w.startDate).startOf('day');
+                    const end = dayjs(w.endDate).endOf('day');
+                    return today.isSameOrAfter(start) && today.isSameOrBefore(end);
+                });
+
+                // Nếu tìm thấy tuần hiện tại thì chọn, không thì chọn tuần 1
+                const defaultWeek = currentWeek
+                    ? currentWeek.weekNumber.toString()
+                    : weeksList[0].weekNumber.toString();
+
+                setSelectedWeek(defaultWeek);
             }
         } catch (error) {
             console.error('Error fetching schedule:', error);
@@ -334,11 +346,8 @@ function Schedule() {
                         <Alert severity="info">Chưa có thời khóa biểu cho năm học này.</Alert>
                     ) : !currentWeekData ? (
                         <Alert severity="warning">Vui lòng chọn tuần để xem thời khóa biểu.</Alert>
-                    ) : currentWeekData.activityPeriods.length === 0 ? (
-                        <Alert severity="warning">
-                            Tuần này chưa có mốc hoạt động nào. Vui lòng click "Cấu hình mốc hoạt động" để thêm.
-                        </Alert>
                     ) : (
+                        // ✅ HIỂN THỊ BẢNG LUÔN KHI CÓ DATA TUẦN
                         <TableContainer
                             component={Paper}
                             sx={{
@@ -381,49 +390,68 @@ function Schedule() {
                                 </TableHead>
 
                                 <TableBody>
-                                    {currentWeekData.activityPeriods.map((period, idx) => (
-                                        <TableRow key={idx} hover>
-                                            <TableCell
-                                                sx={{
-                                                    borderRight: '2px solid #d1c4e9',
-                                                    bgcolor: '#f9f9f9',
-                                                }}
-                                            >
-                                                <Box>
-                                                    <Typography variant="body2" fontWeight={600} color="primary">
-                                                        {period.startTime} - {period.endTime}
+                                    {currentWeekData.activityPeriods.length === 0 ? (
+                                        // ✅ HIỂN THỊ DÒNG THÔNG BÁO NẾU CHƯA CÓ MỐC HOẠT ĐỘNG
+                                        <TableRow>
+                                            <TableCell colSpan={6} align="center" sx={{ py: 10 }}>
+                                                <Box sx={{ color: 'text.secondary' }}>
+                                                    <Typography variant="body1" sx={{ mb: 1 }}>
+                                                        Thời khóa biểu chưa có mốc hoạt động nào.
                                                     </Typography>
-                                                    <Typography variant="caption" color="text.secondary">
-                                                        {period.description}
-                                                    </Typography>
+                                                    {canCreate && isActiveYear && (
+                                                        <Typography variant="body2">
+                                                            Vui lòng <strong>"Cấu hình mốc hoạt động"</strong> cho thời
+                                                            khóa biểu.
+                                                        </Typography>
+                                                    )}
                                                 </Box>
                                             </TableCell>
-                                            {WEEKDAYS.map((day, index) => {
-                                                const date = dayjs(currentWeekData.startDate).add(index, 'day');
-                                                const holiday = isHoliday(date);
-
-                                                return (
-                                                    <TableCell
-                                                        key={day}
-                                                        align="center"
-                                                        sx={{
-                                                            bgcolor: holiday ? '#ffebee' : '#fafafa',
-                                                            height: 80,
-                                                            position: 'relative',
-                                                        }}
-                                                    >
-                                                        {holiday ? (
-                                                            <Chip label="Ngày Nghỉ" color="error" size="small" />
-                                                        ) : (
-                                                            <Typography variant="body2" color="text.secondary">
-                                                                —
-                                                            </Typography>
-                                                        )}
-                                                    </TableCell>
-                                                );
-                                            })}
                                         </TableRow>
-                                    ))}
+                                    ) : (
+                                        currentWeekData.activityPeriods.map((period, idx) => (
+                                            <TableRow key={idx} hover>
+                                                <TableCell
+                                                    sx={{
+                                                        borderRight: '2px solid #d1c4e9',
+                                                        bgcolor: '#f9f9f9',
+                                                    }}
+                                                >
+                                                    <Box>
+                                                        <Typography variant="body2" fontWeight={600} color="primary">
+                                                            {period.startTime} - {period.endTime}
+                                                        </Typography>
+                                                        <Typography variant="caption" color="text.secondary">
+                                                            {period.description}
+                                                        </Typography>
+                                                    </Box>
+                                                </TableCell>
+                                                {WEEKDAYS.map((day, index) => {
+                                                    const date = dayjs(currentWeekData.startDate).add(index, 'day');
+                                                    const holiday = isHoliday(date);
+
+                                                    return (
+                                                        <TableCell
+                                                            key={day}
+                                                            align="center"
+                                                            sx={{
+                                                                bgcolor: holiday ? '#ffebee' : '#fafafa',
+                                                                height: 80,
+                                                                position: 'relative',
+                                                            }}
+                                                        >
+                                                            {holiday ? (
+                                                                <Chip label="Ngày Nghỉ" color="error" size="small" />
+                                                            ) : (
+                                                                <Typography variant="body2" color="text.secondary">
+                                                                    —
+                                                                </Typography>
+                                                            )}
+                                                        </TableCell>
+                                                    );
+                                                })}
+                                            </TableRow>
+                                        ))
+                                    )}
                                 </TableBody>
                             </Table>
                         </TableContainer>

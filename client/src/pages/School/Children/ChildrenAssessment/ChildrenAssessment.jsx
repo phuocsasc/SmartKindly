@@ -124,19 +124,32 @@ function ChildrenAssessment() {
             const scheduleRes = await scheduleApi.getByAcademicYear(selectedYear);
             const schedule = scheduleRes.data.data;
 
-            if (!schedule) {
+            if (!schedule || !schedule.weeks || schedule.weeks.length === 0) {
                 setWeeks([]);
                 setSelectedWeek('');
                 return;
             }
 
-            const weeksData = schedule.weeks || [];
+            const weeksData = schedule.weeks;
             setWeeks(weeksData);
 
-            if (weeksData.length > 0) {
-                setSelectedWeek(weeksData[0].weekNumber.toString());
+            // ✅ TỰ ĐỘNG CHỌN TUẦN HIỆN TẠI
+            const today = dayjs(); // Lấy thời gian thực (đã theo config VN của bạn)
+
+            const currentWeek = weeksData.find((w) => {
+                // Bao phủ toàn bộ ngày từ 00:00:00 đến 23:59:59
+                const start = dayjs(w.startDate).startOf('day');
+                const end = dayjs(w.endDate).endOf('day');
+
+                // Kiểm tra xem ngày hôm nay có nằm trong khoảng [startDate, endDate] không
+                return today.isSameOrAfter(start) && today.isSameOrBefore(end);
+            });
+
+            if (currentWeek) {
+                setSelectedWeek(currentWeek.weekNumber.toString());
             } else {
-                setSelectedWeek('');
+                // Nếu hôm nay không thuộc tuần nào của năm học (ví dụ đang hè), mặc định chọn tuần 1
+                setSelectedWeek(weeksData[0].weekNumber.toString());
             }
         } catch (error) {
             console.error('Error fetching weeks:', error);

@@ -115,7 +115,25 @@ function ChildrenCertificate() {
             setWeeks(weeksData);
 
             if (weeksData.length > 0) {
-                setSelectedWeek(weeksData[0].weekNumber.toString());
+                // ✅ TỰ ĐỘNG CHỌN TUẦN HIỆN TẠI
+                const today = dayjs(); // Lấy thời gian thực (đã theo config VN của bạn)
+
+                const currentWeek = weeksData.find((w) => {
+                    // Bao phủ toàn bộ ngày từ 00:00:00 đến 23:59:59 để so sánh chính xác
+                    const start = dayjs(w.startDate).startOf('day');
+                    const end = dayjs(w.endDate).endOf('day');
+
+                    // Kiểm tra xem ngày hôm nay có nằm trong dải [startDate, endDate] của tuần này không
+                    return today.isSameOrAfter(start) && today.isSameOrBefore(end);
+                });
+
+                if (currentWeek) {
+                    // Nếu tìm thấy tuần chứa ngày hôm nay
+                    setSelectedWeek(currentWeek.weekNumber.toString());
+                } else {
+                    // Nếu hôm nay không thuộc tuần nào (ví dụ đang hè/nghỉ lễ), mặc định chọn tuần 1
+                    setSelectedWeek(weeksData[0].weekNumber.toString());
+                }
             } else {
                 setSelectedWeek('');
             }

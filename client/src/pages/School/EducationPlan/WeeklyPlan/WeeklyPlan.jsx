@@ -159,8 +159,25 @@ function WeeklyPlan() {
                 return;
             }
 
-            setWeeks(scheduleData.weeks);
-            setSelectedWeek(scheduleData.weeks[0].weekNumber.toString());
+            const weeksList = scheduleData.weeks;
+            setWeeks(weeksList);
+
+            // ✅ TỰ ĐỘNG CHỌN TUẦN HIỆN TẠI
+            const today = dayjs(); // Lấy thời gian thực (đã theo config VN)
+
+            const currentWeek = weeksList.find((w) => {
+                const start = dayjs(w.startDate).startOf('day');
+                const end = dayjs(w.endDate).endOf('day');
+                // Kiểm tra nếu hôm nay nằm trong khoảng từ start đến end
+                return today.isSameOrAfter(start) && today.isSameOrBefore(end);
+            });
+
+            if (currentWeek) {
+                setSelectedWeek(currentWeek.weekNumber.toString());
+            } else {
+                // Nếu không nằm trong tuần nào (nghỉ hè hoặc chưa tới năm học), mặc định chọn tuần 1
+                setSelectedWeek(weeksList[0].weekNumber.toString());
+            }
         } catch (error) {
             console.error('Error fetching weeks:', error);
             setWeeks([]);

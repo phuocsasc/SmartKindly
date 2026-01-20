@@ -147,15 +147,33 @@ function MenuApply() {
             setWeeks(weeksData);
 
             if (weeksData.length > 0) {
-                setSelectedWeek(weeksData[0].weekNumber.toString());
-                console.log('✅ Weeks found:', weeksData.length);
+                // ✅ TỰ ĐỘNG CHỌN TUẦN HIỆN TẠI
+                const today = dayjs(); // Lấy thời gian thực (đã theo config VN của bạn)
+
+                const currentWeek = weeksData.find((w) => {
+                    // Bao phủ toàn bộ ngày từ 00:00:00 đến 23:59:59 để so sánh chính xác
+                    const start = dayjs(w.startDate).startOf('day');
+                    const end = dayjs(w.endDate).endOf('day');
+
+                    // Kiểm tra xem ngày hôm nay có nằm trong dải [startDate, endDate] không
+                    return today.isSameOrAfter(start) && today.isSameOrBefore(end);
+                });
+
+                if (currentWeek) {
+                    // Nếu tìm thấy tuần chứa ngày hôm nay
+                    setSelectedWeek(currentWeek.weekNumber.toString());
+                    console.log('📅 Auto-selected current week:', currentWeek.weekNumber);
+                } else {
+                    // Nếu hôm nay không thuộc tuần nào (ví dụ đang hè/nghỉ lễ), mặc định chọn tuần đầu tiên
+                    setSelectedWeek(weeksData[0].weekNumber.toString());
+                    console.log('📅 Today is outside school weeks, selecting week 1');
+                }
             } else {
                 console.warn('⚠️ No weeks found for this academic year');
                 setSelectedWeek('');
             }
         } catch (error) {
             console.error('❌ Error fetching weeks:', error);
-            console.error('Response:', error.response?.data);
             toast.error(error.response?.data?.message || 'Lỗi khi tải danh sách tuần!');
             setWeeks([]);
             setSelectedWeek('');

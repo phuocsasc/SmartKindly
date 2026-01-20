@@ -98,15 +98,20 @@ function Dashboard() {
             const weeksData = res.data.data.weeks;
             setWeeks(weeksData);
 
-            // Auto-select current week or first week
             if (weeksData.length > 0) {
+                // Lấy thời gian hiện tại theo cấu hình dayjs (đã import từ config có thể là VN)
+                // Nếu dayjsConfig chưa set timezone, bạn có thể dùng dayjs().tz('Asia/Ho_Chi_Minh')
                 const today = dayjs();
+
                 const currentWeek = weeksData.find((w) => {
-                    const start = dayjs(w.startDate);
-                    const end = dayjs(w.endDate);
-                    return today.isSameOrAfter(start, 'day') && today.isSameOrBefore(end, 'day');
+                    // startOf('day') và endOf('day') giúp bao phủ toàn bộ ngày đầu và ngày cuối của tuần
+                    const start = dayjs(w.startDate).startOf('day');
+                    const end = dayjs(w.endDate).endOf('day');
+
+                    return today.isSameOrAfter(start) && today.isSameOrBefore(end);
                 });
 
+                // Nếu tìm thấy tuần hiện tại thì trả về, không thì mặc định lấy tuần 1
                 return currentWeek ? currentWeek.weekNumber.toString() : weeksData[0].weekNumber.toString();
             }
 

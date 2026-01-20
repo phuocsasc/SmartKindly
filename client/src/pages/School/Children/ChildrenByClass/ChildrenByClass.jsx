@@ -804,7 +804,6 @@ function ChildrenByClass() {
                         setOpenAddDialog(false);
                         // Cập nhật sĩ số lớp ngay lập tức
                         await handleRefreshData();
-                        toast.success('Thêm học sinh thành công!');
                     }}
                 />
             )}

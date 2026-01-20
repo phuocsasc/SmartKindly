@@ -51,38 +51,152 @@ function Schedule() {
     const [weekData, setWeekData] = useState(null);
     const [holidays, setHolidays] = useState([]); // ✅ ADD: State for holidays
 
+    // ✅ HÀM KHỞI TẠO TỔNG THỂ (FETCH NHANH CÙNG LÚC)
+    const initializeData = async () => {
+        try {
+            setInitialLoading(true);
+
+            // Bước 1: Tải danh sách năm học
+            const yearRes = await parentChildrenApi.getAcademicYears();
+            const yearData = yearRes.data.data;
+            setAcademicYears(yearData.academicYears);
+            setActiveYearId(yearData.activeYearId);
+
+            const yearId =
+                yearData.activeYearId || (yearData.academicYears.length > 0 ? yearData.academicYears[0]._id : null);
+            if (!yearId) {
+                setInitialLoading(false);
+                return;
+            }
+            setSelectedYear(yearId);
+
+            // Bước 2: Tải song song Lớp học, Tuần và Ngày nghỉ của năm học đó
+            const [classRes, weekRes, scheduleRes] = await Promise.all([
+                parentChildrenApi.getStudentClassesByYear(yearId),
+                parentChildrenApi.getScheduleWeeks(yearId),
+                scheduleApi.getByAcademicYear(yearId),
+            ]);
+
+            // Xử lý Lớp học
+            const classList = classRes.data.data.classes || [];
+            setClasses(classList);
+            const firstClassId = classList.length > 0 ? classList[0]._id : '';
+            setSelectedClass(firstClassId);
+
+            // Xử lý Ngày nghỉ
+            if (scheduleRes.data.data) {
+                const holidaysRes = await scheduleApi.getHolidays(scheduleRes.data.data._id);
+                setHolidays(holidaysRes.data.data.holidays || []);
+            }
+
+            // Xử lý Tuần & Tự động chọn tuần hiện tại
+            const weeksList = weekRes.data.data.weeks || [];
+            setWeeks(weeksList);
+
+            let weekNumToFetch = '';
+            if (weeksList.length > 0) {
+                const today = dayjs();
+                const currentWeek = weeksList.find((w) => {
+                    const start = dayjs(w.startDate).startOf('day');
+                    const end = dayjs(w.endDate).endOf('day');
+                    return today.isSameOrAfter(start) && today.isSameOrBefore(end);
+                });
+
+                weekNumToFetch = currentWeek ? currentWeek.weekNumber.toString() : weeksList[0].weekNumber.toString();
+                setSelectedWeek(weekNumToFetch);
+            }
+
+            // Bước 3: Nếu có đủ thông tin, tải luôn nội dung thời khóa biểu
+            if (yearId && firstClassId && weekNumToFetch) {
+                const planRes = await parentChildrenApi.getWeeklyPlan({
+                    academicYearId: yearId,
+                    classId: firstClassId,
+                    weekNumber: weekNumToFetch,
+                });
+                setWeeklyPlan(planRes.data.data.weeklyPlan);
+                setWeekData(planRes.data.data.weekData);
+            }
+        } catch (error) {
+            console.error('❌ [Schedule] Error initializing:', error);
+            toast.error('Lỗi khi khởi tạo dữ liệu thời khóa biểu');
+        } finally {
+            setInitialLoading(false);
+        }
+    };
+
     useEffect(() => {
-        fetchAcademicYears();
+        initializeData();
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
+    // ✅ Effect xử lý khi người dùng thay đổi Năm học thủ công
+    // ✅ Effect xử lý khi người dùng thay đổi Năm học thủ công
     useEffect(() => {
-        if (selectedYear) {
-            fetchClassesByYear();
-            fetchHolidays(); // ✅ ADD: Fetch holidays when year changes
-        } else {
-            setClasses([]);
-            setSelectedClass('');
-            setWeeks([]);
-            setSelectedWeek('');
-            setWeeklyPlan(null);
-            setWeekData(null);
-            setHolidays([]);
+        // Chỉ chạy khi không phải là lần load đầu tiên (tránh lặp request vì initializeData đã làm rồi)
+        if (selectedYear && !initialLoading) {
+            const reloadData = async () => {
+                setLoading(true);
+                try {
+                    // Bước 1: Fetch song song Lớp học và Tuần
+                    const [classRes, weekRes] = await Promise.all([
+                        parentChildrenApi.getStudentClassesByYear(selectedYear),
+                        parentChildrenApi.getScheduleWeeks(selectedYear),
+                    ]);
+
+                    // Bước 2: Xử lý danh sách lớp
+                    const classList = classRes.data.data.classes || [];
+                    setClasses(classList);
+                    setSelectedClass(classList.length > 0 ? classList[0]._id : '');
+
+                    // Bước 3: Xử lý danh sách tuần và Logic Auto-select
+                    const weeksList = weekRes.data.data.weeks || [];
+                    setWeeks(weeksList);
+
+                    if (weeksList.length > 0) {
+                        // Kiểm tra nếu năm học đang chọn là năm học active
+                        const isSelectingActiveYear = selectedYear === activeYearId;
+
+                        if (isSelectingActiveYear) {
+                            // ✅ NẾU CHỌN NĂM ACTIVE: Tìm tuần hiện tại theo thời gian thực
+                            const today = dayjs();
+                            const currentWeek = weeksList.find((w) => {
+                                const start = dayjs(w.startDate).startOf('day');
+                                const end = dayjs(w.endDate).endOf('day');
+                                return today.isSameOrAfter(start) && today.isSameOrBefore(end);
+                            });
+
+                            setSelectedWeek(
+                                currentWeek ? currentWeek.weekNumber.toString() : weeksList[0].weekNumber.toString(),
+                            );
+                        } else {
+                            // NẾU CHỌN NĂM CŨ: Mặc định chọn tuần 1
+                            setSelectedWeek(weeksList[0].weekNumber.toString());
+                        }
+                    } else {
+                        setSelectedWeek('');
+                    }
+
+                    // Bước 4: Cập nhật lại danh sách ngày nghỉ cho năm học mới
+                    fetchHolidays();
+                } catch (error) {
+                    console.error('❌ [Schedule] Error reloading data:', error);
+                    toast.error('Lỗi khi tải dữ liệu năm học mới');
+                } finally {
+                    setLoading(false);
+                }
+            };
+            reloadData();
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [selectedYear]);
 
+    // ✅ Effect xử lý khi đổi Lớp học hoặc Tuần thủ công
     useEffect(() => {
-        if (selectedClass && selectedYear) {
-            fetchWeeks();
-        } else {
-            setWeeks([]);
-            setSelectedWeek('');
-            setWeeklyPlan(null);
-            setWeekData(null);
+        if (selectedClass && selectedYear && selectedWeek && !initialLoading) {
+            fetchWeeklyPlan();
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [selectedClass, selectedYear]);
+    }, [selectedClass, selectedWeek]);
 
     useEffect(() => {
         if (selectedClass && selectedYear && selectedWeek) {
@@ -93,70 +207,6 @@ function Schedule() {
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [selectedClass, selectedYear, selectedWeek]);
-
-    const fetchAcademicYears = async () => {
-        try {
-            setInitialLoading(true);
-            const res = await parentChildrenApi.getAcademicYears();
-            const data = res.data.data;
-
-            setAcademicYears(data.academicYears);
-            setActiveYearId(data.activeYearId);
-
-            if (data.activeYearId) {
-                setSelectedYear(data.activeYearId);
-            } else if (data.academicYears.length > 0) {
-                setSelectedYear(data.academicYears[0]._id);
-            }
-        } catch (error) {
-            console.error('❌ [Schedule] Error fetching academic years:', error);
-            toast.error(error?.response?.data?.message || 'Không thể tải danh sách năm học');
-        } finally {
-            setInitialLoading(false);
-        }
-    };
-
-    const fetchClassesByYear = async () => {
-        try {
-            const res = await parentChildrenApi.getStudentClassesByYear(selectedYear);
-            const data = res.data.data;
-
-            setClasses(data.classes);
-
-            if (data.classes.length > 0) {
-                setSelectedClass(data.classes[0]._id);
-            } else {
-                setSelectedClass('');
-            }
-        } catch (error) {
-            console.error('❌ [Schedule] Error fetching classes:', error);
-            toast.error(error?.response?.data?.message || 'Không thể tải danh sách lớp học');
-            setClasses([]);
-            setSelectedClass('');
-        }
-    };
-
-    const fetchWeeks = async () => {
-        try {
-            if (!selectedYear) return;
-
-            const res = await parentChildrenApi.getScheduleWeeks(selectedYear);
-            const data = res.data.data;
-
-            if (!data || !data.weeks || data.weeks.length === 0) {
-                setWeeks([]);
-                setSelectedWeek('');
-                return;
-            }
-
-            setWeeks(data.weeks);
-            setSelectedWeek(data.weeks[0].weekNumber.toString());
-        } catch (error) {
-            console.error('❌ [Schedule] Error fetching weeks:', error);
-            setWeeks([]);
-            setSelectedWeek('');
-        }
-    };
 
     // ✅ ADD: Fetch holidays
     const fetchHolidays = async () => {
@@ -344,9 +394,20 @@ function Schedule() {
                     </Grid>
 
                     {/* Alerts */}
-                    {selectedYear && selectedYear !== activeYearId && (
-                        <Alert severity="info" sx={{ mb: 2, borderRadius: 2 }}>
-                            <strong>Năm học đã kết thúc</strong> - Đang xem dữ liệu lịch sử
+                    {selectedYear && (
+                        <Alert
+                            severity={selectedYear === activeYearId ? 'success' : 'warning'}
+                            sx={{ mb: 2, borderRadius: 2 }}
+                        >
+                            {selectedYear === activeYearId ? (
+                                <>
+                                    <strong>Năm học đang hoạt động</strong>
+                                </>
+                            ) : (
+                                <>
+                                    <strong>Năm học đã kết thúc</strong>
+                                </>
+                            )}
                         </Alert>
                     )}
 
@@ -413,12 +474,7 @@ function Schedule() {
                                                         minWidth: 200,
                                                     }}
                                                 >
-                                                    <Box>
-                                                        <Typography variant="body2">{day}</Typography>
-                                                        <Typography variant="caption" color="text.secondary">
-                                                            {date.format('DD/MM')}
-                                                        </Typography>
-                                                    </Box>
+                                                    {day} ({date.format('DD/MM')})
                                                 </TableCell>
                                             );
                                         })}
@@ -499,7 +555,7 @@ function Schedule() {
                                                                 color="text.disabled"
                                                                 align="center"
                                                             >
-                                                                —
+                                                                ———
                                                             </Typography>
                                                         )}
                                                     </TableCell>

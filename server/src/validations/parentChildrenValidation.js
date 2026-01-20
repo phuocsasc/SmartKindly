@@ -8,7 +8,7 @@ const updateChildrenInfo = async (req, res, next) => {
     const currentYear = new Date().getFullYear();
 
     const schema = Joi.object({
-        // ✅ Thông tin gia đình - Mẹ
+        // ✅ Thông tin gia đình - Mẹ (OPTIONAL)
         motherName: Joi.string().max(100).trim().allow('').messages({
             'string.max': 'Họ tên mẹ không được vượt quá 100 ký tự',
         }),
@@ -16,7 +16,7 @@ const updateChildrenInfo = async (req, res, next) => {
             .integer()
             .min(1940)
             .max(currentYear)
-            .allow(null)
+            .allow(null, '')
             .messages({
                 'number.base': 'Năm sinh mẹ phải là số',
                 'number.integer': 'Năm sinh mẹ phải là số nguyên',
@@ -33,7 +33,7 @@ const updateChildrenInfo = async (req, res, next) => {
             'string.email': 'Email mẹ không hợp lệ',
         }),
 
-        // ✅ Thông tin gia đình - Bố
+        // ✅ Thông tin gia đình - Bố (OPTIONAL)
         fatherName: Joi.string().max(100).trim().allow('').messages({
             'string.max': 'Họ tên bố không được vượt quá 100 ký tự',
         }),
@@ -41,7 +41,7 @@ const updateChildrenInfo = async (req, res, next) => {
             .integer()
             .min(1940)
             .max(currentYear)
-            .allow(null)
+            .allow(null, '')
             .messages({
                 'number.base': 'Năm sinh bố phải là số',
                 'number.integer': 'Năm sinh bố phải là số nguyên',
@@ -58,12 +58,16 @@ const updateChildrenInfo = async (req, res, next) => {
             'string.email': 'Email bố không hợp lệ',
         }),
 
-        // ✅ Thông tin địa chỉ
-        permanentAddress: Joi.string().max(300).trim().messages({
+        // ✅ Thông tin địa chỉ (REQUIRED)
+        permanentAddress: Joi.string().required().trim().max(300).messages({
+            'string.empty': 'Địa chỉ thường trú không được để trống',
             'string.max': 'Địa chỉ thường trú không được vượt quá 300 ký tự',
+            'any.required': 'Địa chỉ thường trú là bắt buộc',
         }),
-        currentAddress: Joi.string().max(300).trim().messages({
+        currentAddress: Joi.string().required().trim().max(300).messages({
+            'string.empty': 'Địa chỉ hiện tại không được để trống',
             'string.max': 'Địa chỉ hiện tại không được vượt quá 300 ký tự',
+            'any.required': 'Địa chỉ hiện tại là bắt buộc',
         }),
     });
 

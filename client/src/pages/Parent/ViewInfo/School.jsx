@@ -149,7 +149,7 @@ function School() {
                                 p: { xs: 3, md: 5 },
                                 borderRadius: 8,
                                 overflow: 'hidden',
-                                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                                background: 'linear-gradient(135deg, #acb5ddff 0%, #9f7bc4ff 100%)',
                                 color: 'white',
                                 boxShadow: '0 12px 35px rgba(102, 126, 234, 0.35)',
                             }}

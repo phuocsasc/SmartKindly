@@ -83,7 +83,36 @@ function Children() {
     }, [user]);
 
     const handleUpdate = async () => {
-        // ... (Giữ nguyên logic validation cũ)
+        // ✅ Validate địa chỉ bắt buộc
+        if (!formData.permanentAddress.trim()) {
+            toast.error('Vui lòng nhập địa chỉ thường trú!');
+            return;
+        }
+        if (!formData.currentAddress.trim()) {
+            toast.error('Vui lòng nhập địa chỉ hiện tại!');
+            return;
+        }
+
+        // ✅ Validate số điện thoại (nếu có nhập)
+        if (formData.motherPhone && !/^[0-9]{10}$/.test(formData.motherPhone)) {
+            toast.error('Số điện thoại mẹ phải có đúng 10 chữ số!');
+            return;
+        }
+        if (formData.fatherPhone && !/^[0-9]{10}$/.test(formData.fatherPhone)) {
+            toast.error('Số điện thoại bố phải có đúng 10 chữ số!');
+            return;
+        }
+
+        // ✅ Validate email (nếu có nhập)
+        if (formData.motherEmail && !/^\S+@\S+\.\S+$/.test(formData.motherEmail)) {
+            toast.error('Email mẹ không hợp lệ!');
+            return;
+        }
+        if (formData.fatherEmail && !/^\S+@\S+\.\S+$/.test(formData.fatherEmail)) {
+            toast.error('Email bố không hợp lệ!');
+            return;
+        }
+
         try {
             setSaving(true);
             const response = await parentChildrenApi.updateChildrenInfo(formData);
@@ -244,7 +273,7 @@ function Children() {
                                         </Avatar>
                                         <Box>
                                             <Typography variant="caption" sx={{ opacity: 0.8, display: 'block' }}>
-                                                Lớp hiện tại • {currentAcademicYear?.fromYear}-
+                                                Lớp học hiện tại • {currentAcademicYear?.fromYear}-
                                                 {currentAcademicYear?.toYear}
                                             </Typography>
                                             <Typography variant="h6" fontWeight={700}>
@@ -455,6 +484,7 @@ function Children() {
                                                     setFormData({ ...formData, permanentAddress: e.target.value })
                                                 }
                                                 variant="filled"
+                                                required // ✅ Thêm required prop
                                                 sx={{ '& .MuiFilledInput-root': { borderRadius: 2 } }}
                                             />
                                         </Grid>
@@ -469,6 +499,7 @@ function Children() {
                                                     setFormData({ ...formData, currentAddress: e.target.value })
                                                 }
                                                 variant="filled"
+                                                required // ✅ Thêm required prop
                                                 sx={{ '& .MuiFilledInput-root': { borderRadius: 2 } }}
                                             />
                                         </Grid>
@@ -487,7 +518,7 @@ function Children() {
                                         sx={{
                                             borderRadius: 4,
                                             py: 2,
-                                            fontWeight: 700,
+                                            fontWeight: 600,
                                             fontSize: '1rem',
                                             textTransform: 'none',
                                             background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',

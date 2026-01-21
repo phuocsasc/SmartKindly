@@ -153,25 +153,47 @@ const classifyFoodItem = (foodDbInfo) => {
  */
 const getAiCulinarySuggestions = async (foodList, numberOfChildren, ageGroup) => {
     try {
-        // ... (Giữ nguyên code cũ để tiết kiệm không gian hiển thị)
-        // Code này chỉ dùng để lấy variation ban đầu, không ảnh hưởng logic tính toán
-        console.log('🤖 [AI] Đang xin ý kiến "Đầu bếp AI" (gpt-4o-mini)...');
+        console.log('🤖 [AI] Đang xin ý kiến "Đầu bếp AI" (gpt-4o) với ưu tiên thực phẩm chính...');
+
+        // 1. Cập nhật dữ liệu gửi đi: Bao gồm cả flag isMainFood để AI có căn cứ phân loại
+        const foodDataForAi = foodList.map((f) => ({
+            foodName: f.foodName,
+            currentQty: f.purchaseQuantityByUnit,
+            isMainFood: f.isMainFood, // Gửi thêm thuộc tính này để AI nhận biết
+        }));
+
         const prompt = `
-        Bạn là một đầu bếp trường mầm non. Đề xuất số lượng mua (kg) cho ${numberOfChildren} trẻ (${ageGroup || 'Mầm non'}).
-        Danh sách: ${JSON.stringify(foodList.map((f) => ({ name: f.foodName, currentQty: f.purchaseQuantityByUnit })))}
-        Trả về JSON: [{ "foodName": "tên", "suggestedQty": số_lượng }]
+        Bạn là một chuyên gia dinh dưỡng và đầu bếp trường mầm non. 
+        Nhiệm vụ: Đề xuất số lượng mua (kg) cho ${numberOfChildren} trẻ thuộc nhóm tuổi "${ageGroup || 'Mầm non'}".
+
+        Dữ liệu thực phẩm hiện tại: ${JSON.stringify(foodDataForAi)}
+
+        Yêu cầu nghiêm ngặt về logic điều chỉnh:
+        1. Phân tầng ưu tiên (Tiered Priority):
+           - Ưu tiên 1 (Thực phẩm chính - isMainFood: true): Hãy tập trung điều chỉnh định lượng của nhóm này đầu tiên (như gạo, thịt, cá, trứng, đậu hũ...). Đây là nguồn cung cấp Calo và Protein chủ yếu cho thực đơn.
+           - Ưu tiên 2 (Thực phẩm phụ - isMainFood: false): Chỉ điều chỉnh nhẹ nhàng nhóm này (rau, gia vị, dầu ăn, nước mắm...) sau khi nhóm thực phẩm chính đã đạt định lượng cơ bản hợp lý.
+        2. Tính khả thi ẩm thực: Đảm bảo số lượng đề xuất phải thực tế để chế biến món ăn ngon, đủ no và không gây lãng phí. Ví dụ: không thể đề xuất quá nhiều dầu ăn hoặc quá ít gạo cho số trẻ đã cho.
+        3. Giữ nguyên tên: Tuyệt đối không thay đổi "foodName" của thực phẩm.
+
+        Trả về kết quả dưới dạng JSON duy nhất có cấu trúc: 
+        { "suggestions": [{ "foodName": "tên", "suggestedQty": số_lượng }] }
         `;
+
         const completion = await openai.chat.completions.create({
-            model: 'gpt-4o-mini',
+            model: 'gpt-4o', // Sử dụng gpt-4o để có tư duy logic phân tầng tốt hơn
             messages: [
-                { role: 'system', content: 'Trả về JSON.' },
+                { role: 'system', content: 'Bạn là chuyên gia dinh dưỡng, trả về kết quả định dạng JSON chính xác.' },
                 { role: 'user', content: prompt },
             ],
             response_format: { type: 'json_object' },
         });
+
         const aiResult = JSON.parse(completion.choices[0].message.content);
-        return aiResult.items || aiResult.suggestions || [];
+
+        // Đảm bảo trả về mảng kết quả từ đúng thuộc tính trong JSON
+        return aiResult.suggestions || aiResult.items || [];
     } catch (error) {
+        console.error('❌ [AI Error] Lỗi khi lấy gợi ý điều chỉnh:', error);
         return [];
     }
 };
@@ -182,7 +204,7 @@ const getAiCulinarySuggestions = async (foodList, numberOfChildren, ageGroup) =>
  * =========================================================
  */
 const rigorousBalancing = (currentTable, foodMap, numberOfChildren, standards) => {
-    console.log('\n🚀 [ALGO] Starting 2-phase balancing...');
+    console.log('\n [ALGO] Starting 2-phase balancing...');
 
     // --- PHASE 1: CONTINUOUS OPTIMIZATION ---
     let processedTable = JSON.parse(JSON.stringify(currentTable));
@@ -242,9 +264,9 @@ const rigorousBalancing = (currentTable, foodMap, numberOfChildren, standards) =
     }
 
     // --- PHASE 2: DISCRETE CORRECTION ---
-    console.log('🔨 [ALGO] Phase 2: Discrete correction...');
+    console.log(' [ALGO] Phase 2: Discrete correction...');
 
-    // 🔥 Làm tròn TẤT CẢ về 1 số thập phân
+    // Làm tròn TẤT CẢ về 1 số thập phân
     processedTable = processedTable.map((item) => ({
         ...item,
         purchaseQuantityByUnit: parseFloat(item.purchaseQuantityByUnit.toFixed(1)) || 0.1,
@@ -267,7 +289,7 @@ const rigorousBalancing = (currentTable, foodMap, numberOfChildren, standards) =
         const isPerfect = !pLow && !pHigh && !lLow && !lHigh && !gLow && !gHigh;
 
         if (isPerfect) {
-            console.log(`✅ [SUCCESS] Perfect at iteration ${k}`);
+            console.log(`[SUCCESS] Perfect at iteration ${k}`);
             return { success: true, table: finalTable };
         }
 
@@ -325,7 +347,7 @@ const rigorousBalancing = (currentTable, foodMap, numberOfChildren, standards) =
         }
     }
 
-    console.log(`⚠️ [WARNING] Not perfect after ${FIX_LOOPS} iterations`);
+    console.log(`[WARNING] Not perfect after ${FIX_LOOPS} iterations`);
     return { success: false, table: finalTable };
 };
 

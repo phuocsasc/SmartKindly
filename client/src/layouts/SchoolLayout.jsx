@@ -15,14 +15,7 @@ function SchoolLayout({ children, user = null }) {
     const handleCloseMobileSidebar = () => setMobileOpen(false);
 
     return (
-        <Box
-            sx={{
-                display: 'flex',
-                width: '100%',
-                height: '100vh',
-                overflowX: 'hidden',
-            }}
-        >
+        <Box sx={{ display: 'flex', width: '100%', height: '100vh', overflow: 'hidden' }}>
             <CssBaseline />
 
             <SchoolSidebar
@@ -32,7 +25,6 @@ function SchoolLayout({ children, user = null }) {
                 onCloseMobile={handleCloseMobileSidebar}
             />
 
-            {/* ✅ Truyền handleToggleMobileSidebar thay vì handleOpenMobileSidebar */}
             <SchoolHeader
                 user={user}
                 sidebarCollapsed={sidebarCollapsed}
@@ -43,32 +35,20 @@ function SchoolLayout({ children, user = null }) {
                 component="main"
                 sx={{
                     flexGrow: 1,
-                    p: { xs: 1, sm: 2 },
                     mt: '64px',
-                    minHeight: 'calc(100vh - 64px)',
-                    maxHeight: 'calc(100vh - 64px)',
+                    display: 'flex', // Kích hoạt flexbox cho vùng main
+                    flexDirection: 'column', // Xếp nội dung theo chiều dọc
+                    height: 'calc(100vh - 64px)',
                     backgroundColor: '#fafafa',
-                    overflowX: 'hidden',
                     overflowY: 'auto',
-                    width: '100%',
                     transition: 'margin-left 0.3s ease',
-
-                    '&::-webkit-scrollbar': {
-                        width: '8px',
-                    },
-                    '&::-webkit-scrollbar-track': {
-                        backgroundColor: '#e3f2fd',
-                    },
-                    '&::-webkit-scrollbar-thumb': {
-                        backgroundColor: '#90caf9',
-                        borderRadius: '18px',
-                    },
-                    '&::-webkit-scrollbar-thumb:hover': {
-                        backgroundColor: '#64b5f6',
-                    },
+                    '&::-webkit-scrollbar': { width: '8px' },
+                    '&::-webkit-scrollbar-track': { backgroundColor: '#e3f2fd' },
+                    '&::-webkit-scrollbar-thumb': { backgroundColor: '#90caf9', borderRadius: '18px' },
                 }}
             >
-                {children}
+                {/* PHẦN NỘI DUNG CHÍNH */}
+                <Box sx={{ flex: 1, p: { xs: 1, sm: 2 } }}>{children}</Box>
             </Box>
         </Box>
     );

@@ -421,10 +421,10 @@ function BalancingMenuAi({ open, menuData, onClose, onSuccess }) {
                                                 Lượng ăn 1 trẻ (g)
                                             </TableCell>
                                             <TableCell
-                                                sx={{ fontWeight: 600, bgcolor: '#fafafa', width: 120 }}
+                                                sx={{ fontWeight: 600, bgcolor: '#fafafa', width: 140 }}
                                                 align="center"
                                             >
-                                                Lượng mua {menuDetails?.numberOfChildren} trẻ (ĐVT)
+                                                Lượng mua <br /> {menuDetails?.numberOfChildren} trẻ (ĐVT)
                                             </TableCell>
                                             <TableCell
                                                 sx={{ fontWeight: 600, bgcolor: '#fafafa', width: 60 }}

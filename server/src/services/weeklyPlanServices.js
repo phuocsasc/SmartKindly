@@ -483,6 +483,11 @@ const copyWeekToFollowingWeeks = async (data, userId) => {
             );
         }
 
+        // ✅ Lấy thông tin cấu trúc Schedule của Tuần Nguồn (Để làm mốc so sánh)
+        const sourceScheduleWeek = schedule.weeks.find((w) => w.weekNumber === parseInt(weekNumber));
+        if (!sourceScheduleWeek)
+            throw new ApiError(StatusCodes.NOT_FOUND, 'Không tìm thấy cấu trúc tuần nguồn trong TKB');
+
         // ✅ Lấy danh sách tuần cần copy (từ tuần sau đến tuần cuối)
         const targetWeeks = schedule.weeks.filter((week) => week.weekNumber > weekNumber);
 
@@ -493,6 +498,37 @@ const copyWeekToFollowingWeeks = async (data, userId) => {
 
         // ✅ Copy sang từng tuần
         for (const targetWeek of targetWeeks) {
+            // 🛠 FIX QUAN TRỌNG: TẠO MAPPER ID
+            // Nguyên lý: Period thứ i của tuần nguồn ứng với Period thứ i của tuần đích
+            const periodIdMap = {};
+
+            sourceScheduleWeek.activityPeriods.forEach((sourcePeriod, index) => {
+                const targetPeriod = targetWeek.activityPeriods[index];
+                if (targetPeriod) {
+                    periodIdMap[sourcePeriod._id.toString()] = targetPeriod._id;
+                }
+            });
+
+            // Hàm helper để map lại ID cho mảng hoạt động
+            const mapActivitiesWithNewIds = (sourceActivities) => {
+                return sourceActivities.map((activity) => {
+                    // Lấy ID gốc
+                    const originalId = activity.activityPeriodId._id || activity.activityPeriodId;
+
+                    // Tìm ID tương ứng ở tuần đích
+                    // Nếu không tìm thấy (lệch cấu trúc), fallback về ID cũ (tránh lỗi crash nhưng có thể ko hiện)
+                    const newId = periodIdMap[originalId.toString()] || originalId;
+
+                    return {
+                        activityPeriodId: newId, // ✅ ID MỚI CỦA TUẦN ĐÍCH
+                        startTime: activity.startTime,
+                        endTime: activity.endTime,
+                        description: activity.description,
+                        detailedContent: activity.detailedContent || '',
+                    };
+                });
+            };
+
             // Kiểm tra xem tuần đích đã có weekly plan chưa
             let targetWeeklyPlan = await WeeklyPlanModel.findOne({
                 schoolId: user.schoolId,
@@ -502,43 +538,13 @@ const copyWeekToFollowingWeeks = async (data, userId) => {
                 _destroy: false,
             });
 
-            // ✅ Copy dữ liệu từng ngày
+            // ✅ Copy dữ liệu từng ngày với ID mới
             const copiedData = {
-                monday: sourceWeeklyPlan.monday.map((activity) => ({
-                    activityPeriodId: activity.activityPeriodId,
-                    startTime: activity.startTime,
-                    endTime: activity.endTime,
-                    description: activity.description,
-                    detailedContent: activity.detailedContent || '',
-                })),
-                tuesday: sourceWeeklyPlan.tuesday.map((activity) => ({
-                    activityPeriodId: activity.activityPeriodId,
-                    startTime: activity.startTime,
-                    endTime: activity.endTime,
-                    description: activity.description,
-                    detailedContent: activity.detailedContent || '',
-                })),
-                wednesday: sourceWeeklyPlan.wednesday.map((activity) => ({
-                    activityPeriodId: activity.activityPeriodId,
-                    startTime: activity.startTime,
-                    endTime: activity.endTime,
-                    description: activity.description,
-                    detailedContent: activity.detailedContent || '',
-                })),
-                thursday: sourceWeeklyPlan.thursday.map((activity) => ({
-                    activityPeriodId: activity.activityPeriodId,
-                    startTime: activity.startTime,
-                    endTime: activity.endTime,
-                    description: activity.description,
-                    detailedContent: activity.detailedContent || '',
-                })),
-                friday: sourceWeeklyPlan.friday.map((activity) => ({
-                    activityPeriodId: activity.activityPeriodId,
-                    startTime: activity.startTime,
-                    endTime: activity.endTime,
-                    description: activity.description,
-                    detailedContent: activity.detailedContent || '',
-                })),
+                monday: mapActivitiesWithNewIds(sourceWeeklyPlan.monday),
+                tuesday: mapActivitiesWithNewIds(sourceWeeklyPlan.tuesday),
+                wednesday: mapActivitiesWithNewIds(sourceWeeklyPlan.wednesday),
+                thursday: mapActivitiesWithNewIds(sourceWeeklyPlan.thursday),
+                friday: mapActivitiesWithNewIds(sourceWeeklyPlan.friday),
                 lastUpdatedBy: userId,
             };
 

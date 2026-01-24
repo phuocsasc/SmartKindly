@@ -146,21 +146,23 @@ function ChildrenAttendance() {
             const normalized = holidayList.map((h) => dayjs(h).format('YYYY-MM-DD'));
             setHolidays(normalized);
 
-            // ✅ TỰ ĐỘNG CHỌN TUẦN HIỆN TẠI
+            // ✅ TỰ ĐỘNG CHỌN TUẦN HIỆN TẠI (BAO GỒM CẢ T7 VÀ CN)
             if (weeksData.length > 0) {
-                const today = dayjs(); // Lấy thời gian hiện tại (theo config VN)
+                const today = dayjs();
 
                 const currentWeek = weeksData.find((w) => {
                     const start = dayjs(w.startDate).startOf('day');
-                    const end = dayjs(w.endDate).endOf('day');
-                    // Kiểm tra xem ngày hôm nay có nằm trong khoảng [startDate, endDate] của tuần không
-                    return today.isSameOrAfter(start) && today.isSameOrBefore(end);
+                    // Tính toán: Thứ 2 (startDate) cộng thêm 6 ngày để ra hết ngày Chủ Nhật
+                    const endOfSunday = start.add(6, 'day').endOf('day');
+
+                    // Kiểm tra nếu hôm nay nằm trong khoảng từ Thứ 2 đến hết Chủ Nhật
+                    return today.isSameOrAfter(start) && today.isSameOrBefore(endOfSunday);
                 });
 
                 if (currentWeek) {
                     setSelectedWeek(currentWeek.weekNumber.toString());
                 } else {
-                    // Nếu không tìm thấy (ví dụ đang trong kỳ nghỉ), mặc định chọn tuần đầu tiên
+                    // Nếu không tìm thấy (đang nghỉ hè hoặc ngoài năm học), mặc định chọn tuần đầu tiên
                     setSelectedWeek(weeksData[0].weekNumber.toString());
                 }
             } else {

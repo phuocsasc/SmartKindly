@@ -98,8 +98,9 @@ function Schedule() {
                 const today = dayjs();
                 const currentWeek = weeksList.find((w) => {
                     const start = dayjs(w.startDate).startOf('day');
-                    const end = dayjs(w.endDate).endOf('day');
-                    return today.isSameOrAfter(start) && today.isSameOrBefore(end);
+                    // ✅ Mở rộng phạm vi đến hết ngày Chủ Nhật
+                    const endOfSunday = start.add(6, 'day').endOf('day');
+                    return today.isSameOrAfter(start) && today.isSameOrBefore(endOfSunday);
                 });
 
                 weekNumToFetch = currentWeek ? currentWeek.weekNumber.toString() : weeksList[0].weekNumber.toString();
@@ -130,7 +131,6 @@ function Schedule() {
     }, []);
 
     // ✅ Effect xử lý khi người dùng thay đổi Năm học thủ công
-    // ✅ Effect xử lý khi người dùng thay đổi Năm học thủ công
     useEffect(() => {
         // Chỉ chạy khi không phải là lần load đầu tiên (tránh lặp request vì initializeData đã làm rồi)
         if (selectedYear && !initialLoading) {
@@ -157,12 +157,13 @@ function Schedule() {
                         const isSelectingActiveYear = selectedYear === activeYearId;
 
                         if (isSelectingActiveYear) {
-                            // ✅ NẾU CHỌN NĂM ACTIVE: Tìm tuần hiện tại theo thời gian thực
+                            // ✅ NẾU CHỌN NĂM ACTIVE: Tìm tuần hiện tại theo thời gian thực (Bao gồm T7, CN)
                             const today = dayjs();
                             const currentWeek = weeksList.find((w) => {
                                 const start = dayjs(w.startDate).startOf('day');
-                                const end = dayjs(w.endDate).endOf('day');
-                                return today.isSameOrAfter(start) && today.isSameOrBefore(end);
+                                // ✅ Mở rộng phạm vi đến hết ngày Chủ Nhật
+                                const endOfSunday = start.add(6, 'day').endOf('day');
+                                return today.isSameOrAfter(start) && today.isSameOrBefore(endOfSunday);
                             });
 
                             setSelectedWeek(

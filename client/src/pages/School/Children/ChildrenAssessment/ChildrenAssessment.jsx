@@ -133,22 +133,23 @@ function ChildrenAssessment() {
             const weeksData = schedule.weeks;
             setWeeks(weeksData);
 
-            // ✅ TỰ ĐỘNG CHỌN TUẦN HIỆN TẠI
-            const today = dayjs(); // Lấy thời gian thực (đã theo config VN của bạn)
+            // ✅ TỰ ĐỘNG CHỌN TUẦN HIỆN TẠI (BAO GỒM CẢ T7 VÀ CN)
+            const today = dayjs();
 
             const currentWeek = weeksData.find((w) => {
-                // Bao phủ toàn bộ ngày từ 00:00:00 đến 23:59:59
+                // Lấy 00:00:00 ngày Thứ 2 (startDate)
                 const start = dayjs(w.startDate).startOf('day');
-                const end = dayjs(w.endDate).endOf('day');
+                // Thay vì dùng w.endDate (Thứ 6), ta lấy start + 6 ngày để ra 23:59:59 ngày Chủ Nhật
+                const endOfSunday = start.add(6, 'day').endOf('day');
 
-                // Kiểm tra xem ngày hôm nay có nằm trong khoảng [startDate, endDate] không
-                return today.isSameOrAfter(start) && today.isSameOrBefore(end);
+                // Kiểm tra xem ngày hôm nay có nằm trong khoảng từ Thứ 2 đến hết Chủ Nhật không
+                return today.isSameOrAfter(start) && today.isSameOrBefore(endOfSunday);
             });
 
             if (currentWeek) {
                 setSelectedWeek(currentWeek.weekNumber.toString());
             } else {
-                // Nếu hôm nay không thuộc tuần nào của năm học (ví dụ đang hè), mặc định chọn tuần 1
+                // Nếu không nằm trong tuần nào (ví dụ đang hè), mặc định chọn tuần 1
                 setSelectedWeek(weeksData[0].weekNumber.toString());
             }
         } catch (error) {

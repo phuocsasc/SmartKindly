@@ -119,15 +119,17 @@ function Schedule() {
             setWeeks(weeksList);
 
             if (weeksList.length > 0) {
-                // ✅ TỰ ĐỘNG CHỌN TUẦN HIỆN TẠI
+                // ✅ TỰ ĐỘNG CHỌN TUẦN HIỆN TẠI (BAO GỒM CẢ T7 VÀ CN)
                 const today = dayjs();
                 const currentWeek = weeksList.find((w) => {
                     const start = dayjs(w.startDate).startOf('day');
-                    const end = dayjs(w.endDate).endOf('day');
-                    return today.isSameOrAfter(start) && today.isSameOrBefore(end);
+                    // Lấy ngày bắt đầu (Thứ 2) cộng thêm 6 ngày để bao quát đến hết Chủ Nhật
+                    const endOfSunday = start.add(6, 'day').endOf('day');
+
+                    return today.isSameOrAfter(start) && today.isSameOrBefore(endOfSunday);
                 });
 
-                // Nếu tìm thấy tuần hiện tại thì chọn, không thì chọn tuần 1
+                // Nếu tìm thấy tuần hiện tại thì chọn, không thì mặc định chọn tuần 1
                 const defaultWeek = currentWeek
                     ? currentWeek.weekNumber.toString()
                     : weeksList[0].weekNumber.toString();

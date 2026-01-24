@@ -162,20 +162,21 @@ function WeeklyPlan() {
             const weeksList = scheduleData.weeks;
             setWeeks(weeksList);
 
-            // ✅ TỰ ĐỘNG CHỌN TUẦN HIỆN TẠI
-            const today = dayjs(); // Lấy thời gian thực (đã theo config VN)
+            // ✅ TỰ ĐỘNG CHỌN TUẦN HIỆN TẠI (BAO GỒM T7 & CN)
+            const today = dayjs();
 
             const currentWeek = weeksList.find((w) => {
                 const start = dayjs(w.startDate).startOf('day');
-                const end = dayjs(w.endDate).endOf('day');
-                // Kiểm tra nếu hôm nay nằm trong khoảng từ start đến end
-                return today.isSameOrAfter(start) && today.isSameOrBefore(end);
+                // Mở rộng logic: startDate (Thứ 2) + 6 ngày = Chủ Nhật
+                const endOfSunday = start.add(6, 'day').endOf('day');
+
+                return today.isSameOrAfter(start) && today.isSameOrBefore(endOfSunday);
             });
 
             if (currentWeek) {
                 setSelectedWeek(currentWeek.weekNumber.toString());
             } else {
-                // Nếu không nằm trong tuần nào (nghỉ hè hoặc chưa tới năm học), mặc định chọn tuần 1
+                // Nếu không nằm trong tuần học nào (nghỉ hè/lễ), mặc định chọn tuần 1
                 setSelectedWeek(weeksList[0].weekNumber.toString());
             }
         } catch (error) {

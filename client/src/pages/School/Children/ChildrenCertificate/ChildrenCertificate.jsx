@@ -115,23 +115,24 @@ function ChildrenCertificate() {
             setWeeks(weeksData);
 
             if (weeksData.length > 0) {
-                // ✅ TỰ ĐỘNG CHỌN TUẦN HIỆN TẠI
-                const today = dayjs(); // Lấy thời gian thực (đã theo config VN của bạn)
+                // ✅ TỰ ĐỘNG CHỌN TUẦN HIỆN TẠI (BAO GỒM CẢ T7 VÀ CN)
+                const today = dayjs(); // Lấy thời gian thực (config VN)
 
                 const currentWeek = weeksData.find((w) => {
-                    // Bao phủ toàn bộ ngày từ 00:00:00 đến 23:59:59 để so sánh chính xác
+                    // start là 00:00:00 ngày Thứ 2 đầu tuần
                     const start = dayjs(w.startDate).startOf('day');
-                    const end = dayjs(w.endDate).endOf('day');
+                    // ✅ THAY ĐỔI TẠI ĐÂY: Lấy start cộng thêm 6 ngày để ra 23:59:59 ngày Chủ Nhật
+                    const endOfSunday = start.add(6, 'day').endOf('day');
 
-                    // Kiểm tra xem ngày hôm nay có nằm trong dải [startDate, endDate] của tuần này không
-                    return today.isSameOrAfter(start) && today.isSameOrBefore(end);
+                    // Kiểm tra xem ngày hôm nay có nằm trong dải [Thứ 2, Chủ Nhật] không
+                    return today.isSameOrAfter(start) && today.isSameOrBefore(endOfSunday);
                 });
 
                 if (currentWeek) {
-                    // Nếu tìm thấy tuần chứa ngày hôm nay
+                    // Nếu tìm thấy tuần chứa ngày hôm nay (kể cả cuối tuần)
                     setSelectedWeek(currentWeek.weekNumber.toString());
                 } else {
-                    // Nếu hôm nay không thuộc tuần nào (ví dụ đang hè/nghỉ lễ), mặc định chọn tuần 1
+                    // Nếu không thuộc tuần nào (nghỉ hè/lễ), mặc định chọn tuần đầu tiên
                     setSelectedWeek(weeksData[0].weekNumber.toString());
                 }
             } else {

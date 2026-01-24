@@ -104,14 +104,15 @@ function Dashboard() {
                 const today = dayjs();
 
                 const currentWeek = weeksData.find((w) => {
-                    // startOf('day') và endOf('day') giúp bao phủ toàn bộ ngày đầu và ngày cuối của tuần
+                    // start là Thứ 2 đầu tuần
                     const start = dayjs(w.startDate).startOf('day');
-                    const end = dayjs(w.endDate).endOf('day');
+                    // Thay vì dùng w.endDate (Thứ 6), ta lấy start + 6 ngày để ra hết ngày Chủ Nhật
+                    const endOfSunday = start.add(6, 'day').endOf('day');
 
-                    return today.isSameOrAfter(start) && today.isSameOrBefore(end);
+                    return today.isSameOrAfter(start) && today.isSameOrBefore(endOfSunday);
                 });
 
-                // Nếu tìm thấy tuần hiện tại thì trả về, không thì mặc định lấy tuần 1
+                // Nếu tìm thấy tuần hiện tại (bao gồm cả T7, CN) thì trả về, không thì mặc định lấy tuần 1
                 return currentWeek ? currentWeek.weekNumber.toString() : weeksData[0].weekNumber.toString();
             }
 

@@ -45,4 +45,12 @@ export const parentChildrenApi = {
             params: { academicYearId },
         });
     },
+
+    // Lấy thực đơn hằng tuần
+    getWeeklyMenu: async (params) => {
+        const { academicYearId, classId, weekNumber } = params;
+        return await authorizedAxiosInstance.get(`${API_ROOT}/v1/parent-children/weekly-menu`, {
+            params: { academicYearId, classId, weekNumber },
+        });
+    },
 };

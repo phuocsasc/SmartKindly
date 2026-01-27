@@ -59,4 +59,11 @@ Router.route('/schedule-weeks').get(
     parentChildrenController.getScheduleWeeks,
 );
 
+// ✅ GET WEEKLY MENU
+Router.route('/weekly-menu').get(
+    authMiddleware.isAuthorized,
+    rbacMiddleware.isValidPermission([PERMISSIONS.VIEW_WEEKLY_MENU]),
+    parentChildrenController.getWeeklyMenu,
+);
+
 export const parentChildrenRoute = Router;

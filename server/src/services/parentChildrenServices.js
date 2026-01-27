@@ -10,6 +10,7 @@ import { ScheduleModel } from '~/models/scheduleModel.js';
 import { WeeklyPlanModel } from '~/models/weeklyPlanModel.js';
 import ApiError from '~/utils/ApiError.js';
 import { StatusCodes } from 'http-status-codes';
+import { SchoolMenuApplyModel } from '~/models/schoolMenuApplyModel.js';
 
 /**
  * ✅ GET SCHOOL INFO - Phụ huynh xem thông tin trường học của con
@@ -592,6 +593,145 @@ const getScheduleWeeks = async (academicYearId, userId) => {
     }
 };
 
+/**
+ * ✅ GET WEEKLY MENU - Phụ huynh xem thực đơn hằng tuần theo lớp và tuần
+ */
+const getWeeklyMenu = async (academicYearId, classId, weekNumber, userId) => {
+    try {
+        console.log('🍽️ [ParentChildren getWeeklyMenu] Starting:', {
+            academicYearId,
+            classId,
+            weekNumber,
+            userId,
+        });
+
+        // ✅ 1. Lấy thông tin phụ huynh
+        const parent = await UserModel.findOne({
+            _id: userId,
+            role: 'phu_huynh',
+            _destroy: false,
+        })
+            .select('schoolId studentId')
+            .lean();
+
+        if (!parent) {
+            throw new ApiError(StatusCodes.NOT_FOUND, 'Không tìm thấy thông tin phụ huynh');
+        }
+
+        if (!parent.studentId) {
+            throw new ApiError(StatusCodes.FORBIDDEN, 'Tài khoản chưa được liên kết với học sinh');
+        }
+
+        // ✅ 2. Kiểm tra năm học
+        const academicYear = await AcademicYearModel.findOne({
+            _id: academicYearId,
+            schoolId: parent.schoolId,
+            _destroy: false,
+        })
+            .select('fromYear toYear status')
+            .lean();
+
+        if (!academicYear) {
+            throw new ApiError(StatusCodes.NOT_FOUND, 'Không tìm thấy năm học');
+        }
+
+        // ✅ 3. Kiểm tra lớp học có thuộc về học sinh không
+        const classRecord = await ChildrenByClassModel.findOne({
+            schoolId: parent.schoolId,
+            academicYearId,
+            classId,
+            studentId: parent.studentId,
+            _destroy: false,
+        }).lean();
+
+        if (!classRecord) {
+            throw new ApiError(StatusCodes.FORBIDDEN, 'Học sinh không thuộc lớp này trong năm học được chọn');
+        }
+
+        // ✅ 4. Lấy thông tin lớp và xác định nhóm tuổi thực đơn
+        const classData = await ClassModel.findOne({
+            _id: classId,
+            schoolId: parent.schoolId,
+            academicYearId,
+            _destroy: false,
+        })
+            .select('name grade ageGroup homeRoomTeacher')
+            .populate('homeRoomTeacher', 'fullName')
+            .lean();
+
+        if (!classData) {
+            throw new ApiError(StatusCodes.NOT_FOUND, 'Không tìm thấy lớp học');
+        }
+
+        // ✅ 5. Map ageGroup của lớp sang ageGroup của thực đơn
+        let menuAgeGroup = '';
+        if (['12-24 tháng', '24-36 tháng'].includes(classData.ageGroup)) {
+            menuAgeGroup = 'Nhóm nhà trẻ (12 - 36 tháng tuổi)';
+        } else if (['3-4 tuổi', '4-5 tuổi', '5-6 tuổi'].includes(classData.ageGroup)) {
+            menuAgeGroup = 'Nhóm mẫu giáo (3 - 6 tuổi)';
+        } else {
+            throw new ApiError(StatusCodes.BAD_REQUEST, 'Nhóm tuổi của lớp không hợp lệ');
+        }
+
+        console.log('📊 [ParentChildren getWeeklyMenu] Mapped ageGroup:', {
+            classAgeGroup: classData.ageGroup,
+            menuAgeGroup,
+        });
+
+        // ✅ 6. Lấy thời khóa biểu để validate tuần và lấy holidays
+        const schedule = await ScheduleModel.findOne({
+            schoolId: parent.schoolId,
+            academicYearId,
+            _destroy: false,
+        }).lean();
+
+        if (!schedule) {
+            throw new ApiError(StatusCodes.NOT_FOUND, 'Chưa có thời khóa biểu cho năm học này');
+        }
+
+        const weekData = schedule.weeks.find((w) => w.weekNumber === parseInt(weekNumber));
+        if (!weekData) {
+            throw new ApiError(StatusCodes.NOT_FOUND, 'Không tìm thấy tuần này trong thời khóa biểu');
+        }
+
+        // ✅ 7. Lấy thực đơn áp dụng của tuần này
+        const menuApplies = await SchoolMenuApplyModel.find({
+            schoolId: parent.schoolId,
+            academicYearId,
+            ageGroup: menuAgeGroup,
+            weekNumber: parseInt(weekNumber),
+            _destroy: false,
+        })
+            .select('dayOfWeek date menuSnapshot')
+            .sort({ date: 1 })
+            .lean();
+
+        console.log('✅ [ParentChildren getWeeklyMenu] Success:', {
+            className: classData.name,
+            weekNumber,
+            menuAgeGroup,
+            menuAppliesCount: menuApplies.length,
+        });
+
+        return {
+            academicYear,
+            classData,
+            menuAgeGroup,
+            weekData: {
+                weekNumber: weekData.weekNumber,
+                startDate: weekData.startDate,
+                endDate: weekData.endDate,
+            },
+            holidays: schedule.holidays || [],
+            menuApplies,
+        };
+    } catch (error) {
+        console.error('❌ [ParentChildren getWeeklyMenu] Error:', error);
+        if (error instanceof ApiError) throw error;
+        throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, 'Lỗi khi lấy thực đơn hằng tuần');
+    }
+};
+
 export const parentChildrenServices = {
     getSchoolInfo,
     getChildrenInfo,
@@ -599,5 +739,6 @@ export const parentChildrenServices = {
     getAcademicYears,
     getStudentClassesByYear,
     getWeeklyPlan,
-    getScheduleWeeks, // ✅ ADD
+    getScheduleWeeks,
+    getWeeklyMenu, // ✅ ADD
 };

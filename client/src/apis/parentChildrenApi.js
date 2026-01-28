@@ -61,4 +61,12 @@ export const parentChildrenApi = {
             params: { academicYearId, classId, weekNumber },
         });
     },
+
+    // Lấy thông tin đánh giá hằng ngày
+    getDailyAssessment: async (params) => {
+        const { academicYearId, classId, weekNumber } = params;
+        return await authorizedAxiosInstance.get(`${API_ROOT}/v1/parent-children/daily-assessment`, {
+            params: { academicYearId, classId, weekNumber },
+        });
+    },
 };

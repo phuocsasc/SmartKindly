@@ -9,9 +9,11 @@ import { ClassModel } from '~/models/classModel.js';
 import { ScheduleModel } from '~/models/scheduleModel.js';
 import { WeeklyPlanModel } from '~/models/weeklyPlanModel.js';
 import ApiError from '~/utils/ApiError.js';
+import dayjs from 'dayjs';
 import { StatusCodes } from 'http-status-codes';
 import { SchoolMenuApplyModel } from '~/models/schoolMenuApplyModel.js';
 import { ChildrenAttendanceModel } from '~/models/childrenAttendanceModel.js';
+import { ChildrenDailyAssessmentModel } from '~/models/childrenDailyAssessmentModel.js';
 
 /**
  * ✅ GET SCHOOL INFO - Phụ huynh xem thông tin trường học của con
@@ -912,6 +914,216 @@ const getAttendance = async (academicYearId, classId, weekNumber, userId) => {
     }
 };
 
+/**
+ * ✅ GET DAILY ASSESSMENT - Phụ huynh xem đánh giá hằng ngày của con
+ */
+const getDailyAssessment = async (academicYearId, classId, weekNumber, userId) => {
+    try {
+        console.log('📋 [ParentChildren getDailyAssessment] Starting:', {
+            academicYearId,
+            classId,
+            weekNumber,
+            userId,
+        });
+
+        // ✅ 1. Lấy thông tin phụ huynh
+        const parent = await UserModel.findOne({
+            _id: userId,
+            role: 'phu_huynh',
+            _destroy: false,
+        })
+            .select('schoolId studentId')
+            .lean();
+
+        if (!parent) {
+            throw new ApiError(StatusCodes.NOT_FOUND, 'Không tìm thấy thông tin phụ huynh');
+        }
+
+        if (!parent.studentId) {
+            throw new ApiError(StatusCodes.FORBIDDEN, 'Tài khoản chưa được liên kết với học sinh');
+        }
+
+        // ✅ 2. Kiểm tra năm học
+        const academicYear = await AcademicYearModel.findOne({
+            _id: academicYearId,
+            schoolId: parent.schoolId,
+            _destroy: false,
+        })
+            .select('fromYear toYear status')
+            .lean();
+
+        if (!academicYear) {
+            throw new ApiError(StatusCodes.NOT_FOUND, 'Không tìm thấy năm học');
+        }
+
+        // ✅ 3. Kiểm tra học sinh có thuộc lớp không
+        const classRecord = await ChildrenByClassModel.findOne({
+            schoolId: parent.schoolId,
+            academicYearId,
+            classId,
+            studentId: parent.studentId,
+            _destroy: false,
+        }).lean();
+
+        if (!classRecord) {
+            throw new ApiError(StatusCodes.FORBIDDEN, 'Học sinh không thuộc lớp này trong năm học được chọn');
+        }
+
+        // ✅ 4. Lấy thông tin lớp
+        const classData = await ClassModel.findOne({
+            _id: classId,
+            schoolId: parent.schoolId,
+            academicYearId,
+            _destroy: false,
+        })
+            .select('name grade ageGroup homeRoomTeacher')
+            .populate('homeRoomTeacher', 'fullName')
+            .lean();
+
+        if (!classData) {
+            throw new ApiError(StatusCodes.NOT_FOUND, 'Không tìm thấy lớp học');
+        }
+
+        // ✅ 5. Lấy thời khóa biểu để validate tuần và lấy holidays
+        const schedule = await ScheduleModel.findOne({
+            schoolId: parent.schoolId,
+            academicYearId,
+            _destroy: false,
+        }).lean();
+
+        if (!schedule) {
+            throw new ApiError(StatusCodes.NOT_FOUND, 'Chưa có thời khóa biểu cho năm học này');
+        }
+
+        const weekData = schedule.weeks.find((w) => w.weekNumber === parseInt(weekNumber));
+        if (!weekData) {
+            throw new ApiError(StatusCodes.NOT_FOUND, 'Không tìm thấy tuần này trong thời khóa biểu');
+        }
+
+        // ✅ 6. Tạo danh sách ngày trong tuần (Thứ 2 - Thứ 6) - FIX: Dùng dayjs
+        const isMondayToFriday = (date) => {
+            const day = dayjs(date).day();
+            return day >= 1 && day <= 5;
+        };
+
+        const daysInWeek = [];
+        const cur = new Date(weekData.startDate);
+        while (cur <= new Date(weekData.endDate)) {
+            if (isMondayToFriday(cur)) {
+                // ✅ FIX: Dùng dayjs.format() thay vì toISOString()
+                daysInWeek.push(dayjs(cur).format('YYYY-MM-DD'));
+            }
+            cur.setDate(cur.getDate() + 1);
+        }
+
+        // ✅ 7. Lấy thông tin học sinh
+        const student = await ChildrenManagementModel.findOne({
+            _id: parent.studentId,
+            schoolId: parent.schoolId,
+            _destroy: false,
+        })
+            .select('fullName studentCode status')
+            .lean();
+
+        if (!student) {
+            throw new ApiError(StatusCodes.NOT_FOUND, 'Không tìm thấy thông tin học sinh');
+        }
+
+        // ✅ 8. Lấy dữ liệu điểm danh của học sinh trong tuần (để hiển thị trạng thái)
+        const attendanceRecords = await ChildrenAttendanceModel.find({
+            schoolId: parent.schoolId,
+            academicYearId,
+            classId,
+            studentId: parent.studentId,
+            weekNumber: parseInt(weekNumber),
+            _destroy: false,
+        })
+            .select('date status note')
+            .lean();
+
+        const attendanceMap = {};
+        attendanceRecords.forEach((record) => {
+            // ✅ FIX: Dùng dayjs.format() thay vì toISOString()
+            const dateKey = dayjs(record.date).format('YYYY-MM-DD');
+            attendanceMap[dateKey] = {
+                status: record.status,
+                note: record.note || '',
+            };
+        });
+
+        // ✅ 9. Lấy dữ liệu đánh giá của học sinh trong tuần
+        const assessmentRecords = await ChildrenDailyAssessmentModel.find({
+            schoolId: parent.schoolId,
+            academicYearId,
+            classId,
+            studentId: parent.studentId,
+            weekNumber: parseInt(weekNumber),
+            _destroy: false,
+        })
+            .select('date healthStatus emotionalBehavior skillsKnowledge notes')
+            .lean();
+
+        const assessmentMap = {};
+        assessmentRecords.forEach((record) => {
+            // ✅ FIX: Dùng dayjs.format() thay vì toISOString()
+            const dateKey = dayjs(record.date).format('YYYY-MM-DD');
+            assessmentMap[dateKey] = {
+                _id: record._id,
+                healthStatus: record.healthStatus,
+                emotionalBehavior: record.emotionalBehavior,
+                skillsKnowledge: record.skillsKnowledge,
+                notes: record.notes || '',
+            };
+        });
+
+        // ✅ 10. Đếm số ngày đã đánh giá trong tuần
+        const assessedInWeek = assessmentRecords.length;
+
+        // ✅ 11. Đếm tổng số ngày đã đánh giá trong năm học
+        const totalAssessedInYear = await ChildrenDailyAssessmentModel.countDocuments({
+            schoolId: parent.schoolId,
+            academicYearId,
+            classId,
+            studentId: parent.studentId,
+            _destroy: false,
+        });
+
+        // ✅ FIX: Normalize holidays về YYYY-MM-DD format (giống childrenDailyAssessmentServices)
+        const holidays = (schedule.holidays || []).map((h) => {
+            const d = h.date ? new Date(h.date) : new Date(h);
+            return dayjs(d).format('YYYY-MM-DD');
+        });
+
+        console.log('✅ [ParentChildren getDailyAssessment] Success:', {
+            studentName: student.fullName,
+            weekNumber,
+            daysCount: daysInWeek.length,
+            assessedInWeek,
+        });
+
+        return {
+            academicYear,
+            classData,
+            student,
+            weekData: {
+                weekNumber: weekData.weekNumber,
+                startDate: weekData.startDate,
+                endDate: weekData.endDate,
+            },
+            days: daysInWeek,
+            holidays, // ✅ FIX: Trả về mảng string YYYY-MM-DD
+            attendanceMap,
+            assessmentMap,
+            assessedInWeek,
+            totalAssessedInYear,
+        };
+    } catch (error) {
+        console.error('❌ [ParentChildren getDailyAssessment] Error:', error);
+        if (error instanceof ApiError) throw error;
+        throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, 'Lỗi khi lấy thông tin đánh giá hằng ngày');
+    }
+};
+
 export const parentChildrenServices = {
     getSchoolInfo,
     getChildrenInfo,
@@ -921,5 +1133,6 @@ export const parentChildrenServices = {
     getWeeklyPlan,
     getScheduleWeeks,
     getWeeklyMenu,
-    getAttendance, // ✅ ADD
+    getAttendance,
+    getDailyAssessment, // ✅ ADD
 };

@@ -73,4 +73,11 @@ Router.route('/attendance').get(
     parentChildrenController.getAttendance,
 );
 
+// ✅ GET DAILY ASSESSMENT
+Router.route('/daily-assessment').get(
+    authMiddleware.isAuthorized,
+    rbacMiddleware.isValidPermission([PERMISSIONS.VIEW_CHILD_PROFILE]),
+    parentChildrenController.getDailyAssessment,
+);
+
 export const parentChildrenRoute = Router;

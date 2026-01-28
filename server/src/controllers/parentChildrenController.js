@@ -111,6 +111,20 @@ const getWeeklyMenu = async (req, res, next) => {
     }
 };
 
+const getAttendance = async (req, res, next) => {
+    try {
+        const userId = req.jwtDecoded.id;
+        const { academicYearId, classId, weekNumber } = req.query;
+        const result = await parentChildrenServices.getAttendance(academicYearId, classId, weekNumber, userId);
+        res.status(StatusCodes.OK).json({
+            message: 'Lấy thông tin điểm danh thành công!',
+            data: result,
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
 export const parentChildrenController = {
     getSchoolInfo,
     getChildrenInfo,
@@ -119,5 +133,6 @@ export const parentChildrenController = {
     getStudentClassesByYear,
     getWeeklyPlan,
     getScheduleWeeks,
-    getWeeklyMenu, // ✅ ADD
+    getWeeklyMenu,
+    getAttendance, // ✅ ADD
 };

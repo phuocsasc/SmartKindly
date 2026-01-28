@@ -53,4 +53,12 @@ export const parentChildrenApi = {
             params: { academicYearId, classId, weekNumber },
         });
     },
+
+    // Lấy thông tin điểm danh hằng tuần
+    getAttendance: async (params) => {
+        const { academicYearId, classId, weekNumber } = params;
+        return await authorizedAxiosInstance.get(`${API_ROOT}/v1/parent-children/attendance`, {
+            params: { academicYearId, classId, weekNumber },
+        });
+    },
 };

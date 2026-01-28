@@ -66,4 +66,11 @@ Router.route('/weekly-menu').get(
     parentChildrenController.getWeeklyMenu,
 );
 
+// ✅ GET ATTENDANCE
+Router.route('/attendance').get(
+    authMiddleware.isAuthorized,
+    rbacMiddleware.isValidPermission([PERMISSIONS.VIEW_CHILD_PROFILE]),
+    parentChildrenController.getAttendance,
+);
+
 export const parentChildrenRoute = Router;

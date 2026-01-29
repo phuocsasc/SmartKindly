@@ -71,7 +71,7 @@ import ParentSchedule from './pages/Parent/ViewInfo/Schedule';
 import School from './pages/Parent/ViewInfo/School';
 import WeeklyCertificate from './pages/Parent/ViewInfo/WeeklyCertificate';
 import WeeklyMenu from './pages/Parent/ViewInfo/WeeklyMenu';
-import ParentRequest from './pages/Parent/ViewInfo/ParentRequest';
+import ParentRequest from './pages/Parent/ParentRequest/ParentRequest';
 
 /**
  * Protected Routes với UserContext

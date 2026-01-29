@@ -60,6 +60,8 @@ import MenuApply from '~/pages/School/Nutrition/MenuApply/MenuApply';
 import NutritionalStandards from '~/pages/School/Nutrition/Standard/NutritionalStandards';
 import ServiceCharge from '~/pages/School/Nutrition/ServiceCharge/ServiceCharge';
 
+import SchoolParentRequest from '~/pages/School/ParentRequest/SchoolParentRequest';
+
 // Parent
 import ParentDashboard from '~/pages/Parent/Dashboard/Dashboard';
 import ParentInfo from './pages/Parent/ParentInfo';
@@ -221,6 +223,9 @@ function AppContent() {
                     </Route>
                     <Route element={<RbacRoute requiredPermission={PERMISSIONS.VIEW_MENU_APPLY} />}>
                         <Route path="/nutrition/menu-apply" element={<MenuApply />} />
+                    </Route>
+                    <Route element={<RbacRoute requiredPermission={PERMISSIONS.VIEW_MENU_APPLY} />}>
+                        <Route path="/parent-requests" element={<SchoolParentRequest />} />
                     </Route>
 
                     {/* Các Route phụ huynh */}

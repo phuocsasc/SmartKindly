@@ -12,6 +12,21 @@ export const parentRequestApi = {
         });
     },
 
+    // ✅ NHÀ TRƯỜNG: Lấy danh sách phiếu dặn dò theo lớp (BGH, Tổ trưởng, Giáo viên)
+    getAll: async (params) => {
+        const { page = 1, limit = 10, academicYearId = '', classId = '', status = '', search = '' } = params;
+        return await authorizedAxiosInstance.get(`${API_ROOT}/v1/parent-requests`, {
+            params: { page, limit, academicYearId, classId, status, search },
+        });
+    },
+
+    // ✅ NHÀ TRƯỜNG: Lấy danh sách lớp có quyền truy cập
+    getAccessibleClasses: async (academicYearId) => {
+        return await authorizedAxiosInstance.get(`${API_ROOT}/v1/parent-requests/accessible-classes`, {
+            params: { academicYearId },
+        });
+    },
+
     // Lấy chi tiết phiếu dặn dò
     getDetails: async (id) => {
         return await authorizedAxiosInstance.get(`${API_ROOT}/v1/parent-requests/${id}`);

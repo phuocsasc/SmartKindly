@@ -21,6 +21,7 @@ import RestaurantOutlinedIcon from '@mui/icons-material/RestaurantOutlined';
 import StorageOutlinedIcon from '@mui/icons-material/StorageOutlined';
 import SwitchAccountOutlinedIcon from '@mui/icons-material/SwitchAccountOutlined';
 import HistoryOutlinedIcon from '@mui/icons-material/HistoryOutlined';
+import MarkAsUnreadOutlinedIcon from '@mui/icons-material/MarkAsUnreadOutlined';
 import { useLocation, Link } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { useTheme } from '@mui/material/styles';
@@ -110,6 +111,11 @@ const menuItems = [
     //         { text: 'Tiêm chủng', path: '/health/vaccination' },
     //     ],
     // },
+    {
+        text: 'Phiếu dặn dò',
+        icon: <MarkAsUnreadOutlinedIcon />,
+        path: '/parent-requests',
+    },
 ];
 
 function SchoolSidebar({ collapsed, onToggle, mobileOpen, onCloseMobile }) {

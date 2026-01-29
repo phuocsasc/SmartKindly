@@ -1,4 +1,4 @@
-// client/src/pages/Parent/ViewInfo/ParentRequest.jsx
+// client/src/pages/Parent/ParentRequest/ParentRequest.jsx
 
 import { useState, useEffect } from 'react';
 import {
@@ -226,8 +226,9 @@ function ParentRequest() {
             flex: 1,
             minWidth: 180,
             sortable: false,
+            align: 'center',
             renderCell: (params) => (
-                <Box sx={{ display: 'flex', gap: 0.5, flexDirection: 'column' }}>
+                <Box sx={{ display: 'flex', gap: 1, flexDirection: 'column' }}>
                     <Chip
                         label={`Từ: ${dayjs(params.row.fromDate).format('DD/MM/YYYY')}`}
                         size="small"
@@ -365,7 +366,7 @@ function ParentRequest() {
                 <Paper sx={{ p: 3, borderRadius: 4 }}>
                     {/* Header */}
                     <Typography variant="h5" fontWeight={700} gutterBottom sx={{ color: '#667eea' }}>
-                        Danh sách Phiếu dặn dò
+                        Danh sách phiếu dặn dò
                     </Typography>
 
                     {/* Filters */}

@@ -78,7 +78,7 @@ const menuItems = [
     //     path: '/parent/age-completion',
     // },
     {
-        text: 'Dặn dò',
+        text: 'Phiếu dặn dò',
         icon: <MarkAsUnreadOutlinedIcon />,
         path: '/parent/requests',
     },

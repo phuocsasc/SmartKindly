@@ -71,6 +71,7 @@ import ParentSchedule from './pages/Parent/ViewInfo/Schedule';
 import School from './pages/Parent/ViewInfo/School';
 import WeeklyCertificate from './pages/Parent/ViewInfo/WeeklyCertificate';
 import WeeklyMenu from './pages/Parent/ViewInfo/WeeklyMenu';
+import ParentRequest from './pages/Parent/ViewInfo/ParentRequest';
 
 /**
  * Protected Routes với UserContext
@@ -252,6 +253,9 @@ function AppContent() {
                     </Route>
                     <Route element={<RbacRoute requiredPermission={PERMISSIONS.VIEW_PROGRAM_COMPLETION_ASSESSMENT} />}>
                         <Route path="/parent/age-completion" element={<CompletionAssessment />} />
+                    </Route>
+                    <Route element={<RbacRoute requiredPermission={PERMISSIONS.VIEW_PROGRAM_COMPLETION_ASSESSMENT} />}>
+                        <Route path="/parent/requests" element={<ParentRequest />} />
                     </Route>
                 </Route>
                 <Route path="/access-denied" element={<AccessDenied />} />

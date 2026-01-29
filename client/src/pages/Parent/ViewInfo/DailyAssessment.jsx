@@ -25,7 +25,6 @@ import {
 } from '@mui/material';
 import {
     DoneOutlined as DoneIcon,
-    EditCalendar as EditCalendarIcon,
     Person as PersonIcon,
     CheckCircle as CheckCircleIcon,
     CalendarMonth as CalendarIcon,
@@ -306,9 +305,7 @@ function DailyAssessment() {
     return (
         <MainLayout user={user}>
             <PageContainer>
-                <PageBreadcrumb
-                    items={[{ text: 'Xem thông tin', icon: EditCalendarIcon }, { text: 'Đánh giá hằng ngày' }]}
-                />
+                <PageBreadcrumb items={[{ text: 'Đánh giá hằng ngày' }]} />
 
                 <Paper sx={{ p: 3, borderRadius: 4 }}>
                     <Typography variant="h5" fontWeight={700} gutterBottom sx={{ color: '#667eea' }}>

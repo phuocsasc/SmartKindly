@@ -20,7 +20,7 @@ import {
     Chip,
     Grid,
 } from '@mui/material';
-import { DoneOutlined as DoneIcon, Restaurant as RestaurantIcon } from '@mui/icons-material';
+import { DoneOutlined as DoneIcon } from '@mui/icons-material';
 import MainLayout from '~/layouts/ParentLayout';
 import PageContainer from '~/components/common/PageContainer';
 import PageBreadcrumb from '~/components/common/PageBreadcrumb';
@@ -290,9 +290,7 @@ function WeeklyMenu() {
     return (
         <MainLayout user={user}>
             <PageContainer>
-                <PageBreadcrumb
-                    items={[{ text: 'Xem thông tin', icon: RestaurantIcon }, { text: 'Thực đơn hằng tuần' }]}
-                />
+                <PageBreadcrumb items={[{ text: 'Thực đơn hằng tuần' }]} />
 
                 <Paper sx={{ p: 3, borderRadius: 4 }}>
                     <Typography variant="h5" fontWeight={700} gutterBottom sx={{ color: '#667eea' }}>

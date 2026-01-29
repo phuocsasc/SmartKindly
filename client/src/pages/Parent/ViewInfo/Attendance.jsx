@@ -25,7 +25,6 @@ import {
 } from '@mui/material';
 import {
     DoneOutlined as DoneIcon,
-    EventAvailable as EventIcon,
     Person as PersonIcon,
     EventBusy as AbsentWeekIcon, // ✅ NEW: Icon cho vắng tuần
     CalendarMonth as AbsentYearIcon, // ✅ NEW: Icon cho vắng năm
@@ -303,7 +302,7 @@ function Attendance() {
     return (
         <MainLayout user={user}>
             <PageContainer>
-                <PageBreadcrumb items={[{ text: 'Xem thông tin', icon: EventIcon }, { text: 'Điểm danh' }]} />
+                <PageBreadcrumb items={[{ text: 'Điểm danh' }]} />
 
                 <Paper sx={{ p: 3, borderRadius: 4 }}>
                     <Typography variant="h5" fontWeight={700} gutterBottom sx={{ color: '#667eea' }}>

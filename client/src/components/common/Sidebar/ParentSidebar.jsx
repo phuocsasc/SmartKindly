@@ -23,6 +23,7 @@ import EventAvailableIcon from '@mui/icons-material/EventAvailable';
 import EditCalendarIcon from '@mui/icons-material/EditCalendar';
 import LocalFloristIcon from '@mui/icons-material/LocalFlorist';
 import EmojiPeopleIcon from '@mui/icons-material/EmojiPeople';
+import MarkAsUnreadOutlinedIcon from '@mui/icons-material/MarkAsUnreadOutlined';
 import { useLocation, Link } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { useTheme } from '@mui/material/styles';
@@ -71,10 +72,15 @@ const menuItems = [
         icon: <LocalFloristIcon />,
         path: '/parent/children-certificate',
     },
+    // {
+    //     text: 'Cuối độ tuổi',
+    //     icon: <EmojiPeopleIcon />,
+    //     path: '/parent/age-completion',
+    // },
     {
-        text: 'Cuối độ tuổi',
-        icon: <EmojiPeopleIcon />,
-        path: '/parent/age-completion',
+        text: 'Dặn dò',
+        icon: <MarkAsUnreadOutlinedIcon />,
+        path: '/parent/requests',
     },
 ];
 

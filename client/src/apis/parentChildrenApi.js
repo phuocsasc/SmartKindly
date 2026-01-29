@@ -69,4 +69,12 @@ export const parentChildrenApi = {
             params: { academicYearId, classId, weekNumber },
         });
     },
+
+    // Lấy thông tin phiếu bé ngoan hằng tuần
+    getWeeklyCertificate: async (params) => {
+        const { academicYearId, classId, weekNumber } = params;
+        return await authorizedAxiosInstance.get(`${API_ROOT}/v1/parent-children/weekly-certificate`, {
+            params: { academicYearId, classId, weekNumber },
+        });
+    },
 };

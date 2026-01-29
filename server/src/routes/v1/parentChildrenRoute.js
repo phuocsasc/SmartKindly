@@ -80,4 +80,11 @@ Router.route('/daily-assessment').get(
     parentChildrenController.getDailyAssessment,
 );
 
+// ✅ GET WEEKLY CERTIFICATE
+Router.route('/weekly-certificate').get(
+    authMiddleware.isAuthorized,
+    rbacMiddleware.isValidPermission([PERMISSIONS.VIEW_CHILD_PROFILE]),
+    parentChildrenController.getWeeklyCertificate,
+);
+
 export const parentChildrenRoute = Router;

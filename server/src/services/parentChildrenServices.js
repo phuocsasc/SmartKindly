@@ -14,6 +14,7 @@ import { StatusCodes } from 'http-status-codes';
 import { SchoolMenuApplyModel } from '~/models/schoolMenuApplyModel.js';
 import { ChildrenAttendanceModel } from '~/models/childrenAttendanceModel.js';
 import { ChildrenDailyAssessmentModel } from '~/models/childrenDailyAssessmentModel.js';
+import { ChildrenCertificateModel } from '~/models/childrenCertificateModel.js';
 
 /**
  * ✅ GET SCHOOL INFO - Phụ huynh xem thông tin trường học của con
@@ -1124,6 +1125,155 @@ const getDailyAssessment = async (academicYearId, classId, weekNumber, userId) =
     }
 };
 
+/**
+ * ✅ GET WEEKLY CERTIFICATE - Phụ huynh xem phiếu bé ngoan hằng tuần của con
+ */
+const getWeeklyCertificate = async (academicYearId, classId, weekNumber, userId) => {
+    try {
+        console.log('🏆 [ParentChildren getWeeklyCertificate] Starting:', {
+            academicYearId,
+            classId,
+            weekNumber,
+            userId,
+        });
+
+        // ✅ 1. Lấy thông tin phụ huynh
+        const parent = await UserModel.findOne({
+            _id: userId,
+            role: 'phu_huynh',
+            _destroy: false,
+        })
+            .select('schoolId studentId')
+            .lean();
+
+        if (!parent) {
+            throw new ApiError(StatusCodes.NOT_FOUND, 'Không tìm thấy thông tin phụ huynh');
+        }
+
+        if (!parent.studentId) {
+            throw new ApiError(StatusCodes.FORBIDDEN, 'Tài khoản chưa được liên kết với học sinh');
+        }
+
+        // ✅ 2. Kiểm tra năm học
+        const academicYear = await AcademicYearModel.findOne({
+            _id: academicYearId,
+            schoolId: parent.schoolId,
+            _destroy: false,
+        })
+            .select('fromYear toYear status')
+            .lean();
+
+        if (!academicYear) {
+            throw new ApiError(StatusCodes.NOT_FOUND, 'Không tìm thấy năm học');
+        }
+
+        // ✅ 3. Kiểm tra học sinh có thuộc lớp không
+        const classRecord = await ChildrenByClassModel.findOne({
+            schoolId: parent.schoolId,
+            academicYearId,
+            classId,
+            studentId: parent.studentId,
+            _destroy: false,
+        }).lean();
+
+        if (!classRecord) {
+            throw new ApiError(StatusCodes.FORBIDDEN, 'Học sinh không thuộc lớp này trong năm học được chọn');
+        }
+
+        // ✅ 4. Lấy thông tin lớp
+        const classData = await ClassModel.findOne({
+            _id: classId,
+            schoolId: parent.schoolId,
+            academicYearId,
+            _destroy: false,
+        })
+            .select('name grade ageGroup homeRoomTeacher')
+            .populate('homeRoomTeacher', 'fullName')
+            .lean();
+
+        if (!classData) {
+            throw new ApiError(StatusCodes.NOT_FOUND, 'Không tìm thấy lớp học');
+        }
+
+        // ✅ 5. Lấy thời khóa biểu để validate tuần
+        const schedule = await ScheduleModel.findOne({
+            schoolId: parent.schoolId,
+            academicYearId,
+            _destroy: false,
+        }).lean();
+
+        if (!schedule) {
+            throw new ApiError(StatusCodes.NOT_FOUND, 'Chưa có thời khóa biểu cho năm học này');
+        }
+
+        const weekData = schedule.weeks.find((w) => w.weekNumber === parseInt(weekNumber));
+        if (!weekData) {
+            throw new ApiError(StatusCodes.NOT_FOUND, 'Không tìm thấy tuần này trong thời khóa biểu');
+        }
+
+        // ✅ 6. Lấy thông tin học sinh
+        const student = await ChildrenManagementModel.findOne({
+            _id: parent.studentId,
+            schoolId: parent.schoolId,
+            _destroy: false,
+        })
+            .select('fullName studentCode status')
+            .lean();
+
+        if (!student) {
+            throw new ApiError(StatusCodes.NOT_FOUND, 'Không tìm thấy thông tin học sinh');
+        }
+
+        // ✅ 7. Lấy phiếu bé ngoan của học sinh trong tuần này
+        const certificate = await ChildrenCertificateModel.findOne({
+            schoolId: parent.schoolId,
+            academicYearId,
+            classId,
+            studentId: parent.studentId,
+            weekNumber: parseInt(weekNumber),
+            _destroy: false,
+        })
+            .select('isGoodChild comment createdAt updatedAt createdBy lastUpdatedBy')
+            .populate('createdBy', 'fullName')
+            .populate('lastUpdatedBy', 'fullName')
+            .lean();
+
+        // ✅ 8. Đếm số phiếu bé ngoan trong năm học
+        const totalCertificatesInYear = await ChildrenCertificateModel.countDocuments({
+            schoolId: parent.schoolId,
+            academicYearId,
+            classId,
+            studentId: parent.studentId,
+            isGoodChild: true,
+            _destroy: false,
+        });
+
+        console.log('✅ [ParentChildren getWeeklyCertificate] Success:', {
+            studentName: student.fullName,
+            weekNumber,
+            hasCertificate: !!certificate,
+            isGoodChild: certificate?.isGoodChild || false,
+        });
+
+        return {
+            academicYear,
+            classData,
+            student,
+            weekData: {
+                weekNumber: weekData.weekNumber,
+                startDate: weekData.startDate,
+                endDate: weekData.endDate,
+            },
+            certificate: certificate || null,
+            totalCertificatesInYear,
+        };
+    } catch (error) {
+        console.error('❌ [ParentChildren getWeeklyCertificate] Error:', error);
+        if (error instanceof ApiError) throw error;
+        throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, 'Lỗi khi lấy thông tin phiếu bé ngoan');
+    }
+};
+
 export const parentChildrenServices = {
     getSchoolInfo,
     getChildrenInfo,
@@ -1134,5 +1284,6 @@ export const parentChildrenServices = {
     getScheduleWeeks,
     getWeeklyMenu,
     getAttendance,
-    getDailyAssessment, // ✅ ADD
+    getDailyAssessment,
+    getWeeklyCertificate, // ✅ ADD
 };

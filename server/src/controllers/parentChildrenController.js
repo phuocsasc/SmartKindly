@@ -139,6 +139,20 @@ const getDailyAssessment = async (req, res, next) => {
     }
 };
 
+const getWeeklyCertificate = async (req, res, next) => {
+    try {
+        const userId = req.jwtDecoded.id;
+        const { academicYearId, classId, weekNumber } = req.query;
+        const result = await parentChildrenServices.getWeeklyCertificate(academicYearId, classId, weekNumber, userId);
+        res.status(StatusCodes.OK).json({
+            message: 'Lấy thông tin phiếu bé ngoan thành công!',
+            data: result,
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
 export const parentChildrenController = {
     getSchoolInfo,
     getChildrenInfo,
@@ -149,5 +163,6 @@ export const parentChildrenController = {
     getScheduleWeeks,
     getWeeklyMenu,
     getAttendance,
-    getDailyAssessment, // ✅ ADD
+    getDailyAssessment,
+    getWeeklyCertificate, // ✅ ADD
 };

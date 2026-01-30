@@ -1,3 +1,5 @@
+// server/src/routes/v1/childrenProgramCompleteRoute.js
+
 import express from 'express';
 import { childrenProgramCompleteController } from '~/controllers/childrenProgramCompleteController.js';
 import { childrenProgramCompleteValidation } from '~/validations/childrenProgramCompleteValidation.js';
@@ -7,7 +9,7 @@ import { PERMISSIONS } from '~/config/rbacConfig.js';
 
 const Router = express.Router();
 
-// ✅ Config endpoints (BGH only)
+// ✅ CONFIG ENDPOINTS (BGH only)
 Router.route('/config')
     .get(
         authMiddleware.isAuthorized,
@@ -19,9 +21,21 @@ Router.route('/config')
         rbacMiddleware.isValidPermission([PERMISSIONS.CREATE_CHILDREN_PROGRAM_COMPLETE]),
         childrenProgramCompleteValidation.configUpsert,
         childrenProgramCompleteController.upsertConfig,
+    )
+    .delete(
+        authMiddleware.isAuthorized,
+        rbacMiddleware.isValidPermission([PERMISSIONS.DELETE_CHILDREN_PROGRAM_COMPLETE]),
+        childrenProgramCompleteController.deleteConfig,
     );
 
-// ✅ CRUD endpoints
+// ✅ GET ACCESSIBLE CLASSES
+Router.route('/accessible-classes').get(
+    authMiddleware.isAuthorized,
+    rbacMiddleware.isValidPermission([PERMISSIONS.VIEW_CHILDREN_PROGRAM_COMPLETE]),
+    childrenProgramCompleteController.getAccessibleClassesList,
+);
+
+// ✅ CRUD ENDPOINTS
 Router.route('/')
     .get(
         authMiddleware.isAuthorized,

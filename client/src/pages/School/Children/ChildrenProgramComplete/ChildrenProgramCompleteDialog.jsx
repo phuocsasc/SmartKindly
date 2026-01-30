@@ -1,3 +1,5 @@
+// client/src/pages/School/Children/ChildrenProgramComplete/ChildrenProgramCompleteDialog.jsx
+
 import { useState, useEffect } from 'react';
 import {
     Dialog,
@@ -12,71 +14,129 @@ import {
     Avatar,
     Divider,
     CircularProgress,
+    Paper,
     Table,
     TableBody,
     TableCell,
     TableContainer,
     TableHead,
     TableRow,
-    Paper,
+    Slider,
+    Alert,
 } from '@mui/material';
-import CloseIcon from '@mui/icons-material/Close';
-import EmojiEventsOutlinedIcon from '@mui/icons-material/EmojiEventsOutlined';
-import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
-import { childrenProgramCompleteApi, schoolYearTargetApi } from '~/apis'; // ✅ Thêm schoolYearTargetApi
+import { Close as CloseIcon, EmojiEventsOutlined as TrophyIcon, Save as SaveIcon } from '@mui/icons-material';
+import { childrenProgramCompleteApi, schoolYearTargetApi } from '~/apis';
 import { toast } from 'react-toastify';
 
-function ChildrenProgramCompleteDialog({ open, data, targets, ageGroup, onClose, onSuccess }) {
+function ChildrenProgramCompleteDialog({ open, data, onClose, onSuccess }) {
     const [loading, setLoading] = useState(false);
+    const [loadingTargets, setLoadingTargets] = useState(false);
+    const [configuredTargets, setConfiguredTargets] = useState([]);
     const [targetDetails, setTargetDetails] = useState({});
     const [formData, setFormData] = useState({
         assessmentDetails: [],
         note: '',
     });
 
-    // ✅ Fetch target content details
+    // ✅ Map class ageGroup to config ageGroup
+    const mapClassAgeGroupToConfigAgeGroup = (classAgeGroup) => {
+        const mapping = {
+            '12-24 tháng': 'Nhà trẻ 12-24 tháng',
+            '24-36 tháng': 'Nhà trẻ 24-36 tháng',
+            '3-4 tuổi': 'Khối mầm 3-4 tuổi',
+            '4-5 tuổi': 'Khối chồi 4-5 tuổi',
+            '5-6 tuổi': 'Khối lá 5-6 tuổi',
+        };
+        return mapping[classAgeGroup] || null;
+    };
+
+    // ✅ Fetch configured targets when dialog opens
     useEffect(() => {
-        if (open && targets.length > 0 && data?.classId) {
-            fetchTargetDetails();
+        if (open && data?.classId && data?.academicYearId) {
+            fetchConfiguredTargets();
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [open, targets, data?.classId]);
+    }, [open, data?.classId, data?.academicYearId]);
 
-    // ✅ Initialize form when dialog opens
+    // ✅ Initialize form when targets are loaded
     useEffect(() => {
-        if (open && data) {
-            if (data.evaluation) {
+        if (open && data && configuredTargets.length > 0) {
+            if (data.assessmentDetails && data.assessmentDetails.length > 0) {
+                // Edit mode: Use existing data
                 setFormData({
-                    assessmentDetails: data.evaluation.assessmentDetails || [],
-                    note: data.evaluation.note || '',
+                    assessmentDetails: data.assessmentDetails,
+                    note: data.note || '',
                 });
             } else {
+                // Create mode: Initialize with 0 scores
                 setFormData({
-                    assessmentDetails: targets.map((id) => ({
-                        targetId: id,
-                        status: 'Chưa đánh giá',
+                    assessmentDetails: configuredTargets.map((targetId) => ({
+                        targetId,
+                        score: 0,
                     })),
                     note: '',
                 });
             }
         }
-    }, [open, data, targets]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [open, data, configuredTargets]);
 
-    // ✅ Fetch target details
-    const fetchTargetDetails = async () => {
+    const fetchConfiguredTargets = async () => {
+        try {
+            setLoadingTargets(true);
+
+            // 1. Get class info to determine ageGroup
+            const classRes = await childrenProgramCompleteApi.getAccessibleClasses(data.academicYearId);
+            const classData = classRes.data.data.classes.find((c) => c._id === data.classId);
+
+            if (!classData) {
+                toast.error('Không tìm thấy thông tin lớp học');
+                return;
+            }
+
+            const configAgeGroup = mapClassAgeGroupToConfigAgeGroup(classData.ageGroup);
+            if (!configAgeGroup) {
+                toast.error(`Nhóm tuổi "${classData.ageGroup}" chưa được hỗ trợ`);
+                return;
+            }
+
+            // 2. Get configured targets for this age group
+            const configRes = await childrenProgramCompleteApi.getConfigByYear(data.academicYearId);
+            const config = configRes.data.data.configs.find((c) => c.ageGroup === configAgeGroup);
+
+            if (!config || !config.selectedTargetIds || config.selectedTargetIds.length === 0) {
+                toast.error(
+                    `Chưa cấu hình mục tiêu cho nhóm tuổi "${configAgeGroup}". Vui lòng liên hệ Ban giám hiệu.`,
+                );
+                setConfiguredTargets([]);
+                return;
+            }
+
+            setConfiguredTargets(config.selectedTargetIds);
+
+            // 3. Fetch target details
+            await fetchTargetDetails(data.academicYearId, configAgeGroup, config.selectedTargetIds);
+        } catch (error) {
+            console.error('Error fetching configured targets:', error);
+            toast.error(error.response?.data?.message || 'Lỗi khi tải mục tiêu đã cấu hình');
+        } finally {
+            setLoadingTargets(false);
+        }
+    };
+
+    const fetchTargetDetails = async (academicYearId, ageGroup, targetIds) => {
         try {
             const res = await schoolYearTargetApi.getAll({
                 page: 1,
                 limit: 100,
-                academicYearId: data.academicYearId,
-                ageGroup: ageGroup,
+                academicYearId,
+                ageGroup,
             });
 
             const targetData = res.data.data.targets[0];
             if (!targetData) return;
 
             const details = {};
-            let mtNumber = 1;
 
             const processTargets = (mainFields) => {
                 mainFields.forEach((mainField) => {
@@ -84,22 +144,24 @@ function ChildrenProgramCompleteDialog({ open, data, targets, ageGroup, onClose,
                         mainField.subFields.forEach((subField) => {
                             subField.expectedResults?.forEach((expectedResult) => {
                                 expectedResult.targets?.forEach((target) => {
-                                    details[String(target._id)] = {
-                                        code: `MT${mtNumber}`,
-                                        content: target.content,
-                                    };
-                                    mtNumber++;
+                                    if (targetIds.includes(target._id)) {
+                                        details[String(target._id)] = {
+                                            code: target.code,
+                                            content: target.content,
+                                        };
+                                    }
                                 });
                             });
                         });
                     } else {
                         mainField.expectedResults?.forEach((expectedResult) => {
                             expectedResult.targets?.forEach((target) => {
-                                details[String(target._id)] = {
-                                    code: `MT${mtNumber}`,
-                                    content: target.content,
-                                };
-                                mtNumber++;
+                                if (targetIds.includes(target._id)) {
+                                    details[String(target._id)] = {
+                                        code: target.code,
+                                        content: target.content,
+                                    };
+                                }
                             });
                         });
                     }
@@ -116,40 +178,15 @@ function ChildrenProgramCompleteDialog({ open, data, targets, ageGroup, onClose,
         }
     };
 
-    // ✅ Handle status change
-    const handleStatusChange = (targetId) => {
+    const handleScoreChange = (targetId, newScore) => {
         setFormData((prev) => ({
             ...prev,
-            assessmentDetails: prev.assessmentDetails.map((detail) => {
-                if (String(detail.targetId) === String(targetId)) {
-                    const statusCycle = {
-                        'Chưa đánh giá': 'Đạt',
-                        Đạt: 'Chưa đạt',
-                        'Chưa đạt': 'Chưa đánh giá',
-                    };
-                    return {
-                        ...detail,
-                        status: statusCycle[detail.status] || 'Chưa đánh giá',
-                    };
-                }
-                return detail;
-            }),
+            assessmentDetails: prev.assessmentDetails.map((detail) =>
+                String(detail.targetId) === String(targetId) ? { ...detail, score: newScore } : detail,
+            ),
         }));
     };
 
-    // ✅ Get color for status
-    const getStatusColor = (status) => {
-        switch (status) {
-            case 'Đạt':
-                return '#ffc107';
-            case 'Chưa đạt':
-                return '#4caf50';
-            default:
-                return '#9e9e9e';
-        }
-    };
-
-    // ✅ Handle save
     const handleSave = async () => {
         try {
             setLoading(true);
@@ -162,8 +199,8 @@ function ChildrenProgramCompleteDialog({ open, data, targets, ageGroup, onClose,
                 note: formData.note,
             };
 
-            if (data.evaluation?._id) {
-                await childrenProgramCompleteApi.update(data.evaluation._id, payload);
+            if (data.evaluationId) {
+                await childrenProgramCompleteApi.update(data.evaluationId, payload);
                 toast.success('Cập nhật đánh giá thành công!');
             } else {
                 await childrenProgramCompleteApi.create(payload);
@@ -171,7 +208,6 @@ function ChildrenProgramCompleteDialog({ open, data, targets, ageGroup, onClose,
             }
 
             onSuccess();
-            onClose();
         } catch (error) {
             console.error('Error saving evaluation:', error);
             toast.error(error.response?.data?.message || 'Lỗi khi lưu đánh giá!');
@@ -180,26 +216,8 @@ function ChildrenProgramCompleteDialog({ open, data, targets, ageGroup, onClose,
         }
     };
 
-    // ✅ Handle delete
-    const handleDelete = async () => {
-        if (!data.evaluation?._id) return;
-
-        try {
-            setLoading(true);
-            await childrenProgramCompleteApi.delete(data.evaluation._id);
-            toast.success('Xóa đánh giá thành công!');
-            onSuccess();
-            onClose();
-        } catch (error) {
-            console.error('Error deleting evaluation:', error);
-            toast.error(error.response?.data?.message || 'Lỗi khi xóa đánh giá!');
-        } finally {
-            setLoading(false);
-        }
-    };
-
     return (
-        <Dialog open={open} onClose={onClose} maxWidth="lg" fullWidth>
+        <Dialog open={open} onClose={onClose} maxWidth="lg" fullWidth PaperProps={{ sx: { borderRadius: 3 } }}>
             {/* Header */}
             <DialogTitle
                 sx={{
@@ -211,10 +229,10 @@ function ChildrenProgramCompleteDialog({ open, data, targets, ageGroup, onClose,
             >
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
                     <Avatar sx={{ bgcolor: 'rgba(255, 255, 255, 0.2)', width: 32, height: 32 }}>
-                        <EmojiEventsOutlinedIcon fontSize="small" />
+                        <TrophyIcon fontSize="small" />
                     </Avatar>
                     <Typography variant="h6" fontWeight={600}>
-                        {data?.evaluation ? 'Cập nhật đánh giá' : 'Tạo đánh giá'} - {data?.student?.fullName}
+                        {data?.evaluationId ? 'Cập nhật đánh giá' : 'Tạo đánh giá'} - {data?.student?.fullName}
                     </Typography>
                 </Box>
                 <IconButton
@@ -234,137 +252,139 @@ function ChildrenProgramCompleteDialog({ open, data, targets, ageGroup, onClose,
             </DialogTitle>
 
             <DialogContent sx={{ px: 3, py: 3 }}>
-                {/* Status Legend */}
-                <Box sx={{ mt: 2, p: 2, bgcolor: '#f9f9f9', borderRadius: 1 }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
-                        {/* Hướng dẫn */}
-                        <Typography variant="caption" fontWeight={600}>
-                            Hướng dẫn:
+                {/* Info */}
+                <Paper sx={{ p: 2, bgcolor: '#f5f5f5', borderRadius: 2, mb: 3 }}>
+                    <Typography variant="body2">
+                        <strong>Học sinh:</strong> {data?.student?.fullName} - {data?.student?.studentCode}
+                    </Typography>
+                </Paper>
+
+                {/* Loading State */}
+                {loadingTargets ? (
+                    <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+                        <CircularProgress />
+                        <Typography variant="body2" sx={{ ml: 2 }}>
+                            Đang tải mục tiêu...
+                        </Typography>
+                    </Box>
+                ) : configuredTargets.length === 0 ? (
+                    <Alert severity="warning" sx={{ borderRadius: 2 }}>
+                        Chưa cấu hình mục tiêu cho nhóm tuổi này. Vui lòng liên hệ Ban giám hiệu.
+                    </Alert>
+                ) : (
+                    <>
+                        {/* Assessment Table */}
+                        <Typography variant="subtitle2" fontWeight={600} sx={{ mb: 2, color: '#667eea' }}>
+                            Đánh giá mục tiêu (0-10 điểm)
                         </Typography>
 
-                        {/* Chưa đánh giá */}
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                            <EmojiEventsOutlinedIcon sx={{ fontSize: 16, color: '#9e9e9e' }} />
-                            <Typography variant="caption">Chưa đánh giá</Typography>
-                        </Box>
+                        <TableContainer component={Paper} sx={{ border: '1px solid #e0e0e0', mb: 3 }}>
+                            <Box
+                                sx={{
+                                    maxHeight: 400,
+                                    overflowY: 'auto',
+                                    '&::-webkit-scrollbar': { width: 6 },
+                                    '&::-webkit-scrollbar-thumb': { backgroundColor: '#667eea', borderRadius: 4 },
+                                }}
+                            >
+                                <Table stickyHeader size="small">
+                                    <TableHead>
+                                        <TableRow sx={{ bgcolor: '#ede7f6' }}>
+                                            <TableCell sx={{ fontWeight: 700, width: 80 }}>Mục tiêu</TableCell>
+                                            <TableCell sx={{ fontWeight: 700 }}>Nội dung</TableCell>
+                                            <TableCell sx={{ fontWeight: 700, width: 350 }}>Điểm số</TableCell>
+                                        </TableRow>
+                                    </TableHead>
 
-                        {/* Đạt */}
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                            <EmojiEventsOutlinedIcon sx={{ fontSize: 16, color: '#ffc107' }} />
-                            <Typography variant="caption">Đạt</Typography>
-                        </Box>
+                                    <TableBody>
+                                        {formData.assessmentDetails.map((detail) => {
+                                            const targetInfo = targetDetails[String(detail.targetId)];
+                                            const mtCode = targetInfo?.code || 'MT?';
+                                            const content = targetInfo?.content || 'Đang tải...';
 
-                        {/* Chưa đạt */}
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                            <EmojiEventsOutlinedIcon sx={{ fontSize: 16, color: '#4caf50' }} />
-                            <Typography variant="caption">Chưa đạt</Typography>
-                        </Box>
-                    </Box>
-                </Box>
+                                            return (
+                                                <TableRow key={detail.targetId} hover>
+                                                    <TableCell sx={{ fontWeight: 600 }}>{mtCode}</TableCell>
+                                                    <TableCell>
+                                                        <Typography variant="body2">{content}</Typography>
+                                                    </TableCell>
+                                                    <TableCell>
+                                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                                                            <Slider
+                                                                value={detail.score}
+                                                                onChange={(e, newValue) =>
+                                                                    handleScoreChange(detail.targetId, newValue)
+                                                                }
+                                                                min={0}
+                                                                max={10}
+                                                                step={1}
+                                                                marks
+                                                                valueLabelDisplay="auto"
+                                                                sx={{ flex: 1 }}
+                                                            />
+                                                            <Typography
+                                                                variant="h6"
+                                                                fontWeight={700}
+                                                                sx={{
+                                                                    minWidth: 40,
+                                                                    textAlign: 'center',
+                                                                    color: '#667eea',
+                                                                }}
+                                                            >
+                                                                {detail.score}
+                                                            </Typography>
+                                                        </Box>
+                                                    </TableCell>
+                                                </TableRow>
+                                            );
+                                        })}
+                                    </TableBody>
+                                </Table>
+                            </Box>
+                        </TableContainer>
 
-                {/* Assessment Details Table */}
-                <Box sx={{ mb: 3, mt: 2 }}>
-                    <Typography variant="subtitle2" fontWeight={600} sx={{ mb: 2, color: '#667eea' }}>
-                        Chi tiết đánh giá mục tiêu
-                    </Typography>
-
-                    <TableContainer component={Paper} sx={{ border: '1px solid #e0e0e0' }}>
-                        <Box
-                            sx={{
-                                maxHeight: 350, // ⭐ Giới hạn chiều cao
-                                overflowY: 'auto', // ⭐ Bật scroll dọc
-                                borderRadius: 1,
-                                border: '1px solid #e0e0e0',
-                            }}
-                        >
-                            <Table stickyHeader size="small">
-                                <TableHead>
-                                    <TableRow sx={{ bgcolor: '#ede7f6' }}>
-                                        <TableCell sx={{ fontWeight: 700 }}>Mục tiêu</TableCell>
-                                        <TableCell sx={{ fontWeight: 700 }}>Nội dung mục tiêu</TableCell>
-                                        <TableCell align="center" sx={{ fontWeight: 700, width: 100 }}>
-                                            Đánh giá
-                                        </TableCell>
-                                    </TableRow>
-                                </TableHead>
-
-                                <TableBody>
-                                    {formData.assessmentDetails.map((detail) => {
-                                        const targetInfo = targetDetails[String(detail.targetId)];
-                                        const mtCode = targetInfo?.code || 'MT?';
-                                        const content = targetInfo?.content || 'Không có dữ liệu';
-
-                                        return (
-                                            <TableRow key={detail.targetId} hover>
-                                                <TableCell sx={{ fontWeight: 600, minWidth: 60 }}>{mtCode}</TableCell>
-                                                <TableCell sx={{ maxWidth: 400 }}>
-                                                    <Typography variant="body2">{content}</Typography>
-                                                </TableCell>
-                                                <TableCell align="center">
-                                                    <EmojiEventsOutlinedIcon
-                                                        sx={{
-                                                            fontSize: 28,
-                                                            color: getStatusColor(detail.status),
-                                                            cursor: 'pointer',
-                                                            transition: 'all 0.2s',
-                                                            '&:hover': { transform: 'scale(1.2)' },
-                                                        }}
-                                                        onClick={() => handleStatusChange(detail.targetId)}
-                                                    />
-                                                </TableCell>
-                                            </TableRow>
-                                        );
-                                    })}
-                                </TableBody>
-                            </Table>
-                        </Box>
-                    </TableContainer>
-                </Box>
-
-                <Divider sx={{ my: 3 }} />
-
-                {/* Note */}
-                <Box sx={{ mb: 2 }}>
-                    <Typography variant="subtitle2" fontWeight={600} sx={{ mb: 1, color: '#667eea' }}>
-                        📝 Ghi chú nhận xét tổng kết
-                    </Typography>
-                    <TextField
-                        fullWidth
-                        multiline
-                        rows={3}
-                        placeholder="Nhập ghi chú, nhận xét tổng kết..."
-                        value={formData.note}
-                        onChange={(e) => setFormData({ ...formData, note: e.target.value })}
-                    />
-                </Box>
+                        {/* Note */}
+                        <Typography variant="subtitle2" fontWeight={600} sx={{ mb: 1, color: '#667eea' }}>
+                            📝 Nhận xét tổng kết
+                        </Typography>
+                        <TextField
+                            fullWidth
+                            multiline
+                            rows={3}
+                            placeholder="Nhập nhận xét tổng kết..."
+                            value={formData.note}
+                            onChange={(e) => setFormData({ ...formData, note: e.target.value })}
+                            inputProps={{ maxLength: 2000 }}
+                            helperText={`${formData.note.length}/2000 ký tự`}
+                        />
+                    </>
+                )}
             </DialogContent>
 
             <Divider />
 
             {/* Actions */}
             <DialogActions sx={{ px: 3, py: 2, gap: 1 }}>
-                {data?.evaluation && (
-                    <Button
-                        onClick={handleDelete}
-                        disabled={loading}
-                        variant="outlined"
-                        color="error"
-                        startIcon={<DeleteOutlineIcon />}
-                    >
-                        Xóa
-                    </Button>
-                )}
-                <Box sx={{ flex: 1 }} />
-                <Button onClick={onClose} disabled={loading} variant="outlined" color="inherit">
+                <Button
+                    onClick={onClose}
+                    disabled={loading}
+                    variant="outlined"
+                    color="inherit"
+                    sx={{ borderRadius: 2 }}
+                >
                     Hủy
                 </Button>
                 <Button
                     onClick={handleSave}
-                    disabled={loading}
+                    disabled={loading || loadingTargets || configuredTargets.length === 0}
                     variant="contained"
-                    startIcon={loading && <CircularProgress size={20} />}
+                    startIcon={loading ? <CircularProgress size={16} /> : <SaveIcon />}
+                    sx={{
+                        borderRadius: 2,
+                        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                    }}
                 >
-                    {data?.evaluation ? 'Cập nhật' : 'Tạo'}
+                    {loading ? 'Đang lưu...' : data?.evaluationId ? 'Cập nhật' : 'Tạo'}
                 </Button>
             </DialogActions>
         </Dialog>

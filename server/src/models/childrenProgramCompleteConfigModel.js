@@ -1,17 +1,25 @@
+// server/src/models/childrenProgramCompleteConfigModel.js
+
 import mongoose from 'mongoose';
 
+// ✅ Schema cho chi tiết đánh giá từng mục tiêu
 const AssessmentDetailSchema = new mongoose.Schema({
-    targetId: { type: mongoose.Schema.Types.ObjectId, required: true },
-    status: {
-        type: String,
-        enum: ['Chưa đánh giá', 'Đạt', 'Chưa đạt'],
-        default: 'Chưa đánh giá',
+    targetId: {
+        type: mongoose.Schema.Types.ObjectId,
+        required: true,
+    },
+    score: {
+        type: Number,
+        required: true,
+        min: 0,
+        max: 10,
+        default: 0,
     },
 });
 
+// ✅ Schema chính: Đánh giá trẻ hoàn thành chương trình (1 năm/1 học sinh)
 const ChildrenProgramCompleteSchema = new mongoose.Schema(
     {
-        // ✅ FIX: schoolId là String, không phải ObjectId
         schoolId: {
             type: String,
             required: true,
@@ -27,22 +35,39 @@ const ChildrenProgramCompleteSchema = new mongoose.Schema(
             type: mongoose.Schema.Types.ObjectId,
             ref: 'Class',
             required: true,
+            index: true,
         },
         studentId: {
             type: mongoose.Schema.Types.ObjectId,
             ref: 'ChildrenManagement',
             required: true,
+            index: true,
         },
+        // Chi tiết đánh giá từng mục tiêu
         assessmentDetails: [AssessmentDetailSchema],
-        note: { type: String, default: '' },
-        createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
-        lastUpdatedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
-        _destroy: { type: Boolean, default: false },
+        // Ghi chú nhận xét tổng kết
+        note: {
+            type: String,
+            default: '',
+            maxlength: 2000,
+        },
+        createdBy: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'User',
+        },
+        lastUpdatedBy: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'User',
+        },
+        _destroy: {
+            type: Boolean,
+            default: false,
+        },
     },
     { timestamps: true },
 );
 
-// Unique constraint: one assessment per student per academic year
+// ✅ Unique constraint: 1 học sinh chỉ được đánh giá 1 lần/năm học
 ChildrenProgramCompleteSchema.index(
     { schoolId: 1, academicYearId: 1, studentId: 1, _destroy: 1 },
     { unique: true, sparse: true },
@@ -50,10 +75,9 @@ ChildrenProgramCompleteSchema.index(
 
 export const ChildrenProgramCompleteModel = mongoose.model('ChildrenProgramComplete', ChildrenProgramCompleteSchema);
 
-// Configuration model
+// ✅ Schema cấu hình mục tiêu (Ban giám hiệu cấu hình)
 const ChildrenProgramCompleteConfigSchema = new mongoose.Schema(
     {
-        // ✅ FIX: schoolId là String, không phải ObjectId
         schoolId: {
             type: String,
             required: true,
@@ -76,14 +100,30 @@ const ChildrenProgramCompleteConfigSchema = new mongoose.Schema(
                 'Khối lá 5-6 tuổi',
             ],
         },
-        selectedTargetIds: [{ type: mongoose.Schema.Types.ObjectId, required: true }],
-        createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
-        lastUpdatedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
-        _destroy: { type: Boolean, default: false },
+        // Danh sách các targetId được chọn (tối thiểu 5)
+        selectedTargetIds: [
+            {
+                type: mongoose.Schema.Types.ObjectId,
+                required: true,
+            },
+        ],
+        createdBy: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'User',
+        },
+        lastUpdatedBy: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'User',
+        },
+        _destroy: {
+            type: Boolean,
+            default: false,
+        },
     },
     { timestamps: true },
 );
 
+// ✅ Unique constraint: 1 nhóm tuổi chỉ có 1 cấu hình/năm học
 ChildrenProgramCompleteConfigSchema.index(
     { schoolId: 1, academicYearId: 1, ageGroup: 1, _destroy: 1 },
     { unique: true, sparse: true },

@@ -1,3 +1,5 @@
+// server/src/services/childrenProgramCompleteServices.js
+
 import mongoose from 'mongoose';
 import { StatusCodes } from 'http-status-codes';
 import ApiError from '~/utils/ApiError.js';
@@ -10,66 +12,61 @@ import { SchoolYearTargetModel } from '~/models/schoolYearTargetModel.js';
 import { UserModel } from '~/models/userModel.js';
 import { DepartmentModel } from '~/models/departmentModel.js';
 import { ClassModel } from '~/models/classModel.js';
-import { ChildrenProfileModel } from '~/models/childrenProfileModel.js';
-import { logAction } from '~/middlewares/auditLogMiddleware.js';
-import { AUDIT_LOG_ACTIONS, AUDIT_LOG_RESOURCES } from '~/config/auditLogConfig.js';
+import { ChildrenByClassModel } from '~/models/childrenByClassModel.js';
 
-// ✅ Helper: Check if user can access a class
-const canAccessClass = async (user, classId) => {
-    const classData = await ClassModel.findById(classId).select('schoolId ageGroup mainTeacher').lean();
-    if (!classData) return false;
-    if (String(classData.schoolId) !== String(user.schoolId)) return false;
+// ===== HELPER FUNCTIONS =====
 
-    if (user.role === 'ban_giam_hieu') return true;
-
-    if (user.role === 'to_truong') {
-        const departments = await DepartmentModel.find({
-            schoolId: user.schoolId,
-            managers: user._id,
-            _destroy: false,
-        })
-            .select('name')
-            .lean();
-
-        const managedDeptNames = departments.map((d) => d.name);
-        // Map department to grade (khối)
-        const gradeMapping = {
-            'Khối Nhà Trẻ': ['12-24 tháng', '24-36 tháng'],
-            'Khối Mầm': ['mầm'],
-            'Khối Chồi': ['chồi'],
-            'Khối Lá': ['lá'],
-        };
-
-        for (const deptName of managedDeptNames) {
-            const grades = gradeMapping[deptName] || [];
-            for (const grade of grades) {
-                if (classData.ageGroup.includes(grade)) return true;
-            }
-        }
-        return false;
+/**
+ * ✅ Ensure user belongs to a school
+ */
+const ensureUserSchool = async (userId) => {
+    const user = await UserModel.findById(userId).select('schoolId role _id');
+    if (!user || !user.schoolId) {
+        throw new ApiError(StatusCodes.FORBIDDEN, 'Bạn không thuộc trường học nào');
     }
-
-    if (user.role === 'giao_vien') {
-        return classData.mainTeacher && String(classData.mainTeacher) === String(user._id);
-    }
-
-    return false;
+    return user;
 };
 
-// ✅ Helper: Get accessible classes for user
-const getAccessibleClassesByUser = async (user, academicYearId) => {
-    // Ban giám hiệu: full access
+/**
+ * ✅ Get academic year or throw error
+ */
+const getAcademicYearOrThrow = async (schoolId, academicYearId) => {
+    const year = await AcademicYearModel.findOne({
+        _id: academicYearId,
+        schoolId,
+        _destroy: false,
+    });
+    if (!year) {
+        throw new ApiError(StatusCodes.NOT_FOUND, 'Không tìm thấy năm học');
+    }
+    return year;
+};
+
+/**
+ * ✅ Map department name to grade
+ */
+const DEPT_TO_GRADE = {
+    'Khối Nhà Trẻ': 'Nhà trẻ',
+    'Khối Mầm': 'Mầm',
+    'Khối Chồi': 'Chồi',
+    'Khối Lá': 'Lá',
+};
+
+/**
+ * ✅ Get accessible classes for user based on role
+ */
+const getAccessibleClassIds = async (user, academicYearId) => {
+    // BGH: tất cả lớp
     if (user.role === 'ban_giam_hieu') {
         const classes = await ClassModel.find({
             schoolId: user.schoolId,
             academicYearId,
             _destroy: false,
         }).select('_id');
-
-        return classes.map((c) => String(c._id));
+        return classes.map((c) => c._id.toString());
     }
 
-    // Tổ trưởng
+    // Tổ trưởng: các lớp trong khối quản lý
     if (user.role === 'to_truong') {
         const departments = await DepartmentModel.find({
             schoolId: user.schoolId,
@@ -78,88 +75,89 @@ const getAccessibleClassesByUser = async (user, academicYearId) => {
             _destroy: false,
         }).select('name');
 
-        const DEPARTMENT_TO_AGE_GROUP = {
-            'Khối Nhà Trẻ': ['12-24 tháng', '24-36 tháng'],
-            'Khối Mầm': ['3-4 tuổi'],
-            'Khối Chồi': ['4-5 tuổi'],
-            'Khối Lá': ['5-6 tuổi'],
-        };
-
-        let allowedAgeGroups = [];
-        departments.forEach((d) => {
-            const list = DEPARTMENT_TO_AGE_GROUP[d.name];
-            if (list) allowedAgeGroups.push(...list);
-        });
+        const managedGrades = departments.map((dept) => DEPT_TO_GRADE[dept.name]).filter(Boolean);
 
         const classes = await ClassModel.find({
             schoolId: user.schoolId,
             academicYearId,
-            ageGroup: { $in: allowedAgeGroups },
+            grade: { $in: managedGrades },
             _destroy: false,
         }).select('_id');
 
-        return classes.map((c) => String(c._id));
+        return classes.map((c) => c._id.toString());
     }
 
-    // Giáo viên chủ nhiệm
+    // Giáo viên: lớp chủ nhiệm
     if (user.role === 'giao_vien') {
         const classData = await ClassModel.findOne({
             schoolId: user.schoolId,
             academicYearId,
-            homeRoomTeacher: user._id, // FIXED
+            homeRoomTeacher: user._id,
             _destroy: false,
         }).select('_id');
 
-        return classData ? [String(classData._id)] : [];
+        return classData ? [classData._id.toString()] : [];
     }
 
     return [];
 };
 
-// ✅ Config: Upsert selected targets (BGH only)
+/**
+ * ✅ Map class ageGroup to config ageGroup
+ */
+const mapClassAgeGroupToConfigAgeGroup = (classAgeGroup) => {
+    const mapping = {
+        '12-24 tháng': 'Nhà trẻ 12-24 tháng',
+        '24-36 tháng': 'Nhà trẻ 24-36 tháng',
+        '3-4 tuổi': 'Khối mầm 3-4 tuổi',
+        '4-5 tuổi': 'Khối chồi 4-5 tuổi',
+        '5-6 tuổi': 'Khối lá 5-6 tuổi',
+    };
+    return mapping[classAgeGroup] || null;
+};
+
+// ===== CONFIG FUNCTIONS (BGH ONLY) =====
+
+/**
+ * ✅ CREATE/UPDATE Config: Cấu hình mục tiêu cho nhóm tuổi
+ */
 const upsertConfig = async (data, userId) => {
     try {
-        const user = await UserModel.findById(userId).select('schoolId role _id').lean();
-        if (!user || !user.schoolId) {
-            throw new ApiError(StatusCodes.FORBIDDEN, 'Bạn không thuộc trường học nào');
-        }
+        console.log('📝 [ProgramComplete upsertConfig] Starting:', data);
 
+        const user = await ensureUserSchool(userId);
+
+        // Chỉ BGH được cấu hình
         if (user.role !== 'ban_giam_hieu') {
-            throw new ApiError(StatusCodes.FORBIDDEN, 'Chỉ ban giám hiệu được cấu hình mục tiêu');
+            throw new ApiError(StatusCodes.FORBIDDEN, 'Chỉ Ban giám hiệu được phép cấu hình mục tiêu');
         }
 
         const { academicYearId, ageGroup, selectedTargetIds } = data;
 
-        // ✅ Validate academicYearId
-        if (!mongoose.Types.ObjectId.isValid(academicYearId)) {
-            throw new ApiError(StatusCodes.BAD_REQUEST, 'ID năm học không hợp lệ');
+        // Validate năm học active
+        const year = await getAcademicYearOrThrow(user.schoolId, academicYearId);
+        if (year.status !== 'active') {
+            throw new ApiError(StatusCodes.FORBIDDEN, 'Chỉ được cấu hình trong năm học đang hoạt động');
         }
 
-        // Verify active year
-        const academicYear = await AcademicYearModel.findOne({
-            _id: new mongoose.Types.ObjectId(academicYearId),
-            schoolId: user.schoolId,
-            status: 'active',
-            _destroy: false,
-        }).select('fromYear toYear');
-
-        if (!academicYear) {
-            throw new ApiError(StatusCodes.BAD_REQUEST, 'Chỉ được cấu hình trong năm học đang hoạt động');
+        // Validate selectedTargetIds (tối thiểu 5)
+        if (!selectedTargetIds || selectedTargetIds.length < 5) {
+            throw new ApiError(StatusCodes.BAD_REQUEST, 'Phải chọn tối thiểu 5 mục tiêu');
         }
 
         // Verify targets exist in SchoolYearTarget
         const syTarget = await SchoolYearTargetModel.findOne({
             schoolId: user.schoolId,
-            academicYearId: new mongoose.Types.ObjectId(academicYearId),
+            academicYearId,
             ageGroup,
             _destroy: false,
         }).lean();
 
         if (!syTarget) {
-            throw new ApiError(StatusCodes.NOT_FOUND, 'Không tìm thấy mục tiêu năm học cho nhóm tuổi này');
+            throw new ApiError(StatusCodes.NOT_FOUND, `Không tìm thấy mục tiêu năm học cho nhóm tuổi "${ageGroup}"`);
         }
 
-        // Validate that all selected target IDs exist in the target structure
+        // Extract all valid targetIds from SchoolYearTarget
         const validTargetIds = new Set();
         const extractTargetIds = (mainFields) => {
             mainFields.forEach((mainField) => {
@@ -180,16 +178,18 @@ const upsertConfig = async (data, userId) => {
 
         if (syTarget.mainFields) extractTargetIds(syTarget.mainFields);
 
+        // Validate all selectedTargetIds are valid
         selectedTargetIds.forEach((id) => {
             if (!validTargetIds.has(String(id))) {
                 throw new ApiError(
                     StatusCodes.BAD_REQUEST,
-                    'Một số targetId không thuộc cấu trúc mục tiêu năm học hiện tại',
+                    `Mục tiêu ID "${id}" không thuộc cấu trúc mục tiêu năm học`,
                 );
             }
         });
 
-        const updated = await ChildrenProgramCompleteConfigModel.findOneAndUpdate(
+        // Upsert config
+        const config = await ChildrenProgramCompleteConfigModel.findOneAndUpdate(
             {
                 schoolId: user.schoolId,
                 academicYearId: new mongoose.Types.ObjectId(academicYearId),
@@ -207,495 +207,505 @@ const upsertConfig = async (data, userId) => {
             { upsert: true, new: true },
         );
 
-        console.log('✅ [upsertConfig] Success:', updated._id);
-
-        await logAction(
-            userId,
-            user.schoolId,
-            AUDIT_LOG_ACTIONS.UPDATE,
-            AUDIT_LOG_RESOURCES.CHILDREN_PROGRAM_COMPLETE,
-            `Cấu hình ${selectedTargetIds.length} mục tiêu đánh giá cho nhóm tuổi "${ageGroup}" - Năm học ${academicYear.fromYear}-${academicYear.toYear}`,
-            {
-                ageGroup,
-                academicYearId,
-                academicYear: `${academicYear.fromYear}-${academicYear.toYear}`,
-                selectedTargetIds,
-                targetsCount: selectedTargetIds.length,
-            },
-        );
-
-        return updated;
+        console.log('✅ [ProgramComplete upsertConfig] Success:', config._id);
+        return config;
     } catch (error) {
+        console.error('❌ [ProgramComplete upsertConfig] Error:', error);
         if (error instanceof ApiError) throw error;
         throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, 'Lỗi khi cấu hình mục tiêu: ' + error.message);
     }
 };
 
-// ✅ Config: Get all configs for a year
+/**
+ * ✅ GET Config by year
+ */
 const getConfigByYear = async (academicYearId, userId) => {
     try {
-        const user = await UserModel.findById(userId).select('schoolId role _id').lean();
-        if (!user || !user.schoolId) {
-            throw new ApiError(StatusCodes.FORBIDDEN, 'Bạn không thuộc trường học nào');
-        }
+        const user = await ensureUserSchool(userId);
 
-        // ✅ Validate academicYearId
         if (!mongoose.Types.ObjectId.isValid(academicYearId)) {
             throw new ApiError(StatusCodes.BAD_REQUEST, 'ID năm học không hợp lệ');
         }
 
-        // ✅ FIX: So sánh schoolId với string, không ObjectId
+        await getAcademicYearOrThrow(user.schoolId, academicYearId);
+
         const configs = await ChildrenProgramCompleteConfigModel.find({
-            schoolId: user.schoolId, // ✅ So sánh string với string
+            schoolId: user.schoolId,
             academicYearId: new mongoose.Types.ObjectId(academicYearId),
             _destroy: false,
         }).lean();
 
         return { configs };
     } catch (error) {
+        console.error('❌ [ProgramComplete getConfigByYear] Error:', error);
         if (error instanceof ApiError) throw error;
         throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, 'Lỗi khi lấy cấu hình: ' + error.message);
     }
 };
 
-// ✅ CRUD: Create evaluation
+/**
+ * ✅ DELETE Config
+ */
+const deleteConfig = async (ageGroup, academicYearId, userId) => {
+    try {
+        console.log('🗑️ [ProgramComplete deleteConfig] Starting:', { ageGroup, academicYearId });
+
+        const user = await ensureUserSchool(userId);
+
+        if (user.role !== 'ban_giam_hieu') {
+            throw new ApiError(StatusCodes.FORBIDDEN, 'Chỉ Ban giám hiệu được phép xóa cấu hình');
+        }
+
+        const year = await getAcademicYearOrThrow(user.schoolId, academicYearId);
+        if (year.status !== 'active') {
+            throw new ApiError(StatusCodes.FORBIDDEN, 'Chỉ được xóa cấu hình trong năm học đang hoạt động');
+        }
+
+        const config = await ChildrenProgramCompleteConfigModel.findOneAndDelete({
+            schoolId: user.schoolId,
+            academicYearId: new mongoose.Types.ObjectId(academicYearId),
+            ageGroup,
+            _destroy: false,
+        });
+
+        if (!config) {
+            throw new ApiError(StatusCodes.NOT_FOUND, 'Không tìm thấy cấu hình');
+        }
+
+        console.log('✅ [ProgramComplete deleteConfig] Deleted successfully');
+        return { message: 'Xóa cấu hình thành công' };
+    } catch (error) {
+        console.error('❌ [ProgramComplete deleteConfig] Error:', error);
+        if (error instanceof ApiError) throw error;
+        throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, 'Lỗi khi xóa cấu hình: ' + error.message);
+    }
+};
+
+// ===== CRUD FUNCTIONS =====
+
+/**
+ * ✅ CREATE: Tạo đánh giá mới
+ */
 const createNew = async (data, userId) => {
     try {
-        const user = await UserModel.findById(userId).select('schoolId role _id').lean();
-        if (!user || !user.schoolId) {
-            throw new ApiError(StatusCodes.FORBIDDEN, 'Bạn không thuộc trường học nào');
-        }
+        console.log('📥 [ProgramComplete createNew] Starting:', data);
 
+        const user = await ensureUserSchool(userId);
         const { academicYearId, classId, studentId, assessmentDetails, note = '' } = data;
 
-        // ✅ Validate IDs
-        if (!mongoose.Types.ObjectId.isValid(academicYearId)) {
-            throw new ApiError(StatusCodes.BAD_REQUEST, 'ID năm học không hợp lệ');
+        // Validate năm học active
+        const year = await getAcademicYearOrThrow(user.schoolId, academicYearId);
+        if (year.status !== 'active') {
+            throw new ApiError(StatusCodes.FORBIDDEN, 'Chỉ được đánh giá trong năm học đang hoạt động');
         }
 
-        // Verify active year
-        const academicYear = await AcademicYearModel.findOne({
-            _id: new mongoose.Types.ObjectId(academicYearId),
-            schoolId: user.schoolId,
-            status: 'active',
-            _destroy: false,
-        })
-            .select('fromYear toYear')
-            .lean();
-
-        if (!academicYear) {
-            throw new ApiError(StatusCodes.BAD_REQUEST, 'Chỉ được đánh giá trong năm học đang hoạt động');
-        }
-
-        // Verify class
+        // Validate class
         const classData = await ClassModel.findOne({
             _id: classId,
             schoolId: user.schoolId,
-            academicYearId: new mongoose.Types.ObjectId(academicYearId),
+            academicYearId,
             _destroy: false,
-        })
-            .select('name ageGroup')
-            .lean();
+        }).select('name ageGroup');
 
         if (!classData) {
             throw new ApiError(StatusCodes.NOT_FOUND, 'Không tìm thấy lớp học');
         }
 
-        // Permission check
-        const canAccess = await canAccessClass(user, classId);
-        if (!canAccess) {
-            throw new ApiError(StatusCodes.FORBIDDEN, 'Bạn không có quyền thao tác với lớp này');
+        // Check permission
+        const accessibleClassIds = await getAccessibleClassIds(user, academicYearId);
+        if (!accessibleClassIds.includes(classId.toString())) {
+            throw new ApiError(StatusCodes.FORBIDDEN, 'Bạn không có quyền đánh giá lớp này');
         }
 
-        // Verify student
-        const student = await ChildrenProfileModel.findOne({
-            _id: studentId,
+        // Validate student exists and is in class
+        const studentInClass = await ChildrenByClassModel.findOne({
             schoolId: user.schoolId,
+            academicYearId,
             classId,
-            status: 'Đang học',
+            studentId,
             _destroy: false,
-        })
-            .select('fullName studentCode')
-            .lean();
+        }).populate('studentId', 'fullName studentCode status');
 
-        if (!student) {
-            throw new ApiError(StatusCodes.NOT_FOUND, 'Không tìm thấy học sinh hoặc học sinh không đang học');
+        if (!studentInClass || !studentInClass.studentId) {
+            throw new ApiError(StatusCodes.NOT_FOUND, 'Học sinh không thuộc lớp này');
         }
 
-        // Check duplicate
+        // const student = studentInClass.studentId;
+
+        // Check duplicate: 1 học sinh chỉ đánh giá 1 lần/năm
         const existing = await ChildrenProgramCompleteModel.findOne({
             schoolId: user.schoolId,
-            academicYearId: new mongoose.Types.ObjectId(academicYearId),
+            academicYearId,
             studentId,
             _destroy: false,
         });
 
         if (existing) {
-            throw new ApiError(StatusCodes.CONFLICT, 'Đã có đánh giá cho học sinh này trong năm học này');
+            throw new ApiError(StatusCodes.CONFLICT, 'Học sinh này đã được đánh giá trong năm học này');
         }
 
         // Verify config exists for this age group
-        const ageGroupMapping = {
-            '12-24 tháng': 'Nhà trẻ 12-24 tháng',
-            '24-36 tháng': 'Nhà trẻ 24-36 tháng',
-            '3-4 tuổi': 'Khối mầm 3-4 tuổi',
-            '4-5 tuổi': 'Khối chồi 4-5 tuổi',
-            '5-6 tuổi': 'Khối lá 5-6 tuổi',
-        };
+        const configAgeGroup = mapClassAgeGroupToConfigAgeGroup(classData.ageGroup);
+        if (!configAgeGroup) {
+            throw new ApiError(StatusCodes.BAD_REQUEST, `Nhóm tuổi "${classData.ageGroup}" chưa được hỗ trợ`);
+        }
 
-        const mappedAgeGroup = ageGroupMapping[classData.ageGroup];
         const config = await ChildrenProgramCompleteConfigModel.findOne({
             schoolId: user.schoolId,
-            academicYearId: new mongoose.Types.ObjectId(academicYearId),
-            ageGroup: mappedAgeGroup,
+            academicYearId,
+            ageGroup: configAgeGroup,
             _destroy: false,
         }).lean();
 
         if (!config) {
-            throw new ApiError(StatusCodes.BAD_REQUEST, `Chưa cấu hình mục tiêu cho nhóm tuổi "${mappedAgeGroup}"`);
+            throw new ApiError(
+                StatusCodes.BAD_REQUEST,
+                `Chưa cấu hình mục tiêu cho nhóm tuổi "${configAgeGroup}". Vui lòng liên hệ Ban giám hiệu`,
+            );
         }
 
-        // Validate assessment details match config
+        // Validate assessmentDetails match config
         const configSet = new Set(config.selectedTargetIds.map((id) => String(id)));
         if (assessmentDetails && assessmentDetails.length > 0) {
             assessmentDetails.forEach((detail) => {
                 if (!configSet.has(String(detail.targetId))) {
                     throw new ApiError(StatusCodes.BAD_REQUEST, 'Có mục tiêu không thuộc danh sách cấu hình');
                 }
+                // Validate score
+                if (detail.score < 0 || detail.score > 10) {
+                    throw new ApiError(StatusCodes.BAD_REQUEST, 'Điểm số phải từ 0 đến 10');
+                }
             });
         }
 
-        // ✅ Create evaluation
-        const created = await ChildrenProgramCompleteModel.create({
+        // Create evaluation
+        const evaluation = await ChildrenProgramCompleteModel.create({
             schoolId: user.schoolId,
-            academicYearId: new mongoose.Types.ObjectId(academicYearId),
+            academicYearId,
             classId,
             studentId,
             assessmentDetails: assessmentDetails || [],
-            note: note || '',
+            note,
             createdBy: user._id,
         });
 
-        console.log('✅ [createNew] Created successfully:', created._id);
-
-        const populated = await ChildrenProgramCompleteModel.findById(created._id)
+        const populated = await ChildrenProgramCompleteModel.findById(evaluation._id)
             .populate('academicYearId', 'fromYear toYear status')
             .populate('classId', 'name ageGroup')
-            .populate('studentId', 'fullName studentCode')
+            .populate('studentId', 'fullName studentCode status')
+            .populate('createdBy', 'fullName')
             .lean();
 
-        await logAction(
-            userId,
-            user.schoolId,
-            AUDIT_LOG_ACTIONS.CREATE,
-            AUDIT_LOG_RESOURCES.CHILDREN_PROGRAM_COMPLETE,
-            `Tạo đánh giá hoàn thành chương trình cho "${student.fullName}" - Lớp "${classData.name}" - Năm học ${academicYear.fromYear}-${academicYear.toYear}`,
-            {
-                classId,
-                className: classData.name,
-                studentId,
-                studentName: student.fullName,
-                studentCode: student.studentCode,
-                academicYearId,
-                academicYear: `${academicYear.fromYear}-${academicYear.toYear}`,
-                targetsCount: assessmentDetails?.length || 0,
-            },
-        );
-
+        console.log('✅ [ProgramComplete createNew] Created successfully');
         return populated;
     } catch (error) {
-        console.error('❌ [createNew] Error:', error.message);
+        console.error('❌ [ProgramComplete createNew] Error:', error);
         if (error instanceof ApiError) throw error;
         throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, 'Lỗi khi tạo đánh giá: ' + error.message);
     }
 };
 
-// ✅ CRUD: Get all evaluations
+/**
+ * ✅ GET ALL: Lấy danh sách đánh giá theo lớp
+ */
+/**
+ * ✅ GET ALL: Lấy danh sách học sinh trong lớp (có hoặc chưa có đánh giá)
+ */
 const getAll = async (query, userId) => {
     try {
-        const user = await UserModel.findById(userId).select('schoolId role _id');
-        if (!user || !user.schoolId) {
-            throw new ApiError(StatusCodes.FORBIDDEN, 'Bạn không thuộc trường học nào');
-        }
-
+        const user = await ensureUserSchool(userId);
         const { page = 1, limit = 10, academicYearId = '', classId = '', search = '' } = query;
 
-        // ✅ Verify academic year
-        const academicYear = await AcademicYearModel.findOne({
-            _id: academicYearId,
-            schoolId: user.schoolId,
-            _destroy: false,
-        });
-
-        if (!academicYear) {
-            throw new ApiError(StatusCodes.NOT_FOUND, 'Không tìm thấy năm học');
+        if (!academicYearId) {
+            throw new ApiError(StatusCodes.BAD_REQUEST, 'Năm học là bắt buộc');
         }
 
-        // ✅ FIX: Luôn lấy accessible classes theo năm học được chọn
-        const accessibleClassIds = await getAccessibleClassesByUser(user, academicYearId);
-        console.log('📋 [getAll] Accessible class IDs:', accessibleClassIds);
-
-        // ✅ FIX: Kiểm tra classId có thuộc năm học được chọn không
-        if (classId) {
-            // Verify class belongs to selected academic year
-            const classData = await ClassModel.findOne({
-                _id: classId,
-                academicYearId,
-                _destroy: false,
-            });
-
-            if (!classData) {
-                console.log('❌ [getAll] Class not found in selected year');
-                return {
-                    items: [],
-                    pagination: {
-                        currentPage: parseInt(page),
-                        totalPages: 0,
-                        totalItems: 0,
-                        itemsPerPage: parseInt(limit),
-                    },
-                };
-            }
-
-            // Check permission
-            if (!accessibleClassIds.includes(classId)) {
-                throw new ApiError(StatusCodes.FORBIDDEN, 'Bạn không có quyền xem lớp này');
-            }
+        if (!classId) {
+            throw new ApiError(StatusCodes.BAD_REQUEST, 'Lớp học là bắt buộc');
         }
 
-        // ✅ Build filter
-        let filter = {
+        await getAcademicYearOrThrow(user.schoolId, academicYearId);
+
+        // Check permission
+        const accessibleClassIds = await getAccessibleClassIds(user, academicYearId);
+        if (!accessibleClassIds.includes(classId.toString())) {
+            throw new ApiError(StatusCodes.FORBIDDEN, 'Bạn không có quyền xem lớp này');
+        }
+
+        // ✅ 1. Lấy danh sách học sinh trong lớp từ ChildrenByClassModel
+        let studentFilter = {
             schoolId: user.schoolId,
             academicYearId,
+            classId,
             _destroy: false,
         };
 
-        if (classId) {
-            filter.classId = classId;
-        } else {
-            // If no classId specified, show all accessible classes
-            filter.classId = { $in: accessibleClassIds };
+        const studentsInClass = await ChildrenByClassModel.find(studentFilter)
+            .populate('studentId', 'fullName studentCode status')
+            .select('studentId')
+            .lean();
+
+        if (studentsInClass.length === 0) {
+            return {
+                items: [],
+                pagination: {
+                    currentPage: parseInt(page),
+                    totalPages: 0,
+                    totalItems: 0,
+                    itemsPerPage: parseInt(limit),
+                },
+            };
         }
+
+        // ✅ 2. Filter by search
+        let filteredStudents = studentsInClass.filter((s) => s.studentId);
 
         if (search) {
-            filter.$or = [
-                { 'studentId.fullName': { $regex: search, $options: 'i' } },
-                { 'studentId.studentCode': { $regex: search, $options: 'i' } },
-            ];
+            filteredStudents = filteredStudents.filter(
+                (s) =>
+                    s.studentId.fullName.toLowerCase().includes(search.toLowerCase()) ||
+                    s.studentId.studentCode.toLowerCase().includes(search.toLowerCase()),
+            );
         }
 
+        const totalItems = filteredStudents.length;
         const skip = (parseInt(page) - 1) * parseInt(limit);
+        const paginatedStudents = filteredStudents.slice(skip, skip + parseInt(limit));
 
-        const [items, total] = await Promise.all([
-            ChildrenProgramCompleteModel.find(filter)
-                .populate('studentId', 'fullName studentCode')
-                .populate('classId', 'name')
-                .populate('academicYearId', 'fromYear toYear')
-                .skip(skip)
-                .limit(parseInt(limit))
-                .sort({ createdAt: -1 })
-                .lean(),
-            ChildrenProgramCompleteModel.countDocuments(filter),
-        ]);
+        // ✅ 3. Lấy đánh giá cho từng học sinh (nếu có)
+        const studentIds = paginatedStudents.map((s) => s.studentId._id);
 
-        console.log('✅ [getAll] Found items:', items.length);
+        const evaluations = await ChildrenProgramCompleteModel.find({
+            schoolId: user.schoolId,
+            academicYearId,
+            classId,
+            studentId: { $in: studentIds },
+            _destroy: false,
+        })
+            .populate('createdBy', 'fullName')
+            .populate('lastUpdatedBy', 'fullName')
+            .lean();
+
+        // ✅ 4. Map kết quả (học sinh + đánh giá nếu có)
+        const items = paginatedStudents.map((studentRecord) => {
+            const student = studentRecord.studentId;
+            const evaluation = evaluations.find((e) => e.studentId.toString() === student._id.toString());
+
+            return {
+                _id: evaluation?._id || null, // null nếu chưa có đánh giá
+                studentId: {
+                    _id: student._id,
+                    fullName: student.fullName,
+                    studentCode: student.studentCode,
+                    status: student.status,
+                },
+                assessmentDetails: evaluation?.assessmentDetails || [],
+                note: evaluation?.note || '',
+                createdBy: evaluation?.createdBy || null,
+                lastUpdatedBy: evaluation?.lastUpdatedBy || null,
+                createdAt: evaluation?.createdAt || null,
+                updatedAt: evaluation?.updatedAt || null,
+            };
+        });
+
+        console.log('✅ [ProgramComplete getAll] Found items:', items.length);
 
         return {
             items,
             pagination: {
                 currentPage: parseInt(page),
-                totalPages: Math.ceil(total / parseInt(limit)),
-                totalItems: total,
+                totalPages: Math.ceil(totalItems / parseInt(limit)),
+                totalItems,
                 itemsPerPage: parseInt(limit),
             },
         };
     } catch (error) {
-        console.error('❌ [getAll] Error:', error);
+        console.error('❌ [ProgramComplete getAll] Error:', error);
         if (error instanceof ApiError) throw error;
         throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, 'Lỗi khi lấy danh sách: ' + error.message);
     }
 };
 
-// ✅ CRUD: Get details
+/**
+ * ✅ GET DETAILS
+ */
 const getDetails = async (id, userId) => {
     try {
-        const user = await UserModel.findById(userId).select('schoolId role _id').lean();
-        if (!user || !user.schoolId) throw new ApiError(StatusCodes.FORBIDDEN, 'Bạn không thuộc trường học nào');
+        const user = await ensureUserSchool(userId);
 
-        const doc = await ChildrenProgramCompleteModel.findOne({
+        const evaluation = await ChildrenProgramCompleteModel.findOne({
             _id: id,
             schoolId: user.schoolId,
             _destroy: false,
         })
             .populate('academicYearId', 'fromYear toYear status')
             .populate('classId', 'name ageGroup')
-            .populate('studentId', 'fullName studentCode')
+            .populate('studentId', 'fullName studentCode status')
+            .populate('createdBy', 'fullName')
+            .populate('lastUpdatedBy', 'fullName')
             .lean();
 
-        if (!doc) throw new ApiError(StatusCodes.NOT_FOUND, 'Không tìm thấy đánh giá');
+        if (!evaluation) {
+            throw new ApiError(StatusCodes.NOT_FOUND, 'Không tìm thấy đánh giá');
+        }
 
-        // Permission check
-        const canAccess = await canAccessClass(user, doc.classId._id);
-        if (!canAccess) throw new ApiError(StatusCodes.FORBIDDEN, 'Bạn không có quyền xem');
+        // Check permission
+        const accessibleClassIds = await getAccessibleClassIds(user, evaluation.academicYearId._id);
+        if (!accessibleClassIds.includes(evaluation.classId._id.toString())) {
+            throw new ApiError(StatusCodes.FORBIDDEN, 'Bạn không có quyền xem đánh giá này');
+        }
 
-        return doc;
+        return evaluation;
     } catch (error) {
+        console.error('❌ [ProgramComplete getDetails] Error:', error);
         if (error instanceof ApiError) throw error;
         throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, 'Lỗi khi lấy chi tiết: ' + error.message);
     }
 };
 
-// ✅ CRUD: Update evaluation
+/**
+ * ✅ UPDATE
+ */
 const update = async (id, data, userId) => {
     try {
-        console.log('📝 [ChildrenProgramComplete update] Starting with id:', id);
+        console.log('✏️ [ProgramComplete update] Starting:', { id, data });
 
-        const user = await UserModel.findById(userId).select('schoolId role _id');
-        if (!user || !user.schoolId) {
-            throw new ApiError(StatusCodes.FORBIDDEN, 'Bạn không thuộc trường học nào');
-        }
+        const user = await ensureUserSchool(userId);
 
         const evaluation = await ChildrenProgramCompleteModel.findOne({
             _id: id,
             schoolId: user.schoolId,
             _destroy: false,
-        })
-            .populate('academicYearId', 'status fromYear toYear')
-            .populate('classId', 'name')
-            .populate('studentId', 'fullName studentCode');
+        }).populate('academicYearId', 'status fromYear toYear');
 
         if (!evaluation) {
             throw new ApiError(StatusCodes.NOT_FOUND, 'Không tìm thấy đánh giá');
         }
 
-        // ✅ Only update in active year
+        // Only update in active year
         if (evaluation.academicYearId.status !== 'active') {
             throw new ApiError(StatusCodes.FORBIDDEN, 'Chỉ có thể cập nhật đánh giá trong năm học đang hoạt động');
         }
 
-        // ✅ Check permission
-        const accessibleClassIds = await getAccessibleClassesByUser(user, evaluation.academicYearId._id);
-        if (!accessibleClassIds.includes(evaluation.classId._id.toString())) {
-            throw new ApiError(StatusCodes.FORBIDDEN, 'Bạn không có quyền thao tác');
+        // Check permission
+        const accessibleClassIds = await getAccessibleClassIds(user, evaluation.academicYearId._id);
+        if (!accessibleClassIds.includes(evaluation.classId.toString())) {
+            throw new ApiError(StatusCodes.FORBIDDEN, 'Bạn không có quyền cập nhật đánh giá này');
         }
 
-        // ✅ Update fields
-        if (data.assessmentDetails !== undefined) evaluation.assessmentDetails = data.assessmentDetails;
-        if (data.note !== undefined) evaluation.note = data.note;
+        // Update fields
+        if (data.assessmentDetails !== undefined) {
+            // Validate scores
+            data.assessmentDetails.forEach((detail) => {
+                if (detail.score < 0 || detail.score > 10) {
+                    throw new ApiError(StatusCodes.BAD_REQUEST, 'Điểm số phải từ 0 đến 10');
+                }
+            });
+            evaluation.assessmentDetails = data.assessmentDetails;
+        }
 
-        evaluation.lastUpdatedBy = userId;
+        if (data.note !== undefined) {
+            evaluation.note = data.note;
+        }
+
+        evaluation.lastUpdatedBy = user._id;
         await evaluation.save();
-
-        console.log('✅ [ChildrenProgramComplete update] Updated successfully');
 
         const updated = await ChildrenProgramCompleteModel.findById(evaluation._id)
             .populate('academicYearId', 'fromYear toYear status')
             .populate('classId', 'name ageGroup')
-            .populate('studentId', 'fullName studentCode')
+            .populate('studentId', 'fullName studentCode status')
+            .populate('createdBy', 'fullName')
+            .populate('lastUpdatedBy', 'fullName')
             .lean();
 
-        await logAction(
-            userId,
-            user.schoolId,
-            AUDIT_LOG_ACTIONS.UPDATE,
-            AUDIT_LOG_RESOURCES.CHILDREN_PROGRAM_COMPLETE,
-            `Cập nhật đánh giá hoàn thành chương trình cho "${evaluation.studentId.fullName}" - Lớp "${evaluation.classId.name}" - Năm học ${evaluation.academicYearId.fromYear}-${evaluation.academicYearId.toYear}`,
-            {
-                classId: evaluation.classId._id,
-                className: evaluation.classId.name,
-                studentId: evaluation.studentId._id,
-                studentName: evaluation.studentId.fullName,
-                studentCode: evaluation.studentId.studentCode,
-                academicYearId: evaluation.academicYearId._id,
-                academicYear: `${evaluation.academicYearId.fromYear}-${evaluation.academicYearId.toYear}`,
-                targetsCount: evaluation.assessmentDetails?.length || 0,
-            },
-        );
-
-        return { message: 'Cập nhật đánh giá thành công' };
+        console.log('✅ [ProgramComplete update] Updated successfully');
+        return updated;
     } catch (error) {
-        console.error('❌ [ChildrenProgramComplete update] Error:', error);
+        console.error('❌ [ProgramComplete update] Error:', error);
         if (error instanceof ApiError) throw error;
         throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, 'Lỗi khi cập nhật đánh giá: ' + error.message);
     }
 };
 
-// ✅ CRUD: Delete evaluation
+/**
+ * ✅ DELETE
+ */
 const deleteEvaluation = async (id, userId) => {
     try {
-        console.log('🗑️ [ChildrenProgramComplete delete] Starting with id:', id);
+        console.log('🗑️ [ProgramComplete delete] Starting:', id);
 
-        const user = await UserModel.findById(userId).select('schoolId role _id');
-        if (!user || !user.schoolId) {
-            throw new ApiError(StatusCodes.FORBIDDEN, 'Bạn không thuộc trường học nào');
-        }
+        const user = await ensureUserSchool(userId);
 
         const evaluation = await ChildrenProgramCompleteModel.findOne({
             _id: id,
             schoolId: user.schoolId,
             _destroy: false,
-        })
-            .populate('academicYearId', 'status fromYear toYear')
-            .populate('classId', 'name')
-            .populate('studentId', 'fullName studentCode');
+        }).populate('academicYearId', 'status fromYear toYear');
 
         if (!evaluation) {
             throw new ApiError(StatusCodes.NOT_FOUND, 'Không tìm thấy đánh giá');
         }
 
-        // ✅ Only delete in active year
+        // Only delete in active year
         if (evaluation.academicYearId.status !== 'active') {
             throw new ApiError(StatusCodes.FORBIDDEN, 'Chỉ có thể xóa đánh giá trong năm học đang hoạt động');
         }
 
-        // ✅ Check permission
-        const accessibleClassIds = await getAccessibleClassesByUser(user, evaluation.academicYearId._id);
-        if (!accessibleClassIds.includes(evaluation.classId._id.toString())) {
-            throw new ApiError(StatusCodes.FORBIDDEN, 'Bạn không có quyền thao tác');
+        // Check permission
+        const accessibleClassIds = await getAccessibleClassIds(user, evaluation.academicYearId._id);
+        if (!accessibleClassIds.includes(evaluation.classId.toString())) {
+            throw new ApiError(StatusCodes.FORBIDDEN, 'Bạn không có quyền xóa đánh giá này');
         }
 
-        // ✅ Lưu thông tin trước khi xóa
-        const evaluationInfo = {
-            studentName: evaluation.studentId.fullName,
-            studentCode: evaluation.studentId.studentCode,
-            className: evaluation.classId.name,
-            academicYear: `${evaluation.academicYearId.fromYear}-${evaluation.academicYearId.toYear}`,
-        };
+        // ✅ HARD DELETE - Xóa cứng khỏi database
+        await ChildrenProgramCompleteModel.deleteOne({ _id: id });
 
-        // ✅ Soft delete
-        evaluation._destroy = true;
-        await evaluation.save();
-
-        console.log('✅ [ChildrenProgramComplete delete] Deleted successfully');
-
-        await logAction(
-            userId,
-            user.schoolId,
-            AUDIT_LOG_ACTIONS.DELETE,
-            AUDIT_LOG_RESOURCES.CHILDREN_PROGRAM_COMPLETE,
-            `Xóa đánh giá hoàn thành chương trình cho "${evaluationInfo.studentName}" - Lớp "${evaluationInfo.className}" - Năm học ${evaluationInfo.academicYear}`,
-            {
-                studentName: evaluationInfo.studentName,
-                studentCode: evaluationInfo.studentCode,
-                className: evaluationInfo.className,
-                academicYear: evaluationInfo.academicYear,
-            },
-        );
-
+        console.log('✅ [ProgramComplete delete] Hard deleted successfully');
         return { message: 'Xóa đánh giá thành công' };
     } catch (error) {
-        console.error('❌ [ChildrenProgramComplete delete] Error:', error);
+        console.error('❌ [ProgramComplete delete] Error:', error);
         if (error instanceof ApiError) throw error;
         throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, 'Lỗi khi xóa đánh giá: ' + error.message);
     }
 };
 
+/**
+ * ✅ GET ACCESSIBLE CLASSES
+ */
+const getAccessibleClassesList = async (academicYearId, userId) => {
+    try {
+        const user = await ensureUserSchool(userId);
+
+        await getAcademicYearOrThrow(user.schoolId, academicYearId);
+
+        const classIds = await getAccessibleClassIds(user, academicYearId);
+
+        const classes = await ClassModel.find({
+            _id: { $in: classIds.map((id) => new mongoose.Types.ObjectId(id)) },
+            _destroy: false,
+        })
+            .select('name grade ageGroup')
+            .lean();
+
+        return { classes };
+    } catch (error) {
+        console.error('❌ [ProgramComplete getAccessibleClassesList] Error:', error);
+        if (error instanceof ApiError) throw error;
+        throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, 'Lỗi khi lấy danh sách lớp: ' + error.message);
+    }
+};
+
 export const childrenProgramCompleteServices = {
+    // Config
+    upsertConfig,
+    getConfigByYear,
+    deleteConfig,
+    // CRUD
     createNew,
     getAll,
     getDetails,
     update,
     deleteEvaluation,
-    upsertConfig,
-    getConfigByYear,
+    getAccessibleClassesList,
 };

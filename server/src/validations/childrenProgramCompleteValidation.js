@@ -1,3 +1,5 @@
+// server/src/validations/childrenProgramCompleteValidation.js
+
 import Joi from 'joi';
 import { StatusCodes } from 'http-status-codes';
 import ApiError from '~/utils/ApiError.js';
@@ -24,11 +26,17 @@ const createNew = async (req, res, next) => {
                         .pattern(OBJECT_ID_RULE)
                         .required()
                         .messages({ 'string.pattern.base': OBJECT_ID_RULE_MESSAGE }),
-                    status: Joi.string().valid('Chưa đánh giá', 'Đạt', 'Chưa đạt').default('Chưa đánh giá'),
+                    score: Joi.number().integer().min(0).max(10).required().messages({
+                        'number.base': 'Điểm số phải là số',
+                        'number.min': 'Điểm số tối thiểu là 0',
+                        'number.max': 'Điểm số tối đa là 10',
+                    }),
                 }),
             )
             .required(),
-        note: Joi.string().allow('', null),
+        note: Joi.string().allow('', null).max(2000).messages({
+            'string.max': 'Ghi chú không được vượt quá 2000 ký tự',
+        }),
     });
 
     try {
@@ -47,10 +55,16 @@ const update = async (req, res, next) => {
                     .pattern(OBJECT_ID_RULE)
                     .required()
                     .messages({ 'string.pattern.base': OBJECT_ID_RULE_MESSAGE }),
-                status: Joi.string().valid('Chưa đánh giá', 'Đạt', 'Chưa đạt').required(),
+                score: Joi.number().integer().min(0).max(10).required().messages({
+                    'number.base': 'Điểm số phải là số',
+                    'number.min': 'Điểm số tối thiểu là 0',
+                    'number.max': 'Điểm số tối đa là 10',
+                }),
             }),
         ),
-        note: Joi.string().allow('', null),
+        note: Joi.string().allow('', null).max(2000).messages({
+            'string.max': 'Ghi chú không được vượt quá 2000 ký tự',
+        }),
     });
 
     try {
@@ -90,4 +104,8 @@ const configUpsert = async (req, res, next) => {
     }
 };
 
-export const childrenProgramCompleteValidation = { createNew, update, configUpsert };
+export const childrenProgramCompleteValidation = {
+    createNew,
+    update,
+    configUpsert,
+};

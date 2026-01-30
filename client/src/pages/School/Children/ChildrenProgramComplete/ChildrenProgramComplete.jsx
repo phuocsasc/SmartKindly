@@ -1,4 +1,5 @@
-/* eslint-disable react-hooks/exhaustive-deps */
+// client/src/pages/School/Children/ChildrenProgramComplete/ChildrenProgramComplete.jsx
+
 import { useState, useEffect } from 'react';
 import {
     Box,
@@ -8,46 +9,70 @@ import {
     InputLabel,
     Select,
     MenuItem,
-    CircularProgress,
     TextField,
     IconButton,
     Tooltip,
-    Table,
-    TableBody,
-    TableCell,
-    TableContainer,
-    TableHead,
-    TableRow,
     Alert,
-    Chip,
 } from '@mui/material';
-import PeopleIcon from '@mui/icons-material/People';
-import EmojiEventsOutlinedIcon from '@mui/icons-material/EmojiEventsOutlined';
-import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
-import DoneOutlinedIcon from '@mui/icons-material/DoneOutlined';
-import SettingsOutlinedIcon from '@mui/icons-material/SettingsOutlined';
+import { DataGrid } from '@mui/x-data-grid';
+import {
+    EmojiEventsOutlined as TrophyIcon,
+    EditOutlined as EditIcon,
+    DoneOutlined as DoneIcon,
+    SettingsOutlined as SettingsIcon,
+    DeleteOutlineOutlined as DeleteIcon,
+} from '@mui/icons-material';
 import MainLayout from '~/layouts/SchoolLayout';
 import PageContainer from '~/components/common/PageContainer';
 import PageBreadcrumb from '~/components/common/PageBreadcrumb';
 import { useUser } from '~/contexts/UserContext';
 import { usePermission } from '~/hooks/usePermission';
-import {
-    childrenProgramCompleteApi,
-    academicYearApi,
-    childrenProfileApi,
-    childrenDailyAssessmentApi,
-    schoolYearTargetApi,
-} from '~/apis';
+import { childrenProgramCompleteApi, academicYearApi, schoolYearTargetApi } from '~/apis';
 import { PERMISSIONS } from '~/config/rbacConfig';
 import { toast } from 'react-toastify';
+import { useConfirmDialog } from '~/hooks/useConfirmDialog'; // ✅ FIX
+import ConfirmDialog from '~/components/common/ConfirmDialog'; // ✅ FIX
 import ChildrenProgramCompleteDialog from './ChildrenProgramCompleteDialog';
 import TargetConfigurationDialog from './TargetConfigurationDialog';
+
+// ✅ Star Component
+const StarRating = ({ score = 0 }) => {
+    const stars = [];
+    for (let i = 0; i < 10; i++) {
+        stars.push(
+            <Box
+                key={i}
+                sx={{
+                    fontSize: 16,
+                    color: i < score ? '#ffc107' : '#e0e0e0',
+                    display: 'inline-block',
+                }}
+            >
+                ★
+            </Box>,
+        );
+    }
+
+    return (
+        <Box
+            sx={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(5, 1fr)',
+                gap: 0.2,
+                width: 'fit-content',
+            }}
+        >
+            {stars}
+        </Box>
+    );
+};
 
 function ChildrenProgramComplete() {
     const { user } = useUser();
     const { hasPermission } = usePermission(user?.role);
+    const { dialogState, showConfirm, handleCancel } = useConfirmDialog(); // ✅ FIX
 
-    // ✅ State
+    // State
     const [loading, setLoading] = useState(false);
     const [academicYears, setAcademicYears] = useState([]);
     const [selectedYear, setSelectedYear] = useState('');
@@ -55,25 +80,30 @@ function ChildrenProgramComplete() {
     const [classes, setClasses] = useState([]);
     const [selectedClass, setSelectedClass] = useState('');
     const [searchText, setSearchText] = useState('');
-    const [students, setStudents] = useState([]);
-    const [evaluations, setEvaluations] = useState({});
+    const [rows, setRows] = useState([]);
+    const [paginationModel, setPaginationModel] = useState({ page: 0, pageSize: 10 });
+    const [totalRows, setTotalRows] = useState(0);
+
+    // Config & Targets
     const [configuredTargets, setConfiguredTargets] = useState({});
     const [targetDetails, setTargetDetails] = useState({});
+
+    // Dialog
     const [openDialog, setOpenDialog] = useState(false);
     const [openConfigDialog, setOpenConfigDialog] = useState(false);
     const [dialogData, setDialogData] = useState(null);
 
-    // ✅ Permissions
     const isActiveYear = selectedYear === activeYearId;
     const canCreate = hasPermission(PERMISSIONS.CREATE_CHILDREN_PROGRAM_COMPLETE);
     const canUpdate = hasPermission(PERMISSIONS.UPDATE_CHILDREN_PROGRAM_COMPLETE);
     const canConfigure = hasPermission(PERMISSIONS.CREATE_CHILDREN_PROGRAM_COMPLETE) && user?.role === 'ban_giam_hieu';
+    const canDelete = hasPermission(PERMISSIONS.DELETE_CHILDREN_PROGRAM_COMPLETE);
 
-    // ✅ Get class details for current selection - TRƯỚC KHI SỬ DỤNG
+    // Get current class info
     const currentClass = classes.find((c) => c._id === selectedClass);
     const currentAgeGroup = currentClass?.ageGroup;
 
-    // ✅ Map ageGroup từ class sang configured targets
+    // Map ageGroup
     const ageGroupMapping = {
         '12-24 tháng': 'Nhà trẻ 12-24 tháng',
         '24-36 tháng': 'Nhà trẻ 24-36 tháng',
@@ -85,7 +115,40 @@ function ChildrenProgramComplete() {
     const mappedAgeGroup = ageGroupMapping[currentAgeGroup];
     const currentTargetIds = mappedAgeGroup ? configuredTargets[mappedAgeGroup] || [] : [];
 
-    // ✅ Fetch Academic Years
+    // ✅ Initialize
+    useEffect(() => {
+        fetchAcademicYears();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
+    // ✅ Fetch classes when year changes
+    useEffect(() => {
+        if (selectedYear) {
+            fetchClasses();
+            fetchConfiguredTargets();
+        } else {
+            setClasses([]);
+            setSelectedClass('');
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [selectedYear]);
+
+    // ✅ Fetch data when filters change
+    useEffect(() => {
+        if (selectedYear && selectedClass) {
+            fetchData();
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [paginationModel, selectedYear, selectedClass, searchText]);
+
+    // ✅ Fetch target details when targets change
+    useEffect(() => {
+        if (currentTargetIds.length > 0 && selectedYear && mappedAgeGroup) {
+            fetchTargetDetails();
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [currentTargetIds, selectedYear, mappedAgeGroup]);
+
     const fetchAcademicYears = async () => {
         try {
             const res = await academicYearApi.getAll({ page: 1, limit: 100, status: '' });
@@ -99,42 +162,32 @@ function ChildrenProgramComplete() {
             }
         } catch (error) {
             console.error('Error fetching academic years:', error);
-            toast.error('Lỗi khi tải danh sách năm học!');
+            toast.error('Không thể tải danh sách năm học');
         }
     };
 
-    // ✅ Fetch Classes based on role
-    const fetchClasses = async (yearId) => {
-        if (!yearId) {
-            setClasses([]);
-            setSelectedClass('');
-            return;
-        }
-
+    const fetchClasses = async () => {
         try {
-            const res = await childrenDailyAssessmentApi.getAccessibleClasses(yearId);
-            setClasses(res.data.data.classes || []);
+            const res = await childrenProgramCompleteApi.getAccessibleClasses(selectedYear);
+            const classList = res.data.data.classes || [];
+            setClasses(classList);
 
-            // ✅ FIX: Reset selectedClass khi đổi năm học
-            if (res.data.data.classes?.length > 0) {
-                setSelectedClass(res.data.data.classes[0]._id);
+            if (classList.length > 0) {
+                setSelectedClass(classList[0]._id);
             } else {
                 setSelectedClass('');
             }
         } catch (error) {
             console.error('Error fetching classes:', error);
-            toast.error('Lỗi khi tải danh sách lớp học!');
+            toast.error('Không thể tải danh sách lớp học');
             setClasses([]);
             setSelectedClass('');
         }
     };
 
-    // ✅ Fetch Configured Targets
-    const fetchConfiguredTargets = async (yearId) => {
-        if (!yearId) return;
-
+    const fetchConfiguredTargets = async () => {
         try {
-            const res = await childrenProgramCompleteApi.getConfigByYear(yearId);
+            const res = await childrenProgramCompleteApi.getConfigByYear(selectedYear);
             const targetMap = {};
             res.data.data.configs.forEach((config) => {
                 targetMap[config.ageGroup] = config.selectedTargetIds || [];
@@ -142,14 +195,10 @@ function ChildrenProgramComplete() {
             setConfiguredTargets(targetMap);
         } catch (error) {
             console.error('Error fetching configured targets:', error);
-            toast.error(error.response?.data?.message || 'Lỗi khi tải cấu hình!');
         }
     };
 
-    // ✅ Fetch Target Details
-    const fetchTargetDetails = async (targetIds) => {
-        if (!targetIds || targetIds.length === 0 || !mappedAgeGroup) return;
-
+    const fetchTargetDetails = async () => {
         try {
             const res = await schoolYearTargetApi.getAll({
                 page: 1,
@@ -162,7 +211,6 @@ function ChildrenProgramComplete() {
             if (!targets) return;
 
             const details = {};
-            let mtNumber = 1;
 
             const processTargets = (mainFields) => {
                 mainFields.forEach((mainField) => {
@@ -170,22 +218,24 @@ function ChildrenProgramComplete() {
                         mainField.subFields.forEach((subField) => {
                             subField.expectedResults?.forEach((expectedResult) => {
                                 expectedResult.targets?.forEach((target) => {
-                                    details[String(target._id)] = {
-                                        code: `MT${mtNumber}`,
-                                        content: target.content,
-                                    };
-                                    mtNumber++;
+                                    if (currentTargetIds.includes(target._id)) {
+                                        details[String(target._id)] = {
+                                            code: target.code,
+                                            content: target.content,
+                                        };
+                                    }
                                 });
                             });
                         });
                     } else {
                         mainField.expectedResults?.forEach((expectedResult) => {
                             expectedResult.targets?.forEach((target) => {
-                                details[String(target._id)] = {
-                                    code: `MT${mtNumber}`,
-                                    content: target.content,
-                                };
-                                mtNumber++;
+                                if (currentTargetIds.includes(target._id)) {
+                                    details[String(target._id)] = {
+                                        code: target.code,
+                                        content: target.content,
+                                    };
+                                }
                             });
                         });
                     }
@@ -202,86 +252,58 @@ function ChildrenProgramComplete() {
         }
     };
 
-    // ✅ Fetch Students & Evaluations
-    const fetchStudentsAndEvaluations = async () => {
-        if (!selectedYear || !selectedClass) {
-            setStudents([]);
-            setEvaluations({});
-            return;
-        }
-
+    const fetchData = async () => {
         try {
             setLoading(true);
 
-            const studentsRes = await childrenProfileApi.getAll({
-                page: 1,
-                limit: 1000,
+            const res = await childrenProgramCompleteApi.getAll({
+                page: paginationModel.page + 1,
+                limit: paginationModel.pageSize,
                 academicYearId: selectedYear,
                 classId: selectedClass,
-                status: 'Đang học',
                 search: searchText,
             });
 
-            const studentList = studentsRes.data.data.profiles || [];
-            setStudents(studentList);
+            const data = res.data.data;
 
-            if (!selectedClass) return;
+            const evaluations = data.items.map((item, index) => ({
+                id: item._id || `temp-${item.studentId._id}`,
+                evaluationId: item._id,
+                stt: paginationModel.page * paginationModel.pageSize + index + 1,
+                studentId: item.studentId._id,
+                studentName: item.studentId.fullName,
+                studentCode: item.studentId.studentCode,
+                assessmentDetails: item.assessmentDetails || [],
+                note: item.note || '',
+            }));
 
-            const evalsRes = await childrenProgramCompleteApi.getAll({
-                page: 1,
-                limit: 1000,
-                academicYearId: selectedYear,
-                classId: selectedClass,
-            });
-
-            const evaluationList = evalsRes.data.data.items || [];
-            const evalMap = {};
-            evaluationList.forEach((evaluationItem) => {
-                evalMap[evaluationItem.studentId._id] = evaluationItem;
-            });
-
-            setEvaluations(evalMap);
+            setRows(evaluations);
+            setTotalRows(data.pagination.totalItems);
         } catch (error) {
             console.error('Error fetching data:', error);
-            toast.error(error.response?.data?.message || 'Lỗi khi tải dữ liệu!');
+            toast.error(error?.response?.data?.message || 'Không thể tải dữ liệu');
         } finally {
             setLoading(false);
         }
     };
 
-    // ✅ Get target counts
-    const getTargetCounts = (evaluation) => {
-        if (!evaluation) return { achieved: 0, notAchieved: 0, total: currentTargetIds.length };
-
-        const achieved = evaluation.assessmentDetails.filter(
-            (d) => d.status === 'Đạt' && currentTargetIds.includes(String(d.targetId)),
-        ).length;
-
-        const notAchieved = evaluation.assessmentDetails.filter(
-            (d) => d.status === 'Chưa đạt' && currentTargetIds.includes(String(d.targetId)),
-        ).length;
-
-        return { achieved, notAchieved, total: currentTargetIds.length };
-    };
-
-    // ✅ Handle Open Dialog
-    const handleOpenDialog = (student, evaluation = null) => {
-        if (!isActiveYear && !evaluation) {
-            toast.warning('Chỉ có thể đánh giá trong năm học đang hoạt động!');
-            return;
-        }
-
+    const handleEdit = (row) => {
         setDialogData({
-            student,
-            evaluation,
+            evaluationId: row.evaluationId,
+            student: {
+                _id: row.studentId,
+                fullName: row.studentName,
+                studentCode: row.studentCode,
+            },
             classId: selectedClass,
             academicYearId: selectedYear,
+            assessmentDetails: row.assessmentDetails,
+            note: row.note,
         });
         setOpenDialog(true);
     };
 
-    // ✅ Handle Config Dialog
-    const handleOpenConfigDialog = () => {
+    const handleOpenConfig = () => {
         if (!isActiveYear) {
             toast.warning('Chỉ có thể cấu hình trong năm học đang hoạt động!');
             return;
@@ -289,80 +311,198 @@ function ChildrenProgramComplete() {
         setOpenConfigDialog(true);
     };
 
-    // ✅ UseEffects
-    useEffect(() => {
+    const handleYearChange = (newYearId) => {
+        setSelectedYear(newYearId);
         setSelectedClass('');
-        fetchAcademicYears();
-    }, []);
+        setRows([]);
+    };
 
-    useEffect(() => {
-        if (selectedYear) {
-            setSelectedClass(''); // ✅ Reset selectedClass trước
-            fetchClasses(selectedYear);
-            fetchConfiguredTargets(selectedYear);
+    // ✅ FIX: Handle delete with useConfirmDialog
+    const handleDelete = async (row) => {
+        if (!row.evaluationId) {
+            toast.warning('Học sinh này chưa có đánh giá!');
+            return;
         }
-    }, [selectedYear]);
 
-    useEffect(() => {
-        if (selectedYear && selectedClass && searchText !== undefined) {
-            fetchStudentsAndEvaluations();
-        }
-    }, [selectedYear, selectedClass, searchText]);
+        showConfirm({
+            title: 'Xác nhận xóa đánh giá',
+            message: `Bạn có chắc chắn muốn xóa đánh giá của học sinh "${row.studentName}"? Hành động này không thể hoàn tác.`,
+            severity: 'error',
+            confirmText: 'Xóa',
+            cancelText: 'Hủy',
+            onConfirm: async () => {
+                try {
+                    await childrenProgramCompleteApi.delete(row.evaluationId);
+                    toast.success('Xóa đánh giá thành công!');
+                    fetchData();
+                } catch (error) {
+                    console.error('Error deleting evaluation:', error);
+                    toast.error(error.response?.data?.message || 'Lỗi khi xóa đánh giá!');
+                }
+            },
+        });
+    };
 
-    useEffect(() => {
-        if (currentTargetIds.length > 0 && selectedYear && mappedAgeGroup) {
-            fetchTargetDetails(currentTargetIds);
-        }
-    }, [currentTargetIds, selectedYear, mappedAgeGroup]);
-    // ✅ Render
+    // ✅ Columns
+    const columns = [
+        { field: 'stt', headerName: 'STT', width: 60, sortable: false, align: 'center' },
+        {
+            field: 'studentName',
+            headerName: 'Họ tên học sinh',
+            flex: 1,
+            minWidth: 150,
+            sortable: false,
+            renderCell: (params) => (
+                <Typography variant="body2" fontWeight={600}>
+                    {params.value}
+                </Typography>
+            ),
+        },
+        {
+            field: 'studentCode',
+            headerName: 'Mã học sinh',
+            width: 120,
+            sortable: false,
+        },
+        // Dynamic target columns
+        ...currentTargetIds.map((targetId) => {
+            const targetInfo = targetDetails[String(targetId)];
+            const mtCode = targetInfo?.code || 'MT?';
+
+            return {
+                field: String(targetId),
+                headerName: mtCode,
+                width: 120,
+                sortable: false,
+                align: 'center',
+                renderHeader: () => (
+                    <Tooltip title={targetInfo?.content || `Mục tiêu ${mtCode}`} placement="top">
+                        <Typography variant="body2" fontWeight={700}>
+                            {mtCode}
+                        </Typography>
+                    </Tooltip>
+                ),
+                renderCell: (params) => {
+                    const assessment = params.row.assessmentDetails?.find(
+                        (a) => String(a.targetId) === String(targetId),
+                    );
+                    const score = assessment?.score || 0;
+
+                    return <StarRating score={score} />;
+                },
+            };
+        }),
+        {
+            field: 'actions',
+            headerName: 'Thao tác',
+            width: 100,
+            sortable: false,
+            align: 'center',
+            renderCell: (params) => {
+                const hasEvaluation = !!params.row.evaluationId;
+                const canEdit = isActiveYear && (canCreate || canUpdate);
+                const canDeleteRow = isActiveYear && canDelete && hasEvaluation;
+
+                return (
+                    <Box sx={{ display: 'flex', gap: 0.5, justifyContent: 'center' }}>
+                        {/* Edit Icon */}
+                        <Tooltip
+                            title={
+                                canEdit
+                                    ? hasEvaluation
+                                        ? 'Sửa đánh giá'
+                                        : 'Tạo đánh giá'
+                                    : 'Chỉ sửa được trong năm học đang hoạt động'
+                            }
+                        >
+                            <span>
+                                <IconButton
+                                    size="small"
+                                    color="primary"
+                                    disabled={!canEdit}
+                                    onClick={() => handleEdit(params.row)}
+                                >
+                                    <EditIcon fontSize="small" />
+                                </IconButton>
+                            </span>
+                        </Tooltip>
+
+                        {/* Delete Icon */}
+                        {hasEvaluation && (
+                            <Tooltip
+                                title={canDeleteRow ? 'Xóa đánh giá' : 'Chỉ xóa được trong năm học đang hoạt động'}
+                            >
+                                <span>
+                                    <IconButton
+                                        size="small"
+                                        color="error"
+                                        disabled={!canDeleteRow}
+                                        onClick={() => handleDelete(params.row)}
+                                    >
+                                        <DeleteIcon fontSize="small" />
+                                    </IconButton>
+                                </span>
+                            </Tooltip>
+                        )}
+                    </Box>
+                );
+            },
+        },
+    ];
+
     return (
         <MainLayout user={user}>
             <PageContainer>
                 <PageBreadcrumb
                     items={[
-                        { text: 'Quản lý trẻ em', icon: PeopleIcon, href: '#' },
+                        { text: 'Quản lý trẻ em', icon: TrophyIcon },
                         { text: 'Đánh giá trẻ hoàn thành chương trình' },
                     ]}
                 />
 
-                <Paper sx={{ p: 2, borderRadius: 2, boxShadow: 2 }}>
+                <Paper sx={{ p: 3, borderRadius: 4 }}>
                     {/* Header */}
                     <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                        <Typography variant="h5" fontWeight={600}>
+                        <Typography variant="h5" fontWeight={700} sx={{ color: '#667eea' }}>
                             Đánh giá trẻ hoàn thành chương trình
                         </Typography>
-                        <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', flexWrap: 'wrap' }}>
-                            <TextField
-                                size="small"
-                                placeholder="Tìm theo tên, mã HS..."
-                                value={searchText}
-                                onChange={(e) => setSearchText(e.target.value)}
-                                sx={{ minWidth: 200 }}
-                            />
+                    </Box>
 
-                            <FormControl size="small" sx={{ minWidth: 100 }}>
-                                <InputLabel>Năm học</InputLabel>
-                                <Select
-                                    value={selectedYear}
-                                    onChange={(e) => setSelectedYear(e.target.value)}
-                                    label="Năm học"
-                                >
-                                    {academicYears.map((year) => (
-                                        <MenuItem key={year._id} value={year._id}>
-                                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                                <Typography variant="body2">
-                                                    {year.fromYear}-{year.toYear}
-                                                </Typography>
-                                                {year.status === 'active' && (
-                                                    <DoneOutlinedIcon color="success" fontSize="small" />
-                                                )}
-                                            </Box>
-                                        </MenuItem>
-                                    ))}
-                                </Select>
-                            </FormControl>
+                    {/* Filters */}
+                    <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', mb: 2, flexWrap: 'wrap' }}>
+                        {/* Search */}
+                        <TextField
+                            size="small"
+                            placeholder="Tìm theo tên, mã HS..."
+                            value={searchText}
+                            onChange={(e) => setSearchText(e.target.value)}
+                            sx={{ minWidth: 200 }}
+                        />
 
-                            <FormControl size="small" sx={{ minWidth: 150 }}>
+                        {/* Select Năm học */}
+                        <FormControl size="small" sx={{ minWidth: 180 }}>
+                            <InputLabel>Năm học</InputLabel>
+                            <Select
+                                value={selectedYear}
+                                onChange={(e) => handleYearChange(e.target.value)}
+                                label="Năm học"
+                            >
+                                {academicYears.map((year) => (
+                                    <MenuItem key={year._id} value={year._id}>
+                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                            <Typography variant="body2">
+                                                {year.fromYear}-{year.toYear}
+                                            </Typography>
+                                            {year._id === activeYearId && <DoneIcon color="success" fontSize="small" />}
+                                        </Box>
+                                    </MenuItem>
+                                ))}
+                            </Select>
+                        </FormControl>
+
+                        {/* Select Lớp học */}
+                        {classes.length > 0 && (
+                            <FormControl size="small" sx={{ minWidth: 180 }}>
                                 <InputLabel>Lớp học</InputLabel>
                                 <Select
                                     value={selectedClass}
@@ -371,244 +511,85 @@ function ChildrenProgramComplete() {
                                 >
                                     {classes.map((cls) => (
                                         <MenuItem key={cls._id} value={cls._id}>
-                                            {cls.name}
+                                            {cls.name} - {cls.ageGroup}
                                         </MenuItem>
                                     ))}
                                 </Select>
                             </FormControl>
-                            {canConfigure && (
-                                <Tooltip title="Cấu hình mục tiêu">
-                                    <IconButton
-                                        color="primary"
-                                        onClick={handleOpenConfigDialog}
-                                        sx={{
-                                            bgcolor: 'rgba(25, 118, 210, 0.1)',
-                                            '&:hover': { bgcolor: 'rgba(25, 118, 210, 0.2)' },
-                                        }}
-                                    >
-                                        <SettingsOutlinedIcon />
-                                    </IconButton>
-                                </Tooltip>
-                            )}
-                        </Box>
+                        )}
+
+                        {/* Button Cấu hình mục tiêu */}
+                        {canConfigure && (
+                            <Tooltip title="Cấu hình mục tiêu">
+                                <IconButton
+                                    color="primary"
+                                    onClick={handleOpenConfig}
+                                    sx={{
+                                        bgcolor: 'rgba(25, 118, 210, 0.1)',
+                                        '&:hover': { bgcolor: 'rgba(25, 118, 210, 0.2)' },
+                                    }}
+                                >
+                                    <SettingsIcon />
+                                </IconButton>
+                            </Tooltip>
+                        )}
                     </Box>
 
-                    {/* Status Alert */}
+                    {/* Alert */}
                     {selectedYear && (
-                        <Alert severity={isActiveYear ? 'success' : 'warning'} sx={{ mb: 2 }}>
-                            {isActiveYear
-                                ? 'Năm học đang hoạt động - Có thể đánh giá'
-                                : 'Năm học đã kết thúc - Chỉ xem dữ liệu'}
+                        <Alert severity={isActiveYear ? 'success' : 'warning'} sx={{ mb: 2, borderRadius: 2 }}>
+                            {isActiveYear ? (
+                                <strong>Năm học đang hoạt động</strong>
+                            ) : (
+                                <strong>Năm học đã kết thúc</strong>
+                            )}
                         </Alert>
                     )}
 
-                    {/* No targets warning */}
                     {currentTargetIds.length === 0 && selectedClass && (
-                        <Alert severity="warning" sx={{ mb: 2 }}>
-                            Chưa cấu hình mục tiêu đánh giá cho nhóm tuổi "{currentAgeGroup}"
+                        <Alert severity="warning" sx={{ mb: 2, borderRadius: 2 }}>
+                            Chưa cấu hình mục tiêu cho nhóm tuổi "{currentAgeGroup}"
                         </Alert>
                     )}
 
-                    {/* No classes warning */}
                     {classes.length === 0 && selectedYear && (
-                        <Alert severity="info" sx={{ mb: 2 }}>
-                            {user?.role === 'to_truong'
-                                ? 'Bạn chưa được phân công quản lý khối nào'
-                                : 'Chưa có lớp học nào'}
+                        <Alert severity="info" sx={{ mb: 2, borderRadius: 2 }}>
+                            Bạn không có quyền truy cập lớp nào trong năm học này
                         </Alert>
                     )}
 
-                    {/* Table */}
-                    {loading ? (
-                        <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
-                            <CircularProgress />
-                        </Box>
-                    ) : students.length === 0 ? (
-                        <Box sx={{ textAlign: 'center', py: 4 }}>
-                            <Typography color="text.secondary">
-                                {selectedClass ? 'Không có học sinh nào' : 'Vui lòng chọn lớp học'}
-                            </Typography>
-                        </Box>
-                    ) : (
-                        <TableContainer sx={{ border: '1px solid #e0e0e0', borderRadius: 2 }}>
-                            <Table stickyHeader size="small">
-                                <TableHead>
-                                    <TableRow sx={{ bgcolor: '#e3f2fd' }}>
-                                        <TableCell sx={{ fontWeight: 700, minWidth: 50, whiteSpace: 'nowrap' }}>
-                                            STT
-                                        </TableCell>
-                                        <TableCell sx={{ fontWeight: 700, minWidth: 100, whiteSpace: 'nowrap' }}>
-                                            Họ tên học sinh
-                                        </TableCell>
-                                        <TableCell sx={{ fontWeight: 700, minWidth: 120, whiteSpace: 'nowrap' }}>
-                                            Mã học sinh
-                                        </TableCell>
-
-                                        <TableCell
-                                            align="center"
-                                            sx={{ fontWeight: 700, minWidth: 70, whiteSpace: 'nowrap' }}
-                                        >
-                                            Đạt
-                                        </TableCell>
-                                        <TableCell
-                                            align="center"
-                                            sx={{ fontWeight: 700, minWidth: 70, whiteSpace: 'nowrap' }}
-                                        >
-                                            Chưa đạt
-                                        </TableCell>
-
-                                        {/* ✅ Thêm cột Nhận xét */}
-                                        <TableCell sx={{ fontWeight: 700, minWidth: 100, whiteSpace: 'nowrap' }}>
-                                            Nhận xét tổng kết
-                                        </TableCell>
-
-                                        {currentTargetIds.length > 0 &&
-                                            currentTargetIds.map((targetId, idx) => {
-                                                const targetInfo = targetDetails[String(targetId)];
-                                                const mtCode = targetInfo?.code || `MT${idx + 1}`;
-
-                                                return (
-                                                    <TableCell
-                                                        key={targetId}
-                                                        align="center"
-                                                        sx={{ fontWeight: 700, minwidth: 60 }}
-                                                    >
-                                                        <Tooltip title={targetInfo?.content || `Mục tiêu ${mtCode}`}>
-                                                            <span>{mtCode}</span>
-                                                        </Tooltip>
-                                                    </TableCell>
-                                                );
-                                            })}
-
-                                        {isActiveYear && (canCreate || canUpdate) && (
-                                            <TableCell
-                                                align="center"
-                                                sx={{ fontWeight: 700, minwidth: 100, whiteSpace: 'nowrap' }}
-                                            >
-                                                Thao tác
-                                            </TableCell>
-                                        )}
-                                    </TableRow>
-                                </TableHead>
-
-                                <TableBody>
-                                    {students.map((student, idx) => {
-                                        const evaluation = evaluations[student._id];
-                                        const counts = getTargetCounts(evaluation);
-
-                                        return (
-                                            <TableRow key={student._id} hover>
-                                                <TableCell>{idx + 1}</TableCell>
-                                                <TableCell sx={{ fontWeight: 600, whiteSpace: 'nowrap' }}>
-                                                    {student.fullName}
-                                                </TableCell>
-                                                <TableCell sx={{ whiteSpace: 'nowrap' }}>
-                                                    {student.studentCode}
-                                                </TableCell>
-
-                                                <TableCell align="center">
-                                                    <Chip
-                                                        label={counts.achieved}
-                                                        size="small"
-                                                        color="success"
-                                                        variant="outlined"
-                                                    />
-                                                </TableCell>
-                                                <TableCell align="center">
-                                                    <Chip
-                                                        label={counts.notAchieved}
-                                                        size="small"
-                                                        color="warning"
-                                                        variant="outlined"
-                                                    />
-                                                </TableCell>
-
-                                                {/* ✅ Hiển thị Nhận xét */}
-                                                <TableCell>
-                                                    {evaluation?.note ? (
-                                                        <Typography
-                                                            variant="body2"
-                                                            sx={{
-                                                                whiteSpace: 'pre-line',
-                                                                wordBreak: 'break-word',
-                                                                maxWidth: 250,
-                                                                maxHeight: 100,
-                                                                overflowY: 'auto',
-                                                            }}
-                                                        >
-                                                            {evaluation.note}
-                                                        </Typography>
-                                                    ) : (
-                                                        <Typography
-                                                            variant="body2"
-                                                            color="text.secondary"
-                                                            fontStyle="italic"
-                                                        >
-                                                            Chưa có nhận xét
-                                                        </Typography>
-                                                    )}
-                                                </TableCell>
-
-                                                {currentTargetIds.length > 0 &&
-                                                    currentTargetIds.map((targetId) => {
-                                                        const assessment = evaluation?.assessmentDetails?.find(
-                                                            (a) => String(a.targetId) === String(targetId),
-                                                        );
-                                                        const status = assessment?.status || 'Chưa đánh giá';
-
-                                                        const colorMap = {
-                                                            'Chưa đánh giá': '#9e9e9e',
-                                                            Đạt: '#ffc107',
-                                                            'Chưa đạt': '#4caf50',
-                                                        };
-
-                                                        return (
-                                                            <TableCell
-                                                                key={`${student._id}-${targetId}`}
-                                                                align="center"
-                                                            >
-                                                                <Tooltip title={status}>
-                                                                    <EmojiEventsOutlinedIcon
-                                                                        sx={{
-                                                                            fontSize: 24,
-                                                                            color: colorMap[status],
-                                                                            cursor:
-                                                                                isActiveYear && (canCreate || canUpdate)
-                                                                                    ? 'pointer'
-                                                                                    : 'default',
-                                                                        }}
-                                                                        onClick={() => {
-                                                                            if (
-                                                                                isActiveYear &&
-                                                                                (canCreate || canUpdate)
-                                                                            ) {
-                                                                                handleOpenDialog(student, evaluation);
-                                                                            }
-                                                                        }}
-                                                                    />
-                                                                </Tooltip>
-                                                            </TableCell>
-                                                        );
-                                                    })}
-
-                                                {isActiveYear && (canCreate || canUpdate) && (
-                                                    <TableCell align="center">
-                                                        <IconButton
-                                                            size="small"
-                                                            color={evaluation ? 'primary' : 'default'}
-                                                            onClick={() => handleOpenDialog(student, evaluation)}
-                                                        >
-                                                            <EditOutlinedIcon />
-                                                        </IconButton>
-                                                    </TableCell>
-                                                )}
-                                            </TableRow>
-                                        );
-                                    })}
-                                </TableBody>
-                            </Table>
-                        </TableContainer>
-                    )}
+                    {/* DataGrid */}
+                    <DataGrid
+                        rows={rows}
+                        columns={columns}
+                        loading={loading}
+                        paginationMode="server"
+                        paginationModel={paginationModel}
+                        onPaginationModelChange={setPaginationModel}
+                        rowCount={totalRows}
+                        pageSizeOptions={[5, 10, 20, 50]}
+                        disableRowSelectionOnClick
+                        disableColumnMenu
+                        autoHeight
+                        getRowHeight={() => 'auto'}
+                        sx={{
+                            '& .MuiDataGrid-columnHeaders': {
+                                bgcolor: '#f5f5f5',
+                                fontWeight: 700,
+                            },
+                            '& .MuiDataGrid-cell': {
+                                py: 1,
+                            },
+                        }}
+                        localeText={{
+                            noRowsLabel: 'Không có dữ liệu',
+                            MuiTablePagination: {
+                                labelRowsPerPage: 'Số dòng mỗi trang:',
+                                labelDisplayedRows: ({ from, to, count }) =>
+                                    `${from} - ${to} của ${count !== -1 ? count : `hơn ${to}`}`,
+                            },
+                        }}
+                    />
                 </Paper>
             </PageContainer>
 
@@ -617,8 +598,6 @@ function ChildrenProgramComplete() {
                 <ChildrenProgramCompleteDialog
                     open={openDialog}
                     data={dialogData}
-                    targets={currentTargetIds}
-                    ageGroup={mappedAgeGroup} // ⭐ GỬI NHÓM TUỔI CHUẨN
                     onClose={() => {
                         setOpenDialog(false);
                         setDialogData(null);
@@ -626,7 +605,7 @@ function ChildrenProgramComplete() {
                     onSuccess={() => {
                         setOpenDialog(false);
                         setDialogData(null);
-                        fetchStudentsAndEvaluations();
+                        fetchData();
                     }}
                 />
             )}
@@ -638,9 +617,12 @@ function ChildrenProgramComplete() {
                 onClose={() => setOpenConfigDialog(false)}
                 onSuccess={() => {
                     setOpenConfigDialog(false);
-                    fetchConfiguredTargets(selectedYear);
+                    fetchConfiguredTargets();
                 }}
             />
+
+            {/* ✅ FIX: Add ConfirmDialog */}
+            <ConfirmDialog {...dialogState} onCancel={handleCancel} />
         </MainLayout>
     );
 }

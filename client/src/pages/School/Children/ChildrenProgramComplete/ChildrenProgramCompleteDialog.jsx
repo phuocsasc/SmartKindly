@@ -187,7 +187,32 @@ function ChildrenProgramCompleteDialog({ open, data, onClose, onSuccess }) {
         }));
     };
 
+    // ✅ ADD: Validation function
+    const validateForm = () => {
+        // Check if all scores are valid (1-10)
+        const invalidScores = formData.assessmentDetails.filter((detail) => detail.score < 1 || detail.score > 10);
+
+        if (invalidScores.length > 0) {
+            toast.error('Tất cả mục tiêu phải có điểm số từ 1 đến 10!');
+            return false;
+        }
+
+        // Check if there's at least one score > 0
+        const hasScore = formData.assessmentDetails.some((detail) => detail.score > 0);
+        if (!hasScore) {
+            toast.error('Vui lòng đánh giá ít nhất 1 mục tiêu!');
+            return false;
+        }
+
+        return true;
+    };
+
     const handleSave = async () => {
+        // ✅ ADD: Validate before submit
+        if (!validateForm()) {
+            return;
+        }
+
         try {
             setLoading(true);
 
@@ -275,7 +300,7 @@ function ChildrenProgramCompleteDialog({ open, data, onClose, onSuccess }) {
                     <>
                         {/* Assessment Table */}
                         <Typography variant="subtitle2" fontWeight={600} sx={{ mb: 2, color: '#667eea' }}>
-                            Đánh giá mục tiêu (0-10 điểm)
+                            Đánh giá mục tiêu (1-10 điểm) *
                         </Typography>
 
                         <TableContainer component={Paper} sx={{ border: '1px solid #e0e0e0', mb: 3 }}>
@@ -292,7 +317,7 @@ function ChildrenProgramCompleteDialog({ open, data, onClose, onSuccess }) {
                                         <TableRow sx={{ bgcolor: '#ede7f6' }}>
                                             <TableCell sx={{ fontWeight: 700, width: 80 }}>Mục tiêu</TableCell>
                                             <TableCell sx={{ fontWeight: 700 }}>Nội dung</TableCell>
-                                            <TableCell sx={{ fontWeight: 700, width: 350 }}>Điểm số</TableCell>
+                                            <TableCell sx={{ fontWeight: 700, width: 350 }}>Điểm số (1-10) *</TableCell>
                                         </TableRow>
                                     </TableHead>
 
@@ -301,9 +326,16 @@ function ChildrenProgramCompleteDialog({ open, data, onClose, onSuccess }) {
                                             const targetInfo = targetDetails[String(detail.targetId)];
                                             const mtCode = targetInfo?.code || 'MT?';
                                             const content = targetInfo?.content || 'Đang tải...';
+                                            const isInvalid = detail.score < 1 || detail.score > 10;
 
                                             return (
-                                                <TableRow key={detail.targetId} hover>
+                                                <TableRow
+                                                    key={detail.targetId}
+                                                    hover
+                                                    sx={{
+                                                        bgcolor: isInvalid ? 'rgba(211, 47, 47, 0.05)' : 'transparent',
+                                                    }}
+                                                >
                                                     <TableCell sx={{ fontWeight: 600 }}>{mtCode}</TableCell>
                                                     <TableCell>
                                                         <Typography variant="body2">{content}</Typography>
@@ -320,7 +352,15 @@ function ChildrenProgramCompleteDialog({ open, data, onClose, onSuccess }) {
                                                                 step={1}
                                                                 marks
                                                                 valueLabelDisplay="auto"
-                                                                sx={{ flex: 1 }}
+                                                                sx={{
+                                                                    flex: 1,
+                                                                    '& .MuiSlider-thumb': {
+                                                                        borderColor: isInvalid ? '#d32f2f' : '#667eea',
+                                                                    },
+                                                                    '& .MuiSlider-track': {
+                                                                        bgcolor: isInvalid ? '#d32f2f' : '#667eea',
+                                                                    },
+                                                                }}
                                                             />
                                                             <Typography
                                                                 variant="h6"
@@ -328,12 +368,21 @@ function ChildrenProgramCompleteDialog({ open, data, onClose, onSuccess }) {
                                                                 sx={{
                                                                     minWidth: 40,
                                                                     textAlign: 'center',
-                                                                    color: '#667eea',
+                                                                    color: isInvalid ? '#d32f2f' : '#667eea',
                                                                 }}
                                                             >
                                                                 {detail.score}
                                                             </Typography>
                                                         </Box>
+                                                        {isInvalid && (
+                                                            <Typography
+                                                                variant="caption"
+                                                                color="error"
+                                                                sx={{ display: 'block', mt: 0.5 }}
+                                                            >
+                                                                Điểm phải từ 1-10
+                                                            </Typography>
+                                                        )}
                                                     </TableCell>
                                                 </TableRow>
                                             );

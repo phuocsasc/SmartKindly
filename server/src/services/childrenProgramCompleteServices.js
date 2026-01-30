@@ -372,8 +372,8 @@ const createNew = async (data, userId) => {
                     throw new ApiError(StatusCodes.BAD_REQUEST, 'Có mục tiêu không thuộc danh sách cấu hình');
                 }
                 // Validate score
-                if (detail.score < 0 || detail.score > 10) {
-                    throw new ApiError(StatusCodes.BAD_REQUEST, 'Điểm số phải từ 0 đến 10');
+                if (detail.score < 1 || detail.score > 10) {
+                    throw new ApiError(StatusCodes.BAD_REQUEST, 'Điểm số phải từ 1 đến 10');
                 }
             });
         }
@@ -597,8 +597,8 @@ const update = async (id, data, userId) => {
         if (data.assessmentDetails !== undefined) {
             // Validate scores
             data.assessmentDetails.forEach((detail) => {
-                if (detail.score < 0 || detail.score > 10) {
-                    throw new ApiError(StatusCodes.BAD_REQUEST, 'Điểm số phải từ 0 đến 10');
+                if (detail.score < 1 || detail.score > 10) {
+                    throw new ApiError(StatusCodes.BAD_REQUEST, 'Điểm số phải từ 1 đến 10');
                 }
             });
             evaluation.assessmentDetails = data.assessmentDetails;

@@ -26,9 +26,9 @@ const createNew = async (req, res, next) => {
                         .pattern(OBJECT_ID_RULE)
                         .required()
                         .messages({ 'string.pattern.base': OBJECT_ID_RULE_MESSAGE }),
-                    score: Joi.number().integer().min(0).max(10).required().messages({
+                    score: Joi.number().integer().min(1).max(10).required().messages({
                         'number.base': 'Điểm số phải là số',
-                        'number.min': 'Điểm số tối thiểu là 0',
+                        'number.min': 'Điểm số tối thiểu là 1',
                         'number.max': 'Điểm số tối đa là 10',
                     }),
                 }),
@@ -55,9 +55,9 @@ const update = async (req, res, next) => {
                     .pattern(OBJECT_ID_RULE)
                     .required()
                     .messages({ 'string.pattern.base': OBJECT_ID_RULE_MESSAGE }),
-                score: Joi.number().integer().min(0).max(10).required().messages({
+                score: Joi.number().integer().min(1).max(10).required().messages({
                     'number.base': 'Điểm số phải là số',
-                    'number.min': 'Điểm số tối thiểu là 0',
+                    'number.min': 'Điểm số tối thiểu là 1',
                     'number.max': 'Điểm số tối đa là 10',
                 }),
             }),

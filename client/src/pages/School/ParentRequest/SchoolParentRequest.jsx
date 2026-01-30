@@ -291,7 +291,7 @@ function SchoolParentRequest() {
             align: 'center',
             renderCell: (params) => {
                 const props = getStatusChipProps(params.value);
-                return <Chip {...props} size="small" sx={{ fontWeight: 600 }} />;
+                return <Chip {...props} size="small" sx={{ fontWeight: 400 }} />;
             },
         },
         {

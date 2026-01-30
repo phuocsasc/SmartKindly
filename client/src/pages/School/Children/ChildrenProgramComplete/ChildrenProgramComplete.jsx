@@ -16,7 +16,6 @@ import {
 } from '@mui/material';
 import { DataGrid } from '@mui/x-data-grid';
 import {
-    EmojiEventsOutlined as TrophyIcon,
     EditOutlined as EditIcon,
     DoneOutlined as DoneIcon,
     SettingsOutlined as SettingsIcon,
@@ -345,23 +344,20 @@ function ChildrenProgramComplete() {
 
     // ✅ Columns
     const columns = [
-        { field: 'stt', headerName: 'STT', width: 60, sortable: false, align: 'center' },
+        { field: 'stt', headerName: 'STT', width: 40, sortable: false, align: 'center' },
         {
             field: 'studentName',
             headerName: 'Họ tên học sinh',
-            flex: 1,
-            minWidth: 150,
+            flex: 0.8,
+            minWidth: 120,
             sortable: false,
-            renderCell: (params) => (
-                <Typography variant="body2" fontWeight={600}>
-                    {params.value}
-                </Typography>
-            ),
+            renderCell: (params) => <Typography fontWeight={600}>{params.value}</Typography>,
         },
         {
             field: 'studentCode',
             headerName: 'Mã học sinh',
-            width: 120,
+            flex: 0.7,
+            width: 100,
             sortable: false,
         },
         // Dynamic target columns
@@ -372,8 +368,10 @@ function ChildrenProgramComplete() {
             return {
                 field: String(targetId),
                 headerName: mtCode,
+                flex: 0.5,
                 width: 120,
                 sortable: false,
+                headerAlign: 'center',
                 align: 'center',
                 renderHeader: () => (
                     <Tooltip title={targetInfo?.content || `Mục tiêu ${mtCode}`} placement="top">
@@ -397,6 +395,7 @@ function ChildrenProgramComplete() {
             headerName: 'Thao tác',
             width: 100,
             sortable: false,
+            headerAlign: 'center',
             align: 'center',
             renderCell: (params) => {
                 const hasEvaluation = !!params.row.evaluationId;
@@ -453,86 +452,82 @@ function ChildrenProgramComplete() {
     return (
         <MainLayout user={user}>
             <PageContainer>
-                <PageBreadcrumb
-                    items={[
-                        { text: 'Quản lý trẻ em', icon: TrophyIcon },
-                        { text: 'Đánh giá trẻ hoàn thành chương trình' },
-                    ]}
-                />
+                <PageBreadcrumb items={[{ text: 'Đánh giá trẻ hoàn thành chương trình' }]} />
 
-                <Paper sx={{ p: 3, borderRadius: 4 }}>
+                <Paper sx={{ p: 2, borderRadius: 2, boxShadow: 2 }}>
                     {/* Header */}
                     <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                        <Typography variant="h5" fontWeight={700} sx={{ color: '#667eea' }}>
+                        <Typography variant="h5" fontWeight={700}>
                             Đánh giá trẻ hoàn thành chương trình
                         </Typography>
-                    </Box>
+                        {/* Filters */}
+                        <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', flexWrap: 'wrap' }}>
+                            {/* Search */}
+                            <TextField
+                                size="small"
+                                placeholder="Tìm theo tên, mã HS..."
+                                value={searchText}
+                                onChange={(e) => setSearchText(e.target.value)}
+                                sx={{ minWidth: 200 }}
+                            />
 
-                    {/* Filters */}
-                    <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', mb: 2, flexWrap: 'wrap' }}>
-                        {/* Search */}
-                        <TextField
-                            size="small"
-                            placeholder="Tìm theo tên, mã HS..."
-                            value={searchText}
-                            onChange={(e) => setSearchText(e.target.value)}
-                            sx={{ minWidth: 200 }}
-                        />
-
-                        {/* Select Năm học */}
-                        <FormControl size="small" sx={{ minWidth: 180 }}>
-                            <InputLabel>Năm học</InputLabel>
-                            <Select
-                                value={selectedYear}
-                                onChange={(e) => handleYearChange(e.target.value)}
-                                label="Năm học"
-                            >
-                                {academicYears.map((year) => (
-                                    <MenuItem key={year._id} value={year._id}>
-                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                            <Typography variant="body2">
-                                                {year.fromYear}-{year.toYear}
-                                            </Typography>
-                                            {year._id === activeYearId && <DoneIcon color="success" fontSize="small" />}
-                                        </Box>
-                                    </MenuItem>
-                                ))}
-                            </Select>
-                        </FormControl>
-
-                        {/* Select Lớp học */}
-                        {classes.length > 0 && (
+                            {/* Select Năm học */}
                             <FormControl size="small" sx={{ minWidth: 180 }}>
-                                <InputLabel>Lớp học</InputLabel>
+                                <InputLabel>Năm học</InputLabel>
                                 <Select
-                                    value={selectedClass}
-                                    onChange={(e) => setSelectedClass(e.target.value)}
-                                    label="Lớp học"
+                                    value={selectedYear}
+                                    onChange={(e) => handleYearChange(e.target.value)}
+                                    label="Năm học"
                                 >
-                                    {classes.map((cls) => (
-                                        <MenuItem key={cls._id} value={cls._id}>
-                                            {cls.name} - {cls.ageGroup}
+                                    {academicYears.map((year) => (
+                                        <MenuItem key={year._id} value={year._id}>
+                                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                                <Typography variant="body2">
+                                                    {year.fromYear}-{year.toYear}
+                                                </Typography>
+                                                {year._id === activeYearId && (
+                                                    <DoneIcon color="success" fontSize="small" />
+                                                )}
+                                            </Box>
                                         </MenuItem>
                                     ))}
                                 </Select>
                             </FormControl>
-                        )}
 
-                        {/* Button Cấu hình mục tiêu */}
-                        {canConfigure && (
-                            <Tooltip title="Cấu hình mục tiêu">
-                                <IconButton
-                                    color="primary"
-                                    onClick={handleOpenConfig}
-                                    sx={{
-                                        bgcolor: 'rgba(25, 118, 210, 0.1)',
-                                        '&:hover': { bgcolor: 'rgba(25, 118, 210, 0.2)' },
-                                    }}
-                                >
-                                    <SettingsIcon />
-                                </IconButton>
-                            </Tooltip>
-                        )}
+                            {/* Select Lớp học */}
+                            {classes.length > 0 && (
+                                <FormControl size="small" sx={{ minWidth: 180 }}>
+                                    <InputLabel>Lớp học</InputLabel>
+                                    <Select
+                                        value={selectedClass}
+                                        onChange={(e) => setSelectedClass(e.target.value)}
+                                        label="Lớp học"
+                                    >
+                                        {classes.map((cls) => (
+                                            <MenuItem key={cls._id} value={cls._id}>
+                                                {cls.name} - {cls.ageGroup}
+                                            </MenuItem>
+                                        ))}
+                                    </Select>
+                                </FormControl>
+                            )}
+
+                            {/* Button Cấu hình mục tiêu */}
+                            {canConfigure && (
+                                <Tooltip title="Cấu hình mục tiêu">
+                                    <IconButton
+                                        color="primary"
+                                        onClick={handleOpenConfig}
+                                        sx={{
+                                            bgcolor: 'rgba(25, 118, 210, 0.1)',
+                                            '&:hover': { bgcolor: 'rgba(25, 118, 210, 0.2)' },
+                                        }}
+                                    >
+                                        <SettingsIcon />
+                                    </IconButton>
+                                </Tooltip>
+                            )}
+                        </Box>
                     </Box>
 
                     {/* Alert */}
@@ -574,12 +569,37 @@ function ChildrenProgramComplete() {
                         getRowHeight={() => 'auto'}
                         sx={{
                             '& .MuiDataGrid-columnHeaders': {
-                                bgcolor: '#f5f5f5',
-                                fontWeight: 700,
+                                backgroundColor: '#e3f2fd',
+                                color: '#1976d2',
+                                fontWeight: 900,
+                                borderBottom: '2px solid #bbdefb',
+                            },
+                            '& .MuiDataGrid-columnHeaderTitle': {
+                                fontWeight: 'bold',
+                                fontSize: '0.95rem',
+                            },
+                            '& .MuiDataGrid-columnHeader': {
+                                borderRight: '1px solid #bbdefb',
+                                textAlign: 'center',
                             },
                             '& .MuiDataGrid-cell': {
+                                borderRight: '1px solid #e0e0e0',
+                                borderBottom: '1px solid #f0f0f0',
+                                alignItems: 'center',
+                                whiteSpace: 'normal',
+                                wordBreak: 'break-word',
+                                color: '#000',
                                 py: 1,
                             },
+                            '& .MuiDataGrid-cell:focus, & .MuiDataGrid-cell:focus-within': {
+                                outline: 'none',
+                            },
+                            '& .MuiDataGrid-row:hover': {
+                                backgroundColor: '#f5faff',
+                            },
+                            borderRadius: 2,
+                            boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+                            border: 'none',
                         }}
                         localeText={{
                             noRowsLabel: 'Không có dữ liệu',

@@ -53,6 +53,59 @@ const DEPT_TO_GRADE = {
 };
 
 /**
+ * ✅ NEW: Check if ageGroup has any evaluations
+ */
+const checkAgeGroupHasEvaluations = async (schoolId, academicYearId, ageGroup) => {
+    try {
+        // Get all classes of this ageGroup
+        const classAgeGroup = getClassAgeGroupFromConfig(ageGroup);
+        if (!classAgeGroup) {
+            return false;
+        }
+
+        const classes = await ClassModel.find({
+            schoolId,
+            academicYearId,
+            ageGroup: classAgeGroup,
+            _destroy: false,
+        }).select('_id');
+
+        if (classes.length === 0) {
+            return false;
+        }
+
+        const classIds = classes.map((c) => c._id);
+
+        // Check if any evaluation exists for these classes
+        const evaluationCount = await ChildrenProgramCompleteModel.countDocuments({
+            schoolId,
+            academicYearId,
+            classId: { $in: classIds },
+            _destroy: false,
+        });
+
+        return evaluationCount > 0;
+    } catch (error) {
+        console.error('❌ [checkAgeGroupHasEvaluations] Error:', error);
+        throw error;
+    }
+};
+
+/**
+ * ✅ NEW: Map config ageGroup to class ageGroup
+ */
+const getClassAgeGroupFromConfig = (configAgeGroup) => {
+    const mapping = {
+        'Nhà trẻ 12-24 tháng': '12-24 tháng',
+        'Nhà trẻ 24-36 tháng': '24-36 tháng',
+        'Khối mầm 3-4 tuổi': '3-4 tuổi',
+        'Khối chồi 4-5 tuổi': '4-5 tuổi',
+        'Khối lá 5-6 tuổi': '5-6 tuổi',
+    };
+    return mapping[configAgeGroup] || null;
+};
+
+/**
  * ✅ Get accessible classes for user based on role
  */
 const getAccessibleClassIds = async (user, academicYearId) => {
@@ -138,6 +191,15 @@ const upsertConfig = async (data, userId) => {
         const year = await getAcademicYearOrThrow(user.schoolId, academicYearId);
         if (year.status !== 'active') {
             throw new ApiError(StatusCodes.FORBIDDEN, 'Chỉ được cấu hình trong năm học đang hoạt động');
+        }
+
+        // ✅ NEW: Check if ageGroup already has evaluations
+        const hasEvaluations = await checkAgeGroupHasEvaluations(user.schoolId, academicYearId, ageGroup);
+        if (hasEvaluations) {
+            throw new ApiError(
+                StatusCodes.FORBIDDEN,
+                `Không thể chỉnh sửa cấu hình cho nhóm tuổi "${ageGroup}" vì đã có đánh giá học sinh. Vui lòng xóa tất cả đánh giá trước khi thay đổi cấu hình.`,
+            );
         }
 
         // Validate selectedTargetIds (tối thiểu 5)
@@ -259,6 +321,15 @@ const deleteConfig = async (ageGroup, academicYearId, userId) => {
         const year = await getAcademicYearOrThrow(user.schoolId, academicYearId);
         if (year.status !== 'active') {
             throw new ApiError(StatusCodes.FORBIDDEN, 'Chỉ được xóa cấu hình trong năm học đang hoạt động');
+        }
+
+        // ✅ NEW: Check if ageGroup already has evaluations
+        const hasEvaluations = await checkAgeGroupHasEvaluations(user.schoolId, academicYearId, ageGroup);
+        if (hasEvaluations) {
+            throw new ApiError(
+                StatusCodes.FORBIDDEN,
+                `Không thể xóa cấu hình cho nhóm tuổi "${ageGroup}" vì đã có đánh giá học sinh. Vui lòng xóa tất cả đánh giá trước khi xóa cấu hình.`,
+            );
         }
 
         const config = await ChildrenProgramCompleteConfigModel.findOneAndDelete({

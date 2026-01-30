@@ -7,6 +7,7 @@ import { ClassModel } from '~/models/classModel.js';
 import { ChildrenManagementModel } from '~/models/childrenManagementModel.js';
 import { ChildrenByClassModel } from '~/models/childrenByClassModel.js';
 import { DepartmentModel } from '~/models/departmentModel.js';
+import { notificationServices } from '~/services/notificationServices.js'; // ✅ ADD
 import ApiError from '~/utils/ApiError.js';
 import { StatusCodes } from 'http-status-codes';
 import dayjs from 'dayjs';
@@ -31,6 +32,61 @@ const getAcademicYearOrThrow = async (schoolId, academicYearId) => {
     const year = await AcademicYearModel.findOne({ _id: academicYearId, schoolId, _destroy: false });
     if (!year) throw new ApiError(StatusCodes.NOT_FOUND, 'Không tìm thấy năm học');
     return year;
+};
+
+/**
+ * ✅ Helper: Get all users who should receive notification for a class
+ */
+const getNotificationRecipients = async (schoolId, academicYearId, classId) => {
+    const recipients = [];
+
+    // 1. Ban giám hiệu
+    const bgh = await UserModel.find({
+        schoolId,
+        role: 'ban_giam_hieu',
+        status: true,
+        _destroy: false,
+    }).select('_id fullName');
+    recipients.push(...bgh);
+
+    // 2. Get class info
+    const classData = await ClassModel.findById(classId).select('grade homeRoomTeacher');
+    if (!classData) return recipients;
+
+    // 3. Giáo viên chủ nhiệm
+    if (classData.homeRoomTeacher) {
+        const teacher = await UserModel.findById(classData.homeRoomTeacher).select('_id fullName');
+        if (teacher) {
+            recipients.push(teacher);
+        }
+    }
+
+    // 4. Tổ trưởng quản lý khối
+    const gradeMapping = {
+        'Nhà trẻ': 'Khối Nhà Trẻ',
+        Mầm: 'Khối Mầm',
+        Chồi: 'Khối Chồi',
+        Lá: 'Khối Lá',
+    };
+
+    const departmentName = gradeMapping[classData.grade];
+    if (departmentName) {
+        const department = await DepartmentModel.findOne({
+            schoolId,
+            academicYearId,
+            name: departmentName,
+            _destroy: false,
+        }).populate('managers', '_id fullName');
+
+        if (department?.managers) {
+            recipients.push(...department.managers);
+        }
+    }
+
+    // Remove duplicates
+    const uniqueRecipients = Array.from(new Map(recipients.map((r) => [r._id.toString(), r])).values());
+
+    return uniqueRecipients;
 };
 
 /**
@@ -187,6 +243,34 @@ const createNew = async (data, userId) => {
             .populate('studentId', 'fullName studentCode')
             .populate('createdBy', 'fullName')
             .lean();
+
+        // ✅ GỬI THÔNG BÁO CHO CÁN BỘ NHÀ TRƯỜNG
+        const recipients = await getNotificationRecipients(user.schoolId, academicYearId, classId);
+
+        const parentName = populated.createdBy?.fullName || 'Phụ huynh';
+        const studentName = populated.studentId?.fullName || 'N/A';
+        const className = populated.classId?.name || 'N/A';
+
+        for (const recipient of recipients) {
+            await notificationServices.createNotification({
+                recipientUserId: recipient._id,
+                schoolId: user.schoolId,
+                title: 'Phiếu dặn dò mới từ phụ huynh',
+                message: `Phụ huynh bé <strong>${studentName}</strong> - Lớp <strong>${className}</strong> đã gửi phiếu dặn dò: "<strong>${requestName}</strong>"`,
+                meta: {
+                    requestId: newRequest._id,
+                    requestName,
+                    studentId: user.studentId,
+                    studentName,
+                    classId,
+                    className,
+                    academicYearId,
+                    academicYearName: `${populated.academicYearId.fromYear}-${populated.academicYearId.toYear}`,
+                    createdBy: user._id,
+                    createdByName: parentName,
+                },
+            });
+        }
 
         console.log('✅ [ParentRequest createNew] Created successfully');
         return populated;
@@ -402,7 +486,11 @@ const update = async (id, data, userId) => {
             _id: id,
             schoolId: user.schoolId,
             _destroy: false,
-        }).populate('academicYearId', 'status');
+        })
+            .populate('academicYearId', 'status fromYear toYear')
+            .populate('classId', 'name grade ageGroup')
+            .populate('studentId', 'fullName studentCode')
+            .populate('createdBy', 'fullName');
 
         if (!request) {
             throw new ApiError(StatusCodes.NOT_FOUND, 'Không tìm thấy phiếu dặn dò');
@@ -414,17 +502,19 @@ const update = async (id, data, userId) => {
         }
 
         // ✅ PHÂN QUYỀN UPDATE
+        let shouldNotifyParent = false; // Flag để gửi thông báo cho phụ huynh
+
         if (user.role === 'phu_huynh') {
             // Phụ huynh chỉ được update nếu status = "Chờ duyệt"
             if (request.status !== 'Chờ duyệt') {
                 throw new ApiError(StatusCodes.FORBIDDEN, 'Chỉ có thể chỉnh sửa phiếu đang ở trạng thái "Chờ duyệt"');
             }
 
-            if (!user.studentId || request.studentId.toString() !== user.studentId.toString()) {
+            if (!user.studentId || request.studentId._id.toString() !== user.studentId.toString()) {
                 throw new ApiError(StatusCodes.FORBIDDEN, 'Bạn không có quyền chỉnh sửa phiếu dặn dò này');
             }
 
-            // Phụ huynh chỉ được update các field content (KHÔNG BAO GỒM classId)
+            // Phụ huynh chỉ được update các field content
             const allowedFields = ['requestName', 'fromDate', 'toDate', 'parentNote'];
             allowedFields.forEach((field) => {
                 if (data[field] !== undefined) {
@@ -434,19 +524,21 @@ const update = async (id, data, userId) => {
         } else {
             // Ban giám hiệu, Tổ trưởng, Giáo viên
             const accessibleClassIds = await getAccessibleClassIds(user, request.academicYearId._id);
-            if (!accessibleClassIds.includes(request.classId.toString())) {
+            if (!accessibleClassIds.includes(request.classId._id.toString())) {
                 throw new ApiError(StatusCodes.FORBIDDEN, 'Bạn không có quyền chỉnh sửa phiếu dặn dò này');
             }
 
             // School roles chỉ được update teacherReply và status
             if (data.teacherReply !== undefined) {
                 request.teacherReply = data.teacherReply;
+                shouldNotifyParent = true; // ✅ Có phản hồi → gửi thông báo
             }
             if (data.status !== undefined) {
                 if (!['Chờ duyệt', 'Đã duyệt', 'Từ chối'].includes(data.status)) {
                     throw new ApiError(StatusCodes.BAD_REQUEST, 'Trạng thái không hợp lệ');
                 }
                 request.status = data.status;
+                shouldNotifyParent = true; // ✅ Thay đổi trạng thái → gửi thông báo
             }
         }
 
@@ -469,6 +561,46 @@ const update = async (id, data, userId) => {
             .populate('createdBy', 'fullName')
             .populate('lastUpdatedBy', 'fullName')
             .lean();
+
+        // ✅ GỬI THÔNG BÁO CHO PHỤ HUYNH (nếu nhà trường phản hồi)
+        if (shouldNotifyParent && request.createdBy) {
+            const replierName = populated.lastUpdatedBy?.fullName || 'Giáo viên';
+            const studentName = populated.studentId?.fullName || 'N/A';
+            const className = populated.classId?.name || 'N/A';
+
+            let message = '';
+            if (data.status === 'Đã duyệt') {
+                message = `Phiếu dặn dò "<strong>${request.requestName}</strong>" của bé <strong>${studentName}</strong> (Lớp <strong>${className}</strong>) đã được <strong>${replierName}</strong> phê duyệt.`;
+            } else if (data.status === 'Từ chối') {
+                message = `Phiếu dặn dò "<strong>${request.requestName}</strong>" của bé <strong>${studentName}</strong> (Lớp <strong>${className}</strong>) đã bị <strong>${replierName}</strong> từ chối.`;
+            } else if (data.teacherReply) {
+                message = `<strong>${replierName}</strong> đã phản hồi phiếu dặn dò "<strong>${request.requestName}</strong>" của bé <strong>${studentName}</strong> (Lớp <strong>${className}</strong>).`;
+            }
+
+            if (message) {
+                await notificationServices.createNotification({
+                    recipientUserId: request.createdBy,
+                    schoolId: user.schoolId,
+                    title: 'Phản hồi phiếu dặn dò',
+                    message,
+                    meta: {
+                        requestId: request._id,
+                        requestName: request.requestName,
+                        studentId: request.studentId._id,
+                        studentName,
+                        classId: request.classId._id,
+                        className,
+                        academicYearId: request.academicYearId._id,
+                        academicYearName: `${populated.academicYearId.fromYear}-${populated.academicYearId.toYear}`,
+                        status: request.status,
+                        repliedBy: user._id,
+                        repliedByName: replierName,
+                    },
+                });
+
+                console.log('✅ [ParentRequest update] Notified parent:', request.createdBy);
+            }
+        }
 
         console.log('✅ [ParentRequest update] Updated successfully');
         return populated;

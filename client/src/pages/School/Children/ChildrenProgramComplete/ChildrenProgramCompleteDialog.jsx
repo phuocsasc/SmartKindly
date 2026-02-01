@@ -12,19 +12,22 @@ import {
     Typography,
     IconButton,
     Avatar,
-    Divider,
     CircularProgress,
     Paper,
-    Table,
-    TableBody,
-    TableCell,
-    TableContainer,
-    TableHead,
-    TableRow,
-    Slider,
     Alert,
+    Chip,
+    Grid,
+    Stack,
+    Rating,
 } from '@mui/material';
-import { Close as CloseIcon, EmojiEventsOutlined as TrophyIcon, Save as SaveIcon } from '@mui/icons-material';
+import {
+    Close as CloseIcon,
+    EmojiEventsRounded as TrophyIcon,
+    SaveRounded as SaveIcon,
+    StarRounded as StarIcon,
+    StarBorderRounded as StarBorderIcon,
+    EditNoteRounded as NoteIcon,
+} from '@mui/icons-material';
 import { childrenProgramCompleteApi, schoolYearTargetApi } from '~/apis';
 import { toast } from 'react-toastify';
 
@@ -179,31 +182,23 @@ function ChildrenProgramCompleteDialog({ open, data, onClose, onSuccess }) {
     };
 
     const handleScoreChange = (targetId, newScore) => {
+        // Rating component trả về null nếu click lại vào sao đã chọn, ta set về 0 hoặc giữ nguyên tùy logic
+        const score = newScore === null ? 0 : newScore;
         setFormData((prev) => ({
             ...prev,
             assessmentDetails: prev.assessmentDetails.map((detail) =>
-                String(detail.targetId) === String(targetId) ? { ...detail, score: newScore } : detail,
+                String(detail.targetId) === String(targetId) ? { ...detail, score: score } : detail,
             ),
         }));
     };
 
-    // ✅ ADD: Validation function
     const validateForm = () => {
-        // Check if all scores are valid (1-10)
-        const invalidScores = formData.assessmentDetails.filter((detail) => detail.score < 1 || detail.score > 10);
-
+        // Kiểm tra nếu có điểm nào = 0 (Rating chưa chọn)
+        const invalidScores = formData.assessmentDetails.filter((detail) => detail.score < 1);
         if (invalidScores.length > 0) {
-            toast.error('Tất cả mục tiêu phải có điểm số từ 1 đến 10!');
+            toast.error('Vui lòng đánh giá tất cả các mục tiêu (tối thiểu 1 sao)!');
             return false;
         }
-
-        // Check if there's at least one score > 0
-        const hasScore = formData.assessmentDetails.some((detail) => detail.score > 0);
-        if (!hasScore) {
-            toast.error('Vui lòng đánh giá ít nhất 1 mục tiêu!');
-            return false;
-        }
-
         return true;
     };
 
@@ -242,198 +237,272 @@ function ChildrenProgramCompleteDialog({ open, data, onClose, onSuccess }) {
     };
 
     return (
-        <Dialog open={open} onClose={onClose} maxWidth="lg" fullWidth PaperProps={{ sx: { borderRadius: 3 } }}>
-            {/* Header */}
+        <Dialog
+            open={open}
+            onClose={onClose}
+            maxWidth="md"
+            fullWidth
+            PaperProps={{
+                sx: {
+                    borderRadius: 3,
+                    bgcolor: '#f8fafc',
+                    height: '90vh', // Tăng chiều cao để hiển thị được nhiều nội dung hơn
+                    display: 'flex',
+                    flexDirection: 'column',
+                },
+            }}
+        >
+            {/* --- 1. Compact Header with Student Info --- */}
             <DialogTitle
                 sx={{
-                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                    p: 2,
+                    background: 'linear-gradient(90deg, #6C5DD3 0%, #8071e6 100%)',
                     color: 'white',
-                    py: 1.5,
-                    position: 'relative',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: 2,
+                    boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
                 }}
             >
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                    <Avatar sx={{ bgcolor: 'rgba(255, 255, 255, 0.2)', width: 32, height: 32 }}>
-                        <TrophyIcon fontSize="small" />
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, overflow: 'hidden' }}>
+                    <Avatar sx={{ bgcolor: 'rgba(255,255,255,0.2)', width: 40, height: 40 }}>
+                        <TrophyIcon fontSize="small" sx={{ color: '#FFD700' }} />
                     </Avatar>
-                    <Typography variant="h6" fontWeight={600}>
-                        {data?.evaluationId ? 'Cập nhật đánh giá' : 'Tạo đánh giá'} - {data?.student?.fullName}
-                    </Typography>
+
+                    <Box>
+                        <Typography variant="h6" fontWeight={700} sx={{ lineHeight: 1.2 }}>
+                            Đánh giá trẻ hoàn thành chương trình
+                        </Typography>
+                        <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                            {data?.student?.fullName} - {data?.student?.studentCode}
+                        </Typography>
+                    </Box>
                 </Box>
+
                 <IconButton
                     onClick={onClose}
                     size="small"
-                    disabled={loading}
                     sx={{
-                        position: 'absolute',
-                        right: 8,
-                        top: 8,
                         color: 'white',
-                        '&:hover': { bgcolor: 'rgba(255, 255, 255, 0.1)' },
+                        bgcolor: 'rgba(255,255,255,0.1)',
+                        '&:hover': { bgcolor: 'rgba(255,255,255,0.2)' },
                     }}
                 >
-                    <CloseIcon />
+                    <CloseIcon fontSize="small" />
                 </IconButton>
             </DialogTitle>
 
-            <DialogContent sx={{ px: 3, py: 3 }}>
-                {/* Info */}
-                <Paper sx={{ p: 2, bgcolor: '#f5f5f5', borderRadius: 2, mb: 3 }}>
-                    <Typography variant="body2">
-                        <strong>Học sinh:</strong> {data?.student?.fullName} - {data?.student?.studentCode}
-                    </Typography>
-                </Paper>
-
-                {/* Loading State */}
+            {/* --- Content --- */}
+            <DialogContent sx={{ p: 0, display: 'flex', flexDirection: 'column', bgcolor: '#f1f5f9' }}>
                 {loadingTargets ? (
-                    <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
-                        <CircularProgress />
-                        <Typography variant="body2" sx={{ ml: 2 }}>
-                            Đang tải mục tiêu...
+                    <Box
+                        sx={{
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            flex: 1,
+                            py: 5,
+                        }}
+                    >
+                        <CircularProgress sx={{ color: '#6C5DD3' }} />
+                        <Typography variant="body2" sx={{ mt: 2, color: 'text.secondary' }}>
+                            Đang tải bảng đánh giá...
                         </Typography>
                     </Box>
                 ) : configuredTargets.length === 0 ? (
-                    <Alert severity="warning" sx={{ borderRadius: 2 }}>
-                        Chưa cấu hình mục tiêu cho nhóm tuổi này. Vui lòng liên hệ Ban giám hiệu.
-                    </Alert>
+                    <Box sx={{ p: 3 }}>
+                        <Alert severity="warning">Chưa cấu hình mục tiêu cho độ tuổi này.</Alert>
+                    </Box>
                 ) : (
                     <>
-                        {/* Assessment Table */}
-                        <Typography variant="subtitle2" fontWeight={600} sx={{ mb: 2, color: '#667eea' }}>
-                            Đánh giá mục tiêu (1-10 điểm) *
-                        </Typography>
+                        {/* --- 2. Assessment List (Scrollable Area) --- */}
+                        <Box
+                            sx={{
+                                flex: 1,
+                                overflowY: 'auto',
+                                p: 2,
+                                '&::-webkit-scrollbar': { width: '6px' },
+                                '&::-webkit-scrollbar-thumb': { background: '#cbd5e1', borderRadius: '4px' },
+                            }}
+                        >
+                            <Typography variant="subtitle2" fontWeight={700} sx={{ color: '#64748b', mb: 1.5, ml: 1 }}>
+                                DANH SÁCH MỤC TIÊU ({formData.assessmentDetails.length})
+                            </Typography>
 
-                        <TableContainer component={Paper} sx={{ border: '1px solid #e0e0e0', mb: 3 }}>
-                            <Box
-                                sx={{
-                                    maxHeight: 400,
-                                    overflowY: 'auto',
-                                    '&::-webkit-scrollbar': { width: 6 },
-                                    '&::-webkit-scrollbar-thumb': { backgroundColor: '#667eea', borderRadius: 4 },
-                                }}
-                            >
-                                <Table stickyHeader size="small">
-                                    <TableHead>
-                                        <TableRow sx={{ bgcolor: '#ede7f6' }}>
-                                            <TableCell sx={{ fontWeight: 700, width: 80 }}>Mục tiêu</TableCell>
-                                            <TableCell sx={{ fontWeight: 700 }}>Nội dung</TableCell>
-                                            <TableCell sx={{ fontWeight: 700, width: 350 }}>Điểm số (1-10) *</TableCell>
-                                        </TableRow>
-                                    </TableHead>
+                            <Stack spacing={1.5}>
+                                {formData.assessmentDetails.map((detail) => {
+                                    const targetInfo = targetDetails[String(detail.targetId)];
+                                    const score = detail.score;
+                                    const isRated = score > 0;
 
-                                    <TableBody>
-                                        {formData.assessmentDetails.map((detail) => {
-                                            const targetInfo = targetDetails[String(detail.targetId)];
-                                            const mtCode = targetInfo?.code || 'MT?';
-                                            const content = targetInfo?.content || 'Đang tải...';
-                                            const isInvalid = detail.score < 1 || detail.score > 10;
+                                    return (
+                                        <Paper
+                                            key={detail.targetId}
+                                            elevation={0}
+                                            sx={{
+                                                p: 2,
+                                                borderRadius: 2,
+                                                bgcolor: 'white',
+                                                border: '1px solid',
+                                                borderColor: isRated ? 'transparent' : '#e2e8f0',
+                                                boxShadow: isRated ? '0 2px 6px rgba(108, 93, 211, 0.08)' : 'none',
+                                                transition: 'all 0.2s',
+                                                '&:hover': {
+                                                    borderColor: '#6C5DD3',
+                                                    transform: 'translateY(-1px)',
+                                                },
+                                            }}
+                                        >
+                                            <Grid container spacing={2} alignItems="center">
+                                                {/* Nội dung mục tiêu */}
+                                                <Grid item xs={12} md={7}>
+                                                    <Box sx={{ display: 'flex', gap: 1, mb: 0.5 }}>
+                                                        <Chip
+                                                            label={targetInfo?.code || 'MT...'}
+                                                            size="small"
+                                                            sx={{
+                                                                borderRadius: 1,
+                                                                fontWeight: 700,
+                                                                fontSize: '1rem',
+                                                                bgcolor: '#eef2ff',
+                                                                color: '#4f46e5',
+                                                                height: 24,
+                                                            }}
+                                                        />
+                                                    </Box>
+                                                    <Typography
+                                                        variant="body2"
+                                                        sx={{ color: '#334155', lineHeight: 1.5 }}
+                                                    >
+                                                        {targetInfo?.content || 'Đang tải nội dung...'}
+                                                    </Typography>
+                                                </Grid>
 
-                                            return (
-                                                <TableRow
-                                                    key={detail.targetId}
-                                                    hover
-                                                    sx={{
-                                                        bgcolor: isInvalid ? 'rgba(211, 47, 47, 0.05)' : 'transparent',
-                                                    }}
-                                                >
-                                                    <TableCell sx={{ fontWeight: 600 }}>{mtCode}</TableCell>
-                                                    <TableCell>
-                                                        <Typography variant="body2">{content}</Typography>
-                                                    </TableCell>
-                                                    <TableCell>
-                                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                                                            <Slider
-                                                                value={detail.score}
-                                                                onChange={(e, newValue) =>
+                                                {/* Rating 10 sao */}
+                                                <Grid item xs={12} md={5}>
+                                                    <Box
+                                                        sx={{
+                                                            display: 'flex',
+                                                            alignItems: 'center',
+                                                            justifyContent: { xs: 'flex-start', md: 'flex-end' },
+                                                            gap: 1.5,
+                                                        }}
+                                                    >
+                                                        <Box
+                                                            sx={{
+                                                                bgcolor: '#fffbeb',
+                                                                px: 1.5,
+                                                                py: 0.5,
+                                                                borderRadius: 10,
+                                                                border: '1px solid #fef3c7',
+                                                                display: 'flex',
+                                                                alignItems: 'center',
+                                                            }}
+                                                        >
+                                                            <Rating
+                                                                name={`rating-${detail.targetId}`}
+                                                                value={score}
+                                                                max={10}
+                                                                onChange={(event, newValue) =>
                                                                     handleScoreChange(detail.targetId, newValue)
                                                                 }
-                                                                min={0}
-                                                                max={10}
-                                                                step={1}
-                                                                marks
-                                                                valueLabelDisplay="auto"
+                                                                icon={
+                                                                    <StarIcon
+                                                                        fontSize="inherit"
+                                                                        sx={{ color: '#fbbf24' }}
+                                                                    />
+                                                                }
+                                                                emptyIcon={
+                                                                    <StarBorderIcon
+                                                                        fontSize="inherit"
+                                                                        sx={{ color: '#d1d5db' }}
+                                                                    />
+                                                                }
+                                                                size="medium"
                                                                 sx={{
-                                                                    flex: 1,
-                                                                    '& .MuiSlider-thumb': {
-                                                                        borderColor: isInvalid ? '#d32f2f' : '#667eea',
-                                                                    },
-                                                                    '& .MuiSlider-track': {
-                                                                        bgcolor: isInvalid ? '#d32f2f' : '#667eea',
-                                                                    },
+                                                                    fontSize: '1.4rem',
+                                                                    mr: 1,
                                                                 }}
                                                             />
                                                             <Typography
-                                                                variant="h6"
-                                                                fontWeight={700}
+                                                                fontWeight={800}
                                                                 sx={{
-                                                                    minWidth: 40,
+                                                                    color: score > 0 ? '#b45309' : '#94a3b8',
+                                                                    minWidth: '35px',
                                                                     textAlign: 'center',
-                                                                    color: isInvalid ? '#d32f2f' : '#667eea',
+                                                                    fontSize: '1rem',
                                                                 }}
                                                             >
-                                                                {detail.score}
+                                                                {score}
+                                                                <span style={{ fontSize: '0.7rem', fontWeight: 400 }}>
+                                                                    /10
+                                                                </span>
                                                             </Typography>
                                                         </Box>
-                                                        {isInvalid && (
-                                                            <Typography
-                                                                variant="caption"
-                                                                color="error"
-                                                                sx={{ display: 'block', mt: 0.5 }}
-                                                            >
-                                                                Điểm phải từ 1-10
-                                                            </Typography>
-                                                        )}
-                                                    </TableCell>
-                                                </TableRow>
-                                            );
-                                        })}
-                                    </TableBody>
-                                </Table>
-                            </Box>
-                        </TableContainer>
+                                                    </Box>
+                                                </Grid>
+                                            </Grid>
+                                        </Paper>
+                                    );
+                                })}
+                            </Stack>
+                        </Box>
 
-                        {/* Note */}
-                        <Typography variant="subtitle2" fontWeight={600} sx={{ mb: 1, color: '#667eea' }}>
-                            📝 Nhận xét tổng kết
-                        </Typography>
-                        <TextField
-                            fullWidth
-                            multiline
-                            rows={3}
-                            placeholder="Nhập nhận xét tổng kết..."
-                            value={formData.note}
-                            onChange={(e) => setFormData({ ...formData, note: e.target.value })}
-                            inputProps={{ maxLength: 2000 }}
-                            helperText={`${formData.note.length}/2000 ký tự`}
-                        />
+                        {/* --- 3. Note Section (Fixed at bottom) --- */}
+                        <Paper
+                            elevation={3}
+                            sx={{
+                                p: 2,
+                                zIndex: 1,
+                                borderRadius: 0,
+                                borderTop: '1px solid #e2e8f0',
+                            }}
+                        >
+                            <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 2 }}>
+                                <NoteIcon sx={{ color: '#6C5DD3', mt: 1 }} />
+                                <TextField
+                                    fullWidth
+                                    multiline
+                                    rows={2}
+                                    placeholder="Nhập nhận xét tổng quát của giáo viên..."
+                                    value={formData.note}
+                                    onChange={(e) => setFormData({ ...formData, note: e.target.value })}
+                                    variant="outlined"
+                                    size="small"
+                                    sx={{
+                                        '& .MuiOutlinedInput-root': {
+                                            bgcolor: '#f8fafc',
+                                            '& fieldset': { borderColor: '#cbd5e1' },
+                                            '&.Mui-focused fieldset': { borderColor: '#6C5DD3' },
+                                        },
+                                    }}
+                                />
+                            </Box>
+                        </Paper>
                     </>
                 )}
             </DialogContent>
 
-            <Divider />
-
-            {/* Actions */}
-            <DialogActions sx={{ px: 3, py: 2, gap: 1 }}>
-                <Button
-                    onClick={onClose}
-                    disabled={loading}
-                    variant="outlined"
-                    color="inherit"
-                    sx={{ borderRadius: 2 }}
-                >
+            {/* --- Footer Actions --- */}
+            <DialogActions sx={{ p: 2, bgcolor: 'white', borderTop: '1px solid #f1f5f9' }}>
+                <Button onClick={onClose} disabled={loading} color="inherit" sx={{ borderRadius: 2 }}>
                     Hủy
                 </Button>
                 <Button
                     onClick={handleSave}
                     disabled={loading || loadingTargets || configuredTargets.length === 0}
                     variant="contained"
-                    startIcon={loading ? <CircularProgress size={16} /> : <SaveIcon />}
+                    startIcon={loading ? <CircularProgress size={18} color="inherit" /> : <SaveIcon />}
                     sx={{
+                        bgcolor: '#6C5DD3',
+                        '&:hover': { bgcolor: '#5b4dc7' },
                         borderRadius: 2,
-                        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                        px: 4,
                     }}
                 >
-                    {loading ? 'Đang lưu...' : data?.evaluationId ? 'Cập nhật' : 'Tạo'}
+                    {loading ? 'Đang lưu...' : 'Lưu Kết Quả'}
                 </Button>
             </DialogActions>
         </Dialog>

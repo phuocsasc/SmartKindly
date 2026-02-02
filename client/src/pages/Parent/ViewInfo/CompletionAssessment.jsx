@@ -12,23 +12,22 @@ import {
     CircularProgress,
     Alert,
     Grid,
-    Card,
-    CardContent,
     Chip,
-    Avatar,
-    Rating,
     Divider,
-    Stack,
+    TableContainer,
+    Table,
+    TableHead,
+    TableRow,
+    TableCell,
+    TableBody,
 } from '@mui/material';
 import {
     DoneOutlined as DoneIcon,
     EmojiEventsOutlined as TrophyIcon,
-    StarRounded as StarIcon,
-    School as SchoolIcon,
-    Cake as CakeIcon,
-    Wc as GenderIcon,
-    Person as TeacherIcon,
-    AccountBalance as PrincipalIcon,
+    AssignmentOutlined as AssignmentIcon,
+    ChatBubbleOutline as ChatIcon,
+    CheckCircle as CheckCircleIcon,
+    Cancel as CancelIcon,
 } from '@mui/icons-material';
 import MainLayout from '~/layouts/ParentLayout';
 import PageContainer from '~/components/common/PageContainer';
@@ -36,7 +35,6 @@ import PageBreadcrumb from '~/components/common/PageBreadcrumb';
 import { useUser } from '~/contexts/UserContext';
 import { parentChildrenApi } from '~/apis';
 import { toast } from 'react-toastify';
-import dayjs from '~/config/dayjsConfig';
 
 function CompletionAssessment() {
     const { user } = useUser();
@@ -52,15 +50,11 @@ function CompletionAssessment() {
     const [selectedClass, setSelectedClass] = useState('');
 
     const [assessmentData, setAssessmentData] = useState(null);
-    const [schoolInfo, setSchoolInfo] = useState(null); // ✅ ADD
 
-    // ✅ Initialize
     useEffect(() => {
         initializeData();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
-    // ✅ Fetch assessment when filters change
     useEffect(() => {
         if (selectedYear && selectedClass) {
             fetchAssessment();
@@ -73,12 +67,6 @@ function CompletionAssessment() {
     const initializeData = async () => {
         try {
             setInitialLoading(true);
-
-            // ✅ Step 1: Load school info
-            const schoolRes = await parentChildrenApi.getSchoolInfo();
-            setSchoolInfo(schoolRes.data.data);
-
-            // Step 2: Load academic years
             const yearRes = await parentChildrenApi.getAcademicYears();
             const yearData = yearRes.data.data;
             setAcademicYears(yearData.academicYears);
@@ -89,18 +77,12 @@ function CompletionAssessment() {
 
             if (yearId) {
                 setSelectedYear(yearId);
-
-                // Step 3: Load classes for selected year
                 const classRes = await parentChildrenApi.getStudentClassesByYear(yearId);
                 const classData = classRes.data.data.classes || [];
                 setClasses(classData);
-
-                if (classData.length > 0) {
-                    setSelectedClass(classData[0]._id);
-                }
+                if (classData.length > 0) setSelectedClass(classData[0]._id);
             }
         } catch (error) {
-            console.error('Error initializing:', error);
             toast.error('Không thể tải dữ liệu ban đầu');
         } finally {
             setInitialLoading(false);
@@ -111,17 +93,12 @@ function CompletionAssessment() {
         setSelectedYear(newYearId);
         setSelectedClass('');
         setAssessmentData(null);
-
         try {
             const res = await parentChildrenApi.getStudentClassesByYear(newYearId);
             const classData = res.data.data.classes || [];
             setClasses(classData);
-
-            if (classData.length > 0) {
-                setSelectedClass(classData[0]._id);
-            }
+            if (classData.length > 0) setSelectedClass(classData[0]._id);
         } catch (error) {
-            console.error('Error loading classes:', error);
             toast.error('Không thể tải danh sách lớp học');
         }
     };
@@ -129,37 +106,18 @@ function CompletionAssessment() {
     const fetchAssessment = async () => {
         try {
             setLoading(true);
-
             const res = await parentChildrenApi.getCompletionAssessment({
                 academicYearId: selectedYear,
                 classId: selectedClass,
             });
-
-            const data = res.data.data;
-            setAssessmentData(data);
+            setAssessmentData(res.data.data);
         } catch (error) {
-            console.error('Error fetching assessment:', error);
             toast.error(error.response?.data?.message || 'Không thể tải dữ liệu đánh giá');
             setAssessmentData(null);
         } finally {
             setLoading(false);
         }
     };
-
-    // ✅ Helper component for info row
-    const InfoRow = ({ icon: Icon, label, value }) => (
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-            <Icon sx={{ color: '#667eea', fontSize: 20 }} />
-            <Box>
-                <Typography variant="caption" color="text.secondary">
-                    {label}
-                </Typography>
-                <Typography variant="body2" fontWeight={600}>
-                    {value || 'Chưa cập nhật'}
-                </Typography>
-            </Box>
-        </Box>
-    );
 
     if (initialLoading) {
         return (
@@ -182,22 +140,6 @@ function CompletionAssessment() {
                     <Typography variant="h5" fontWeight={700} gutterBottom sx={{ color: '#667eea' }}>
                         Đánh giá trẻ hoàn thành chương trình
                     </Typography>
-
-                    {/* ✅ School Info Header */}
-                    {schoolInfo && (
-                        <Card sx={{ mb: 3, bgcolor: '#f0f4ff', borderRadius: 2 }}>
-                            <CardContent>
-                                <Grid container spacing={2}>
-                                    <Grid item xs={12} md={6}>
-                                        <InfoRow icon={SchoolIcon} label="Tên trường" value={schoolInfo.name} />
-                                    </Grid>
-                                    <Grid item xs={12} md={6}>
-                                        <InfoRow icon={PrincipalIcon} label="Hiệu trưởng" value={schoolInfo.manager} />
-                                    </Grid>
-                                </Grid>
-                            </CardContent>
-                        </Card>
-                    )}
 
                     {/* Filters */}
                     <Grid container spacing={2} sx={{ mt: 2, mb: 3 }}>
@@ -247,201 +189,162 @@ function CompletionAssessment() {
                         )}
                     </Grid>
 
-                    {/* Loading */}
-                    {loading && (
-                        <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
-                            <CircularProgress />
+                    {/* Alerts */}
+                    {selectedYear && (
+                        <Alert
+                            severity={selectedYear === activeYearId ? 'success' : 'warning'}
+                            sx={{ mb: 3, fontWeight: 500 }}
+                        >
+                            {selectedYear === activeYearId
+                                ? 'Năm học đang hoạt động'
+                                : 'Năm học đã kết thúc - Đang xem dữ liệu lịch sử'}
+                        </Alert>
+                    )}
+
+                    {loading ? (
+                        <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
+                            <CircularProgress size={40} thickness={4} />
                         </Box>
-                    )}
-
-                    {/* No data */}
-                    {!loading && !assessmentData && selectedYear && selectedClass && (
-                        <Alert severity="info">Không có dữ liệu đánh giá cho năm học và lớp đã chọn.</Alert>
-                    )}
-
-                    {/* Assessment Data */}
-                    {!loading && assessmentData && (
+                    ) : assessmentData?.evaluation ? (
                         <>
-                            {/* ✅ Student Info Card - Enhanced */}
-                            <Card sx={{ mb: 3, bgcolor: '#f8fafc', borderRadius: 2 }}>
-                                <CardContent>
-                                    <Grid container spacing={3} alignItems="center">
-                                        {/* Avatar */}
-                                        <Grid item>
-                                            <Avatar
-                                                src={assessmentData.student.avatar || '/default-avatar.png'}
-                                                sx={{ width: 80, height: 80 }}
-                                            />
-                                        </Grid>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2, mt: 4 }}>
+                                <AssignmentIcon sx={{ color: '#4f46e5' }} />
+                                <Typography variant="h6" fontWeight={600} color="text.primary">
+                                    Kết quả đánh giá chi tiết
+                                </Typography>
+                            </Box>
 
-                                        {/* Student Info */}
-                                        <Grid item xs>
-                                            <Stack spacing={2}>
-                                                <Box>
-                                                    <Typography variant="h6" fontWeight={700}>
-                                                        {assessmentData.student.fullName}
-                                                    </Typography>
-                                                    <Typography variant="body2" color="text.secondary">
-                                                        Mã HS: {assessmentData.student.studentCode}
-                                                    </Typography>
-                                                </Box>
-
-                                                <Grid container spacing={2}>
-                                                    {/* ✅ Ngày sinh */}
-                                                    <Grid item xs={12} sm={6} md={3}>
-                                                        <InfoRow
-                                                            icon={CakeIcon}
-                                                            label="Ngày sinh"
-                                                            value={
-                                                                assessmentData.student.birthDate
-                                                                    ? dayjs(assessmentData.student.birthDate).format(
-                                                                          'DD/MM/YYYY',
-                                                                      )
-                                                                    : null
-                                                            }
-                                                        />
-                                                    </Grid>
-
-                                                    {/* ✅ Giới tính */}
-                                                    <Grid item xs={12} sm={6} md={3}>
-                                                        <InfoRow
-                                                            icon={GenderIcon}
-                                                            label="Giới tính"
-                                                            value={assessmentData.student.gender}
-                                                        />
-                                                    </Grid>
-
-                                                    {/* ✅ Lớp học */}
-                                                    <Grid item xs={12} sm={6} md={3}>
-                                                        <InfoRow
-                                                            icon={SchoolIcon}
-                                                            label="Lớp học"
-                                                            value={assessmentData.classData.name}
-                                                        />
-                                                    </Grid>
-
-                                                    {/* ✅ GVCN */}
-                                                    <Grid item xs={12} sm={6} md={3}>
-                                                        <InfoRow
-                                                            icon={TeacherIcon}
-                                                            label="GVCN"
-                                                            value={assessmentData.classData.homeRoomTeacher}
-                                                        />
-                                                    </Grid>
-                                                </Grid>
-                                            </Stack>
-                                        </Grid>
-
-                                        {/* Năm học badge */}
-                                        <Grid item>
-                                            <Chip
-                                                label={`${assessmentData.academicYear.fromYear}-${assessmentData.academicYear.toYear}`}
-                                                color="primary"
-                                                variant="outlined"
-                                                sx={{ fontWeight: 600 }}
-                                            />
-                                        </Grid>
-                                    </Grid>
-                                </CardContent>
-                            </Card>
-
-                            {/* Evaluation */}
-                            {assessmentData.evaluation ? (
-                                <>
-                                    <Typography variant="h6" fontWeight={600} sx={{ mb: 2, color: '#667eea' }}>
-                                        📊 Kết quả đánh giá
-                                    </Typography>
-
-                                    <Grid container spacing={2}>
-                                        {assessmentData.evaluation.assessmentDetails.map((detail) => {
+                            {/* Responsive Table / Card View */}
+                            <TableContainer
+                                component={Paper}
+                                sx={{
+                                    boxShadow: 'none',
+                                    border: '1px solid #f0f0f0',
+                                    borderRadius: 3,
+                                    overflow: 'hidden',
+                                }}
+                            >
+                                <Table>
+                                    <TableHead sx={{ bgcolor: '#f8fafc' }}>
+                                        <TableRow>
+                                            <TableCell align="center" sx={{ fontWeight: 700, width: '60px' }}>
+                                                STT
+                                            </TableCell>
+                                            <TableCell sx={{ fontWeight: 700, width: '120px' }}>Mã mục tiêu</TableCell>
+                                            <TableCell sx={{ fontWeight: 700 }}>Nội dung mục tiêu</TableCell>
+                                            <TableCell align="center" sx={{ fontWeight: 700, width: '100px' }}>
+                                                Điểm số
+                                            </TableCell>
+                                            <TableCell align="center" sx={{ fontWeight: 700, width: '120px' }}>
+                                                Đánh giá
+                                            </TableCell>
+                                        </TableRow>
+                                    </TableHead>
+                                    <TableBody>
+                                        {assessmentData.evaluation.assessmentDetails.map((detail, index) => {
                                             const targetInfo = assessmentData.targetDetails[String(detail.targetId)];
+                                            const isPassed = detail.score >= 5;
                                             return (
-                                                <Grid item xs={12} key={detail.targetId}>
-                                                    <Paper sx={{ p: 2, borderRadius: 2, border: '1px solid #e0e0e0' }}>
-                                                        <Box
+                                                <TableRow
+                                                    key={detail.targetId}
+                                                    hover
+                                                    sx={{ '&:last-child td, &:last-child th': { border: 0 } }}
+                                                >
+                                                    <TableCell align="center">{index + 1}</TableCell>
+                                                    <TableCell>
+                                                        <Chip
+                                                            label={targetInfo?.code || 'MT...'}
+                                                            size="small"
                                                             sx={{
-                                                                display: 'flex',
-                                                                justifyContent: 'space-between',
-                                                                alignItems: 'center',
+                                                                bgcolor: '#eef2ff',
+                                                                color: '#4f46e5',
+                                                                fontWeight: 600,
                                                             }}
+                                                        />
+                                                    </TableCell>
+                                                    <TableCell sx={{ lineHeight: 1.5 }}>
+                                                        {targetInfo?.content || 'N/A'}
+                                                    </TableCell>
+                                                    <TableCell align="center">
+                                                        <Typography
+                                                            fontWeight={700}
+                                                            color={isPassed ? 'success.main' : 'error.main'}
                                                         >
-                                                            <Box sx={{ flex: 1 }}>
-                                                                <Box sx={{ display: 'flex', gap: 1, mb: 0.5 }}>
-                                                                    <Chip
-                                                                        label={targetInfo?.code || 'MT...'}
-                                                                        size="small"
-                                                                        sx={{
-                                                                            bgcolor: '#eef2ff',
-                                                                            color: '#4f46e5',
-                                                                            fontWeight: 700,
-                                                                        }}
-                                                                    />
-                                                                </Box>
-                                                                <Typography variant="body2" color="text.secondary">
-                                                                    {targetInfo?.content || 'Đang tải...'}
-                                                                </Typography>
-                                                            </Box>
-                                                            <Box sx={{ textAlign: 'center', ml: 2 }}>
-                                                                <Rating
-                                                                    value={detail.score}
-                                                                    max={10}
-                                                                    readOnly
-                                                                    icon={
-                                                                        <StarIcon
-                                                                            fontSize="small"
-                                                                            sx={{ color: '#fbbf24' }}
-                                                                        />
-                                                                    }
-                                                                    emptyIcon={
-                                                                        <StarIcon
-                                                                            fontSize="small"
-                                                                            sx={{ color: '#d1d5db' }}
-                                                                        />
-                                                                    }
-                                                                />
-                                                                <Typography
-                                                                    variant="h6"
-                                                                    fontWeight={700}
-                                                                    color="#667eea"
-                                                                >
-                                                                    {detail.score}/10
-                                                                </Typography>
-                                                            </Box>
-                                                        </Box>
-                                                    </Paper>
-                                                </Grid>
+                                                            {detail.score}
+                                                        </Typography>
+                                                    </TableCell>
+                                                    <TableCell align="center">
+                                                        <Chip
+                                                            icon={isPassed ? <CheckCircleIcon /> : <CancelIcon />}
+                                                            label={isPassed ? 'Đạt' : 'Chưa đạt'}
+                                                            color={isPassed ? 'success' : 'error'}
+                                                            variant="soft"
+                                                            size="small"
+                                                            sx={{ fontWeight: 400, minWidth: '85px' }}
+                                                        />
+                                                    </TableCell>
+                                                </TableRow>
                                             );
                                         })}
-                                    </Grid>
+                                    </TableBody>
+                                </Table>
+                            </TableContainer>
 
-                                    {/* Note */}
-                                    {assessmentData.evaluation.note && (
-                                        <>
-                                            <Divider sx={{ my: 3 }} />
-                                            <Typography variant="h6" fontWeight={600} sx={{ mb: 1, color: '#667eea' }}>
-                                                📝 Nhận xét của giáo viên
+                            {/* Teacher's Note Section */}
+                            {assessmentData.evaluation.note && (
+                                <Box sx={{ mt: 5 }}>
+                                    <Divider sx={{ mb: 4 }}>
+                                        <Chip
+                                            icon={<ChatIcon fontSize="small" />}
+                                            label="Nhận xét của giáo viên"
+                                            sx={{
+                                                px: 2,
+                                                bgcolor: '#4f46e5',
+                                                color: '#fff',
+                                                '& .MuiChip-icon': { color: 'inherit' },
+                                            }}
+                                        />
+                                    </Divider>
+                                    <Box
+                                        sx={{
+                                            display: 'flex',
+                                            gap: 2,
+                                            p: 3,
+                                            bgcolor: '#f5f7ff',
+                                            borderRadius: 4,
+                                            position: 'relative',
+                                            '&::before': {
+                                                content: '""',
+                                                position: 'absolute',
+                                                top: 0,
+                                                left: 0,
+                                                width: '4px',
+                                                height: '100%',
+                                                bgcolor: '#4f46e5',
+                                                borderRadius: '4px 0 0 4px',
+                                            },
+                                        }}
+                                    >
+                                        <Box>
+                                            <Typography
+                                                variant="body1"
+                                                sx={{ fontStyle: 'italic', color: 'text.secondary', lineHeight: 1.8 }}
+                                            >
+                                                {assessmentData.evaluation.note}
                                             </Typography>
-                                            <Paper sx={{ p: 2, bgcolor: '#fffbeb', borderRadius: 2 }}>
-                                                <Typography variant="body1">
-                                                    {assessmentData.evaluation.note}
-                                                </Typography>
-                                            </Paper>
-                                        </>
-                                    )}
-
-                                    {/* Footer */}
-                                    <Box sx={{ mt: 3, textAlign: 'right' }}>
-                                        <Typography variant="caption" color="text.secondary">
-                                            Đánh giá bởi: {assessmentData.evaluation.createdBy?.fullName || 'N/A'}
-                                        </Typography>
+                                        </Box>
                                     </Box>
-                                </>
-                            ) : (
-                                <Alert severity="warning">
-                                    Chưa có đánh giá hoàn thành chương trình cho năm học này.
-                                </Alert>
+                                </Box>
                             )}
                         </>
+                    ) : (
+                        <Box sx={{ mt: 2 }}>
+                            {selectedYear && selectedClass && (
+                                <Alert severity="info" sx={{ borderRadius: 2 }}>
+                                    Chưa có dữ liệu đánh giá cho năm học này.
+                                </Alert>
+                            )}
+                        </Box>
                     )}
                 </Paper>
             </PageContainer>

@@ -153,6 +153,20 @@ const getWeeklyCertificate = async (req, res, next) => {
     }
 };
 
+const getCompletionAssessment = async (req, res, next) => {
+    try {
+        const userId = req.jwtDecoded.id;
+        const { academicYearId, classId } = req.query;
+        const result = await parentChildrenServices.getCompletionAssessment(academicYearId, classId, userId);
+        res.status(StatusCodes.OK).json({
+            message: 'Lấy đánh giá hoàn thành chương trình thành công!',
+            data: result,
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
 export const parentChildrenController = {
     getSchoolInfo,
     getChildrenInfo,
@@ -164,5 +178,6 @@ export const parentChildrenController = {
     getWeeklyMenu,
     getAttendance,
     getDailyAssessment,
-    getWeeklyCertificate, // ✅ ADD
+    getWeeklyCertificate,
+    getCompletionAssessment, // ✅ ADD
 };

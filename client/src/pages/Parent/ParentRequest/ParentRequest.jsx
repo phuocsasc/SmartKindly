@@ -17,7 +17,6 @@ import {
 } from '@mui/material';
 import { DataGrid } from '@mui/x-data-grid';
 import {
-    MarkAsUnreadOutlined as RequestIcon,
     AddCircleOutline as AddIcon,
     EditOutlined as EditIcon,
     DeleteOutline as DeleteIcon,
@@ -361,7 +360,7 @@ function ParentRequest() {
     return (
         <MainLayout user={user}>
             <PageContainer>
-                <PageBreadcrumb items={[{ text: 'Xem thông tin', icon: RequestIcon }, { text: 'Phiếu dặn dò' }]} />
+                <PageBreadcrumb items={[{ text: 'Phiếu dặn dò' }]} />
 
                 <Paper sx={{ p: 3, borderRadius: 4 }}>
                     {/* Header */}

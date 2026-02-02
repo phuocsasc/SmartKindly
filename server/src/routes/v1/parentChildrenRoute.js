@@ -87,4 +87,10 @@ Router.route('/weekly-certificate').get(
     parentChildrenController.getWeeklyCertificate,
 );
 
+Router.route('/completion-assessment').get(
+    authMiddleware.isAuthorized,
+    rbacMiddleware.isValidPermission([PERMISSIONS.VIEW_PROGRAM_COMPLETION_ASSESSMENT]),
+    parentChildrenController.getCompletionAssessment,
+);
+
 export const parentChildrenRoute = Router;

@@ -74,6 +74,7 @@ import School from './pages/Parent/ViewInfo/School';
 import WeeklyCertificate from './pages/Parent/ViewInfo/WeeklyCertificate';
 import WeeklyMenu from './pages/Parent/ViewInfo/WeeklyMenu';
 import ParentRequest from './pages/Parent/ParentRequest/ParentRequest';
+import Chatbot from './pages/Parent/Chatbot';
 
 /**
  * Protected Routes với UserContext
@@ -261,6 +262,9 @@ function AppContent() {
                     </Route>
                     <Route element={<RbacRoute requiredPermission={PERMISSIONS.VIEW_PROGRAM_COMPLETION_ASSESSMENT} />}>
                         <Route path="/parent/requests" element={<ParentRequest />} />
+                    </Route>
+                    <Route element={<RbacRoute requiredPermission={PERMISSIONS.VIEW_PROGRAM_COMPLETION_ASSESSMENT} />}>
+                        <Route path="/parent/chatbot" element={<Chatbot />} />
                     </Route>
                 </Route>
                 <Route path="/access-denied" element={<AccessDenied />} />

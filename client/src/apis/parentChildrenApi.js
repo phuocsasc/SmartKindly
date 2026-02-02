@@ -77,4 +77,12 @@ export const parentChildrenApi = {
             params: { academicYearId, classId, weekNumber },
         });
     },
+
+    // Lấy đánh giá hoàn thành chương trình
+    getCompletionAssessment: async (params) => {
+        const { academicYearId, classId } = params;
+        return await authorizedAxiosInstance.get(`${API_ROOT}/v1/parent-children/completion-assessment`, {
+            params: { academicYearId, classId },
+        });
+    },
 };

@@ -72,15 +72,20 @@ const menuItems = [
         icon: <LocalFloristIcon />,
         path: '/parent/children-certificate',
     },
-    // {
-    //     text: 'Cuối độ tuổi',
-    //     icon: <EmojiPeopleIcon />,
-    //     path: '/parent/age-completion',
-    // },
+    {
+        text: 'Cuối độ tuổi',
+        icon: <EmojiPeopleIcon />,
+        path: '/parent/age-completion',
+    },
     {
         text: 'Phiếu dặn dò',
         icon: <MarkAsUnreadOutlinedIcon />,
         path: '/parent/requests',
+    },
+    {
+        text: 'Chatbot Hỗ Trợ Phụ Huynh',
+        icon: <MarkAsUnreadOutlinedIcon />,
+        path: '/parent/chatbot',
     },
 ];
 

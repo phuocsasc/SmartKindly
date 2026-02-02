@@ -15,6 +15,8 @@ import { SchoolMenuApplyModel } from '~/models/schoolMenuApplyModel.js';
 import { ChildrenAttendanceModel } from '~/models/childrenAttendanceModel.js';
 import { ChildrenDailyAssessmentModel } from '~/models/childrenDailyAssessmentModel.js';
 import { ChildrenCertificateModel } from '~/models/childrenCertificateModel.js';
+import { ChildrenProgramCompleteModel } from '~/models/childrenProgramCompleteConfigModel.js';
+import { SchoolYearTargetModel } from '~/models/schoolYearTargetModel.js'; // ✅ ADD
 
 /**
  * ✅ GET SCHOOL INFO - Phụ huynh xem thông tin trường học của con
@@ -1274,6 +1276,190 @@ const getWeeklyCertificate = async (academicYearId, classId, weekNumber, userId)
     }
 };
 
+/**
+ * ✅ NEW: Helper function to fetch target details for parent
+ */
+const fetchTargetDetailsForParent = async (schoolId, academicYearId, classAgeGroup, assessmentDetails) => {
+    try {
+        // Map class ageGroup to config ageGroup
+        const mapping = {
+            '12-24 tháng': 'Nhà trẻ 12-24 tháng',
+            '24-36 tháng': 'Nhà trẻ 24-36 tháng',
+            '3-4 tuổi': 'Khối mầm 3-4 tuổi',
+            '4-5 tuổi': 'Khối chồi 4-5 tuổi',
+            '5-6 tuổi': 'Khối lá 5-6 tuổi',
+        };
+
+        const configAgeGroup = mapping[classAgeGroup];
+        if (!configAgeGroup) return {};
+
+        const targetData = await SchoolYearTargetModel.findOne({
+            schoolId,
+            academicYearId,
+            ageGroup: configAgeGroup,
+            _destroy: false,
+        })
+            .select('mainFields')
+            .lean();
+
+        if (!targetData) return {};
+
+        const details = {};
+        const targetIds = assessmentDetails.map((d) => String(d.targetId));
+
+        const processTargets = (mainFields) => {
+            mainFields.forEach((mainField) => {
+                if (mainField.subFields && mainField.subFields.length > 0) {
+                    mainField.subFields.forEach((subField) => {
+                        subField.expectedResults?.forEach((expectedResult) => {
+                            expectedResult.targets?.forEach((target) => {
+                                if (targetIds.includes(String(target._id))) {
+                                    details[String(target._id)] = {
+                                        code: target.code,
+                                        content: target.content,
+                                    };
+                                }
+                            });
+                        });
+                    });
+                } else {
+                    mainField.expectedResults?.forEach((expectedResult) => {
+                        expectedResult.targets?.forEach((target) => {
+                            if (targetIds.includes(String(target._id))) {
+                                details[String(target._id)] = {
+                                    code: target.code,
+                                    content: target.content,
+                                };
+                            }
+                        });
+                    });
+                }
+            });
+        };
+
+        if (targetData.mainFields) {
+            processTargets(targetData.mainFields);
+        }
+
+        return details;
+    } catch (error) {
+        console.error('❌ [fetchTargetDetailsForParent] Error:', error);
+        return {};
+    }
+};
+
+/**
+ * ✅ GET COMPLETION ASSESSMENT - Phụ huynh xem đánh giá trẻ hoàn thành chương trình
+ */
+const getCompletionAssessment = async (academicYearId, classId, userId) => {
+    try {
+        console.log('📋 [ParentChildren getCompletionAssessment] Starting:', {
+            academicYearId,
+            classId,
+            userId,
+        });
+
+        // ✅ 1. Lấy thông tin phụ huynh
+        const parent = await UserModel.findOne({
+            _id: userId,
+            role: 'phu_huynh',
+            _destroy: false,
+        })
+            .select('schoolId studentId')
+            .lean();
+
+        if (!parent) {
+            throw new ApiError(StatusCodes.NOT_FOUND, 'Không tìm thấy thông tin phụ huynh');
+        }
+
+        if (!parent.studentId) {
+            throw new ApiError(StatusCodes.FORBIDDEN, 'Tài khoản chưa được liên kết với học sinh');
+        }
+
+        // ✅ 2. Kiểm tra năm học
+        const academicYear = await AcademicYearModel.findOne({
+            _id: academicYearId,
+            schoolId: parent.schoolId,
+            _destroy: false,
+        })
+            .select('fromYear toYear status')
+            .lean();
+
+        if (!academicYear) {
+            throw new ApiError(StatusCodes.NOT_FOUND, 'Không tìm thấy năm học');
+        }
+
+        // ✅ 3. Kiểm tra lớp học của con trong năm học này
+        const classRecord = await ChildrenByClassModel.findOne({
+            schoolId: parent.schoolId,
+            academicYearId,
+            classId,
+            studentId: parent.studentId,
+            _destroy: false,
+        })
+            .populate('classId', 'name grade ageGroup')
+            .lean();
+
+        if (!classRecord || !classRecord.classId) {
+            throw new ApiError(StatusCodes.FORBIDDEN, 'Học sinh không học lớp này trong năm học đã chọn');
+        }
+
+        const classData = classRecord.classId;
+
+        // ✅ 4. Lấy thông tin học sinh
+        const student = await ChildrenManagementModel.findById(parent.studentId)
+            .select('fullName studentCode status avatar gender birthDate')
+            .lean();
+
+        if (!student) {
+            throw new ApiError(StatusCodes.NOT_FOUND, 'Không tìm thấy thông tin học sinh');
+        }
+
+        // ✅ 5. Lấy đánh giá hoàn thành chương trình (nếu có)
+        const evaluation = await ChildrenProgramCompleteModel.findOne({
+            schoolId: parent.schoolId,
+            academicYearId,
+            classId,
+            studentId: parent.studentId,
+            _destroy: false,
+        })
+            .populate('createdBy', 'fullName')
+            .populate('lastUpdatedBy', 'fullName')
+            .select('assessmentDetails note createdBy lastUpdatedBy createdAt updatedAt')
+            .lean();
+
+        // ✅ 6. Fetch target details (nếu có đánh giá)
+        let targetDetails = {};
+        if (evaluation && evaluation.assessmentDetails.length > 0) {
+            targetDetails = await fetchTargetDetailsForParent(
+                parent.schoolId,
+                academicYearId,
+                classData.ageGroup,
+                evaluation.assessmentDetails,
+            );
+        }
+
+        console.log('✅ [ParentChildren getCompletionAssessment] Success:', {
+            studentName: student.fullName,
+            className: classData.name,
+            hasEvaluation: !!evaluation,
+            targetCount: Object.keys(targetDetails).length,
+        });
+
+        return {
+            academicYear,
+            classData,
+            student,
+            evaluation: evaluation || null,
+            targetDetails,
+        };
+    } catch (error) {
+        console.error('❌ [ParentChildren getCompletionAssessment] Error:', error);
+        if (error instanceof ApiError) throw error;
+        throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, 'Lỗi khi lấy đánh giá hoàn thành chương trình');
+    }
+};
+
 export const parentChildrenServices = {
     getSchoolInfo,
     getChildrenInfo,
@@ -1285,5 +1471,6 @@ export const parentChildrenServices = {
     getWeeklyMenu,
     getAttendance,
     getDailyAssessment,
-    getWeeklyCertificate, // ✅ ADD
+    getWeeklyCertificate,
+    getCompletionAssessment, // ✅ ADD
 };

@@ -18,18 +18,25 @@ import {
     Avatar,
     Rating,
     Divider,
+    Stack,
 } from '@mui/material';
 import {
     DoneOutlined as DoneIcon,
     EmojiEventsOutlined as TrophyIcon,
     StarRounded as StarIcon,
+    School as SchoolIcon,
+    Cake as CakeIcon,
+    Wc as GenderIcon,
+    Person as TeacherIcon,
+    AccountBalance as PrincipalIcon,
 } from '@mui/icons-material';
 import MainLayout from '~/layouts/ParentLayout';
 import PageContainer from '~/components/common/PageContainer';
 import PageBreadcrumb from '~/components/common/PageBreadcrumb';
 import { useUser } from '~/contexts/UserContext';
-import { parentChildrenApi } from '~/apis'; // ✅ FIX: Only import parentChildrenApi
+import { parentChildrenApi } from '~/apis';
 import { toast } from 'react-toastify';
+import dayjs from '~/config/dayjsConfig';
 
 function CompletionAssessment() {
     const { user } = useUser();
@@ -45,6 +52,7 @@ function CompletionAssessment() {
     const [selectedClass, setSelectedClass] = useState('');
 
     const [assessmentData, setAssessmentData] = useState(null);
+    const [schoolInfo, setSchoolInfo] = useState(null); // ✅ ADD
 
     // ✅ Initialize
     useEffect(() => {
@@ -66,7 +74,11 @@ function CompletionAssessment() {
         try {
             setInitialLoading(true);
 
-            // Step 1: Load academic years
+            // ✅ Step 1: Load school info
+            const schoolRes = await parentChildrenApi.getSchoolInfo();
+            setSchoolInfo(schoolRes.data.data);
+
+            // Step 2: Load academic years
             const yearRes = await parentChildrenApi.getAcademicYears();
             const yearData = yearRes.data.data;
             setAcademicYears(yearData.academicYears);
@@ -78,7 +90,7 @@ function CompletionAssessment() {
             if (yearId) {
                 setSelectedYear(yearId);
 
-                // Step 2: Load classes for selected year
+                // Step 3: Load classes for selected year
                 const classRes = await parentChildrenApi.getStudentClassesByYear(yearId);
                 const classData = classRes.data.data.classes || [];
                 setClasses(classData);
@@ -134,6 +146,21 @@ function CompletionAssessment() {
         }
     };
 
+    // ✅ Helper component for info row
+    const InfoRow = ({ icon: Icon, label, value }) => (
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+            <Icon sx={{ color: '#667eea', fontSize: 20 }} />
+            <Box>
+                <Typography variant="caption" color="text.secondary">
+                    {label}
+                </Typography>
+                <Typography variant="body2" fontWeight={600}>
+                    {value || 'Chưa cập nhật'}
+                </Typography>
+            </Box>
+        </Box>
+    );
+
     if (initialLoading) {
         return (
             <MainLayout user={user}>
@@ -155,6 +182,22 @@ function CompletionAssessment() {
                     <Typography variant="h5" fontWeight={700} gutterBottom sx={{ color: '#667eea' }}>
                         Đánh giá trẻ hoàn thành chương trình
                     </Typography>
+
+                    {/* ✅ School Info Header */}
+                    {schoolInfo && (
+                        <Card sx={{ mb: 3, bgcolor: '#f0f4ff', borderRadius: 2 }}>
+                            <CardContent>
+                                <Grid container spacing={2}>
+                                    <Grid item xs={12} md={6}>
+                                        <InfoRow icon={SchoolIcon} label="Tên trường" value={schoolInfo.name} />
+                                    </Grid>
+                                    <Grid item xs={12} md={6}>
+                                        <InfoRow icon={PrincipalIcon} label="Hiệu trưởng" value={schoolInfo.manager} />
+                                    </Grid>
+                                </Grid>
+                            </CardContent>
+                        </Card>
+                    )}
 
                     {/* Filters */}
                     <Grid container spacing={2} sx={{ mt: 2, mb: 3 }}>
@@ -219,23 +262,84 @@ function CompletionAssessment() {
                     {/* Assessment Data */}
                     {!loading && assessmentData && (
                         <>
-                            {/* Student Info */}
+                            {/* ✅ Student Info Card - Enhanced */}
                             <Card sx={{ mb: 3, bgcolor: '#f8fafc', borderRadius: 2 }}>
                                 <CardContent>
-                                    <Grid container spacing={2} alignItems="center">
+                                    <Grid container spacing={3} alignItems="center">
+                                        {/* Avatar */}
                                         <Grid item>
                                             <Avatar
                                                 src={assessmentData.student.avatar || '/default-avatar.png'}
-                                                sx={{ width: 64, height: 64 }}
+                                                sx={{ width: 80, height: 80 }}
                                             />
                                         </Grid>
+
+                                        {/* Student Info */}
                                         <Grid item xs>
-                                            <Typography variant="h6" fontWeight={700}>
-                                                {assessmentData.student.fullName}
-                                            </Typography>
-                                            <Typography variant="body2" color="text.secondary">
-                                                Mã HS: {assessmentData.student.studentCode}
-                                            </Typography>
+                                            <Stack spacing={2}>
+                                                <Box>
+                                                    <Typography variant="h6" fontWeight={700}>
+                                                        {assessmentData.student.fullName}
+                                                    </Typography>
+                                                    <Typography variant="body2" color="text.secondary">
+                                                        Mã HS: {assessmentData.student.studentCode}
+                                                    </Typography>
+                                                </Box>
+
+                                                <Grid container spacing={2}>
+                                                    {/* ✅ Ngày sinh */}
+                                                    <Grid item xs={12} sm={6} md={3}>
+                                                        <InfoRow
+                                                            icon={CakeIcon}
+                                                            label="Ngày sinh"
+                                                            value={
+                                                                assessmentData.student.birthDate
+                                                                    ? dayjs(assessmentData.student.birthDate).format(
+                                                                          'DD/MM/YYYY',
+                                                                      )
+                                                                    : null
+                                                            }
+                                                        />
+                                                    </Grid>
+
+                                                    {/* ✅ Giới tính */}
+                                                    <Grid item xs={12} sm={6} md={3}>
+                                                        <InfoRow
+                                                            icon={GenderIcon}
+                                                            label="Giới tính"
+                                                            value={assessmentData.student.gender}
+                                                        />
+                                                    </Grid>
+
+                                                    {/* ✅ Lớp học */}
+                                                    <Grid item xs={12} sm={6} md={3}>
+                                                        <InfoRow
+                                                            icon={SchoolIcon}
+                                                            label="Lớp học"
+                                                            value={assessmentData.classData.name}
+                                                        />
+                                                    </Grid>
+
+                                                    {/* ✅ GVCN */}
+                                                    <Grid item xs={12} sm={6} md={3}>
+                                                        <InfoRow
+                                                            icon={TeacherIcon}
+                                                            label="GVCN"
+                                                            value={assessmentData.classData.homeRoomTeacher}
+                                                        />
+                                                    </Grid>
+                                                </Grid>
+                                            </Stack>
+                                        </Grid>
+
+                                        {/* Năm học badge */}
+                                        <Grid item>
+                                            <Chip
+                                                label={`${assessmentData.academicYear.fromYear}-${assessmentData.academicYear.toYear}`}
+                                                color="primary"
+                                                variant="outlined"
+                                                sx={{ fontWeight: 600 }}
+                                            />
                                         </Grid>
                                     </Grid>
                                 </CardContent>

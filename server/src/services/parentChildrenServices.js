@@ -1397,14 +1397,27 @@ const getCompletionAssessment = async (academicYearId, classId, userId) => {
             studentId: parent.studentId,
             _destroy: false,
         })
-            .populate('classId', 'name grade ageGroup')
+            .populate({
+                path: 'classId',
+                select: 'name grade ageGroup homeRoomTeacher',
+                populate: {
+                    path: 'homeRoomTeacher',
+                    select: 'fullName', // ✅ ADD: Populate GVCN
+                },
+            })
             .lean();
 
         if (!classRecord || !classRecord.classId) {
             throw new ApiError(StatusCodes.FORBIDDEN, 'Học sinh không học lớp này trong năm học đã chọn');
         }
 
-        const classData = classRecord.classId;
+        const classData = {
+            _id: classRecord.classId._id,
+            name: classRecord.classId.name,
+            grade: classRecord.classId.grade,
+            ageGroup: classRecord.classId.ageGroup,
+            homeRoomTeacher: classRecord.classId.homeRoomTeacher?.fullName || null, // ✅ ADD
+        };
 
         // ✅ 4. Lấy thông tin học sinh
         const student = await ChildrenManagementModel.findById(parent.studentId)

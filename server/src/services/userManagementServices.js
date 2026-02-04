@@ -91,6 +91,8 @@ const ensureUniqueUsername = async (baseUsername) => {
 
 const createNew = async (data, schoolScope) => {
     try {
+        console.log('📥 [UserManagement createNew] Starting:', { data, schoolScope }); // ✅ ADD DEBUG
+
         // ✅ Kiểm tra schoolScope
         if (!schoolScope || !schoolScope.schoolId) {
             throw new ApiError(StatusCodes.FORBIDDEN, 'Không xác định được trường học');
@@ -164,8 +166,10 @@ const createNew = async (data, schoolScope) => {
         const userObject = savedUser.toObject();
         delete userObject.password;
 
+        console.log('✅ [UserManagement createNew] Success:', userObject._id);
         return userObject;
     } catch (error) {
+        console.error('❌ [UserManagement createNew] Error:', error); // ✅ ADD DEBUG
         if (error instanceof ApiError) {
             throw error;
         }
@@ -381,8 +385,8 @@ const deleteUser = async (id, schoolScope) => {
             }
         }
 
-        // Soft delete
-        await UserModel.findByIdAndUpdate(id, { _destroy: true });
+        // Hard delete - xóa vĩnh viễn
+        await UserModel.findByIdAndDelete(id);
 
         return { message: 'Xóa người dùng thành công' };
     } catch (error) {
@@ -439,9 +443,12 @@ const deleteManyUsers = async (ids, schoolScope) => {
         }
 
         // Soft delete
-        const result = await UserModel.updateMany(filter, { _destroy: true });
+        const result = await UserModel.deleteMany({
+            _id: { $in: ids },
+            schoolId: schoolScope.schoolId,
+        });
 
-        return { message: `Đã xóa thành công ${result.modifiedCount} người dùng` };
+        return { message: `Đã xóa thành công ${result.deletedCount} người dùng` };
     } catch (error) {
         if (error instanceof ApiError) throw error;
         throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, 'Lỗi khi xóa nhiều người dùng');

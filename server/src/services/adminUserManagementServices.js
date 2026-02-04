@@ -292,8 +292,8 @@ const deleteUser = async (id, requestUser) => {
             }
         }
 
-        // Soft delete
-        await UserModel.findByIdAndUpdate(id, { _destroy: true });
+        // 🔥 HARD DELETE – XÓA KHỎI DATABASE
+        await UserModel.findByIdAndDelete(id);
 
         return { message: 'Xóa người dùng thành công' };
     } catch (error) {
@@ -375,10 +375,10 @@ const deleteManyUsers = async (ids, requestUser) => {
             }
         }
 
-        // Soft delete tất cả users đã validate
-        const result = await UserModel.updateMany({ _id: { $in: ids }, _destroy: false }, { _destroy: true });
+        // 🔥 HARD DELETE
+        const result = await UserModel.deleteMany({ _id: { $in: ids } });
 
-        return { message: `Đã xóa thành công ${result.modifiedCount} người dùng` };
+        return { message: `Đã xóa thành công ${result.deletedCount} người dùng` };
     } catch (error) {
         if (error instanceof ApiError) throw error;
         throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, 'Lỗi khi xóa nhiều người dùng');

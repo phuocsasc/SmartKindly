@@ -140,7 +140,7 @@ function UserDialog({ open, mode, user, onClose, onSuccess }) {
                         {isCreateMode ? <PersonAddIcon fontSize="small" /> : <EditIcon fontSize="small" />}
                     </Avatar>
                     <Typography variant="h7" fontWeight={400}>
-                        {isCreateMode ? 'Thêm người tài khoản cán bộ' : 'Chỉnh sửa tài khoản cán bộ'}
+                        {isCreateMode ? 'Thêm tài khoản cán bộ' : 'Chỉnh sửa tài khoản cán bộ'}
                     </Typography>
                 </Box>
 

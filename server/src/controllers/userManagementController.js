@@ -5,7 +5,13 @@ import { UserModel } from '~/models/userModel.js';
 
 const createNew = async (req, res, next) => {
     try {
+        console.log('📥 [Controller createNew] req.schoolScope:', req.schoolScope); // ✅ ADD DEBUG
+
         const schoolScope = req.schoolScope;
+        if (!schoolScope) {
+            throw new ApiError(StatusCodes.FORBIDDEN, 'Missing school scope');
+        }
+
         const result = await userManagementServices.createNew(req.body, schoolScope);
         res.status(StatusCodes.CREATED).json({
             message: 'Tạo mới người dùng thành công!',

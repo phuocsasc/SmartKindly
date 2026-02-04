@@ -91,4 +91,6 @@ export * from './parentApi'; // ✅ ADD
 
 export * from './parentChildrenApi';
 
-export * from './parentRequestApi'
+export * from './parentRequestApi';
+
+export * from './chatbotApi';

@@ -44,6 +44,10 @@ import dayjs from 'dayjs';
 import { useConfirmDialog } from '~/hooks/useConfirmDialog';
 import ConfirmDialog from '~/components/common/ConfirmDialog';
 
+// ✅ ADD: Import Markdown renderer
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+
 function Chatbot() {
     const { user } = useUser();
     const theme = useTheme();
@@ -320,7 +324,7 @@ function Chatbot() {
                                     </Box>
                                 </Box>
 
-                                {/* Messages Area */}
+                                {/* ✅ Messages Area with Markdown */}
                                 <Box sx={{ flex: 1, overflowY: 'auto', p: { xs: 2, md: 3 } }}>
                                     <Stack spacing={2.5}>
                                         {messages.map((msg, index) => (
@@ -356,7 +360,7 @@ function Chatbot() {
                                                                 <BotIcon fontSize="inherit" />
                                                             )}
                                                         </Avatar>
-                                                        <Box>
+                                                        <Box sx={{ flex: 1 }}>
                                                             <Paper
                                                                 sx={{
                                                                     p: 2,
@@ -373,9 +377,122 @@ function Chatbot() {
                                                                             : '0 2px 8px rgba(0,0,0,0.05)',
                                                                 }}
                                                             >
-                                                                <Typography variant="body2" sx={{ lineHeight: 1.6 }}>
-                                                                    {msg.content}
-                                                                </Typography>
+                                                                {/* ✅ Render Markdown for AI responses */}
+                                                                {msg.role === 'assistant' ? (
+                                                                    <ReactMarkdown
+                                                                        remarkPlugins={[remarkGfm]}
+                                                                        components={{
+                                                                            // ✅ Custom styles for Markdown elements
+                                                                            p: ({ children }) => (
+                                                                                <Typography
+                                                                                    variant="body2"
+                                                                                    sx={{
+                                                                                        lineHeight: 1.7,
+                                                                                        mb: 1,
+                                                                                        '&:last-child': { mb: 0 },
+                                                                                    }}
+                                                                                >
+                                                                                    {children}
+                                                                                </Typography>
+                                                                            ),
+                                                                            strong: ({ children }) => (
+                                                                                <Box
+                                                                                    component="strong"
+                                                                                    sx={{
+                                                                                        fontWeight: 700,
+                                                                                        color: 'primary.main',
+                                                                                    }}
+                                                                                >
+                                                                                    {children}
+                                                                                </Box>
+                                                                            ),
+                                                                            ul: ({ children }) => (
+                                                                                <Box
+                                                                                    component="ul"
+                                                                                    sx={{ pl: 2, mb: 1 }}
+                                                                                >
+                                                                                    {children}
+                                                                                </Box>
+                                                                            ),
+                                                                            ol: ({ children }) => (
+                                                                                <Box
+                                                                                    component="ol"
+                                                                                    sx={{ pl: 2, mb: 1 }}
+                                                                                >
+                                                                                    {children}
+                                                                                </Box>
+                                                                            ),
+                                                                            li: ({ children }) => (
+                                                                                <Typography
+                                                                                    component="li"
+                                                                                    variant="body2"
+                                                                                    sx={{ mb: 0.5, lineHeight: 1.6 }}
+                                                                                >
+                                                                                    {children}
+                                                                                </Typography>
+                                                                            ),
+                                                                            h1: ({ children }) => (
+                                                                                <Typography
+                                                                                    variant="h5"
+                                                                                    fontWeight={700}
+                                                                                    sx={{ mb: 1, mt: 1 }}
+                                                                                >
+                                                                                    {children}
+                                                                                </Typography>
+                                                                            ),
+                                                                            h2: ({ children }) => (
+                                                                                <Typography
+                                                                                    variant="h6"
+                                                                                    fontWeight={600}
+                                                                                    sx={{ mb: 1, mt: 1 }}
+                                                                                >
+                                                                                    {children}
+                                                                                </Typography>
+                                                                            ),
+                                                                            code: ({ children }) => (
+                                                                                <Box
+                                                                                    component="code"
+                                                                                    sx={{
+                                                                                        bgcolor: 'grey.100',
+                                                                                        color: 'error.main',
+                                                                                        px: 0.5,
+                                                                                        py: 0.25,
+                                                                                        borderRadius: 0.5,
+                                                                                        fontFamily: 'monospace',
+                                                                                        fontSize: '0.9em',
+                                                                                    }}
+                                                                                >
+                                                                                    {children}
+                                                                                </Box>
+                                                                            ),
+                                                                            blockquote: ({ children }) => (
+                                                                                <Box
+                                                                                    component="blockquote"
+                                                                                    sx={{
+                                                                                        borderLeft: '4px solid',
+                                                                                        borderColor: 'primary.main',
+                                                                                        pl: 2,
+                                                                                        py: 0.5,
+                                                                                        my: 1,
+                                                                                        bgcolor: 'grey.50',
+                                                                                        fontStyle: 'italic',
+                                                                                    }}
+                                                                                >
+                                                                                    {children}
+                                                                                </Box>
+                                                                            ),
+                                                                        }}
+                                                                    >
+                                                                        {msg.content}
+                                                                    </ReactMarkdown>
+                                                                ) : (
+                                                                    <Typography
+                                                                        variant="body2"
+                                                                        sx={{ lineHeight: 1.6 }}
+                                                                    >
+                                                                        {msg.content}
+                                                                    </Typography>
+                                                                )}
                                                             </Paper>
                                                             <Typography
                                                                 variant="caption"

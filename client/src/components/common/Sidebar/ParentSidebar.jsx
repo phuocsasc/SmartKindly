@@ -24,6 +24,7 @@ import EditCalendarIcon from '@mui/icons-material/EditCalendar';
 import LocalFloristIcon from '@mui/icons-material/LocalFlorist';
 import EmojiPeopleIcon from '@mui/icons-material/EmojiPeople';
 import MarkAsUnreadOutlinedIcon from '@mui/icons-material/MarkAsUnreadOutlined';
+import ChatOutlinedIcon from '@mui/icons-material/ChatOutlined';
 import { useLocation, Link } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { useTheme } from '@mui/material/styles';
@@ -83,8 +84,8 @@ const menuItems = [
         path: '/parent/requests',
     },
     {
-        text: 'Chatbot Hỗ Trợ Phụ Huynh',
-        icon: <MarkAsUnreadOutlinedIcon />,
+        text: 'Trợ lý A.I',
+        icon: <ChatOutlinedIcon />,
         path: '/parent/chatbot',
     },
 ];

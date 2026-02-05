@@ -13,7 +13,7 @@ import isBetween from 'dayjs/plugin/isBetween.js';
 import customParseFormat from 'dayjs/plugin/customParseFormat.js';
 import utc from 'dayjs/plugin/utc.js';
 import timezone from 'dayjs/plugin/timezone.js';
-import isoWeek from 'dayjs/plugin/isoWeek.js'; // ✅ Thêm plugin isoWeek để tính tuần chuẩn
+import isoWeek from 'dayjs/plugin/isoWeek.js';
 
 dayjs.extend(isBetween);
 dayjs.extend(customParseFormat);
@@ -65,7 +65,7 @@ const formatWeeklyPlanSummary = (weeklyPlanObj) => {
 };
 
 /**
- * Helper: Format Hoạt động Chi tiết 1 ngày (Lấy full nội dung)
+ * ✅ Helper: Format Hoạt động Chi tiết 1 ngày
  */
 const formatDailyPlanForAI = (weeklyPlanObj, targetDate) => {
     if (!weeklyPlanObj) return 'Chưa có kế hoạch tuần này';
@@ -89,33 +89,65 @@ const formatDailyPlanForAI = (weeklyPlanObj, targetDate) => {
 };
 
 /**
- * 🧠 1. AI TIME DETECT (NÂNG CẤP)
- * - Thêm logic tính thứ trong tuần rõ ràng
+ * ✅ Helper Mới: Format Chi tiết TOÀN BỘ TUẦN (Cho câu hỏi "thời khóa biểu chi tiết tuần này")
+ */
+const formatFullWeekPlanDetail = (weeklyPlanObj) => {
+    if (!weeklyPlanObj) return 'Chưa có kế hoạch tuần này';
+    const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'];
+    const dayNames = ['Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6'];
+
+    let result = [];
+    if (weeklyPlanObj.topic) result.push(`🌟 **Chủ đề tuần: ${weeklyPlanObj.topic}**`);
+
+    days.forEach((dayKey, index) => {
+        const activities = weeklyPlanObj[dayKey];
+        if (activities && activities.length > 0) {
+            const dayDetail = activities
+                .map((act) => {
+                    let content = `   - ${act.startTime}-${act.endTime}: ${act.description}`;
+                    if (act.detailedContent) content += ` (${act.detailedContent})`;
+                    return content;
+                })
+                .join('\n');
+            result.push(`**${dayNames[index]}**:\n${dayDetail}`);
+        }
+    });
+    return result.join('\n\n');
+};
+
+/**
+ * 🧠 1. AI TIME DETECT (NÂNG CẤP MẠNH MẼ)
+ * - Truyền danh sách ngày cụ thể trong tuần để AI chọn, tránh tính toán sai.
  */
 const detectTargetDate = async (userMessage, todayDateStr) => {
     try {
         const today = dayjs(todayDateStr);
-        // Cung cấp thông tin thứ của ngày hiện tại để AI dễ tính toán
-        const currentDayOfWeek = today.day() === 0 ? 'Chủ Nhật' : `Thứ ${today.day() + 1}`;
+        // Tạo map ngày trong tuần hiện tại
+        const startOfWeek = today.startOf('isoWeek'); // Thứ 2
+        const weekDates = {};
+        for (let i = 0; i < 7; i++) {
+            const d = startOfWeek.add(i, 'day');
+            const dayName = i === 6 ? 'Chủ Nhật' : `Thứ ${i + 2}`;
+            weekDates[dayName] = d.format('YYYY-MM-DD');
+        }
 
         const prompt = `
-            Hôm nay là: ${todayDateStr} (${currentDayOfWeek}).
-            Câu nói của người dùng: "${userMessage}"
+            Hôm nay là: ${todayDateStr} (${Object.keys(weekDates).find((k) => weekDates[k] === todayDateStr)}).
+            Câu nói: "${userMessage}"
+            
+            LỊCH TUẦN NÀY (Để tra cứu):
+            ${JSON.stringify(weekDates, null, 2)}
             
             NHIỆM VỤ: Trả về NGÀY MỤC TIÊU (YYYY-MM-DD).
             
-            QUY TẮC TÍNH TOÁN:
+            QUY TẮC:
             1. "hôm qua" = ${today.subtract(1, 'day').format('YYYY-MM-DD')}.
-            2. "hôm nay", "tuần này" = ${todayDateStr}.
-            3. "ngày mai" = ${today.add(1, 'day').format('YYYY-MM-DD')}.
-            4. "Thứ X tuần này" = Ngày thứ X của tuần hiện tại (Tuần tính từ Thứ 2 đến Chủ Nhật).
-               Ví dụ: Nếu hôm nay là Thứ 4 (${todayDateStr}), thì:
-               - "Thứ 2 tuần này" là ${today.day(1).format('YYYY-MM-DD')}.
-               - "Thứ 6 tuần này" là ${today.day(5).format('YYYY-MM-DD')}.
-            5. "Thứ X tuần trước" = Ngày thứ X của tuần trước.
-            6. "Thứ X tuần sau" = Ngày thứ X của tuần sau.
+            2. "ngày mai" = ${today.add(1, 'day').format('YYYY-MM-DD')}.
+            3. "Thứ X tuần này" / "Thứ X" (nếu không nói rõ tuần) -> Lấy ngày tương ứng trong LỊCH TUẦN NÀY ở trên.
+            4. "Thứ X tuần trước" -> Lấy ngày trong LỊCH trên TRỪ đi 7 ngày.
+            5. "Thứ X tuần sau" -> Lấy ngày trong LỊCH trên CỘNG thêm 7 ngày.
             
-            CHỈ TRẢ VỀ CHUỖI NGÀY DẠNG YYYY-MM-DD. KHÔNG GIẢI THÍCH GÌ THÊM.
+            CHỈ TRẢ VỀ CHUỖI NGÀY.
         `;
 
         const chat = await openai.chat.completions.create({
@@ -193,7 +225,7 @@ const getConversationDetails = async (conversationId, userId) => {
 };
 
 /**
- * ✅ 4. SEND MESSAGE (FULL UPDATE FIX)
+ * ✅ 4. SEND MESSAGE (FULL UPDATE - FIX TIME & DETAIL)
  */
 const sendMessage = async (conversationId, message, userId) => {
     try {
@@ -304,6 +336,8 @@ const sendMessage = async (conversationId, message, userId) => {
             schedule: {
                 weekly_summary: formatWeeklyPlanSummary(weeklyPlan?.weeklyPlan),
                 daily_detail: formatDailyPlanForAI(weeklyPlan?.weeklyPlan, targetDate),
+                // ✅ THÊM: Chi tiết toàn bộ tuần cho câu hỏi "Chi tiết hoạt động trong tuần"
+                full_week_detail: formatFullWeekPlanDetail(weeklyPlan?.weeklyPlan),
             },
             menu: {
                 target_day_menu: menu?.menuApplies?.find((m) => dayjs(m.date).isSame(targetDate, 'day'))?.menuSnapshot
@@ -337,20 +371,18 @@ const sendMessage = async (conversationId, message, userId) => {
             1. DỮ LIỆU ĐANG XÉT (Ngày trọng tâm: ${contextData.meta.focus_date}):
             ${JSON.stringify(contextData)}
 
-            2. YÊU CẦU:
+            2. QUY TẮC TRẢ LỜI:
             - **Định dạng**: Trả lời bằng **Markdown**.
             - **Ngày tháng**: Luôn ghi rõ ngày/tháng/năm (VD: ${contextData.meta.focus_date}) khi nhắc đến thời gian.
-            - **Tuần học**: Khi nhắc đến tuần, hãy nói rõ: "Tuần ${contextData.meta.focus_week_number} (từ ${contextData.meta.focus_week_range})".
             
-            - **Xử lý câu hỏi tiếp nối**:
-              + Nếu hỏi "vậy còn thứ 6 tuần này", "vậy tuần trước thì sao", hãy dùng dữ liệu trong 'meta.focus_date' và 'schedule/menu/attendance' để trả lời.
-              + Dữ liệu đã được tính toán chính xác cho ngày trọng tâm, KHÔNG tự suy luận ngày khác.
-            
-            - **Cụ thể**:
-              + Hỏi "đi học mấy bữa": Dùng 'attendance.weekly_summary'.
-              + Hỏi "thực đơn": Dùng 'menu.target_day_menu' (hoặc full_week nếu hỏi cả tuần).
-              + Hỏi "thời khóa biểu chi tiết": Dùng 'schedule.daily_detail'.
+            - **Xử lý Thời khóa biểu/Hoạt động**:
+              + Nếu hỏi "chi tiết hôm nay": Dùng 'schedule.daily_detail'.
+              + Nếu hỏi "chi tiết cả tuần/trong tuần": Dùng 'schedule.full_week_detail' (Bắt buộc dùng cái này nếu hỏi rộng cả tuần).
+              + Nếu hỏi "tóm tắt tuần": Dùng 'schedule.weekly_summary'.
 
+            - **Xử lý câu hỏi tiếp nối**:
+              + Dựa vào lịch sử chat và 'meta.focus_date' để trả lời câu hỏi ngắn như "thế còn hôm qua?" "thế tuần trước?".
+            
             3. MẪU TRẢ LỜI NGOÀI PHẠM VI:
             "Xin lỗi, nhưng mình chỉ có thể cung cấp thông tin liên quan đến 9 mục sau:
             1. 🏫 **Thông tin trường**
@@ -362,7 +394,6 @@ const sendMessage = async (conversationId, message, userId) => {
             7. 🗣️ **Nhận xét giáo viên**
             8. 🏆 **Phiếu bé ngoan**
             9. 📜 **Đánh giá hoàn thành chương trình**
-            
             Bạn muốn biết thêm thông tin về mục nào không ạ?"
         `;
 

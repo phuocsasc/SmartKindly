@@ -145,6 +145,28 @@ const getChildrenInfo = async (userId) => {
                 .lean();
 
             if (classRecord && classRecord.classId) {
+                const classId = classRecord.classId._id;
+
+                // ✅ ADD: Đếm tổng số học sinh trong lớp
+                const totalStudents = await ChildrenByClassModel.countDocuments({
+                    schoolId: parent.schoolId,
+                    academicYearId: activeYear._id,
+                    classId: classId,
+                    _destroy: false,
+                });
+
+                // ✅ ADD: Đếm số học sinh nam/nữ trong lớp
+                const studentsInClass = await ChildrenByClassModel.find({
+                    schoolId: parent.schoolId,
+                    academicYearId: activeYear._id,
+                    classId: classId,
+                    _destroy: false,
+                })
+                    .populate('studentId', 'gender')
+                    .lean();
+
+                const maleCount = studentsInClass.filter((s) => s.studentId?.gender === 'Nam').length;
+                const femaleCount = studentsInClass.filter((s) => s.studentId?.gender === 'Nữ').length;
                 currentClass = {
                     _id: classRecord.classId._id,
                     name: classRecord.classId.name,
@@ -157,6 +179,10 @@ const getChildrenInfo = async (userId) => {
                               email: classRecord.classId.homeRoomTeacher.email,
                           }
                         : null,
+                    // ✅ ADD: Thêm thống kê học sinh
+                    totalStudents,
+                    maleCount,
+                    femaleCount,
                 };
             }
         }
@@ -165,6 +191,7 @@ const getChildrenInfo = async (userId) => {
             studentName: student.fullName,
             studentCode: student.studentCode,
             className: currentClass?.name || 'Chưa có lớp',
+            totalStudents: currentClass?.totalStudents || 0,
         });
 
         return {
@@ -877,6 +904,8 @@ const getAttendance = async (academicYearId, classId, weekNumber, userId) => {
         // ✅ 9. Đếm số ngày vắng trong tuần
         const absentStatuses = ['Vắng có phép', 'Vắng không phép'];
         const absentInWeek = attendanceRecords.filter((r) => absentStatuses.includes(r.status)).length;
+        // ✅ ADD: Đếm số buổi đã đi học (Có mặt)
+        const presentInWeek = attendanceRecords.filter((r) => r.status === 'Có mặt').length;
 
         // ✅ 10. Đếm tổng số ngày vắng trong năm học
         const totalAbsentInYear = await ChildrenAttendanceModel.countDocuments({
@@ -888,11 +917,35 @@ const getAttendance = async (academicYearId, classId, weekNumber, userId) => {
             _destroy: false,
         });
 
+        // ✅ ADD: Đếm tổng số buổi đi học (Có mặt) trong năm học
+        const totalPresentInYear = await ChildrenAttendanceModel.countDocuments({
+            schoolId: parent.schoolId,
+            academicYearId,
+            classId,
+            studentId: parent.studentId,
+            status: 'Có mặt',
+            _destroy: false,
+        });
+
+        // ✅ ADD: Tổng số ngày đã điểm danh trong năm (bất kể trạng thái)
+        const totalMarkedInYear = await ChildrenAttendanceModel.countDocuments({
+            schoolId: parent.schoolId,
+            academicYearId,
+            classId,
+            studentId: parent.studentId,
+            _destroy: false,
+        });
+
         console.log('✅ [ParentChildren getAttendance] Success:', {
             studentName: student.fullName,
             weekNumber,
             daysCount: daysInWeek.length,
+            presentInWeek,
             absentInWeek,
+            // ✅ ADD LOG
+            totalPresentInYear,
+            totalAbsentInYear,
+            totalMarkedInYear,
         });
 
         return {
@@ -907,8 +960,13 @@ const getAttendance = async (academicYearId, classId, weekNumber, userId) => {
             days: daysInWeek,
             holidays: schedule.holidays || [],
             attendanceMap,
+            // ✅ Weekly stats
+            presentInWeek,
             absentInWeek,
+            // ✅ ADD: Yearly stats
+            totalPresentInYear,
             totalAbsentInYear,
+            totalMarkedInYear,
         };
     } catch (error) {
         console.error('❌ [ParentChildren getAttendance] Error:', error);

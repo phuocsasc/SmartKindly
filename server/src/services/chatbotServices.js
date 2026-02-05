@@ -121,9 +121,11 @@ const formatFullWeekPlanDetail = (weeklyPlanObj) => {
  */
 const detectTargetDate = async (userMessage, todayDateStr) => {
     try {
-        const today = dayjs(todayDateStr);
-        // Tạo map ngày trong tuần hiện tại
+        // ✅ FIX: Dùng timezone Việt Nam
+        const today = dayjs.tz(todayDateStr, 'Asia/Ho_Chi_Minh');
         const startOfWeek = today.startOf('isoWeek'); // Thứ 2
+
+        // Tạo map ngày trong tuần hiện tại
         const weekDates = {};
         for (let i = 0; i < 7; i++) {
             const d = startOfWeek.add(i, 'day');
@@ -146,20 +148,25 @@ const detectTargetDate = async (userMessage, todayDateStr) => {
             3. "Thứ X tuần này" / "Thứ X" (nếu không nói rõ tuần) -> Lấy ngày tương ứng trong LỊCH TUẦN NÀY ở trên.
             4. "Thứ X tuần trước" -> Lấy ngày trong LỊCH trên TRỪ đi 7 ngày.
             5. "Thứ X tuần sau" -> Lấy ngày trong LỊCH trên CỘNG thêm 7 ngày.
+            6. "hôm nay", "ngày nay", "bữa nay" -> Trả về ${todayDateStr}.
+            7. "ngày X/Y" hoặc "X/Y" -> Parse thành YYYY-MM-DD (năm hiện tại nếu không có).
             
-            CHỈ TRẢ VỀ CHUỖI NGÀY.
+            CHỈ TRẢ VỀ CHUỖI NGÀY (YYYY-MM-DD).
         `;
 
         const chat = await openai.chat.completions.create({
             model: 'gpt-4o-mini',
             messages: [{ role: 'user', content: prompt }],
-            temperature: 0, // Nhiệt độ 0 để tính toán chính xác nhất
+            temperature: 0,
         });
 
         const dateStr = chat.choices[0].message.content.trim();
+        console.log('🕰️ [AI Detect Date]:', { userMessage, detected: dateStr, today: todayDateStr });
+
         // Validate date
         return dayjs(dateStr, 'YYYY-MM-DD', true).isValid() ? dateStr : todayDateStr;
-    } catch {
+    } catch (error) {
+        console.error('❌ [detectTargetDate] Error:', error);
         return todayDateStr;
     }
 };
@@ -257,9 +264,10 @@ const sendMessage = async (conversationId, message, userId) => {
             targetClass = classesInYear.classes?.[0] || null;
         }
 
-        // B3: Detect Thời gian
+        // B3: Detect Thời gian - ✅ FIX: Dùng timezone VN
         const today = dayjs().tz('Asia/Ho_Chi_Minh');
-        const targetDateStr = await detectTargetDate(message, today.format('YYYY-MM-DD'));
+        const todayDateStr = today.format('YYYY-MM-DD');
+        const targetDateStr = await detectTargetDate(message, todayDateStr);
         const targetDate = dayjs.tz(targetDateStr, 'YYYY-MM-DD', 'Asia/Ho_Chi_Minh');
         console.log(
             `🕰️ [Time]: Focus ${targetDateStr} | Year: ${selectedYearInfo.fromYear}-${selectedYearInfo.toYear}`,
@@ -316,10 +324,11 @@ const sendMessage = async (conversationId, message, userId) => {
                 focus_week_range: `${targetWeekStart} đến ${targetWeekEnd}`,
             },
             school_info: {
-                name: school.name,
-                address: school.address,
-                phone: school.phone,
-                email: school.email,
+                // ✅ CHỈ 3 FIELD CƠ BẢN
+                name: school.name || 'Chưa cập nhật',
+                manager: school.manager || 'Chưa cập nhật',
+                address: school.address || 'Chưa cập nhật',
+                // ✅ REMOVE: phone, email, website, establishmentDate, etc.
             },
             student_info: {
                 full_name: student.fullName,
@@ -332,6 +341,10 @@ const sendMessage = async (conversationId, message, userId) => {
             class_info: {
                 class_name: targetClass?.name || 'Không tìm thấy dữ liệu lớp',
                 homeroom_teacher: targetClass?.homeRoomTeacher?.fullName || 'Chưa cập nhật',
+                // ✅ ADD: Thêm thống kê học sinh
+                total_students: childrenInfo.currentClass?.totalStudents || 0,
+                male_count: childrenInfo.currentClass?.maleCount || 0,
+                female_count: childrenInfo.currentClass?.femaleCount || 0,
             },
             schedule: {
                 weekly_summary: formatWeeklyPlanSummary(weeklyPlan?.weeklyPlan),
@@ -345,23 +358,89 @@ const sendMessage = async (conversationId, message, userId) => {
                           menu.menuApplies.find((m) => dayjs(m.date).isSame(targetDate, 'day')).menuSnapshot,
                       )
                     : 'Chưa có thực đơn ngày này',
-                full_week: menu?.menuApplies
-                    ?.map(
-                        (m) =>
-                            `- **${m.dayOfWeek} (${dayjs(m.date).format('DD/MM')})**: ${formatMenuForAI(m.menuSnapshot)}`,
-                    )
-                    .join('\n'),
+                // ✅ ADD: Full week menu with dates
+                full_week_menus:
+                    menu?.menuApplies?.map((m) => ({
+                        date: dayjs(m.date).format('DD/MM/YYYY'),
+                        day_of_week: m.dayOfWeek,
+                        meals: formatMenuForAI(m.menuSnapshot),
+                    })) || [],
             },
             attendance: {
-                weekly_summary: `Trong tuần ${targetWeekNumber}: Đi học ${attendance?.daysCount || 0} buổi, Vắng ${attendance?.absentInWeek || 0} buổi`,
+                // ✅ WEEKLY STATS
+                total_days_in_week: attendance?.days?.length || 5,
+                present_count_week: attendance?.presentInWeek || 0,
+                absent_count_week: attendance?.absentInWeek || 0,
+                not_yet_marked_week:
+                    (attendance?.days?.length || 5) -
+                    (attendance?.presentInWeek || 0) -
+                    (attendance?.absentInWeek || 0),
+
+                // ✅ YEARLY STATS (ADD)
+                present_count_year: attendance?.totalPresentInYear || 0,
+                absent_count_year: attendance?.totalAbsentInYear || 0,
+                total_marked_year: attendance?.totalMarkedInYear || 0,
+
+                // ✅ TODAY & DETAILS
                 status_today: attendance?.attendanceMap?.[targetDateStr]?.status || 'Chưa có dữ liệu ngày này',
-                total_absent_year: attendance?.totalAbsentInYear || 0,
+                daily_details: attendance?.attendanceMap
+                    ? Object.entries(attendance.attendanceMap)
+                          .map(([date, info]) => `${dayjs(date).format('DD/MM')} (${info.status})`)
+                          .join(', ')
+                    : 'Không có dữ liệu',
             },
             daily_assessment: dailyAssessment?.assessmentMap?.[targetDateStr] || 'Chưa có nhận xét ngày này',
             weekly_certificate: weeklyCert?.certificate
                 ? { isGood: weeklyCert.certificate.isGoodChild, note: weeklyCert.certificate.comment }
                 : 'Chưa có phiếu bé ngoan',
-            program_complete: completionAssessment?.evaluation ? 'Đã hoàn thành' : 'Chưa đánh giá',
+            // ✅ ADD: COMPLETION ASSESSMENT (Đánh giá hoàn thành chương trình)
+            completion_assessment: (() => {
+                if (!completionAssessment?.evaluation) {
+                    return 'Chưa có đánh giá hoàn thành chương trình cho năm học này';
+                }
+
+                const evaluation = completionAssessment.evaluation;
+                const targetDetails = completionAssessment.targetDetails || {};
+
+                // Calculate statistics
+                const totalTargets = evaluation.assessmentDetails.length;
+                const passedTargets = evaluation.assessmentDetails.filter((d) => d.score >= 5).length;
+                const failedTargets = totalTargets - passedTargets;
+                const averageScore =
+                    totalTargets > 0
+                        ? (evaluation.assessmentDetails.reduce((sum, d) => sum + d.score, 0) / totalTargets).toFixed(1)
+                        : 0;
+
+                // Format target details
+                const targetsList = evaluation.assessmentDetails.map((detail) => {
+                    const target = targetDetails[String(detail.targetId)];
+                    const isPassed = detail.score >= 5;
+                    return {
+                        code: target?.code || 'N/A',
+                        content: target?.content || 'N/A',
+                        score: detail.score,
+                        status: isPassed ? 'Đạt' : 'Chưa đạt',
+                    };
+                });
+
+                return {
+                    has_evaluation: true,
+                    academic_year: `${selectedYearInfo.fromYear}-${selectedYearInfo.toYear}`,
+                    class_name: completionAssessment.classData?.name || 'N/A',
+                    student_name: completionAssessment.student?.fullName || student.fullName,
+                    statistics: {
+                        total_targets: totalTargets,
+                        passed: passedTargets,
+                        failed: failedTargets,
+                        average_score: parseFloat(averageScore),
+                    },
+                    targets: targetsList,
+                    teacher_note: evaluation.note || 'Không có nhận xét',
+                    created_by: evaluation.createdBy?.fullName || 'N/A',
+                    created_at: evaluation.createdAt ? dayjs(evaluation.createdAt).format('DD/MM/YYYY') : 'N/A',
+                    updated_at: evaluation.updatedAt ? dayjs(evaluation.updatedAt).format('DD/MM/YYYY') : 'N/A',
+                };
+            })(),
         };
 
         // B7: SYSTEM PROMPT
@@ -369,20 +448,82 @@ const sendMessage = async (conversationId, message, userId) => {
             Bạn là SmartKindly AI.
             
             1. DỮ LIỆU ĐANG XÉT (Ngày trọng tâm: ${contextData.meta.focus_date}):
-            ${JSON.stringify(contextData)}
+            ${JSON.stringify(contextData, null, 2)}
 
             2. QUY TẮC TRẢ LỜI:
             - **Định dạng**: Trả lời bằng **Markdown**.
-            - **Ngày tháng**: Luôn ghi rõ ngày/tháng/năm (VD: ${contextData.meta.focus_date}) khi nhắc đến thời gian.
+            - **Ngày tháng**: Luôn ghi rõ ngày/tháng/năm khi nhắc đến thời gian.
             
-            - **Xử lý Thời khóa biểu/Hoạt động**:
+            - **Xử lý Thông tin Trường học:**
+              + CHỈ cung cấp 3 thông tin: **Tên trường** ('school_info.name'), **Hiệu trưởng** ('school_info.manager'), **Địa chỉ** ('school_info.address').
+              + KHÔNG cung cấp số điện thoại, email, website, ngày thành lập.
+              + **Ví dụ trả lời:** "Trường của bé là **${contextData.school_info.name}**, do Hiệu trưởng **${contextData.school_info.manager}** quản lý, địa chỉ tại **${contextData.school_info.address}**."
+
+            - **Xử lý Thông tin Lớp học:**
+              + Dùng 'class_info.class_name' để biết **tên lớp**.
+              + Dùng 'class_info.homeroom_teacher' để biết **GVCN**.
+              + Dùng 'class_info.total_students' để biết **tổng số học sinh**.
+              + Dùng 'class_info.male_count' và 'class_info.female_count' để biết **số học sinh nam/nữ**.
+              + **Ví dụ trả lời:** "Bé đang học lớp **${contextData.class_info.class_name}** với GVCN là **${contextData.class_info.homeroom_teacher}**. Lớp có **${contextData.class_info.total_students}** học sinh (${contextData.class_info.male_count} bé trai, ${contextData.class_info.female_count} bé gái)."
+
+            - **Xử lý Điểm danh:**
+              + **TRONG TUẦN:**
+                * Dùng 'attendance.present_count_week' → Số buổi đã đi học trong tuần.
+                * Dùng 'attendance.absent_count_week' → Số buổi vắng trong tuần.
+                * Dùng 'attendance.not_yet_marked_week' → Số ngày chưa điểm danh trong tuần.
+              
+              + **TRONG NĂM:**
+                * Dùng 'attendance.present_count_year' → Tổng số buổi đã đi học trong năm ${contextData.meta.selected_year}.
+                * Dùng 'attendance.absent_count_year' → Tổng số buổi vắng trong năm ${contextData.meta.selected_year}.
+                * Dùng 'attendance.total_marked_year' → Tổng số buổi đã điểm danh trong năm.
+              
+              + **HÔM NAY:**
+                * Dùng 'attendance.status_today' → Trạng thái điểm danh ngày ${contextData.meta.focus_date}.
+              
+              + **CHI TIẾT TUẦN:**
+                * Dùng 'attendance.daily_details' → Liệt kê từng ngày trong tuần.
+              
+              + **Ví dụ trả lời:**
+                - "Trong tuần ${targetWeekNumber}, bé đã đi học 4/5 buổi. Thứ 6 chưa điểm danh."
+                - "Trong năm học ${contextData.meta.selected_year}, bé đã đi học **100 buổi** và vắng **5 buổi** (3 có phép, 2 không phép)."
+                - "Hôm nay (${contextData.meta.focus_date}), bé có mặt."
+
+            - **Xử lý Thời khóa biểu/Hoạt động:**
               + Nếu hỏi "chi tiết hôm nay": Dùng 'schedule.daily_detail'.
-              + Nếu hỏi "chi tiết cả tuần/trong tuần": Dùng 'schedule.full_week_detail' (Bắt buộc dùng cái này nếu hỏi rộng cả tuần).
+              + Nếu hỏi "chi tiết cả tuần/trong tuần": Dùng 'schedule.full_week_detail'.
               + Nếu hỏi "tóm tắt tuần": Dùng 'schedule.weekly_summary'.
 
-            - **Xử lý câu hỏi tiếp nối**:
-              + Dựa vào lịch sử chat và 'meta.focus_date' để trả lời câu hỏi ngắn như "thế còn hôm qua?" "thế tuần trước?".
-            
+            - **Xử lý Thực đơn:**
+              + **HÔM NAY:** Dùng 'menu.target_day_menu' → Thực đơn ngày ${contextData.meta.focus_date}.
+              + **CẢ TUẦN:** Dùng 'menu.full_week_menus' → Liệt kê thực đơn từng ngày trong tuần ${targetWeekNumber}.
+              + **Ví dụ trả lời:**
+                - "Hôm nay (${contextData.meta.focus_date}), bé ăn: Bữa sáng: Cháo tôm, Bữa trưa: Cơm gà..."
+                - "Thực đơn tuần ${targetWeekNumber}: Thứ 2 (02/02): Cháo tôm..., Thứ 3 (03/02): Cơm sườn..."
+
+            - **✅ Xử lý Đánh giá hoàn thành chương trình:**
+              + **NẾU CHƯA CÓ ĐÁNH GIÁ:** ('completion_assessment' là string)
+                * Trả lời: "Giáo viên chưa đánh giá hoàn thành chương trình cho năm học ${contextData.meta.selected_year}."
+              
+              + **NẾU ĐÃ CÓ ĐÁNH GIÁ:** ('completion_assessment.has_evaluation' = true)
+                * Dùng 'completion_assessment.statistics' để biết **tổng số mục tiêu**, **số đạt**, **số chưa đạt**, **điểm trung bình**.
+                * Dùng 'completion_assessment.targets' để liệt kê **chi tiết từng mục tiêu** (code, content, score, status).
+                * Dùng 'completion_assessment.teacher_note' để hiển thị **nhận xét của giáo viên**.
+                * Dùng 'completion_assessment.created_by', 'completion_assessment.created_at', 'completion_assessment.updated_at' để biết **ai đánh giá, khi nào**.
+              
+              + **Ví dụ trả lời:**
+                - "Trong năm học ${contextData.meta.selected_year}, bé đã được đánh giá **${contextData.completion_assessment.statistics?.total_targets || 0}** mục tiêu:
+                  + ✅ Đạt: **${contextData.completion_assessment.statistics?.passed || 0}** mục tiêu
+                  + ❌ Chưa đạt: **${contextData.completion_assessment.statistics?.failed || 0}** mục tiêu
+                  + Điểm trung bình: **${contextData.completion_assessment.statistics?.average_score || 0}**/10
+                  
+                  📝 **Nhận xét của giáo viên:** ${contextData.completion_assessment.teacher_note || 'Không có'}
+                  
+                  **Chi tiết các mục tiêu:**
+                  ${contextData.completion_assessment.targets?.map((t, i) => `${i + 1}. **${t.code}** - ${t.content}: ${t.score}/10 (${t.status})`).join('\\n') || 'Không có dữ liệu'}"
+
+            - **Xử lý câu hỏi tiếp nối:**
+              + Dựa vào lịch sử chat và 'meta.focus_date' để trả lời câu hỏi ngắn.
+
             3. MẪU TRẢ LỜI NGOÀI PHẠM VI:
             "Xin lỗi, nhưng mình chỉ có thể cung cấp thông tin liên quan đến 9 mục sau:
             1. 🏫 **Thông tin trường**

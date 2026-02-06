@@ -187,11 +187,11 @@ function Chatbot() {
 
     const sidebarContent = (
         <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', bgcolor: '#fff' }}>
-            <Box sx={{ p: 3, background: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)', color: 'white' }}>
+            <Box sx={{ p: 2, background: '#4facfe', color: 'white' }}>
                 <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 2 }}>
                     <SparkleIcon fontSize="small" />
-                    <Typography variant="h6" fontWeight={800} letterSpacing={0.5}>
-                        SMART KINDLY AI
+                    <Typography variant="h6" fontWeight={700} letterSpacing={0.5}>
+                        Trợ lý AI SmartKindly
                     </Typography>
                 </Stack>
                 <ListItemButton
@@ -212,8 +212,8 @@ function Chatbot() {
             </Box>
 
             <Box sx={{ flex: 1, overflowY: 'auto', p: 1 }}>
-                <Typography variant="overline" sx={{ px: 2, color: 'text.secondary', fontWeight: 700 }}>
-                    Lịch sử tư vấn
+                <Typography variant="overline" sx={{ px: 2, color: 'text.secondary', fontWeight: 600 }}>
+                    Lịch sử hỏi đáp
                 </Typography>
                 <List>
                     {conversations.map((conv) => (
@@ -264,7 +264,7 @@ function Chatbot() {
                     sx={{
                         borderRadius: 4,
                         overflow: 'hidden',
-                        height: 'calc(100vh - 210px)',
+                        height: 'calc(100vh - 160px)',
                         display: 'flex',
                         border: '1px solid',
                         borderColor: 'divider',
@@ -568,6 +568,7 @@ function Chatbot() {
                                         onChange={(e) => setInputMessage(e.target.value)}
                                         onKeyPress={handleKeyPress}
                                         disabled={sending}
+                                        spellCheck={false} // Tắt gạch chân đỏ
                                         InputProps={{
                                             sx: { borderRadius: 4, pr: 1, bgcolor: '#f8fafc' },
                                             endAdornment: (
@@ -588,12 +589,9 @@ function Chatbot() {
                                             ),
                                         }}
                                     />
-                                    <Typography
-                                        variant="caption"
-                                        sx={{ display: 'block', textAlign: 'center', mt: 1, color: 'text.disabled' }}
-                                    >
-                                        AI có thể đưa ra câu trả lời dựa trên dữ liệu học tập và sinh hoạt của bé tại
-                                        trường.
+                                    <Typography variant="caption" sx={{ display: 'block', textAlign: 'center', mt: 1 }}>
+                                        AI SmartKindly có thể đưa ra câu trả lời dựa trên dữ liệu học tập và sinh hoạt
+                                        của bé tại trường.
                                     </Typography>
                                 </Box>
                             </>
@@ -636,8 +634,7 @@ function Chatbot() {
                                     Chatbot AI Trợ Lý dành cho Phụ Huynh
                                 </Typography>
                                 <Typography variant="body1" color="text.secondary" sx={{ maxWidth: 450, mb: 4 }}>
-                                    Chào bạn! Tôi có thể giúp bạn tra cứu nhanh thực đơn, điểm danh, nhận xét của giáo
-                                    viên và tình hình sức khỏe của bé.
+                                    Chào bạn! Tôi có thể giúp gì cho bạn.
                                 </Typography>
                                 <ListItemButton
                                     onClick={handleCreateConversation}

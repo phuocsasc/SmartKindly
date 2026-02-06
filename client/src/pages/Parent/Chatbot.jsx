@@ -25,7 +25,6 @@ import {
 } from '@mui/material';
 import {
     Send as SendIcon,
-    SmartToy as BotIcon,
     Person as PersonIcon,
     Add as AddIcon,
     Chat as ChatIcon,
@@ -43,6 +42,7 @@ import { toast } from 'react-toastify';
 import dayjs from 'dayjs';
 import { useConfirmDialog } from '~/hooks/useConfirmDialog';
 import ConfirmDialog from '~/components/common/ConfirmDialog';
+import chatbot_Ai from '/chatbot_Ai.png';
 
 // ✅ ADD: Import Markdown renderer
 import ReactMarkdown from 'react-markdown';
@@ -257,7 +257,7 @@ function Chatbot() {
     return (
         <MainLayout user={user}>
             <PageContainer>
-                <PageBreadcrumb items={[{ text: 'Trợ lý AI SmartKindly', icon: BotIcon }]} />
+                <PageBreadcrumb items={[{ text: 'Trợ lý AI SmartKindly' }]} />
 
                 <Paper
                     elevation={0}
@@ -299,9 +299,15 @@ function Chatbot() {
                                             <HistoryIcon />
                                         </IconButton>
                                     )}
-                                    <Avatar sx={{ bgcolor: 'primary.main', width: 40, height: 40, mr: 2 }}>
-                                        <BotIcon />
-                                    </Avatar>
+                                    <Avatar
+                                        src={chatbot_Ai} // ✅ Thêm src ảnh vào đây
+                                        sx={{
+                                            bgcolor: 'transparent', // ✅ Đổi nền thành trong suốt để ảnh PNG hiển thị đẹp
+                                            width: 40,
+                                            height: 40,
+                                            mr: 2,
+                                        }}
+                                    ></Avatar>
                                     <Box sx={{ flex: 1 }}>
                                         <Typography variant="subtitle1" fontWeight={700}>
                                             {currentConversation.conversationName}
@@ -344,20 +350,27 @@ function Chatbot() {
                                                         }}
                                                     >
                                                         <Avatar
+                                                            src={msg.role === 'user' ? undefined : chatbot_Ai} // ✅ Nếu là bot thì dùng ảnh chatbot_Ai
                                                             sx={{
                                                                 width: 32,
                                                                 height: 32,
                                                                 bgcolor:
                                                                     msg.role === 'user'
                                                                         ? 'primary.main'
-                                                                        : 'secondary.main',
+                                                                        : 'transparent', // ✅ Bot thì nền trong suốt
                                                                 fontSize: '1rem',
                                                             }}
                                                         >
                                                             {msg.role === 'user' ? (
                                                                 <PersonIcon fontSize="inherit" />
                                                             ) : (
-                                                                <BotIcon fontSize="inherit" />
+                                                                // ✅ Nếu Avatar src không chạy (do lỗi load), fallback này sẽ hiện
+                                                                // Nhưng thường MUI ưu tiên src, bạn có thể để trống hoặc dùng thẻ img
+                                                                <img
+                                                                    src={chatbot_Ai}
+                                                                    alt="AI"
+                                                                    style={{ width: '100%', height: '100%' }}
+                                                                />
                                                             )}
                                                         </Avatar>
                                                         <Box sx={{ flex: 1 }}>
@@ -513,9 +526,14 @@ function Chatbot() {
                                         ))}
                                         {sending && (
                                             <Box sx={{ display: 'flex', gap: 1.5 }}>
-                                                <Avatar sx={{ width: 32, height: 32, bgcolor: 'secondary.main' }}>
-                                                    <BotIcon fontSize="small" />
-                                                </Avatar>
+                                                <Avatar
+                                                    src={chatbot_Ai} // ✅ Dùng ảnh
+                                                    sx={{
+                                                        width: 32,
+                                                        height: 32,
+                                                        bgcolor: 'transparent', // ✅ Nền trong suốt
+                                                    }}
+                                                />
                                                 <Paper
                                                     sx={{
                                                         p: 2,
@@ -524,6 +542,7 @@ function Chatbot() {
                                                         borderTopLeftRadius: 0,
                                                     }}
                                                 >
+                                                    Đợi xíu
                                                     <CircularProgress size={18} thickness={5} />
                                                 </Paper>
                                             </Box>
@@ -592,15 +611,14 @@ function Chatbot() {
                             >
                                 <Box sx={{ position: 'relative', mb: 4 }}>
                                     <Avatar
+                                        src={chatbot_Ai} // ✅ Dùng ảnh lớn
                                         sx={{
                                             width: 120,
                                             height: 120,
-                                            bgcolor: 'primary.lighter',
-                                            color: 'primary.main',
+                                            bgcolor: 'transparent', // ✅ Nền trong suốt hoặc màu nhạt tùy thiết kế
+                                            // color: 'primary.main', // Không cần color nữa vì dùng ảnh gốc
                                         }}
-                                    >
-                                        <BotIcon sx={{ fontSize: 60 }} />
-                                    </Avatar>
+                                    />
                                     <Box
                                         sx={{
                                             position: 'absolute',
@@ -614,8 +632,8 @@ function Chatbot() {
                                         }}
                                     />
                                 </Box>
-                                <Typography variant="h5" fontWeight={800} gutterBottom>
-                                    Hệ thống AI Trợ Lý Phụ Huynh
+                                <Typography variant="h5" fontWeight={700} gutterBottom>
+                                    Chatbot AI Trợ Lý dành cho Phụ Huynh
                                 </Typography>
                                 <Typography variant="body1" color="text.secondary" sx={{ maxWidth: 450, mb: 4 }}>
                                     Chào bạn! Tôi có thể giúp bạn tra cứu nhanh thực đơn, điểm danh, nhận xét của giáo
@@ -633,7 +651,7 @@ function Chatbot() {
                                         px: 4,
                                     }}
                                 >
-                                    <Typography fontWeight={700}>Bắt đầu tư vấn ngay</Typography>
+                                    <Typography fontWeight={700}>Bắt đầu hỏi đáp ngay</Typography>
                                 </ListItemButton>
                             </Box>
                         )}

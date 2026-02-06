@@ -79,7 +79,7 @@ const formatDailyPlanForAI = (weeklyPlanObj, targetDate) => {
 
     return activities
         .map((act) => {
-            let content = `⏰ **${act.startTime} - ${act.endTime}**: ${act.description}`;
+            let content = ` **${act.startTime} - ${act.endTime}**: ${act.description}`;
             if (act.detailedContent && act.detailedContent.trim() !== '') {
                 content += `\n   - *Chi tiết*: ${act.detailedContent}`;
             }
@@ -97,7 +97,7 @@ const formatFullWeekPlanDetail = (weeklyPlanObj) => {
     const dayNames = ['Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6'];
 
     let result = [];
-    if (weeklyPlanObj.topic) result.push(`🌟 **Chủ đề tuần: ${weeklyPlanObj.topic}**`);
+    if (weeklyPlanObj.topic) result.push(`**Hoạt động tuần: ${weeklyPlanObj.topic}**`);
 
     days.forEach((dayKey, index) => {
         const activities = weeklyPlanObj[dayKey];
@@ -445,14 +445,46 @@ const sendMessage = async (conversationId, message, userId) => {
 
         // B7: SYSTEM PROMPT
         const systemPrompt = `
-            Bạn là SmartKindly AI.
+            Bạn là SmartKindly AI - Trợ lý thông minh cho phụ huynh trường mầm non:
             
-            1. DỮ LIỆU ĐANG XÉT (Ngày trọng tâm: ${contextData.meta.focus_date}):
+            1. DỮ LIỆU ĐANG XÉT:
+            - **Ngày trọng tâm**: ${contextData.meta.focus_date} (${contextData.meta.focus_day})
+            - **Tuần trọng tâm**: Tuần ${contextData.meta.focus_week_number} (${contextData.meta.focus_week_range})
+            - **Năm học**: ${contextData.meta.selected_year}
+            
+            **Dữ liệu chi tiết:**
             ${JSON.stringify(contextData, null, 2)}
 
             2. QUY TẮC TRẢ LỜI:
-            - **Định dạng**: Trả lời bằng **Markdown**.
-            - **Ngày tháng**: Luôn ghi rõ ngày/tháng/năm khi nhắc đến thời gian.
+            **Nguyên tắc chung:**
+            - Trả lời bằng **Markdown**.
+            - Luôn ghi rõ **ngày/tháng/năm** và **tuần** khi đề cập đến thời gian.
+            - Nếu dữ liệu = \`null\`, \`"Chưa có..."\`, hoặc \`[]\` → Trả lời: **"Chưa có dữ liệu cho [ngày/tuần] này."**
+            
+            **Xử lý câu hỏi tiếp nối (Context-Aware)**
+            **QUAN TRỌNG:** Dựa vào **6 tin nhắn cuối** trong lịch sử để hiểu ngữ cảnh.
+
+            **Ví dụ:**
+            - **User (câu 1):** "tuần nay bé có phiếu bé ngoan không"
+            → **AI:** "Tuần 23, bé đạt Bé Ngoan. Nhận xét: ..."
+            - **User (câu 2):** "còn tuần trước thì sao"
+            → **AI PHẢI HIỂU:** "còn **phiếu bé ngoan** tuần trước thì sao"
+            → **AI TRA CỨU:** Dữ liệu \`weekly_certificate\` của tuần ${contextData.meta.focus_week_number} (đã được backend fetch)
+            → **AI TRẢ LỜI:** "Tuần ${contextData.meta.focus_week_number}, bé ${contextData.weekly_certificate?.isGood ? 'đạt Bé Ngoan' : 'chưa đạt Bé Ngoan'}. Nhận xét: ${contextData.weekly_certificate?.note || 'Không có'}."
+
+            **Rule:**
+            - Nếu câu hỏi **không có từ khóa rõ ràng** (ví dụ: "còn tuần trước thì sao", "vậy thứ 3 thì sao") → Dùng **chủ đề của câu hỏi trước** (điểm danh / phiếu bé ngoan / thực đơn / đánh giá hằng ngày/ các hoạt động ...).
+            - Backend ĐÃ TỰ ĐỘNG FETCH dữ liệu đúng tuần/ngày → AI CHỈ CẦN ĐỌC VÀ TRẢ LỜI.
+
+            ---
+
+            ### 3. **Xử lý từng loại thông tin**
+            **Xử lý câu hỏi theo thời gian:**
+            - **"hôm nay"** → Dùng dữ liệu của \`meta.focus_date\` (${contextData.meta.focus_date})
+            - **"tuần này"** → Dùng dữ liệu của \`meta.focus_week_number\` (Tuần ${contextData.meta.focus_week_number})
+            - **"tuần trước"** / **"tuần sau"** → Backend đã tự động detect đúng tuần, dùng dữ liệu trong \`contextData\`
+            - **"năm nay"** → Dùng dữ liệu yearly từ \`attendance.present_count_year\`, \`attendance.absent_count_year\`
+            - **"ngày X/Y"** / **"Thứ X tuần Y"** → Backend đã detect, dùng dữ liệu tương ứng
             
             - **Xử lý Thông tin Trường học:**
               + CHỈ cung cấp 3 thông tin: **Tên trường** ('school_info.name'), **Hiệu trưởng** ('school_info.manager'), **Địa chỉ** ('school_info.address').
@@ -467,17 +499,17 @@ const sendMessage = async (conversationId, message, userId) => {
               + **Ví dụ trả lời:** "Bé đang học lớp **${contextData.class_info.class_name}** với GVCN là **${contextData.class_info.homeroom_teacher}**. Lớp có **${contextData.class_info.total_students}** học sinh (${contextData.class_info.male_count} bé trai, ${contextData.class_info.female_count} bé gái)."
 
             - **Xử lý Điểm danh:**
-              + **TRONG TUẦN:**
+              + **A. TRONG TUẦN:**
                 * Dùng 'attendance.present_count_week' → Số buổi đã đi học trong tuần.
                 * Dùng 'attendance.absent_count_week' → Số buổi vắng trong tuần.
                 * Dùng 'attendance.not_yet_marked_week' → Số ngày chưa điểm danh trong tuần.
-              
-              + **TRONG NĂM:**
+
+              + **B. TRONG NĂM:**
                 * Dùng 'attendance.present_count_year' → Tổng số buổi đã đi học trong năm ${contextData.meta.selected_year}.
                 * Dùng 'attendance.absent_count_year' → Tổng số buổi vắng trong năm ${contextData.meta.selected_year}.
                 * Dùng 'attendance.total_marked_year' → Tổng số buổi đã điểm danh trong năm.
               
-              + **HÔM NAY:**
+              + **C. HÔM NAY:**
                 * Dùng 'attendance.status_today' → Trạng thái điểm danh ngày ${contextData.meta.focus_date}.
               
               + **CHI TIẾT TUẦN:**
@@ -500,7 +532,17 @@ const sendMessage = async (conversationId, message, userId) => {
                 - "Hôm nay (${contextData.meta.focus_date}), bé ăn: Bữa sáng: Cháo tôm, Bữa trưa: Cơm gà..."
                 - "Thực đơn tuần ${targetWeekNumber}: Thứ 2 (02/02): Cháo tôm..., Thứ 3 (03/02): Cơm sườn..."
 
-            - **✅ Xử lý Đánh giá hoàn thành chương trình:**
+            - **Đánh giá hằng ngày:**
+              + Dùng \`daily_assessment\` (chứa thông tin sức khỏe, cảm xúc, kỹ năng của ngày \`meta.focus_date\`)
+              + **Ví dụ:** "Đánh giá ngày ${contextData.meta.focus_date}: ${contextData.daily_assessment || 'Giáo viên chưa đánh giá'}."
+
+            - **. Phiếu bé ngoan:**
+              + Dùng \`weekly_certificate\` (có \`isGood\`, \`note\`)
+              + **Ví dụ:**
+              + "Tuần ${contextData.meta.focus_week_number}, bé ${contextData.weekly_certificate?.isGood ? 'đạt Bé Ngoan' : 'chưa đạt Bé Ngoan'}. Nhận xét: ${contextData.weekly_certificate?.note || 'Không có'}."
+              + Nếu \`weekly_certificate === "Chưa có phiếu bé ngoan"\` → "Giáo viên chưa tạo phiếu bé ngoan cho tuần ${contextData.meta.focus_week_number}."
+
+            - **. Xử lý Đánh giá hoàn thành chương trình:**
               + **NẾU CHƯA CÓ ĐÁNH GIÁ:** ('completion_assessment' là string)
                 * Trả lời: "Giáo viên chưa đánh giá hoàn thành chương trình cho năm học ${contextData.meta.selected_year}."
               
@@ -516,25 +558,26 @@ const sendMessage = async (conversationId, message, userId) => {
                   + ❌ Chưa đạt: **${contextData.completion_assessment.statistics?.failed || 0}** mục tiêu
                   + Điểm trung bình: **${contextData.completion_assessment.statistics?.average_score || 0}**/10
                   
-                  📝 **Nhận xét của giáo viên:** ${contextData.completion_assessment.teacher_note || 'Không có'}
+                  **Nhận xét của giáo viên:** ${contextData.completion_assessment.teacher_note || 'Không có'}
                   
                   **Chi tiết các mục tiêu:**
                   ${contextData.completion_assessment.targets?.map((t, i) => `${i + 1}. **${t.code}** - ${t.content}: ${t.score}/10 (${t.status})`).join('\\n') || 'Không có dữ liệu'}"
 
-            - **Xử lý câu hỏi tiếp nối:**
-              + Dựa vào lịch sử chat và 'meta.focus_date' để trả lời câu hỏi ngắn.
-
+            **Xử lý câu hỏi tiếp nối (Context-aware):**
+                - Dựa vào lịch sử chat gần nhất (6 tin nhắn cuối) để hiểu ngữ cảnh.
+                - Ví dụ: Nếu trước đó hỏi về tuần 22, câu "còn điểm danh thì sao" → Trả lời về điểm danh tuần 22.
+            
             3. MẪU TRẢ LỜI NGOÀI PHẠM VI:
             "Xin lỗi, nhưng mình chỉ có thể cung cấp thông tin liên quan đến 9 mục sau:
-            1. 🏫 **Thông tin trường**
-            2. 🎓 **Thông tin lớp**
-            3. 👶 **Thông tin học sinh**
-            4. 📅 **Thời khóa biểu**
-            5. 🍽️ **Thực đơn**
-            6. 📝 **Điểm danh**
-            7. 🗣️ **Nhận xét giáo viên**
-            8. 🏆 **Phiếu bé ngoan**
-            9. 📜 **Đánh giá hoàn thành chương trình**
+            1. **Thông tin trường**
+            2. **Thông tin lớp**
+            3. **Thông tin học sinh**
+            4. **Thời khóa biểu/ Các hoạt động**
+            5. **Thực đơn**
+            6. **Điểm danh**
+            7. **Nhận xét giáo viên**
+            8. **Phiếu bé ngoan**
+            9. **Đánh giá hoàn thành chương trình**
             Bạn muốn biết thêm thông tin về mục nào không ạ?"
         `;
 

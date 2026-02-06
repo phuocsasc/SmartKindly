@@ -84,7 +84,7 @@ const menuItems = [
         path: '/parent/requests',
     },
     {
-        text: 'Trợ lý A.I',
+        text: 'Trợ lý AI SmartKindly',
         icon: <ChatOutlinedIcon />,
         path: '/parent/chatbot',
     },

@@ -14,12 +14,16 @@ import customParseFormat from 'dayjs/plugin/customParseFormat.js';
 import utc from 'dayjs/plugin/utc.js';
 import timezone from 'dayjs/plugin/timezone.js';
 import isoWeek from 'dayjs/plugin/isoWeek.js';
+import isSameOrAfter from 'dayjs/plugin/isSameOrAfter.js'; // Thêm dòng này
+import isSameOrBefore from 'dayjs/plugin/isSameOrBefore.js'; // Thêm dòng này
 
 dayjs.extend(isBetween);
 dayjs.extend(customParseFormat);
 dayjs.extend(utc);
 dayjs.extend(timezone);
 dayjs.extend(isoWeek);
+dayjs.extend(isSameOrAfter); // Thêm dòng này
+dayjs.extend(isSameOrBefore); // Thêm dòng này
 
 // ✅ ÉP MẶC ĐỊNH LÀ GIỜ VIỆT NAM
 dayjs.tz.setDefault('Asia/Ho_Chi_Minh');
@@ -276,19 +280,31 @@ const sendMessage = async (conversationId, message, userId) => {
         // B4: Tìm tuần & LẤY NGÀY BẮT ĐẦU/KẾT THÚC CỦA TUẦN
         const scheduleData = await parentChildrenServices.getScheduleWeeks(selectedYearId, userId);
         let weeks = scheduleData.weeks || [];
-        // Sắp xếp tuần tăng dần để tìm chính xác
+
+        // Sắp xếp tuần tăng dần theo thời gian
         weeks.sort((a, b) => new Date(a.startDate) - new Date(b.startDate));
 
+        // ✅ LOGIC MỚI: Tự động nhận diện tuần bao gồm cả T7, CN
         let targetWeekObj = weeks.find((w) => {
-            const start = dayjs(w.startDate).startOf('day');
-            const end = dayjs(w.endDate).endOf('day');
-            return targetDate.isBetween(start, end, null, '[]');
-        });
-        if (!targetWeekObj && weeks.length > 0) targetWeekObj = weeks[weeks.length - 1];
+            // Ngày bắt đầu (Thứ 2)
+            const start = dayjs.tz(w.startDate, 'Asia/Ho_Chi_Minh').startOf('day');
+            // Ngày kết thúc giả định (Chủ Nhật = Thứ 2 + 6 ngày)
+            const endOfSunday = start.add(6, 'day').endOf('day');
 
-        const targetWeekNumber = targetWeekObj ? targetWeekObj.weekNumber : 1;
+            return targetDate.isSameOrAfter(start) && targetDate.isSameOrBefore(endOfSunday);
+        });
+
+        // ✅ FALLBACK THÔNG MINH:
+        // Nếu không tìm thấy tuần nào chứa ngày này (ví dụ đang trong kỳ nghỉ giữa các kỳ học)
+        if (!targetWeekObj && weeks.length > 0) {
+            // Tìm tuần có ngày bắt đầu gần nhất với targetDate nhưng không được quá xa
+            // Hoặc đơn giản là báo cho AI biết để nó trả lời "Hiện tại đang là kỳ nghỉ"
+            console.log(`⚠️ Không tìm thấy tuần chính xác cho ngày ${targetDateStr}`);
+        }
+
+        const targetWeekNumber = targetWeekObj ? targetWeekObj.weekNumber : null;
         const targetWeekStart = targetWeekObj ? dayjs(targetWeekObj.startDate).format('DD/MM/YYYY') : 'N/A';
-        const targetWeekEnd = targetWeekObj ? dayjs(targetWeekObj.endDate).format('DD/MM/YYYY') : 'N/A';
+        const targetWeekEnd = targetWeekObj ? dayjs(targetWeekObj.startDate).add(6, 'day').format('DD/MM/YYYY') : 'N/A';
 
         console.log(`📅 [Context]: Week ${targetWeekNumber} (${targetWeekStart} - ${targetWeekEnd})`);
 

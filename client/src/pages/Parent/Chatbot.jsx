@@ -542,7 +542,6 @@ function Chatbot() {
                                                         borderTopLeftRadius: 0,
                                                     }}
                                                 >
-                                                    Đợi xíu
                                                     <CircularProgress size={18} thickness={5} />
                                                 </Paper>
                                             </Box>

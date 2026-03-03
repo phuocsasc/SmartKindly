@@ -1,4 +1,3 @@
-//client/src/components/common/Sidebar/ParentSidebar.jsx
 import {
     Drawer,
     List,
@@ -212,11 +211,13 @@ function ParentSidebar({ collapsed, onToggle, mobileOpen, onCloseMobile }) {
                                         minHeight: 44,
 
                                         px: isCollapsed ? 1.5 : 2,
+                                        // ✅ Menu cha: Active nền xanh đậm (#0071BC)
                                         backgroundColor: isActive ? '#0071BC' : 'transparent',
                                         '&.Mui-selected': {
                                             backgroundColor: '#0071BC !important',
                                         },
 
+                                        // ✅ Menu cha: Border trái trắng khi active
                                         borderLeft: isActive ? '4px solid #fff' : '4px solid transparent',
                                         '&:hover': { backgroundColor: '#0071BC60' },
                                         transition: 'all 0.2s',
@@ -254,7 +255,7 @@ function ParentSidebar({ collapsed, onToggle, mobileOpen, onCloseMobile }) {
                                             display: isCollapsed ? 'none' : 'block',
                                             '& .MuiListItemText-primary': {
                                                 fontWeight: isActive ? 700 : 500,
-                                                color: isActive ? '#fff' : '#004F7C',
+                                                color: isActive ? '#fff' : '#004F7C', // Menu cha: Active chữ trắng
                                                 overflow: 'hidden',
                                                 textOverflow: 'ellipsis',
                                                 letterSpacing: '0.2px',
@@ -278,44 +279,49 @@ function ParentSidebar({ collapsed, onToggle, mobileOpen, onCloseMobile }) {
                             {hasChildren && (
                                 <Collapse in={openMenus[item.text] && !isCollapsed} timeout={300} unmountOnExit={false}>
                                     <List component="div" disablePadding>
-                                        {item.children.map((child) => (
-                                            <ListItemButton
-                                                key={child.text}
-                                                selected={location.pathname === child.path}
-                                                component={Link}
-                                                to={child.path}
-                                                onClick={() => {
-                                                    setOpenMenus((prev) =>
-                                                        prev[item.text] ? prev : { [item.text]: true },
-                                                    ); // Giữ menu cha mở
-                                                    if (!isSmUp) onCloseMobile?.();
-                                                }}
-                                                sx={{
-                                                    pl: isCollapsed ? 2 : 6,
-                                                    py: 0.8,
-                                                    backgroundColor:
-                                                        location.pathname === child.path ? '#0071BC' : 'transparent',
-                                                    '&.Mui-selected': {
-                                                        backgroundColor: '#0071BC !important',
-                                                    },
-                                                    '&:hover': { backgroundColor: '#0071BC60' },
-                                                    borderLeft:
-                                                        location.pathname === child.path
-                                                            ? '3px solid #fff'
-                                                            : '3px solid transparent',
-                                                    transition: 'all 0.2s ease',
-                                                }}
-                                            >
-                                                <ListItemText
-                                                    primary={child.text}
-                                                    primaryTypographyProps={{
-                                                        fontSize: 15,
-                                                        fontWeight: location.pathname === child.path ? 600 : 500,
-                                                        color: location.pathname === child.path ? '#fff' : '#004F7C',
+                                        {item.children.map((child) => {
+                                            const isChildActive = location.pathname === child.path;
+                                            return (
+                                                <ListItemButton
+                                                    key={child.text}
+                                                    selected={isChildActive}
+                                                    component={Link}
+                                                    to={child.path}
+                                                    onClick={() => {
+                                                        setOpenMenus((prev) =>
+                                                            prev[item.text] ? prev : { [item.text]: true },
+                                                        ); // Giữ menu cha mở
+                                                        if (!isSmUp) onCloseMobile?.();
                                                     }}
-                                                />
-                                            </ListItemButton>
-                                        ))}
+                                                    sx={{
+                                                        pl: isCollapsed ? 2 : 6,
+                                                        py: 0.8,
+                                                        // ✅ Menu con: Active nền xanh nhạt (#e3f2fd)
+                                                        backgroundColor: isChildActive ? '#e3f2fd' : 'transparent',
+                                                        '&.Mui-selected': {
+                                                            backgroundColor: '#e3f2fd !important',
+                                                        },
+                                                        '&:hover': { backgroundColor: '#e3f2fd' },
+                                                        // ✅ Menu con: Border trái xanh đậm
+                                                        borderLeft: isChildActive
+                                                            ? '4px solid #0071BC'
+                                                            : '4px solid transparent',
+                                                        transition: 'all 0.2s ease',
+                                                        width: '100%',
+                                                    }}
+                                                >
+                                                    <ListItemText
+                                                        primary={child.text}
+                                                        primaryTypographyProps={{
+                                                            fontSize: 15,
+                                                            fontWeight: isChildActive ? 600 : 500,
+                                                            // ✅ Menu con: Active chữ xanh đậm
+                                                            color: isChildActive ? '#0071BC' : '#004F7C',
+                                                        }}
+                                                    />
+                                                </ListItemButton>
+                                            );
+                                        })}
                                     </List>
                                 </Collapse>
                             )}

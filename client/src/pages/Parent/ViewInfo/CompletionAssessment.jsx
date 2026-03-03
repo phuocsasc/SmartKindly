@@ -124,7 +124,7 @@ function CompletionAssessment() {
             <MainLayout user={user}>
                 <PageContainer>
                     <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}>
-                        <CircularProgress />
+                        <CircularProgress sx={{ color: '#0071bc' }} />
                     </Box>
                 </PageContainer>
             </MainLayout>
@@ -137,7 +137,7 @@ function CompletionAssessment() {
                 <PageBreadcrumb items={[{ text: 'Cuối độ tuổi', icon: TrophyIcon }]} />
 
                 <Paper sx={{ p: 3, borderRadius: 4 }}>
-                    <Typography variant="h5" fontWeight={700} gutterBottom sx={{ color: '#667eea' }}>
+                    <Typography variant="h5" fontWeight={700} gutterBottom>
                         Đánh giá trẻ hoàn thành chương trình
                     </Typography>
 
@@ -145,12 +145,38 @@ function CompletionAssessment() {
                     <Grid container spacing={2} sx={{ mt: 2, mb: 3 }}>
                         {/* Select Năm học */}
                         <Grid item xs={12} sm={6}>
-                            <FormControl fullWidth size="small">
+                            <FormControl
+                                fullWidth
+                                size="small"
+                                sx={{
+                                    '& .MuiOutlinedInput-root': {
+                                        borderRadius: 1.5,
+                                        '&:hover fieldset': { borderColor: '#0071bc' },
+                                        '&.Mui-focused fieldset': { borderColor: '#0071bc', borderWidth: 2 },
+                                    },
+                                    '& .MuiInputLabel-root.Mui-focused': { color: '#0071bc' },
+                                    '& .MuiSelect-icon': { color: '#6f6f6f' },
+                                }}
+                            >
                                 <InputLabel>Năm học</InputLabel>
                                 <Select
                                     value={selectedYear}
                                     onChange={(e) => handleYearChange(e.target.value)}
                                     label="Năm học"
+                                    MenuProps={{
+                                        PaperProps: {
+                                            sx: {
+                                                '& .MuiMenuItem-root': {
+                                                    '&:hover': { bgcolor: '#e3f2fd', color: '#0071bc' },
+                                                    '&.Mui-selected': {
+                                                        bgcolor: '#e3f2fd !important',
+                                                        color: '#0071bc',
+                                                        fontWeight: 700,
+                                                    },
+                                                },
+                                            },
+                                        },
+                                    }}
                                 >
                                     {academicYears.map((year) => (
                                         <MenuItem key={year._id} value={year._id}>
@@ -171,12 +197,38 @@ function CompletionAssessment() {
                         {/* Select Lớp học */}
                         {classes.length > 0 && (
                             <Grid item xs={12} sm={6}>
-                                <FormControl fullWidth size="small">
+                                <FormControl
+                                    fullWidth
+                                    size="small"
+                                    sx={{
+                                        '& .MuiOutlinedInput-root': {
+                                            borderRadius: 1.5,
+                                            '&:hover fieldset': { borderColor: '#0071bc' },
+                                            '&.Mui-focused fieldset': { borderColor: '#0071bc', borderWidth: 2 },
+                                        },
+                                        '& .MuiInputLabel-root.Mui-focused': { color: '#0071bc' },
+                                        '& .MuiSelect-icon': { color: '#6f6f6f' },
+                                    }}
+                                >
                                     <InputLabel>Lớp học</InputLabel>
                                     <Select
                                         value={selectedClass}
                                         onChange={(e) => setSelectedClass(e.target.value)}
                                         label="Lớp học"
+                                        MenuProps={{
+                                            PaperProps: {
+                                                sx: {
+                                                    '& .MuiMenuItem-root': {
+                                                        '&:hover': { bgcolor: '#e3f2fd', color: '#0071bc' },
+                                                        '&.Mui-selected': {
+                                                            bgcolor: '#e3f2fd !important',
+                                                            color: '#0071bc',
+                                                            fontWeight: 700,
+                                                        },
+                                                    },
+                                                },
+                                            },
+                                        }}
                                     >
                                         {classes.map((cls) => (
                                             <MenuItem key={cls._id} value={cls._id}>
@@ -203,13 +255,13 @@ function CompletionAssessment() {
 
                     {loading ? (
                         <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
-                            <CircularProgress size={40} thickness={4} />
+                            <CircularProgress size={40} thickness={4} sx={{ color: '#0071bc' }} />
                         </Box>
                     ) : assessmentData?.evaluation ? (
                         <>
                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2, mt: 4 }}>
-                                <AssignmentIcon sx={{ color: '#4f46e5' }} />
-                                <Typography variant="h6" fontWeight={600} color="text.primary">
+                                <AssignmentIcon sx={{ color: '#0071bc' }} />
+                                <Typography variant="h6" fontWeight={600} color="#0071bc">
                                     Kết quả đánh giá chi tiết
                                 </Typography>
                             </Box>
@@ -219,23 +271,36 @@ function CompletionAssessment() {
                                 component={Paper}
                                 sx={{
                                     boxShadow: 'none',
-                                    border: '1px solid #f0f0f0',
+                                    border: '1px solid #e3f2fd',
                                     borderRadius: 3,
                                     overflow: 'hidden',
                                 }}
                             >
                                 <Table>
-                                    <TableHead sx={{ bgcolor: '#f8fafc' }}>
+                                    <TableHead sx={{ bgcolor: '#e3f2fd' }}>
                                         <TableRow>
-                                            <TableCell align="center" sx={{ fontWeight: 700, width: '60px' }}>
+                                            <TableCell
+                                                align="center"
+                                                sx={{ fontWeight: 700, width: '60px', color: '#0071bc' }}
+                                            >
                                                 STT
                                             </TableCell>
-                                            <TableCell sx={{ fontWeight: 700, width: '120px' }}>Mã mục tiêu</TableCell>
-                                            <TableCell sx={{ fontWeight: 700 }}>Nội dung mục tiêu</TableCell>
-                                            <TableCell align="center" sx={{ fontWeight: 700, width: '100px' }}>
+                                            <TableCell sx={{ fontWeight: 700, width: '120px', color: '#0071bc' }}>
+                                                Mã mục tiêu
+                                            </TableCell>
+                                            <TableCell sx={{ fontWeight: 700, color: '#0071bc' }}>
+                                                Nội dung mục tiêu
+                                            </TableCell>
+                                            <TableCell
+                                                align="center"
+                                                sx={{ fontWeight: 700, width: '100px', color: '#0071bc' }}
+                                            >
                                                 Điểm số
                                             </TableCell>
-                                            <TableCell align="center" sx={{ fontWeight: 700, width: '120px' }}>
+                                            <TableCell
+                                                align="center"
+                                                sx={{ fontWeight: 700, width: '120px', color: '#0071bc' }}
+                                            >
                                                 Đánh giá
                                             </TableCell>
                                         </TableRow>
@@ -256,8 +321,8 @@ function CompletionAssessment() {
                                                             label={targetInfo?.code || 'MT...'}
                                                             size="small"
                                                             sx={{
-                                                                bgcolor: '#eef2ff',
-                                                                color: '#4f46e5',
+                                                                bgcolor: '#e3f2fd',
+                                                                color: '#0071bc',
                                                                 fontWeight: 600,
                                                             }}
                                                         />
@@ -299,7 +364,7 @@ function CompletionAssessment() {
                                             label="Nhận xét của giáo viên"
                                             sx={{
                                                 px: 2,
-                                                bgcolor: '#4f46e5',
+                                                bgcolor: '#0071bc',
                                                 color: '#fff',
                                                 '& .MuiChip-icon': { color: 'inherit' },
                                             }}
@@ -310,7 +375,7 @@ function CompletionAssessment() {
                                             display: 'flex',
                                             gap: 2,
                                             p: 3,
-                                            bgcolor: '#f5f7ff',
+                                            bgcolor: '#f5faff',
                                             borderRadius: 4,
                                             position: 'relative',
                                             '&::before': {
@@ -320,7 +385,7 @@ function CompletionAssessment() {
                                                 left: 0,
                                                 width: '4px',
                                                 height: '100%',
-                                                bgcolor: '#4f46e5',
+                                                bgcolor: '#0071bc',
                                                 borderRadius: '4px 0 0 4px',
                                             },
                                         }}

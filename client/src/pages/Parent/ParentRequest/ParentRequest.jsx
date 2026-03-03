@@ -179,6 +179,7 @@ function ParentRequest() {
             message: `Bạn có chắc chắn muốn xóa phiếu "${requestName}"?`,
             severity: 'error',
             confirmText: 'Xóa',
+            cancelText: 'Hủy',
             onConfirm: async () => {
                 try {
                     await parentRequestApi.delete(id);
@@ -331,7 +332,7 @@ function ParentRequest() {
                             <span>
                                 <IconButton
                                     size="small"
-                                    color="primary"
+                                    sx={{ color: '#0071bc' }} // ✅ Đổi màu icon Edit thành #0071bc
                                     disabled={!canEdit}
                                     onClick={() => handleEdit(params.row.id)}
                                 >
@@ -364,7 +365,7 @@ function ParentRequest() {
 
                 <Paper sx={{ p: 3, borderRadius: 4 }}>
                     {/* Header */}
-                    <Typography variant="h5" fontWeight={700} gutterBottom sx={{ color: '#667eea' }}>
+                    <Typography variant="h5" fontWeight={700} gutterBottom>
                         Danh sách phiếu dặn dò
                     </Typography>
 
@@ -372,12 +373,38 @@ function ParentRequest() {
                     <Grid container spacing={2} sx={{ mt: 2, mb: 3 }}>
                         {/* Select Năm học */}
                         <Grid item xs={12} sm={3}>
-                            <FormControl fullWidth size="small">
+                            <FormControl
+                                fullWidth
+                                size="small"
+                                sx={{
+                                    '& .MuiOutlinedInput-root': {
+                                        borderRadius: 1.5,
+                                        '&:hover fieldset': { borderColor: '#0071bc' },
+                                        '&.Mui-focused fieldset': { borderColor: '#0071bc', borderWidth: 2 },
+                                    },
+                                    '& .MuiInputLabel-root.Mui-focused': { color: '#0071bc' },
+                                    '& .MuiSelect-icon': { color: '#6f6f6f' },
+                                }}
+                            >
                                 <InputLabel>Năm học</InputLabel>
                                 <Select
                                     value={selectedYear}
                                     onChange={(e) => handleYearChange(e.target.value)}
                                     label="Năm học"
+                                    MenuProps={{
+                                        PaperProps: {
+                                            sx: {
+                                                '& .MuiMenuItem-root': {
+                                                    '&:hover': { bgcolor: '#e3f2fd', color: '#0071bc' },
+                                                    '&.Mui-selected': {
+                                                        bgcolor: '#e3f2fd !important',
+                                                        color: '#0071bc',
+                                                        fontWeight: 700,
+                                                    },
+                                                },
+                                            },
+                                        },
+                                    }}
                                 >
                                     {academicYears.map((year) => (
                                         <MenuItem key={year._id} value={year._id}>
@@ -398,9 +425,38 @@ function ParentRequest() {
                         {/* Select Lớp học */}
                         {classes.length > 0 && selectedClass && (
                             <Grid item xs={12} sm={3}>
-                                <FormControl fullWidth size="small">
+                                <FormControl
+                                    fullWidth
+                                    size="small"
+                                    sx={{
+                                        '& .MuiOutlinedInput-root': {
+                                            borderRadius: 1.5,
+                                            '&:hover fieldset': { borderColor: '#0071bc' },
+                                            '&.Mui-focused fieldset': { borderColor: '#0071bc', borderWidth: 2 },
+                                        },
+                                        '& .MuiInputLabel-root.Mui-focused': { color: '#0071bc' },
+                                        '& .MuiSelect-icon': { color: '#6f6f6f' },
+                                    }}
+                                >
                                     <InputLabel>Lớp học</InputLabel>
-                                    <Select value={selectedClass} label="Lớp học">
+                                    <Select
+                                        value={selectedClass}
+                                        label="Lớp học"
+                                        MenuProps={{
+                                            PaperProps: {
+                                                sx: {
+                                                    '& .MuiMenuItem-root': {
+                                                        '&:hover': { bgcolor: '#e3f2fd', color: '#0071bc' },
+                                                        '&.Mui-selected': {
+                                                            bgcolor: '#e3f2fd !important',
+                                                            color: '#0071bc',
+                                                            fontWeight: 700,
+                                                        },
+                                                    },
+                                                },
+                                            },
+                                        }}
+                                    >
                                         {classes.map((cls) => (
                                             <MenuItem key={cls._id} value={cls._id}>
                                                 {cls.name} - {cls.ageGroup}
@@ -413,12 +469,38 @@ function ParentRequest() {
 
                         {/* Select Trạng thái */}
                         <Grid item xs={12} sm={3}>
-                            <FormControl fullWidth size="small">
+                            <FormControl
+                                fullWidth
+                                size="small"
+                                sx={{
+                                    '& .MuiOutlinedInput-root': {
+                                        borderRadius: 1.5,
+                                        '&:hover fieldset': { borderColor: '#0071bc' },
+                                        '&.Mui-focused fieldset': { borderColor: '#0071bc', borderWidth: 2 },
+                                    },
+                                    '& .MuiInputLabel-root.Mui-focused': { color: '#0071bc' },
+                                    '& .MuiSelect-icon': { color: '#6f6f6f' },
+                                }}
+                            >
                                 <InputLabel>Trạng thái</InputLabel>
                                 <Select
                                     value={filterStatus}
                                     onChange={(e) => setFilterStatus(e.target.value)}
                                     label="Trạng thái"
+                                    MenuProps={{
+                                        PaperProps: {
+                                            sx: {
+                                                '& .MuiMenuItem-root': {
+                                                    '&:hover': { bgcolor: '#e3f2fd', color: '#0071bc' },
+                                                    '&.Mui-selected': {
+                                                        bgcolor: '#e3f2fd !important',
+                                                        color: '#0071bc',
+                                                        fontWeight: 700,
+                                                    },
+                                                },
+                                            },
+                                        },
+                                    }}
                                 >
                                     <MenuItem value="">Tất cả</MenuItem>
                                     <MenuItem value="Chờ duyệt">Chờ duyệt</MenuItem>
@@ -439,7 +521,11 @@ function ParentRequest() {
                             >
                                 <span>
                                     <IconButton
-                                        sx={{ color: '#1976d2' }}
+                                        sx={{
+                                            color: '#0071bc', // ✅ Đổi màu nút Thêm mới thành #0071bc
+                                            bgcolor: 'rgba(0, 113, 188, 0.08)',
+                                            '&:hover': { bgcolor: 'rgba(0, 113, 188, 0.15)' },
+                                        }}
                                         disabled={!isActiveYear}
                                         onClick={handleCreate}
                                     >
@@ -482,7 +568,7 @@ function ParentRequest() {
                         sx={{
                             '& .MuiDataGrid-columnHeaders': {
                                 backgroundColor: '#e3f2fd',
-                                color: '#1976d2',
+                                color: '#0071bc', // ✅ Đổi màu header DataGrid
                                 fontWeight: 900,
                                 borderBottom: '2px solid #bbdefb',
                             },

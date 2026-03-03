@@ -99,6 +99,12 @@ function ParentRequestDialog({ open, mode, requestData, academicYearId, onClose,
         }
     };
 
+    // Common style for inputs
+    const commonInputStyle = {
+        '& .MuiInputLabel-root.Mui-focused': { color: '#0071bc' },
+        '& .MuiInput-underline:after': { borderBottomColor: '#0071bc' }, // For standard variant
+    };
+
     return (
         <Dialog
             open={open}
@@ -120,7 +126,7 @@ function ParentRequestDialog({ open, mode, requestData, academicYearId, onClose,
             <DialogTitle sx={{ p: 0 }}>
                 <Box
                     sx={{
-                        bgcolor: '#2d3436',
+                        bgcolor: '#0071bc',
                         color: 'white',
                         px: 3,
                         py: 2,
@@ -156,14 +162,14 @@ function ParentRequestDialog({ open, mode, requestData, academicYearId, onClose,
                         bgcolor: '#fff',
                         boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05)',
                         '&::before': {
-                            // Viền đỏ bên trái giả sổ ghi chép
+                            // Viền bên trái giả sổ ghi chép đổi thành màu xanh chủ đạo
                             content: '""',
                             position: 'absolute',
                             left: '10px',
                             top: 0,
                             bottom: 0,
                             width: '2px',
-                            bgcolor: '#ff7675',
+                            bgcolor: '#0071bc',
                             opacity: 0.3,
                         },
                     }}
@@ -179,9 +185,8 @@ function ParentRequestDialog({ open, mode, requestData, academicYearId, onClose,
                         <Grid item xs={12} textAlign="center" sx={{ mb: 2 }}>
                             <Typography
                                 variant="h5"
-                                color="primary"
                                 fontWeight={600}
-                                sx={{ fontFamily: '"Roboto Condensed", sans-serif' }}
+                                sx={{ fontFamily: '"Roboto Condensed", sans-serif', color: '#0071bc' }}
                             >
                                 PHIẾU DẶN DÒ TỪ PHỤ HUYNH
                             </Typography>
@@ -194,15 +199,15 @@ function ParentRequestDialog({ open, mode, requestData, academicYearId, onClose,
                                     width: '100px',
                                     mx: 'auto',
                                     borderBottomWidth: 3,
-                                    borderColor: 'primary.main',
+                                    borderColor: '#0071bc',
                                 }}
                             />
                         </Grid>
 
                         <Grid item xs={12}>
                             <Box sx={{ display: 'flex', alignItems: 'center', mb: 1, gap: 1 }}>
-                                <EditIcon fontSize="small" color="action" />
-                                <Typography variant="body2" fontWeight={600}>
+                                <EditIcon fontSize="small" sx={{ color: '#0071bc' }} />
+                                <Typography variant="body2" fontWeight={600} sx={{ color: '#0071bc' }}>
                                     Tiêu đề phiếu *
                                 </Typography>
                             </Box>
@@ -213,13 +218,14 @@ function ParentRequestDialog({ open, mode, requestData, academicYearId, onClose,
                                 value={formData.requestName}
                                 onChange={(e) => setFormData({ ...formData, requestName: e.target.value })}
                                 InputProps={{ sx: { fontSize: '1.1rem', fontWeight: 500 } }}
+                                sx={commonInputStyle}
                             />
                         </Grid>
 
                         <Grid item xs={12} sm={6}>
                             <Box sx={{ display: 'flex', alignItems: 'center', mb: 1, gap: 1 }}>
-                                <CalendarIcon fontSize="small" color="action" />
-                                <Typography variant="body2" fontWeight={600}>
+                                <CalendarIcon fontSize="small" sx={{ color: '#0071bc' }} />
+                                <Typography variant="body2" fontWeight={600} sx={{ color: '#0071bc' }}>
                                     Áp dụng từ ngày *
                                 </Typography>
                             </Box>
@@ -227,14 +233,20 @@ function ParentRequestDialog({ open, mode, requestData, academicYearId, onClose,
                                 value={formData.fromDate}
                                 onChange={(newValue) => setFormData({ ...formData, fromDate: newValue })}
                                 format="DD/MM/YYYY"
-                                slotProps={{ textField: { fullWidth: true, variant: 'standard' } }}
+                                slotProps={{
+                                    textField: {
+                                        fullWidth: true,
+                                        variant: 'standard',
+                                        sx: commonInputStyle,
+                                    },
+                                }}
                             />
                         </Grid>
 
                         <Grid item xs={12} sm={6}>
                             <Box sx={{ display: 'flex', alignItems: 'center', mb: 1, gap: 1 }}>
-                                <CalendarIcon fontSize="small" color="action" />
-                                <Typography variant="body2" fontWeight={600}>
+                                <CalendarIcon fontSize="small" sx={{ color: '#0071bc' }} />
+                                <Typography variant="body2" fontWeight={600} sx={{ color: '#0071bc' }}>
                                     Áp dụng đến ngày *
                                 </Typography>
                             </Box>
@@ -243,35 +255,71 @@ function ParentRequestDialog({ open, mode, requestData, academicYearId, onClose,
                                 onChange={(newValue) => setFormData({ ...formData, toDate: newValue })}
                                 format="DD/MM/YYYY"
                                 minDate={formData.fromDate}
-                                slotProps={{ textField: { fullWidth: true, variant: 'standard' } }}
-                            />
-                        </Grid>
-
-                        <Grid item xs={12}>
-                            <Box sx={{ display: 'flex', alignItems: 'center', mb: 1, gap: 1 }}>
-                                <NoteIcon fontSize="small" color="action" />
-                                <Typography variant="body2" fontWeight={600}>
-                                    Nội dung chi tiết *
-                                </Typography>
-                            </Box>
-                            <TextField
-                                fullWidth
-                                multiline
-                                rows={5}
-                                placeholder="Viết nội dung dặn dò tại đây..."
-                                value={formData.parentNote}
-                                onChange={(e) => setFormData({ ...formData, parentNote: e.target.value })}
-                                sx={{
-                                    '& .MuiInputBase-root': {
-                                        lineHeight: '1.8',
-                                        backgroundImage: 'linear-gradient(transparent, transparent 30px, #e5e7eb 30px)',
-                                        backgroundSize: '100% 31px',
-                                        alignItems: 'flex-start',
+                                slotProps={{
+                                    textField: {
+                                        fullWidth: true,
+                                        variant: 'standard',
+                                        sx: commonInputStyle,
                                     },
                                 }}
                             />
                         </Grid>
 
+                        <Grid item xs={12}>
+                            <Box sx={{ display: 'flex', alignItems: 'center', mb: 1, justifyContent: 'space-between' }}>
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                    <NoteIcon fontSize="small" sx={{ color: '#0071bc' }} />
+                                    <Typography variant="body2" fontWeight={600} sx={{ color: '#0071bc' }}>
+                                        Nội dung chi tiết *
+                                    </Typography>
+                                </Box>
+                                <Typography
+                                    variant="caption"
+                                    fontWeight={600}
+                                    color={formData.parentNote.length >= 1000 ? 'error' : 'text.secondary'}
+                                >
+                                    {formData.parentNote.length}/1000 ký tự
+                                </Typography>
+                            </Box>
+                            <TextField
+                                fullWidth
+                                multiline
+                                rows={5} // Cố định chiều cao hiển thị đúng 5 dòng
+                                placeholder="Viết nội dung dặn dò tại đây..."
+                                value={formData.parentNote}
+                                onChange={(e) => {
+                                    // Giới hạn không cho nhập quá 1000 ký tự
+                                    if (e.target.value.length <= 1000) {
+                                        setFormData({ ...formData, parentNote: e.target.value });
+                                    }
+                                }}
+                                inputProps={{ maxLength: 1000 }} // Hỗ trợ chặn copy-paste lố ký tự
+                                sx={{
+                                    '& .MuiInputBase-root': {
+                                        padding: '4px 8px',
+                                        alignItems: 'flex-start',
+                                    },
+                                    '& .MuiInputBase-input': {
+                                        lineHeight: '28px',
+                                        fontSize: '1rem',
+                                        fontFamily: 'inherit',
+                                        // Đưa background vào thẳng thẻ input (textarea) và dùng 'local' để dòng kẻ cuộn theo chữ
+                                        backgroundImage: 'linear-gradient(transparent, transparent 27px, #e5e7eb 27px)',
+                                        backgroundSize: '100% 28px',
+                                        backgroundAttachment: 'local',
+
+                                        // Tùy chỉnh thanh cuộn (scrollbar) cho đẹp và đồng bộ màu
+                                        '&::-webkit-scrollbar': { width: '6px' },
+                                        '&::-webkit-scrollbar-track': { background: 'transparent' },
+                                        '&::-webkit-scrollbar-thumb': { background: '#0071bc', borderRadius: '4px' },
+                                        '&::-webkit-scrollbar-thumb:hover': { background: '#005a9e' },
+                                    },
+                                    '& .MuiOutlinedInput-root': {
+                                        '&.Mui-focused fieldset': { borderColor: '#0071bc' },
+                                    },
+                                }}
+                            />
+                        </Grid>
                         {/* Phản hồi từ giáo viên */}
                         {mode === 'edit' && requestData?.teacherReply && (
                             <Grid item xs={12}>
@@ -279,9 +327,9 @@ function ParentRequestDialog({ open, mode, requestData, academicYearId, onClose,
                                     sx={{
                                         mt: 2,
                                         p: 2,
-                                        bgcolor: '#fff9c4',
+                                        bgcolor: '#e3f2fd',
                                         borderRadius: '8px',
-                                        borderLeft: '5px solid #fbc02d',
+                                        borderLeft: '5px solid #0071bc',
                                         position: 'relative',
                                     }}
                                 >
@@ -290,14 +338,14 @@ function ParentRequestDialog({ open, mode, requestData, academicYearId, onClose,
                                             position: 'absolute',
                                             right: 10,
                                             top: 10,
-                                            color: '#fbc02d',
+                                            color: '#0071bc',
                                             opacity: 0.5,
                                         }}
                                     />
-                                    <Typography variant="subtitle2" color="#af8b00" fontWeight={700} gutterBottom>
+                                    <Typography variant="subtitle2" color="#0071bc" fontWeight={700} gutterBottom>
                                         PHẢN HỒI TỪ GIÁO VIÊN:
                                     </Typography>
-                                    <Typography variant="body2" sx={{ fontStyle: 'italic', color: '#5d4037' }}>
+                                    <Typography variant="body2" sx={{ fontStyle: 'italic', color: '#1a202c' }}>
                                         "{requestData.teacherReply}"
                                     </Typography>
                                 </Box>
@@ -307,26 +355,46 @@ function ParentRequestDialog({ open, mode, requestData, academicYearId, onClose,
                 </Paper>
             </DialogContent>
 
-            <DialogActions sx={{ p: 3, justifyContent: 'space-between', bgcolor: 'transparent' }}>
-                <Button onClick={onClose} sx={{ color: 'text.secondary', fontWeight: 600 }}>
-                    Đóng lại
+            {/* Điều chỉnh DialogActions để chứa các nút nhỏ lại và dồn về phía bên phải */}
+            <DialogActions
+                sx={{ p: 2, px: { xs: 2, md: 4 }, bgcolor: 'transparent', justifyContent: 'flex-end', gap: 1 }}
+            >
+                <Button
+                    onClick={onClose}
+                    variant="outlined"
+                    size="small"
+                    disabled={loading}
+                    sx={{
+                        color: '#0071bc',
+                        borderColor: '#0071bc',
+                        fontWeight: 600,
+                        textTransform: 'none',
+                        borderRadius: '20px',
+                        px: 3,
+                        '&:hover': {
+                            borderColor: '#005a9e',
+                            bgcolor: 'rgba(0, 113, 188, 0.08)',
+                        },
+                    }}
+                >
+                    Hủy
                 </Button>
                 <Button
                     onClick={handleSubmit}
                     variant="contained"
+                    size="small"
                     disabled={loading}
-                    startIcon={loading ? <CircularProgress size={18} color="inherit" /> : <SendIcon />}
+                    startIcon={loading ? <CircularProgress size={16} color="inherit" /> : <SendIcon fontSize="small" />}
                     sx={{
-                        borderRadius: '30px',
-                        px: 4,
-                        py: 1,
+                        borderRadius: '20px',
+                        px: 3,
                         textTransform: 'none',
-                        fontSize: '1rem',
-                        fontWeight: 700,
-                        boxShadow: '0 4px 14px 0 rgba(0,118,255,0.39)',
-                        background: 'linear-gradient(135deg, #0070f3 0%, #00d2ff 100%)',
+                        fontWeight: 600,
+                        bgcolor: '#0071bc',
+                        boxShadow: '0 2px 8px 0 rgba(0, 113, 188, 0.3)',
                         '&:hover': {
-                            boxShadow: '0 6px 20px rgba(0,118,255,0.23)',
+                            bgcolor: '#005a9e',
+                            boxShadow: '0 4px 12px rgba(0, 113, 188, 0.4)',
                         },
                     }}
                 >

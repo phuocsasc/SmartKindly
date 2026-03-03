@@ -1,18 +1,7 @@
 // client/src/pages/Parent/Dashboard/Dashboard.jsx
 
 import { useState, useEffect } from 'react';
-import {
-    Box,
-    Typography,
-    Paper,
-    Grid,
-    Chip,
-    CircularProgress,
-    Stack,
-    Divider,
-    useTheme,
-    useMediaQuery,
-} from '@mui/material';
+import { Box, Typography, Paper, Chip, CircularProgress, Stack, Divider, useTheme, useMediaQuery } from '@mui/material';
 import { School as SchoolIcon } from '@mui/icons-material';
 import CottageOutlinedIcon from '@mui/icons-material/CottageOutlined';
 import MainLayout from '~/layouts/ParentLayout';
@@ -20,7 +9,7 @@ import PageContainer from '~/components/common/PageContainer';
 import { useUser } from '~/contexts/UserContext';
 import { parentChildrenApi } from '~/apis';
 import { toast } from 'react-toastify';
-import logo_smartkindly from '/logo_thanh_menu_tach_nen.png';
+import dashboardBg from '/hinh_nen_trang_phu_huynh.png';
 
 function Dashboard() {
     const { user } = useUser();
@@ -58,7 +47,7 @@ function Dashboard() {
             <MainLayout user={user}>
                 <PageContainer>
                     <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}>
-                        <CircularProgress sx={{ color: '#667eea' }} />
+                        <CircularProgress sx={{ color: '#0071bc' }} />
                     </Box>
                 </PageContainer>
             </MainLayout>
@@ -71,100 +60,116 @@ function Dashboard() {
 
     return (
         <MainLayout user={user}>
+            {/* Nếu bạn muốn hình nền full màn hình toàn bộ layout, thì bạn phải đưa backgroundImage lên phần tử bọc ngoài cùng (ví dụ MainLayout hoặc PageContainer). 
+                Tuy nhiên, theo yêu cầu "hình nền trang này full trang luôn", thường áp dụng cho khu vực Banner (Hero section). 
+                Ở đây, tôi đã làm cho thẻ Paper (Banner) chiếm toàn bộ chiều rộng khả dụng và cao hơn. */}
             <PageContainer>
-                {/* ✅ HERO SECTION - WELCOME BANNER */}
+                {/* ✅ HERO SECTION - WELCOME BANNER VỚI HÌNH NỀN COVER & CANH GIỮA */}
                 <Paper
                     sx={{
                         p: { xs: 3, md: 5 },
-                        borderRadius: 6,
-                        background: 'linear-gradient(135deg, #acb5ddff 0%, #9f7bc4ff 100%)',
+                        borderRadius: 4,
                         color: 'white',
                         mb: 4,
                         position: 'relative',
                         overflow: 'hidden',
-                        boxShadow: '0 20px 40px rgba(102, 126, 234, 0.3)',
+                        boxShadow: '0 8px 24px rgba(0, 113, 188, 0.15)',
+                        // Tăng minHeight để hiển thị được nhiều ảnh nền hơn
+                        minHeight: { xs: 350, sm: 400, md: 450 },
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+
+                        // ✅ Thiết lập hình nền Full
+                        backgroundImage: `url('${dashboardBg}')`,
+                        backgroundSize: 'cover', // Đảm bảo hình nền phủ kín (full) toàn bộ vùng Paper
+                        backgroundPosition: 'center', // Canh giữa hình nền
+                        backgroundRepeat: 'no-repeat', // Không lặp lại hình ảnh
+
+                        textShadow: '1px 1px 4px rgba(0,0,0,0.5)', // Giúp chữ dễ đọc hơn trên nền ảnh
                     }}
                 >
-                    {/* Decorative circles giữ nguyên... */}
+                    {/* Lớp phủ mờ (Overlay) để làm chữ nổi bật hơn trên bất kỳ hình nền nào */}
                     <Box
                         sx={{
                             position: 'absolute',
-                            top: -50,
-                            right: -50,
-                            width: 200,
-                            height: 200,
-                            borderRadius: '50%',
-                            background: 'rgba(255,255,255,0.1)',
+                            top: 0,
+                            left: 0,
+                            right: 0,
+                            bottom: 0,
+                            background: 'rgba(125, 172, 213, 0.4)',
+                            zIndex: 0,
                         }}
                     />
 
-                    <Grid container spacing={3} alignItems="center" sx={{ position: 'relative', zIndex: 1 }}>
-                        <Grid item xs={12}>
-                            {' '}
-                            {/* Chỉnh lại thành xs={12} để chiếm trọn chiều ngang */}
-                            <Stack spacing={2}>
-                                {/* Hàng chứa chữ Chào mừng và Logo */}
-                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
-                                    <Typography variant={isMobile ? 'h5' : 'h4'} fontWeight={700}>
-                                        Chào mừng đến với phần mềm
-                                    </Typography>
-                                    <Box
-                                        component="img"
-                                        src={logo_smartkindly}
-                                        alt="SmartKindly Logo"
-                                        sx={{
-                                            height: { xs: 30, md: 40 }, // Điều chỉnh độ cao logo cho khớp với cỡ chữ
-                                            width: 'auto',
-                                            objectFit: 'contain',
-                                        }}
-                                    />
-                                </Box>
-
-                                <Typography variant={isMobile ? 'body1' : 'h6'} sx={{ opacity: 0.95 }}>
-                                    Xin chào phụ huynh của bé{' '}
-                                    <strong style={{ fontSize: isMobile ? '1.1rem' : '1.3rem' }}>
-                                        {student?.fullName}
-                                    </strong>
-                                    {student?.nickname && ` (${student.nickname})`}{' '}
+                    <Box sx={{ position: 'relative', zIndex: 1, width: '100%', textAlign: 'center' }}>
+                        <Stack spacing={2} alignItems="center">
+                            {/* Hàng chứa chữ Chào mừng và Logo, canh giữa */}
+                            <Box
+                                sx={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    gap: 1.5,
+                                    flexWrap: 'wrap',
+                                }}
+                            >
+                                <Typography variant={isMobile ? 'h5' : 'h4'} fontWeight={800}>
+                                    Chào mừng phụ huynh đến với SMARTKINDLY
                                 </Typography>
+                            </Box>
 
-                                <Typography variant="body2" sx={{ opacity: 0.9, maxWidth: 600 }}>
-                                    Hệ thống quản lý trường mầm non SmartKindly - Kết nối nhà trường và phụ huynh, đồng
-                                    hành cùng con trưởng thành mỗi ngày!
-                                </Typography>
+                            <Typography variant={isMobile ? 'body1' : 'h6'} sx={{ opacity: 0.95, fontWeight: 500 }}>
+                                Xin chào phụ huynh của bé{' '}
+                                <strong style={{ fontSize: isMobile ? '1.2rem' : '1.4rem', color: '#ffeb3b' }}>
+                                    {student?.fullName}
+                                </strong>
+                                {student?.nickname && ` (${student.nickname})`}{' '}
+                            </Typography>
 
-                                <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mt: 1 }}>
+                            <Typography variant="body1" sx={{ opacity: 0.9, maxWidth: 700, mt: 1, fontWeight: 500 }}>
+                                Hệ thống quản lý trường mầm non SmartKindly - Kết nối nhà trường và phụ huynh, đồng hành
+                                cùng con trưởng thành mỗi ngày!
+                            </Typography>
+
+                            {/* Các Chip thông tin cũng canh giữa */}
+                            <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap', mt: 2, justifyContent: 'center' }}>
+                                <Chip
+                                    icon={<SchoolIcon sx={{ color: 'white !important' }} />}
+                                    label={school?.name || 'Nhà trường'}
+                                    sx={{
+                                        bgcolor: 'rgba(255,255,255,0.25)',
+                                        color: 'white',
+                                        fontWeight: 600,
+                                        fontSize: '1rem',
+                                        py: 2.5,
+                                        backdropFilter: 'blur(10px)',
+                                        border: '1px solid rgba(255,255,255,0.4)',
+                                    }}
+                                />
+                                {currentClass && (
                                     <Chip
-                                        icon={<SchoolIcon />}
-                                        label={school?.name || 'Nhà trường'}
+                                        icon={<CottageOutlinedIcon sx={{ color: 'white !important' }} />}
+                                        label={`Lớp ${currentClass.name}`}
                                         sx={{
-                                            bgcolor: 'rgba(255,255,255,0.2)',
+                                            bgcolor: 'rgba(255,255,255,0.25)',
                                             color: 'white',
                                             fontWeight: 600,
+                                            fontSize: '1rem',
+                                            py: 2.5,
                                             backdropFilter: 'blur(10px)',
+                                            border: '1px solid rgba(255,255,255,0.4)',
                                         }}
                                     />
-                                    {currentClass && (
-                                        <Chip
-                                            icon={<CottageOutlinedIcon />}
-                                            label={`Lớp ${currentClass.name}`}
-                                            sx={{
-                                                bgcolor: 'rgba(255,255,255,0.2)',
-                                                color: 'white',
-                                                fontWeight: 600,
-                                                backdropFilter: 'blur(10px)',
-                                            }}
-                                        />
-                                    )}
-                                </Box>
-                            </Stack>
-                        </Grid>
-
-                        {/* Đã xóa phần Grid item md={4} chứa Avatar cũ */}
-                    </Grid>
+                                )}
+                            </Box>
+                        </Stack>
+                    </Box>
                 </Paper>
 
                 <Divider sx={{ my: 4 }} />
+
+                {/* Phần nội dung phía dưới được giữ nguyên theo yêu cầu */}
             </PageContainer>
         </MainLayout>
     );

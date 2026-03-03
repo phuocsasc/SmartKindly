@@ -22,6 +22,7 @@ import {
     MenuItem,
     Fade,
     InputAdornment,
+    Button, // Đã thêm Button import
 } from '@mui/material';
 import {
     Send as SendIcon,
@@ -187,11 +188,11 @@ function Chatbot() {
 
     const sidebarContent = (
         <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', bgcolor: '#fff' }}>
-            <Box sx={{ p: 2, background: '#4facfe', color: 'white' }}>
+            <Box sx={{ p: 3, background: 'linear-gradient(135deg, #0071bc 0%, #00a8ff 100%)', color: 'white' }}>
                 <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 2 }}>
                     <SparkleIcon fontSize="small" />
-                    <Typography variant="h6" fontWeight={700} letterSpacing={0.5}>
-                        Trợ lý AI SmartKindly
+                    <Typography variant="h6" fontWeight={800} letterSpacing={0.5}>
+                        SmartKindly AI
                     </Typography>
                 </Stack>
                 <ListItemButton
@@ -212,8 +213,8 @@ function Chatbot() {
             </Box>
 
             <Box sx={{ flex: 1, overflowY: 'auto', p: 1 }}>
-                <Typography variant="overline" sx={{ px: 2, color: 'text.secondary', fontWeight: 600 }}>
-                    Lịch sử hỏi đáp
+                <Typography variant="overline" sx={{ px: 2, color: 'text.secondary', fontWeight: 700 }}>
+                    Lịch sử tư vấn
                 </Typography>
                 <List>
                     {conversations.map((conv) => (
@@ -225,16 +226,16 @@ function Chatbot() {
                                     borderRadius: 2,
                                     mx: 1,
                                     '&.Mui-selected': {
-                                        bgcolor: 'primary.lighter',
-                                        color: 'primary.main',
-                                        '&:hover': { bgcolor: 'primary.lighter' },
+                                        bgcolor: '#e3f2fd',
+                                        color: '#0071bc',
+                                        '&:hover': { bgcolor: '#e3f2fd' },
                                     },
                                 }}
                             >
                                 <ListItemIcon sx={{ minWidth: 40 }}>
                                     <ChatIcon
                                         fontSize="small"
-                                        color={currentConversation?._id === conv._id ? 'primary' : 'inherit'}
+                                        sx={{ color: currentConversation?._id === conv._id ? '#0071bc' : 'inherit' }}
                                     />
                                 </ListItemIcon>
                                 <ListItemText
@@ -264,7 +265,7 @@ function Chatbot() {
                     sx={{
                         borderRadius: 4,
                         overflow: 'hidden',
-                        height: 'calc(100vh - 160px)',
+                        height: 'calc(100vh - 210px)',
                         display: 'flex',
                         border: '1px solid',
                         borderColor: 'divider',
@@ -309,7 +310,7 @@ function Chatbot() {
                                         }}
                                     ></Avatar>
                                     <Box sx={{ flex: 1 }}>
-                                        <Typography variant="subtitle1" fontWeight={700}>
+                                        <Typography variant="subtitle1" fontWeight={700} color="#0071bc">
                                             {currentConversation.conversationName}
                                         </Typography>
                                         <Typography
@@ -355,9 +356,7 @@ function Chatbot() {
                                                                 width: 32,
                                                                 height: 32,
                                                                 bgcolor:
-                                                                    msg.role === 'user'
-                                                                        ? 'primary.main'
-                                                                        : 'transparent', // ✅ Bot thì nền trong suốt
+                                                                    msg.role === 'user' ? '#0071bc' : 'transparent', // ✅ Bot thì nền trong suốt
                                                                 fontSize: '1rem',
                                                             }}
                                                         >
@@ -378,15 +377,14 @@ function Chatbot() {
                                                                 sx={{
                                                                     p: 2,
                                                                     borderRadius: 3,
-                                                                    bgcolor:
-                                                                        msg.role === 'user' ? 'primary.main' : '#fff',
+                                                                    bgcolor: msg.role === 'user' ? '#0071bc' : '#fff',
                                                                     color:
                                                                         msg.role === 'user' ? '#fff' : 'text.primary',
                                                                     borderTopRightRadius: msg.role === 'user' ? 0 : 16,
                                                                     borderTopLeftRadius: msg.role === 'user' ? 16 : 0,
                                                                     boxShadow:
                                                                         msg.role === 'user'
-                                                                            ? '0 4px 12px rgba(25, 118, 210, 0.2)'
+                                                                            ? '0 4px 12px rgba(0, 113, 188, 0.2)'
                                                                             : '0 2px 8px rgba(0,0,0,0.05)',
                                                                 }}
                                                             >
@@ -413,7 +411,7 @@ function Chatbot() {
                                                                                     component="strong"
                                                                                     sx={{
                                                                                         fontWeight: 700,
-                                                                                        color: 'primary.main',
+                                                                                        color: '#0071bc',
                                                                                     }}
                                                                                 >
                                                                                     {children}
@@ -448,7 +446,11 @@ function Chatbot() {
                                                                                 <Typography
                                                                                     variant="h5"
                                                                                     fontWeight={700}
-                                                                                    sx={{ mb: 1, mt: 1 }}
+                                                                                    sx={{
+                                                                                        mb: 1,
+                                                                                        mt: 1,
+                                                                                        color: '#0071bc',
+                                                                                    }}
                                                                                 >
                                                                                     {children}
                                                                                 </Typography>
@@ -457,7 +459,11 @@ function Chatbot() {
                                                                                 <Typography
                                                                                     variant="h6"
                                                                                     fontWeight={600}
-                                                                                    sx={{ mb: 1, mt: 1 }}
+                                                                                    sx={{
+                                                                                        mb: 1,
+                                                                                        mt: 1,
+                                                                                        color: '#0071bc',
+                                                                                    }}
                                                                                 >
                                                                                     {children}
                                                                                 </Typography>
@@ -483,11 +489,11 @@ function Chatbot() {
                                                                                     component="blockquote"
                                                                                     sx={{
                                                                                         borderLeft: '4px solid',
-                                                                                        borderColor: 'primary.main',
+                                                                                        borderColor: '#0071bc',
                                                                                         pl: 2,
                                                                                         py: 0.5,
                                                                                         my: 1,
-                                                                                        bgcolor: 'grey.50',
+                                                                                        bgcolor: '#e3f2fd',
                                                                                         fontStyle: 'italic',
                                                                                     }}
                                                                                 >
@@ -540,9 +546,19 @@ function Chatbot() {
                                                         borderRadius: 3,
                                                         bgcolor: '#fff',
                                                         borderTopLeftRadius: 0,
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        gap: 1,
                                                     }}
                                                 >
-                                                    <CircularProgress size={18} thickness={5} />
+                                                    <Typography variant="body2" color="text.secondary">
+                                                        AI đang tìm kiếm thông tin...
+                                                    </Typography>
+                                                    <CircularProgress
+                                                        size={16}
+                                                        thickness={5}
+                                                        sx={{ color: '#0071bc' }}
+                                                    />
                                                 </Paper>
                                             </Box>
                                         )}
@@ -557,7 +573,7 @@ function Chatbot() {
                                         px: { xs: 2, md: 4 },
                                         bgcolor: '#fff',
                                         borderTop: '1px solid',
-                                        borderColor: 'divider',
+                                        borderColor: '#bbc2c7',
                                     }}
                                 >
                                     <TextField
@@ -567,18 +583,24 @@ function Chatbot() {
                                         onChange={(e) => setInputMessage(e.target.value)}
                                         onKeyPress={handleKeyPress}
                                         disabled={sending}
-                                        spellCheck={false} // Tắt gạch chân đỏ
                                         InputProps={{
-                                            sx: { borderRadius: 4, pr: 1, bgcolor: '#f8fafc' },
+                                            sx: {
+                                                borderRadius: 4,
+                                                pr: 1,
+                                                bgcolor: '#f8fafc',
+                                                '&.Mui-focused fieldset': {
+                                                    borderColor: '#0071bc',
+                                                },
+                                            },
                                             endAdornment: (
                                                 <InputAdornment position="end">
                                                     <IconButton
                                                         onClick={handleSendMessage}
                                                         disabled={!inputMessage.trim() || sending}
                                                         sx={{
-                                                            bgcolor: 'primary.main',
+                                                            bgcolor: '#0071bc',
                                                             color: '#fff',
-                                                            '&:hover': { bgcolor: 'primary.dark' },
+                                                            '&:hover': { bgcolor: '#005a9e' },
                                                             '&.Mui-disabled': { bgcolor: 'action.disabledBackground' },
                                                         }}
                                                     >
@@ -588,9 +610,12 @@ function Chatbot() {
                                             ),
                                         }}
                                     />
-                                    <Typography variant="caption" sx={{ display: 'block', textAlign: 'center', mt: 1 }}>
-                                        AI SmartKindly có thể đưa ra câu trả lời dựa trên dữ liệu học tập và sinh hoạt
-                                        của bé tại trường.
+                                    <Typography
+                                        variant="caption"
+                                        sx={{ display: 'block', textAlign: 'center', mt: 1, color: 'text.disabled' }}
+                                    >
+                                        AI có thể đưa ra câu trả lời dựa trên dữ liệu học tập và sinh hoạt của bé tại
+                                        trường.
                                     </Typography>
                                 </Box>
                             </>
@@ -606,14 +631,13 @@ function Chatbot() {
                                     textAlign: 'center',
                                 }}
                             >
-                                <Box sx={{ position: 'relative', mb: 4 }}>
+                                <Box sx={{ position: 'relative', mb: 3 }}>
                                     <Avatar
                                         src={chatbot_Ai} // ✅ Dùng ảnh lớn
                                         sx={{
                                             width: 120,
                                             height: 120,
                                             bgcolor: 'transparent', // ✅ Nền trong suốt hoặc màu nhạt tùy thiết kế
-                                            // color: 'primary.main', // Không cần color nữa vì dùng ảnh gốc
                                         }}
                                     />
                                     <Box
@@ -629,26 +653,30 @@ function Chatbot() {
                                         }}
                                     />
                                 </Box>
-                                <Typography variant="h5" fontWeight={700} gutterBottom>
+                                <Typography variant="h5" fontWeight={700} gutterBottom color="#0071bc">
                                     Chatbot AI Trợ Lý dành cho Phụ Huynh
                                 </Typography>
-                                <Typography variant="body1" color="text.secondary" sx={{ maxWidth: 450, mb: 4 }}>
-                                    Chào bạn! Tôi có thể giúp gì cho bạn.
+                                <Typography variant="body1" color="text.secondary" sx={{ maxWidth: 450, mb: 3 }}>
+                                    Chào bạn! Tôi có thể giúp bạn tra cứu nhanh thực đơn, điểm danh, nhận xét của giáo
+                                    viên và tình hình sức khỏe của bé.
                                 </Typography>
-                                <ListItemButton
+                                <Button
+                                    variant="contained"
                                     onClick={handleCreateConversation}
+                                    startIcon={<AddIcon />}
                                     sx={{
-                                        maxWidth: 280,
-                                        borderRadius: 8,
-                                        bgcolor: 'primary.main',
+                                        borderRadius: '30px',
+                                        bgcolor: '#0071bc',
                                         color: 'white',
-                                        '&:hover': { bgcolor: 'primary.dark' },
-                                        py: 1.5,
-                                        px: 4,
+                                        textTransform: 'none',
+                                        fontWeight: 600,
+                                        '&:hover': { bgcolor: '#005a9e' },
+                                        py: 1,
+                                        px: 3,
                                     }}
                                 >
-                                    <Typography fontWeight={700}>Bắt đầu hỏi đáp ngay</Typography>
-                                </ListItemButton>
+                                    Bắt đầu hỏi đáp ngay
+                                </Button>
                             </Box>
                         )}
                     </Box>

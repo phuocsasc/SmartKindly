@@ -130,7 +130,7 @@ function Children() {
             <MainLayout user={user}>
                 <PageContainer>
                     <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}>
-                        <CircularProgress sx={{ color: '#667eea' }} />
+                        <CircularProgress sx={{ color: '#0071bc' }} />
                     </Box>
                 </PageContainer>
             </MainLayout>
@@ -139,7 +139,7 @@ function Children() {
     const { student, currentClass, currentAcademicYear } = childrenData;
 
     // Helper component cho các item thông tin nhỏ
-    const InfoDetail = ({ icon: Icon, label, value, color = '#667eea' }) => (
+    const InfoDetail = ({ icon: Icon, label, value, color = '#0071bc' }) => (
         <Box
             sx={{
                 display: 'flex',
@@ -193,7 +193,7 @@ function Children() {
                                         width: 100,
                                         height: 100,
                                         borderRadius: '50%',
-                                        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                                        background: 'linear-gradient(135deg, #0071bc 0%, #aee2ff 100%)',
                                         opacity: 0.1,
                                     }}
                                 />
@@ -205,9 +205,9 @@ function Children() {
                                             height: 120,
                                             mx: 'auto',
                                             mb: 2,
-                                            boxShadow: '0 8px 16px rgba(102, 126, 234, 0.25)',
+                                            boxShadow: '0 8px 16px rgba(0, 113, 188, 0.25)',
                                             border: '4px solid #fff',
-                                            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                                            background: 'linear-gradient(135deg, #0071bc 0%, #aee2ff 100%)',
                                         }}
                                     >
                                         <FaceIcon sx={{ fontSize: 70 }} />
@@ -218,7 +218,7 @@ function Children() {
                                     <Chip
                                         label={student.nickname ? `"${student.nickname}"` : 'Học sinh'}
                                         size="small"
-                                        sx={{ mt: 1, bgcolor: '#ebf4ff', color: '#3182ce', fontWeight: 600 }}
+                                        sx={{ mt: 1, bgcolor: '#ebf4ff', color: '#0071bc', fontWeight: 600 }}
                                     />
                                 </Box>
 
@@ -227,7 +227,7 @@ function Children() {
                                         icon={BadgeIcon}
                                         label="Mã học sinh"
                                         value={student.studentCode}
-                                        color="#4c51bf"
+                                        color="#0071bc"
                                     />
                                     <InfoDetail
                                         icon={GenderIcon}
@@ -262,27 +262,30 @@ function Children() {
                                     sx={{
                                         p: 3,
                                         borderRadius: 6,
-                                        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                                        color: 'white',
-                                        boxShadow: '0 10px 20px rgba(102, 126, 234, 0.3)',
+                                        background: '#0071bc',
+                                        color: '#333',
+                                        boxShadow: '0 10px 20px rgba(0, 113, 188, 0.3)',
                                     }}
                                 >
                                     <Stack direction="row" alignItems="center" spacing={2}>
-                                        <Avatar sx={{ bgcolor: 'rgba(255,255,255,0.2)' }}>
+                                        <Avatar sx={{ bgcolor: 'rgba(0, 113, 188, 0.1)', color: '#0071bc' }}>
                                             <SchoolIcon />
                                         </Avatar>
                                         <Box>
-                                            <Typography variant="caption" sx={{ opacity: 0.8, display: 'block' }}>
+                                            <Typography
+                                                variant="caption"
+                                                sx={{ opacity: 0.8, display: 'block', color: '#fff' }}
+                                            >
                                                 Lớp học hiện tại • {currentAcademicYear?.fromYear}-
                                                 {currentAcademicYear?.toYear}
                                             </Typography>
-                                            <Typography variant="h6" fontWeight={700}>
+                                            <Typography variant="h6" fontWeight={700} sx={{ color: '#fff' }}>
                                                 {currentClass.name}
                                             </Typography>
                                         </Box>
                                     </Stack>
-                                    <Divider sx={{ my: 2, borderColor: 'rgba(255,255,255,0.1)' }} />
-                                    <Typography variant="body2" sx={{ opacity: 0.9 }}>
+                                    <Divider sx={{ my: 2, borderColor: 'rgba(255,255,255,0.3)' }} />
+                                    <Typography variant="body2" sx={{ opacity: 0.9, color: '#fff' }}>
                                         GVCN:{' '}
                                         <strong>{currentClass.homeRoomTeacher?.fullName || 'Đang cập nhật'}</strong>
                                     </Typography>
@@ -305,7 +308,7 @@ function Children() {
                     <Grid item xs={12} lg={8}>
                         <Paper sx={{ p: { xs: 2, md: 4 }, borderRadius: 6, boxShadow: '0 10px 25px rgba(0,0,0,0.05)' }}>
                             <Stack direction="row" alignItems="center" spacing={1.5} sx={{ mb: 4 }}>
-                                <Avatar sx={{ bgcolor: '#ebf4ff', color: '#3182ce' }}>
+                                <Avatar sx={{ bgcolor: '#e3f2fd', color: '#0071bc' }}>
                                     <FamilyIcon />
                                 </Avatar>
                                 <Typography variant="h6" fontWeight={700} color="#2d3748">
@@ -320,7 +323,7 @@ function Children() {
                                         variant="subtitle2"
                                         sx={{
                                             mb: 2,
-                                            color: '#e53e3e',
+                                            color: '#0071bc',
                                             fontWeight: 700,
                                             display: 'flex',
                                             alignItems: 'center',
@@ -339,7 +342,11 @@ function Children() {
                                             value={formData.motherName}
                                             onChange={(e) => setFormData({ ...formData, motherName: e.target.value })}
                                             variant="filled"
-                                            sx={{ '& .MuiFilledInput-root': { borderRadius: 2 } }}
+                                            sx={{
+                                                '& .MuiFilledInput-root': { borderRadius: 2 },
+                                                '& .MuiInputLabel-root.Mui-focused': { color: '#0071bc' },
+                                                '& .MuiFilledInput-root::after': { borderBottomColor: '#0071bc' },
+                                            }}
                                         />
                                         <TextField
                                             fullWidth
@@ -350,7 +357,11 @@ function Children() {
                                                 setFormData({ ...formData, motherBirthYear: e.target.value })
                                             }
                                             variant="filled"
-                                            sx={{ '& .MuiFilledInput-root': { borderRadius: 2 } }}
+                                            sx={{
+                                                '& .MuiFilledInput-root': { borderRadius: 2 },
+                                                '& .MuiInputLabel-root.Mui-focused': { color: '#0071bc' },
+                                                '& .MuiFilledInput-root::after': { borderBottomColor: '#0071bc' },
+                                            }}
                                         />
                                         <TextField
                                             fullWidth
@@ -365,7 +376,11 @@ function Children() {
                                                     </InputAdornment>
                                                 ),
                                             }}
-                                            sx={{ '& .MuiFilledInput-root': { borderRadius: 2 } }}
+                                            sx={{
+                                                '& .MuiFilledInput-root': { borderRadius: 2 },
+                                                '& .MuiInputLabel-root.Mui-focused': { color: '#0071bc' },
+                                                '& .MuiFilledInput-root::after': { borderBottomColor: '#0071bc' },
+                                            }}
                                         />
                                         <TextField
                                             fullWidth
@@ -380,7 +395,11 @@ function Children() {
                                                     </InputAdornment>
                                                 ),
                                             }}
-                                            sx={{ '& .MuiFilledInput-root': { borderRadius: 2 } }}
+                                            sx={{
+                                                '& .MuiFilledInput-root': { borderRadius: 2 },
+                                                '& .MuiInputLabel-root.Mui-focused': { color: '#0071bc' },
+                                                '& .MuiFilledInput-root::after': { borderBottomColor: '#0071bc' },
+                                            }}
                                         />
                                     </Stack>
                                 </Grid>
@@ -391,7 +410,7 @@ function Children() {
                                         variant="subtitle2"
                                         sx={{
                                             mb: 2,
-                                            color: '#3182ce',
+                                            color: '#0071bc',
                                             fontWeight: 700,
                                             display: 'flex',
                                             alignItems: 'center',
@@ -410,7 +429,11 @@ function Children() {
                                             value={formData.fatherName}
                                             onChange={(e) => setFormData({ ...formData, fatherName: e.target.value })}
                                             variant="filled"
-                                            sx={{ '& .MuiFilledInput-root': { borderRadius: 2 } }}
+                                            sx={{
+                                                '& .MuiFilledInput-root': { borderRadius: 2 },
+                                                '& .MuiInputLabel-root.Mui-focused': { color: '#0071bc' },
+                                                '& .MuiFilledInput-root::after': { borderBottomColor: '#0071bc' },
+                                            }}
                                         />
                                         <TextField
                                             fullWidth
@@ -421,7 +444,11 @@ function Children() {
                                                 setFormData({ ...formData, fatherBirthYear: e.target.value })
                                             }
                                             variant="filled"
-                                            sx={{ '& .MuiFilledInput-root': { borderRadius: 2 } }}
+                                            sx={{
+                                                '& .MuiFilledInput-root': { borderRadius: 2 },
+                                                '& .MuiInputLabel-root.Mui-focused': { color: '#0071bc' },
+                                                '& .MuiFilledInput-root::after': { borderBottomColor: '#0071bc' },
+                                            }}
                                         />
                                         <TextField
                                             fullWidth
@@ -436,11 +463,16 @@ function Children() {
                                                     </InputAdornment>
                                                 ),
                                             }}
-                                            sx={{ '& .MuiFilledInput-root': { borderRadius: 2 } }}
+                                            sx={{
+                                                '& .MuiFilledInput-root': { borderRadius: 2 },
+                                                '& .MuiInputLabel-root.Mui-focused': { color: '#0071bc' },
+                                                '& .MuiFilledInput-root::after': { borderBottomColor: '#0071bc' },
+                                            }}
                                         />
                                         <TextField
                                             fullWidth
                                             label="Email"
+                                            type="email"
                                             value={formData.fatherEmail}
                                             onChange={(e) => setFormData({ ...formData, fatherEmail: e.target.value })}
                                             variant="filled"
@@ -451,7 +483,11 @@ function Children() {
                                                     </InputAdornment>
                                                 ),
                                             }}
-                                            sx={{ '& .MuiFilledInput-root': { borderRadius: 2 } }}
+                                            sx={{
+                                                '& .MuiFilledInput-root': { borderRadius: 2 },
+                                                '& .MuiInputLabel-root.Mui-focused': { color: '#0071bc' },
+                                                '& .MuiFilledInput-root::after': { borderBottomColor: '#0071bc' },
+                                            }}
                                         />
                                     </Stack>
                                 </Grid>
@@ -463,7 +499,7 @@ function Children() {
                                         variant="subtitle2"
                                         sx={{
                                             mb: 2,
-                                            color: '#718096',
+                                            color: '#0071bc',
                                             fontWeight: 700,
                                             display: 'flex',
                                             alignItems: 'center',
@@ -485,7 +521,11 @@ function Children() {
                                                 }
                                                 variant="filled"
                                                 required // ✅ Thêm required prop
-                                                sx={{ '& .MuiFilledInput-root': { borderRadius: 2 } }}
+                                                sx={{
+                                                    '& .MuiFilledInput-root': { borderRadius: 2 },
+                                                    '& .MuiInputLabel-root.Mui-focused': { color: '#0071bc' },
+                                                    '& .MuiFilledInput-root::after': { borderBottomColor: '#0071bc' },
+                                                }}
                                             />
                                         </Grid>
                                         <Grid item xs={12}>
@@ -500,7 +540,11 @@ function Children() {
                                                 }
                                                 variant="filled"
                                                 required // ✅ Thêm required prop
-                                                sx={{ '& .MuiFilledInput-root': { borderRadius: 2 } }}
+                                                sx={{
+                                                    '& .MuiFilledInput-root': { borderRadius: 2 },
+                                                    '& .MuiInputLabel-root.Mui-focused': { color: '#0071bc' },
+                                                    '& .MuiFilledInput-root::after': { borderBottomColor: '#0071bc' },
+                                                }}
                                             />
                                         </Grid>
                                     </Grid>
@@ -521,12 +565,13 @@ function Children() {
                                             fontWeight: 600,
                                             fontSize: '1rem',
                                             textTransform: 'none',
-                                            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                                            boxShadow: '0 10px 20px rgba(102, 126, 234, 0.4)',
+                                            backgroundColor: '#0071bc',
+                                            boxShadow: '0 10px 20px rgba(0, 113, 188, 0.4)',
                                             '&:hover': {
-                                                background: 'linear-gradient(135deg, #5a67d8 0%, #6b46c1 100%)',
+                                                backgroundColor: '#005a9e',
                                                 transform: 'translateY(-2px)',
                                                 transition: 'all 0.2s',
+                                                boxShadow: '0 10px 20px rgba(0, 113, 188, 0.6)',
                                             },
                                         }}
                                     >

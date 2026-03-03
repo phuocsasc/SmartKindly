@@ -272,7 +272,7 @@ function WeeklyCertificate() {
                 <PageBreadcrumb items={[{ text: 'Phiếu bé ngoan' }]} />
 
                 <Paper sx={{ p: 3, borderRadius: 4 }}>
-                    <Typography variant="h5" fontWeight={700} gutterBottom sx={{ color: '#667eea' }}>
+                    <Typography variant="h5" fontWeight={700} gutterBottom>
                         Phiếu bé ngoan hằng tuần
                     </Typography>
 
@@ -280,12 +280,38 @@ function WeeklyCertificate() {
                     <Grid container spacing={2} sx={{ mt: 2, mb: 3 }}>
                         {/* Select Năm học */}
                         <Grid item xs={12} sm={4}>
-                            <FormControl fullWidth size="small">
+                            <FormControl
+                                fullWidth
+                                size="small"
+                                sx={{
+                                    '& .MuiOutlinedInput-root': {
+                                        borderRadius: 1.5,
+                                        '&:hover fieldset': { borderColor: '#0071bc' },
+                                        '&.Mui-focused fieldset': { borderColor: '#0071bc', borderWidth: 2 },
+                                    },
+                                    '& .MuiInputLabel-root.Mui-focused': { color: '#0071bc' },
+                                    '& .MuiSelect-icon': { color: '#6f6f6f' },
+                                }}
+                            >
                                 <InputLabel>Năm học</InputLabel>
                                 <Select
                                     value={selectedYear}
                                     onChange={(e) => handleYearChange(e.target.value)}
                                     label="Năm học"
+                                    MenuProps={{
+                                        PaperProps: {
+                                            sx: {
+                                                '& .MuiMenuItem-root': {
+                                                    '&:hover': { bgcolor: '#e3f2fd', color: '#0071bc' },
+                                                    '&.Mui-selected': {
+                                                        bgcolor: '#e3f2fd !important',
+                                                        color: '#0071bc',
+                                                        fontWeight: 700,
+                                                    },
+                                                },
+                                            },
+                                        },
+                                    }}
                                 >
                                     {academicYears.map((year) => (
                                         <MenuItem key={year._id} value={year._id}>
@@ -306,12 +332,38 @@ function WeeklyCertificate() {
                         {/* Select Lớp học */}
                         {classes.length > 0 && (
                             <Grid item xs={12} sm={4}>
-                                <FormControl fullWidth size="small">
+                                <FormControl
+                                    fullWidth
+                                    size="small"
+                                    sx={{
+                                        '& .MuiOutlinedInput-root': {
+                                            borderRadius: 1.5,
+                                            '&:hover fieldset': { borderColor: '#0071bc' },
+                                            '&.Mui-focused fieldset': { borderColor: '#0071bc', borderWidth: 2 },
+                                        },
+                                        '& .MuiInputLabel-root.Mui-focused': { color: '#0071bc' },
+                                        '& .MuiSelect-icon': { color: '#6f6f6f' },
+                                    }}
+                                >
                                     <InputLabel>Lớp học</InputLabel>
                                     <Select
                                         value={selectedClass}
                                         onChange={(e) => setSelectedClass(e.target.value)}
                                         label="Lớp học"
+                                        MenuProps={{
+                                            PaperProps: {
+                                                sx: {
+                                                    '& .MuiMenuItem-root': {
+                                                        '&:hover': { bgcolor: '#e3f2fd', color: '#0071bc' },
+                                                        '&.Mui-selected': {
+                                                            bgcolor: '#e3f2fd !important',
+                                                            color: '#0071bc',
+                                                            fontWeight: 700,
+                                                        },
+                                                    },
+                                                },
+                                            },
+                                        }}
                                     >
                                         {classes.map((cls) => (
                                             <MenuItem key={cls._id} value={cls._id}>
@@ -326,12 +378,46 @@ function WeeklyCertificate() {
                         {/* Select Tuần */}
                         {weeks.length > 0 && (
                             <Grid item xs={12} sm={4}>
-                                <FormControl fullWidth size="small">
+                                <FormControl
+                                    fullWidth
+                                    size="small"
+                                    sx={{
+                                        '& .MuiOutlinedInput-root': {
+                                            borderRadius: 1.5,
+                                            '&:hover fieldset': { borderColor: '#0071bc' },
+                                            '&.Mui-focused fieldset': { borderColor: '#0071bc', borderWidth: 2 },
+                                        },
+                                        '& .MuiInputLabel-root.Mui-focused': { color: '#0071bc' },
+                                        '& .MuiSelect-icon': { color: '#6f6f6f' },
+                                    }}
+                                >
                                     <InputLabel>Tuần</InputLabel>
                                     <Select
                                         value={selectedWeek}
                                         onChange={(e) => setSelectedWeek(e.target.value)}
                                         label="Tuần"
+                                        MenuProps={{
+                                            PaperProps: {
+                                                sx: {
+                                                    maxHeight: 48 * 6 + 8, // Giới hạn 6 mục
+                                                    '&::-webkit-scrollbar': { width: '6px' },
+                                                    '&::-webkit-scrollbar-track': { backgroundColor: '#f1f1f1' },
+                                                    '&::-webkit-scrollbar-thumb': {
+                                                        backgroundColor: '#0071bc',
+                                                        borderRadius: '4px',
+                                                    },
+                                                    '&::-webkit-scrollbar-thumb:hover': { backgroundColor: '#005a9e' },
+                                                    '& .MuiMenuItem-root': {
+                                                        '&:hover': { bgcolor: '#e3f2fd', color: '#0071bc' },
+                                                        '&.Mui-selected': {
+                                                            bgcolor: '#e3f2fd !important',
+                                                            color: '#0071bc',
+                                                            fontWeight: 700,
+                                                        },
+                                                    },
+                                                },
+                                            },
+                                        }}
                                     >
                                         {weeks.map((week) => (
                                             <MenuItem key={week.weekNumber} value={week.weekNumber.toString()}>

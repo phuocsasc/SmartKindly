@@ -4,11 +4,13 @@ import { DepartmentModel } from '~/models/departmentModel.js';
 import { ChildrenByClassModel } from '/models/childrenByClassModel.js';
 import { UserModel } from '~/models/userModel.js';
 import { ChildrenProfileModel } from '~/models/childrenProfileModel.js'; // ✅ Import model
+import { SchoolModel } from '~/models/schoolModel.js'; // ✅ THÊM
 import ApiError from '~/utils/ApiError.js';
 import { StatusCodes } from 'http-status-codes';
 import { notificationServices } from '~/services/notificationServices.js';
 import { logAction } from '~/middlewares/auditLogMiddleware.js';
 import { AUDIT_LOG_ACTIONS, AUDIT_LOG_RESOURCES } from '~/config/auditLogConfig.js';
+import { ResendProvider } from '~/providers/ResendProvider.js'; // ✅ THÊM
 
 /**
  * ✅ Helper: Kiểm tra lớp có hồ sơ trẻ không
@@ -19,6 +21,34 @@ const hasChildrenProfiles = async (classId) => {
         _destroy: false,
     });
     return count > 0;
+};
+
+/**
+ * ✅ Helper: Gửi email thông báo phân công GVCN (không throw lỗi nếu gửi thất bại)
+ */
+const sendAssignTeacherEmailSafe = async ({ teacherId, className, academicYearName, schoolName, assignedByName }) => {
+    try {
+        const teacher = await UserModel.findById(teacherId).select('fullName email').lean();
+
+        if (!teacher?.email) {
+            console.warn(`⚠️ [ClassServices] Teacher ${teacherId} has no email, skipping email notification`);
+            return;
+        }
+
+        await ResendProvider.sendAssignTeacherEmail({
+            to: teacher.email,
+            toName: teacher.fullName,
+            className,
+            academicYearName,
+            schoolName,
+            assignedByName,
+        });
+
+        console.log(`✅ [ClassServices] Assign email sent to teacher: ${teacher.email}`);
+    } catch (error) {
+        // ✅ Không throw lỗi: gửi mail thất bại không ảnh hưởng đến nghiệp vụ chính
+        console.error(`❌ [ClassServices] Failed to send assign email to teacher ${teacherId}:`, error.message);
+    }
 };
 
 const createNew = async (data, userId) => {
@@ -147,8 +177,7 @@ const createNew = async (data, userId) => {
         });
         console.log('✅ [Class createNew] Teacher assigned to class');
 
-        // ✅ Tạo thông báo cho giáo viên
-        // const teachers = await UserModel.findById(data.homeRoomTeacher).select('fullName');
+        // ✅ Tạo thông báo trong hệ thống (đã có sẵn)
         const creatorUser = await UserModel.findById(userId).select('fullName');
         const creatorName = creatorUser?.fullName || 'Ban giám hiệu';
 
@@ -165,6 +194,18 @@ const createNew = async (data, userId) => {
                 actionBy: userId,
                 actionByName: creatorName,
             },
+        });
+
+        // ✅ THÊM: Lấy tên trường để gửi mail
+        const school = await SchoolModel.findOne({ schoolId, _destroy: false }).select('name').lean(); // ✅ THÊM import SchoolModel nếu chưa có
+
+        // ✅ THÊM: Gửi email thông báo cho giáo viên (bất đồng bộ, không block)
+        sendAssignTeacherEmailSafe({
+            teacherId: data.homeRoomTeacher,
+            className: data.name,
+            academicYearName: `${activeYear.fromYear}-${activeYear.toYear}`,
+            schoolName: school?.name || 'Trường mầm non',
+            assignedByName: creatorName,
         });
 
         // ✅ Đánh dấu năm học đã cấu hình
@@ -457,7 +498,7 @@ const update = async (id, data, userId) => {
 
         // ✅ Trường hợp 1: THAY ĐỔI GIÁO VIÊN CHỦ NHIỆM
         if (data.homeRoomTeacher && data.homeRoomTeacher !== oldTeacherId) {
-            // ✅ Thông báo cho giáo viên MỚI
+            // ✅ Thông báo hệ thống cho giáo viên MỚI (đã có sẵn)
             await notificationServices.createNotification({
                 recipientUserId: data.homeRoomTeacher,
                 schoolId: user.schoolId,
@@ -471,6 +512,19 @@ const update = async (id, data, userId) => {
                     actionBy: userId,
                     actionByName: editorName,
                 },
+            });
+
+            // ✅ THÊM: Gửi email cho giáo viên MỚI được phân công
+            const school = await SchoolModel.findOne({ schoolId: user.schoolId, _destroy: false })
+                .select('name')
+                .lean();
+
+            sendAssignTeacherEmailSafe({
+                teacherId: data.homeRoomTeacher,
+                className: updatedClass.name,
+                academicYearName: `${updatedClass.academicYearId.fromYear}-${updatedClass.academicYearId.toYear}`,
+                schoolName: school?.name || 'Trường mầm non',
+                assignedByName: editorName,
             });
 
             // ✅ Thông báo cho giáo viên CŨ (bị gỡ bỏ)
@@ -827,6 +881,17 @@ const copyFromYear = async (data, userId) => {
                     actionBy: userId,
                     actionByName: copierName,
                 },
+            });
+
+            // ✅ THÊM: Gửi email khi copy lớp sang năm mới
+            const school = await SchoolModel.findOne({ schoolId, _destroy: false }).select('name').lean();
+
+            sendAssignTeacherEmailSafe({
+                teacherId: newTeacherId,
+                className: sourceClass.name,
+                academicYearName: `${toAcademicYear.fromYear}-${toAcademicYear.toYear}`,
+                schoolName: school?.name || 'Trường mầm non',
+                assignedByName: copierName,
             });
         }
 

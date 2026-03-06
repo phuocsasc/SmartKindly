@@ -1,9 +1,52 @@
 import { DepartmentModel } from '~/models/departmentModel.js';
 import { AcademicYearModel } from '~/models/academicYearModel.js';
 import { UserModel } from '~/models/userModel.js';
+import { SchoolModel } from '~/models/schoolModel.js'; // ✅ THÊM
 import ApiError from '~/utils/ApiError.js';
 import { StatusCodes } from 'http-status-codes';
 import { notificationServices } from '~/services/notificationServices.js';
+import { ResendProvider } from '~/providers/ResendProvider.js'; // ✅ THÊM
+
+/**
+ * ✅ Helper: Gửi email thông báo phân công/gỡ bỏ tổ bộ môn (không throw lỗi nếu thất bại)
+ */
+const sendAssignDepartmentEmailSafe = async ({
+    managerId,
+    departmentName,
+    academicYearName,
+    schoolName,
+    assignedByName,
+    isRemoved = false,
+}) => {
+    try {
+        const manager = await UserModel.findById(managerId).select('fullName email').lean();
+
+        if (!manager?.email) {
+            console.warn(`⚠️ [DepartmentServices] Manager ${managerId} has no email, skipping email notification`);
+            return;
+        }
+
+        await ResendProvider.sendAssignDepartmentEmail({
+            to: manager.email,
+            toName: manager.fullName,
+            departmentName,
+            academicYearName,
+            schoolName,
+            assignedByName,
+            isRemoved,
+        });
+
+        console.log(
+            `✅ [DepartmentServices] ${isRemoved ? 'Remove' : 'Assign'} department email sent to: ${manager.email}`,
+        );
+    } catch (error) {
+        // ✅ Không throw lỗi: gửi mail thất bại không ảnh hưởng đến nghiệp vụ chính
+        console.error(
+            `❌ [DepartmentServices] Failed to send department email to manager ${managerId}:`,
+            error.message,
+        );
+    }
+};
 
 const createNew = async (data, userId) => {
     try {
@@ -154,6 +197,22 @@ const createNew = async (data, userId) => {
                     actionBy: userId,
                     actionByName: creatorName,
                 },
+            });
+        }
+
+        // ✅ THÊM: Lấy tên trường
+        const school = await SchoolModel.findOne({ schoolId, _destroy: false }).select('name').lean();
+        const schoolName = school?.name || 'Trường mầm non';
+
+        // ✅ THÊM: Gửi email cho TẤT CẢ cán bộ được phân công (bất đồng bộ, không block)
+        for (const managerId of data.managers) {
+            sendAssignDepartmentEmailSafe({
+                managerId,
+                departmentName: data.name,
+                academicYearName: `${academicYear.fromYear}-${academicYear.toYear}`,
+                schoolName,
+                assignedByName: creatorName,
+                isRemoved: false,
             });
         }
 
@@ -394,7 +453,15 @@ const update = async (id, data, userId) => {
             const newManagerIds = data.managers.filter((managerId) => !oldManagerIds.includes(managerId));
             const removedManagerIds = oldManagerIds.filter((managerId) => !data.managers.includes(managerId));
 
-            // ✅ Thông báo cho cán bộ MỚI ĐƯỢC THÊM VÀO
+            // ✅ THÊM: Lấy tên trường 1 lần cho tất cả email
+            const school = await SchoolModel.findOne({ schoolId: user.schoolId, _destroy: false })
+                .select('name')
+                .lean();
+            const schoolName = school?.name || 'Trường mầm non';
+            const academicYearName = `${updatedDepartment.academicYearId.fromYear}-${updatedDepartment.academicYearId.toYear}`;
+            const finalDeptName = updatedDepartment.name;
+
+            // ✅ Thông báo + Email cho cán bộ MỚI ĐƯỢC THÊM VÀO
             for (const managerId of newManagerIds) {
                 await notificationServices.createNotification({
                     recipientUserId: managerId,
@@ -410,9 +477,19 @@ const update = async (id, data, userId) => {
                         actionByName: editorName,
                     },
                 });
+
+                // ✅ THÊM: Gửi email cho cán bộ MỚI
+                sendAssignDepartmentEmailSafe({
+                    managerId,
+                    departmentName: finalDeptName,
+                    academicYearName,
+                    schoolName,
+                    assignedByName: editorName,
+                    isRemoved: false,
+                });
             }
 
-            // ✅ Thông báo cho cán bộ BỊ GỠ BỎ
+            // ✅ Thông báo + Email cho cán bộ BỊ GỠ BỎ
             for (const managerId of removedManagerIds) {
                 await notificationServices.createNotification({
                     recipientUserId: managerId,
@@ -427,6 +504,16 @@ const update = async (id, data, userId) => {
                         actionBy: userId,
                         actionByName: editorName,
                     },
+                });
+
+                // ✅ THÊM: Gửi email cho cán bộ BỊ GỠ BỎ
+                sendAssignDepartmentEmailSafe({
+                    managerId,
+                    departmentName: finalDeptName,
+                    academicYearName,
+                    schoolName,
+                    assignedByName: editorName,
+                    isRemoved: true,
                 });
             }
 
@@ -643,6 +730,8 @@ const copyFromYear = async (data, userId) => {
         const copiedDepartments = [];
         const copierUser = await UserModel.findById(userId).select('fullName');
         const copierName = copierUser?.fullName || 'Ban giám hiệu';
+        const school = await SchoolModel.findOne({ schoolId, _destroy: false }).select('name').lean();
+        const schoolName = school?.name || 'Trường mầm non';
 
         for (const sourceDept of sourceDepartments) {
             const departmentId = await DepartmentModel.generateDepartmentId();
@@ -676,6 +765,16 @@ const copyFromYear = async (data, userId) => {
                         actionBy: userId,
                         actionByName: copierName,
                     },
+                });
+
+                // ✅ THÊM: Gửi email cho cán bộ được copy sang năm mới
+                sendAssignDepartmentEmailSafe({
+                    managerId: manager._id,
+                    departmentName: sourceDept.name,
+                    academicYearName: `${toAcademicYear.fromYear}-${toAcademicYear.toYear}`,
+                    schoolName,
+                    assignedByName: copierName,
+                    isRemoved: false,
                 });
             }
         }

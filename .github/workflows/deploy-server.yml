@@ -56,21 +56,22 @@ jobs:
 
                       docker rm ${{ env.CONTAINER_NAME }} || true
 
-                        docker run -d --name ${{ env.CONTAINER_NAME }} -p ${{ env.SERVER_PORT }}:8017 --restart=always \
-                        -e MONGODB_URI=${{ secrets.MONGODB_URI }} \
-                        -e DATABASE_NAME=${{ secrets.DATABASE_NAME }} \
-                        -e ACCESS_TOKEN_SECRET_SIGNATURE=${{ secrets.ACCESS_TOKEN_SECRET_SIGNATURE }} \
-                        -e REFRESH_TOKEN_SECRET_SIGNATURE=${{ secrets.REFRESH_TOKEN_SECRET_SIGNATURE }} \
-                        -e LOCAL_DEV_APP_PORT=${{ secrets.LOCAL_DEV_APP_PORT }} \
-                        -e LOCAL_DEV_APP_HOST=${{ secrets.LOCAL_DEV_APP_HOST }} \
-                        -e MAILER_SEND_API_KEY=${{ secrets.MAILER_SEND_API_KEY }} \
-                        -e ADMIN_SENDER_EMAIL=${{ secrets.ADMIN_SENDER_EMAIL }} \
-                        -e ADMIN_SENDER_NAME=${{ secrets.ADMIN_SENDER_NAME }} \
-                        -e CLIENT_URL=${{ secrets.CLIENT_URL }} \
-                        -e RESEND_API_KEY=${{ secrets.RESEND_API_KEY }} \
-                        -e RESEND_ADMIN_SENDER_EMAIL=${{ secrets.RESEND_ADMIN_SENDER_EMAIL }} \
-                        -e NPM_CONFIG_PRODUCTION=${{ secrets.NPM_CONFIG_PRODUCTION }} \
-                        -e OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }} \
+                      docker run -d --name ${{ env.CONTAINER_NAME }} -p ${{ env.SERVER_PORT }}:8017 --restart=always \
+                        -e PORT=8017 \
+                        -e MONGODB_URI="${{ secrets.MONGODB_URI }}" \
+                        -e DATABASE_NAME="${{ secrets.DATABASE_NAME }}" \
+                        -e ACCESS_TOKEN_SECRET_SIGNATURE="${{ secrets.ACCESS_TOKEN_SECRET_SIGNATURE }}" \
+                        -e REFRESH_TOKEN_SECRET_SIGNATURE="${{ secrets.REFRESH_TOKEN_SECRET_SIGNATURE }}" \
+                        -e LOCAL_DEV_APP_PORT="${{ secrets.LOCAL_DEV_APP_PORT }}" \
+                        -e LOCAL_DEV_APP_HOST="${{ secrets.LOCAL_DEV_APP_HOST }}" \
+                        -e MAILER_SEND_API_KEY="${{ secrets.MAILER_SEND_API_KEY }}" \
+                        -e ADMIN_SENDER_EMAIL="${{ secrets.ADMIN_SENDER_EMAIL }}" \
+                        -e ADMIN_SENDER_NAME="${{ secrets.ADMIN_SENDER_NAME }}" \
+                        -e CLIENT_URL="${{ secrets.CLIENT_URL }}" \
+                        -e RESEND_API_KEY="${{ secrets.RESEND_API_KEY }}" \
+                        -e RESEND_ADMIN_SENDER_EMAIL="${{ secrets.RESEND_ADMIN_SENDER_EMAIL }}" \
+                        -e NPM_CONFIG_PRODUCTION="${{ secrets.NPM_CONFIG_PRODUCTION }}" \
+                        -e OPENAI_API_KEY="${{ secrets.OPENAI_API_KEY }}" \
                         ${{ env.IMAGE_NAME }}:${{ github.run_number }}
 
                       docker image prune -f

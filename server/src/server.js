@@ -49,9 +49,9 @@ const START_SERVER = () => {
             console.log(`3. ✅ Production: Back-end Server is running successfully at Port ${process.env.PORT}`);
         });
     } else {
-        httpServer.listen(env.LOCAL_DEV_APP_PORT, env.LOCAL_DEV_APP_HOST, () => {
+        httpServer.listen(env.LOCAL_DEV_APP_PORT, '0.0.0.0', () => {
             console.log(
-                `3. ✅ Local DEV: Back-end Server is running successfully at http://${env.LOCAL_DEV_APP_HOST}:${env.LOCAL_DEV_APP_PORT}/`,
+                `3. ✅ Local DEV: Back-end Server is running successfully at http://0.0.0.0:${env.LOCAL_DEV_APP_PORT}/`,
             );
         });
     }

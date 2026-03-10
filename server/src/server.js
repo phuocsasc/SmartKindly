@@ -45,7 +45,7 @@ const START_SERVER = () => {
 
     // Môi trường Production (cụ thể là khi deploy trên Render.com)
     if (env.BUILD_MODE === 'production') {
-        httpServer.listen(process.env.PORT, () => {
+        httpServer.listen(process.env.PORT, '0.0.0.0', () => {
             console.log(`3. ✅ Production: Back-end Server is running successfully at Port ${process.env.PORT}`);
         });
     } else {

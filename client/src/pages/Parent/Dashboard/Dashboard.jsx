@@ -114,7 +114,7 @@ function Dashboard() {
                                     flexWrap: 'wrap',
                                 }}
                             >
-                                <Typography variant={isMobile ? 'h5' : 'h4'} fontWeight={800}>
+                                <Typography variant={isMobile ? 'h5' : 'h4'} fontWeight={700}>
                                     Chào mừng phụ huynh đến với SMARTKINDLY
                                 </Typography>
                             </Box>

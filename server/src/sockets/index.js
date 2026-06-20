@@ -1,6 +1,7 @@
 import { Server } from 'socket.io';
 import { JwtProvider } from '~/providers/JwtProvider.js';
 import { env } from '~/config/environment.js';
+import { WHITELIST_DOMAINS } from '~/utils/constants.js';
 
 let io = null;
 
@@ -9,15 +10,19 @@ let io = null;
  * @param {Object} httpServer - HTTP server instance
  */
 export const initSocketServer = (httpServer) => {
+    const allowedOrigins = env.CLIENT_URL
+        ? Array.from(new Set([env.CLIENT_URL, ...WHITELIST_DOMAINS]))
+        : WHITELIST_DOMAINS;
+
     io = new Server(httpServer, {
         cors: {
-            origin: env.CLIENT_URL || 'http://localhost:5173',
+            origin: allowedOrigins,
             methods: ['GET', 'POST'],
             credentials: true,
         },
         pingTimeout: 60000,
         pingInterval: 25000,
-        transports: ['websocket', 'polling'], // ✅ FIX: Add transports
+        transports: ['polling', 'websocket'],
     });
 
     // ✅ Middleware xác thực JWT
@@ -53,6 +58,14 @@ export const initSocketServer = (httpServer) => {
     // ✅ Connection handler
     io.on('connection', (socket) => {
         console.log('🔌 [Socket] Client connected:', socket.id, '| User:', socket.userId);
+
+        socket.on('app:ping', (payload) => {
+            socket.emit('app:pong', {
+                ok: true,
+                serverTime: Date.now(),
+                clientTime: payload?.clientTime || null,
+            });
+        });
 
         // ✅ Join room theo userId để nhận thông báo cá nhân
         const userRoom = `user-${socket.userId}`;

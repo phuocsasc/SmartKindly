@@ -1,0 +1,13 @@
+version: "3.9"
+
+services:
+  server:
+    build: .
+    container_name: smartkindly_server
+    ports:
+      - "8017:8017"
+    env_file:
+      - .env
+    environment:
+      - BUILD_MODE=dev
+    restart: unless-stopped

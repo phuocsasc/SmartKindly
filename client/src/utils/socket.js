@@ -10,6 +10,67 @@ class SocketClient {
         this.heartbeatIntervalMs = 25000;
     }
 
+    createSocket(baseUrl, accessToken) {
+        const socket = io(baseUrl, {
+            auth: {
+                token: accessToken,
+            },
+            autoConnect: false,
+            forceNew: false,
+            reconnection: true,
+            reconnectionDelay: 1000,
+            reconnectionDelayMax: 10000,
+            reconnectionAttempts: Infinity,
+            randomizationFactor: 0.5,
+            timeout: 30000,
+            transports: ['polling', 'websocket'],
+            closeOnBeforeunload: false,
+        });
+
+        socket.on('connect', () => {
+            this.isConnected = true;
+            console.log('✅ [Socket] Connected:', socket.id);
+            this.startHeartbeat();
+            this.sendPing();
+        });
+
+        socket.on('connect_error', (error) => {
+            this.isConnected = false;
+            console.error('❌ [Socket] Connection error:', error.message);
+        });
+
+        socket.on('disconnect', (reason) => {
+            this.isConnected = false;
+            this.stopHeartbeat();
+            console.log('🔌 [Socket] Disconnected:', reason);
+
+            if (reason !== 'io client disconnect') {
+                console.log('🔄 [Socket] Keep reconnection enabled for transient disconnects');
+            }
+        });
+
+        socket.on('app:pong', () => {
+            console.log('🏓 [Socket] Pong received');
+        });
+
+        socket.on('reconnect_attempt', (attemptNumber) => {
+            console.log(`🔄 [Socket] Reconnection attempt #${attemptNumber}`);
+        });
+
+        socket.on('reconnect', (attemptNumber) => {
+            this.isConnected = true;
+            console.log(`✅ [Socket] Reconnected after ${attemptNumber} attempts`);
+            this.startHeartbeat();
+            this.sendPing();
+        });
+
+        socket.on('reconnect_error', (error) => {
+            console.error('❌ [Socket] Reconnect error:', error.message);
+        });
+
+        return socket;
+    }
+
     /**
      * ✅ Kết nối socket với JWT token
      */
@@ -19,8 +80,13 @@ class SocketClient {
             return;
         }
 
-        if (this.socket && this.currentToken === accessToken && (this.socket.connected || this.socket.active)) {
+        if (this.socket && this.currentToken === accessToken && this.socket.connected) {
             console.log('⚠️ [Socket] Already connected');
+            return;
+        }
+
+        if (this.socket && this.currentToken === accessToken && this.socket.active) {
+            console.log('🔄 [Socket] Reusing active socket while it reconnects');
             return;
         }
 
@@ -35,55 +101,8 @@ class SocketClient {
         const baseUrl = API_ROOT.replace('/v1', '');
         this.currentToken = accessToken;
 
-        this.socket = io(baseUrl, {
-            auth: {
-                token: accessToken,
-            },
-            autoConnect: true,
-            forceNew: true,
-            reconnection: true,
-            reconnectionDelay: 1000,
-            reconnectionDelayMax: 5000,
-            reconnectionAttempts: 5,
-            timeout: 20000,
-            transports: ['polling', 'websocket'],
-        });
-
-        // ✅ Connection success
-        this.socket.on('connect', () => {
-            this.isConnected = true;
-            console.log('✅ [Socket] Connected:', this.socket.id);
-            this.startHeartbeat();
-            this.sendPing();
-        });
-
-        // ✅ Connection error
-        this.socket.on('connect_error', (error) => {
-            this.isConnected = false;
-            console.error('❌ [Socket] Connection error:', error.message);
-        });
-
-        // ✅ Disconnection
-        this.socket.on('disconnect', (reason) => {
-            this.isConnected = false;
-            this.stopHeartbeat();
-            console.log('🔌 [Socket] Disconnected:', reason);
-        });
-
-        this.socket.on('app:pong', () => {
-            console.log('🏓 [Socket] Pong received');
-        });
-
-        // ✅ Reconnection attempt
-        this.socket.on('reconnect_attempt', (attemptNumber) => {
-            console.log(`🔄 [Socket] Reconnection attempt #${attemptNumber}`);
-        });
-
-        // ✅ Reconnection success
-        this.socket.on('reconnect', (attemptNumber) => {
-            this.isConnected = true;
-            console.log(`✅ [Socket] Reconnected after ${attemptNumber} attempts`);
-        });
+        this.socket = this.createSocket(baseUrl, accessToken);
+        this.socket.connect();
     }
 
     /**

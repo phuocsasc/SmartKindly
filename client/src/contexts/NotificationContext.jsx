@@ -118,7 +118,10 @@ export const NotificationProvider = ({ children, user }) => {
         if (!user) return;
 
         const accessToken = localStorage.getItem('accessToken');
-        if (!accessToken) return;
+        if (!accessToken) {
+            socketClient.disconnect();
+            return;
+        }
 
         // ✅ Connect socket
         socketClient.connect(accessToken);

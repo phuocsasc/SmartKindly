@@ -3,7 +3,7 @@
 
 let apiRoot = '';
 if (process.env.BUILD_MODE === 'production') {
-    apiRoot = 'https://smartkindly.tronect.vn';
+    apiRoot = 'https://smartkindly-api.onrender.com';
 }
 if (process.env.BUILD_MODE === 'dev') {
     apiRoot = 'http://localhost:8017';

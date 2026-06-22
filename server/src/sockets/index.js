@@ -15,13 +15,17 @@ export const initSocketServer = (httpServer) => {
         : WHITELIST_DOMAINS;
 
     io = new Server(httpServer, {
+        connectionStateRecovery: {
+            maxDisconnectionDuration: 2 * 60 * 1000,
+            skipMiddlewares: true,
+        },
         cors: {
             origin: allowedOrigins,
             methods: ['GET', 'POST'],
             credentials: true,
         },
-        pingTimeout: 60000,
-        pingInterval: 25000,
+        pingTimeout: 120000,
+        pingInterval: 30000,
         transports: ['polling', 'websocket'],
     });
 

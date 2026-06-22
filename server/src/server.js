@@ -18,6 +18,8 @@ const START_SERVER = () => {
 
     // ✅ Create HTTP server
     const httpServer = createServer(app);
+    httpServer.keepAliveTimeout = 75000;
+    httpServer.headersTimeout = 80000;
 
     // Fix Cache from disk from ExpressJS
     app.use((req, res, next) => {
